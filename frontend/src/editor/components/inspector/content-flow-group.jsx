@@ -1,4 +1,4 @@
-import React, {PropTypes} from 'react';
+import React from 'react'; import PropTypes from 'prop-types';
 import RuleStateCircle from './rule-state-circle';
 import DisclosureTriangle from './disclosure-triangle';
 import RuleList from './rule-list';

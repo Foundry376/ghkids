@@ -1,4 +1,4 @@
-import React, {PropTypes} from 'react';
+import React from 'react'; import PropTypes from 'prop-types';
 import {connect} from 'react-redux';
 import {Link} from 'react-router';
 import classNames from 'classnames';
@@ -51,7 +51,7 @@ class Toolbar extends React.Component {
         data-tutorial-id={`toolbar-tool-${toolId}`}
         onClick={() => dispatch(actions.selectToolId(toolId))}
       >
-        <img src={require(`../img/sidebar_${toolId}.png`)} />
+        <img src={new URL(`../img/sidebar_${toolId}.png`, import.meta.url).href} />
       </Button>
     );
   }
@@ -143,7 +143,7 @@ class Toolbar extends React.Component {
 
         <div style={{flex: 1, textAlign: 'right'}}>
           <Button onClick={() => dispatch(actions.showModal(MODALS.STAGES))} className="dropdown-toggle">
-            <img src={require('../img/sidebar_choose_background.png')} />
+            <img src={new URL('../img/sidebar_choose_background.png', import.meta.url).href} />
             <span className="title">{stageName || "Untitled Stage"}</span>
           </Button>
         </div>

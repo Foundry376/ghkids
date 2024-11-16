@@ -1,4 +1,4 @@
-import React, {PropTypes} from 'react';
+import React from 'react'; import PropTypes from 'prop-types';
 
 import {TOOL_POINTER} from '../../constants/constants';
 import {changeCharacter} from '../../actions/characters-actions';

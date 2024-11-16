@@ -1,4 +1,4 @@
-import React, {PropTypes} from 'react';
+import React from 'react'; import PropTypes from 'prop-types';
 import Button from 'reactstrap/lib/Button';
 import {undo, redo} from '../utils/undo-redo';
 import {connect} from 'react-redux';
@@ -55,14 +55,14 @@ class UndoRedoControls extends React.Component {
           onClick={() => this._dispatch(undo())}
           disabled={undoDepth === 0}
         >
-          <img src={require('../img/icon_undo.png')} />
+          <img src={new URL('../img/icon_undo.png', import.meta.url).href} />
         </Button>
         <Button
           className="icon"
           onClick={() => this._dispatch(redo())}
           disabled={redoDepth === 0}
         >
-          <img src={require('../img/icon_redo.png')} />
+          <img src={new URL('../img/icon_redo.png', import.meta.url).href} />
         </Button>
       </div>
     );

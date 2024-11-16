@@ -1,4 +1,4 @@
-import React, {PropTypes} from 'react';
+import React from 'react'; import PropTypes from 'prop-types';
 // import PixelColorPicker from '../modal-paint/pixel-color-picker';
 
 export default class StageSettings extends React.Component {

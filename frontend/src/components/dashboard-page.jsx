@@ -1,4 +1,4 @@
-import React, {PropTypes} from 'react';
+import React from 'react'; import PropTypes from 'prop-types';
 import {connect} from 'react-redux';
 import Button from 'reactstrap/lib/Button';
 import Col from 'reactstrap/lib/Col';
@@ -48,7 +48,7 @@ class DashboardPage extends React.Component {
                         Start Tutorial
                       </Button>
                     </div>
-                    <img className="tutorial-cta-girl" src={require('../img/get-started-girl.png')} />
+                    <img className="tutorial-cta-girl" src={new URL('../img/get-started-girl.png', import.meta.url).href} />
                   </div>
                 </div>
               )

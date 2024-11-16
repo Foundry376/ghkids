@@ -1,4 +1,4 @@
-import React, {PropTypes} from 'react';
+import React from 'react'; import PropTypes from 'prop-types';
 import {STAGE_CELL_SIZE} from '../../constants/constants';
 
 export default class RecordingIgnoredSprite extends React.Component {
@@ -12,7 +12,7 @@ export default class RecordingIgnoredSprite extends React.Component {
       <div style={{
         position: 'absolute',
         pointerEvents: 'none',
-        background: `url(${require('../../img/ignored_square.png')}) top left no-repeat`,
+        background: `url('/src/editor/img/ignored_square.png') top left no-repeat`,
         width: STAGE_CELL_SIZE,
         height: STAGE_CELL_SIZE,
         left: this.props.x * STAGE_CELL_SIZE,

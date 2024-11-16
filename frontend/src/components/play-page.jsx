@@ -1,4 +1,4 @@
-import React, {PropTypes} from 'react';
+import React from 'react'; import PropTypes from 'prop-types';
 import {Link} from 'react-router';
 import {push} from 'react-router-redux';
 import {connect} from 'react-redux';
@@ -103,7 +103,7 @@ class PlayPage extends React.Component {
               <div className="message">
                 Codako is a free online tool for creating games! <a onClick={this._onFork} href="#">Remix this game</a> to make your own like it or <Link to={'/explore'}>explore more games</Link>.
               </div>
-              <img className="tutorial-cta-girl" src={require('../img/get-started-girl.png')} />
+              <img className="tutorial-cta-girl" src={new URL('../img/get-started-girl.png', import.meta.url).href} />
             </div>
           </Col>
         </Row>

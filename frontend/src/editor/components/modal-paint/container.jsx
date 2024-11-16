@@ -1,4 +1,4 @@
-import React, {PropTypes} from 'react';
+import React from 'react'; import PropTypes from 'prop-types';
 import {connect} from 'react-redux';
 import Modal from 'reactstrap/lib/Modal';
 import ModalBody from 'reactstrap/lib/ModalBody';
@@ -318,7 +318,7 @@ class Container extends React.Component {
               onClick={this._onUndo}
               disabled={undoStack.length === 0}
             >
-              <img src={require('../../img/icon_undo.png')} />
+              <img src={new URL('../../img/icon_undo.png', import.meta.url).href} />
             </Button>
             <Button
               title="Redo"
@@ -326,7 +326,7 @@ class Container extends React.Component {
               onClick={this._onRedo}
               disabled={redoStack.length === 0}
             >
-              <img src={require('../../img/icon_redo.png')} />
+              <img src={new URL('../../img/icon_redo.png', import.meta.url).href} />
             </Button>
             <ButtonDropdown
               isOpen={this.state.dropdownOpen}

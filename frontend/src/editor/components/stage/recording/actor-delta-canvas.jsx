@@ -1,5 +1,5 @@
 import SquaresCanvas from './squares-canvas';
-import React, {PropTypes} from 'react';
+import React from 'react'; import PropTypes from 'prop-types';
 
 export default class ActorDeltaCanvas extends React.Component {
   static propTypes = {

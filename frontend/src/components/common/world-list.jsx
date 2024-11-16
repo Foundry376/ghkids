@@ -1,4 +1,4 @@
-import React, {PropTypes} from 'react';
+import React from 'react'; import PropTypes from 'prop-types';
 import Container from 'reactstrap/lib/Container';
 
 import WorldCard from './world-card';

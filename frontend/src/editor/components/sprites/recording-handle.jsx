@@ -1,4 +1,4 @@
-import React, {PropTypes} from 'react';
+import React from 'react'; import PropTypes from 'prop-types';
 import {STAGE_CELL_SIZE} from '../../constants/constants';
 
 export default class RecordingHandle extends React.Component {
@@ -24,7 +24,7 @@ export default class RecordingHandle extends React.Component {
         data-stage-handle={side}
         onDragStart={this._onDragStart}
         className={`handle-${side}`}
-        src={require(`../..//img/tiles/handle_${side}.png`)}
+        src={new URL(`../../img/tiles/handle_${side}.png`, import.meta.url).href}
         style={{
           position: 'absolute',
           width: STAGE_CELL_SIZE,

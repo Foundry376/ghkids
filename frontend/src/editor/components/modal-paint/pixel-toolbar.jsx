@@ -1,4 +1,4 @@
-import React, {PropTypes} from 'react';
+import React from 'react'; import PropTypes from 'prop-types';
 import classNames from 'classnames';
 
 export default class PixelToolbar extends React.Component {
@@ -19,7 +19,7 @@ export default class PixelToolbar extends React.Component {
             className={classNames({'tool': true, 'selected': tool === t})}
             onClick={() => onToolChange(t)}
           >
-            <img src={require(`../../img/tool_${t.name}.png`)} />
+            <img src={new URL(`../../img/tool_${t.name}.png`, import.meta.url).href} />
           </button>
         )}
       </div>

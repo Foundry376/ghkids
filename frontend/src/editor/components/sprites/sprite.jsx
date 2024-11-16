@@ -1,4 +1,4 @@
-import React, {PropTypes} from 'react';
+import React from 'react'; import PropTypes from 'prop-types';
 
 
 export default class Sprite extends React.Component {
@@ -15,7 +15,7 @@ export default class Sprite extends React.Component {
     const {appearance, transform, frame, spritesheet, className} = this.props;
     const {width, appearances} = spritesheet;
 
-    let data = require('../../img/splat.png');
+    let data = new URL('../../img/splat.png', import.meta.url).href;
     if (appearance && appearances[appearance]) {
       data = appearances[appearance][frame || 0];
     }

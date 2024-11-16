@@ -1,4 +1,4 @@
-import React, {PropTypes} from 'react';
+import React from 'react'; import PropTypes from 'prop-types';
 import {connect} from 'react-redux';
 
 
@@ -318,6 +318,9 @@ class Stage extends React.Component {
       selected = stage.actors[selectedActorPath.actorId];
     }
 
+    if (stage.background === 'url(/Layer0_2.png)') {
+      stage.background = `url(${new URL(`/src/editor/img/backgrounds/Layer0_2.png`, import.meta.url).href})`
+    }
     return (
       <div
         style={style}
@@ -343,7 +346,7 @@ class Stage extends React.Component {
             position: 'absolute',
             width: stage.width * STAGE_CELL_SIZE,
             height: stage.height * STAGE_CELL_SIZE,
-            background: `url(${require('../../img/board-grid.png')}) top left, ${stage.background}`,
+            background: `url('/src/editor/img/board-grid.png') top left, ${stage.background}`,
             backgroundSize: '40px, cover',
           }} />
           {

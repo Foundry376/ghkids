@@ -1,4 +1,4 @@
-import React, {PropTypes} from 'react';
+import React from 'react'; import PropTypes from 'prop-types';
 
 import Button from 'reactstrap/lib/Button';
 import {cancelRecording, startRecording, finishRecording} from '../../actions/recording-actions';

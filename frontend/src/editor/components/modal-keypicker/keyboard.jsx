@@ -1,4 +1,4 @@
-import React, {PropTypes} from 'react';
+import React from 'react'; import PropTypes from 'prop-types';
 import {nameForKey} from '../../utils/event-helpers';
 
 const forEachKeyRect = (el, cb) => {

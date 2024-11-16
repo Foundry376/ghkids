@@ -1,4 +1,4 @@
-import React, {PropTypes} from 'react';
+import React from 'react'; import PropTypes from 'prop-types';
 import TapToEditLabel from '../tap-to-edit-label';
 import ConnectedStagePicker from './connected-stage-picker';
 

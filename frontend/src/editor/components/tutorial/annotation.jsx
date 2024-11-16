@@ -1,4 +1,4 @@
-import React, {PropTypes} from 'react';
+import React from 'react'; import PropTypes from 'prop-types';
 
 const MARGIN_X = 55;
 const MARGIN_Y = 40;

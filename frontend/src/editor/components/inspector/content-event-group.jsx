@@ -1,4 +1,4 @@
-import React, {PropTypes} from 'react';
+import React from 'react'; import PropTypes from 'prop-types';
 import RuleStateCircle from './rule-state-circle';
 import RuleList from './rule-list';
 import DisclosureTriangle from './disclosure-triangle';
@@ -54,7 +54,7 @@ export default class ContentEventGroup extends React.Component {
               collapsed={collapsed}
             />
           </div>
-          <img className="icon" src={require(`../../img/icon_event_${rule.event}.png`)} />
+          <img className="icon" src={new URL(`../../img/icon_event_${rule.event}.png`, import.meta.url).href} />
           <div
             className="name"
             onDoubleClick={() => this.context.onRulePickKey(rule.id)}

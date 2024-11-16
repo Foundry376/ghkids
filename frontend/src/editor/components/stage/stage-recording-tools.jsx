@@ -1,4 +1,4 @@
-import React, {PropTypes} from 'react';
+import React from 'react'; import PropTypes from 'prop-types';
 import {connect} from 'react-redux';
 
 import {TOOL_POINTER, TOOL_IGNORE_SQUARE} from '../../constants/constants';
@@ -25,7 +25,7 @@ class StageRecordingTools extends React.Component {
         })}
         onClick={() => dispatch(selectToolId(selected ? TOOL_POINTER : TOOL_IGNORE_SQUARE))}
       >
-        <img src={require('../../img/ignored_square.png')} />
+        <img src={new URL('../../img/ignored_square.png', import.meta.url).href} />
       </Button>
     );
   }

@@ -1,4 +1,4 @@
-import React, {PropTypes} from 'react';
+import React from 'react'; import PropTypes from 'prop-types';
 import Sprite from './sprite';
 
 import {STAGE_CELL_SIZE} from '../../constants/constants';

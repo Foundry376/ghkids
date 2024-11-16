@@ -1,4 +1,4 @@
-import * as types from '../constants/action-types';
+import * as types from "../constants/action-types";
 
 export function changeCharacter(characterId, values) {
   return {
@@ -14,23 +14,22 @@ export function createCharacter(newId) {
     characterId: newId,
     values: {
       id: newId,
-      name: 'Untitled',
+      name: "Untitled",
       rules: [],
       spritesheet: {
         width: 40,
         appearances: {
-          'idle': [require('../img/splat.png')],
+          idle: [new URL("../img/splat.png", import.meta.url).href],
         },
-        appearanceNames:{
-          'idle': 'Idle',
+        appearanceNames: {
+          idle: "Idle",
         },
       },
       variables: {},
-      world: 'x',
-    }
+      world: "x",
+    },
   };
 }
-
 
 export function deleteCharacter(characterId) {
   return {
@@ -39,14 +38,17 @@ export function deleteCharacter(characterId) {
   };
 }
 
-export function createCharacterFlowContainer(characterId, {id}) {
+export function createCharacterFlowContainer(characterId, { id }) {
   return {
     type: types.CREATE_CHARACTER_FLOW_CONTAINER,
     characterId,
     id,
   };
 }
-export function createCharacterEventContainer(characterId, {id, eventCode, eventType}) {
+export function createCharacterEventContainer(
+  characterId,
+  { id, eventCode, eventType }
+) {
   return {
     type: types.CREATE_CHARACTER_EVENT_CONTAINER,
     characterId,
@@ -73,14 +75,23 @@ export function deleteCharacterVariable(characterId, variableId) {
   };
 }
 
-export function createCharacterAppearance(characterId, newAppearanceId, newAppearanceData) {
+export function createCharacterAppearance(
+  characterId,
+  newAppearanceId,
+  newAppearanceData
+) {
   return {
     type: types.UPSERT_CHARACTER,
     characterId: characterId,
     values: {
       spritesheet: {
-        appearances: {[newAppearanceId]: [newAppearanceData || require('../img/splat.png')]},
-        appearanceNames: {[newAppearanceId]: 'Untitled'},
+        appearances: {
+          [newAppearanceId]: [
+            newAppearanceData ||
+              new URL("../img/splat.png", import.meta.url).href,
+          ],
+        },
+        appearanceNames: { [newAppearanceId]: "Untitled" },
       },
     },
   };
@@ -95,7 +106,7 @@ export function deleteCharacterAppearance(characterId, appearanceId) {
 }
 
 export function changeCharacterAppearanceName(characterId, appearanceId, name) {
-  const values = {spritesheet: {appearanceNames: {}}};
+  const values = { spritesheet: { appearanceNames: {} } };
   values.spritesheet.appearanceNames[appearanceId] = name;
   return changeCharacter(characterId, values);
 }

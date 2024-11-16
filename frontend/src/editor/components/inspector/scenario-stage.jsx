@@ -1,4 +1,4 @@
-import React, {PropTypes} from 'react';
+import React from 'react'; import PropTypes from 'prop-types';
 
 import {STAGE_CELL_SIZE} from '../../constants/constants';
 import WorldOperator from '../../utils/world-operator';
