@@ -1,9 +1,8 @@
-import {forEachInLine, forEachInRect, getFlattenedImageData} from './helpers';
-
+import { forEachInLine, forEachInRect, getFlattenedImageData } from "./helpers";
 
 export class PixelTool {
   constructor() {
-    this.name = 'Undefined';
+    this.name = "Undefined";
   }
 
   mousedown(point, props) {
@@ -36,7 +35,7 @@ export class PixelTool {
         s: null,
         e: null,
         points: [],
-      }
+      },
     });
   }
 
@@ -45,14 +44,13 @@ export class PixelTool {
   }
 }
 
-
 export class PixelFillRectTool extends PixelTool {
   constructor() {
     super();
-    this.name = 'rect';
+    this.name = "rect";
   }
 
-  render(context, {color, interaction}) {
+  render(context, { color, interaction }) {
     if (!interaction.s || !interaction.e) {
       return;
     }
@@ -62,14 +60,13 @@ export class PixelFillRectTool extends PixelTool {
   }
 }
 
-
 export class PixelPaintbucketTool extends PixelTool {
   constructor() {
     super();
-    this.name = 'paintbucket';
+    this.name = "paintbucket";
   }
 
-  render(context, {imageData, interaction, color}) {
+  render(context, { imageData, interaction, color }) {
     if (!interaction.e) {
       return;
     }
@@ -80,14 +77,13 @@ export class PixelPaintbucketTool extends PixelTool {
 }
 
 export class PixelFillEllipseTool extends PixelTool {
-
   constructor() {
     super();
-    this.name = 'ellipse';
+    this.name = "ellipse";
   }
 
-  render(context, {color, interaction}) {
-    const {s, e} = interaction;
+  render(context, { color, interaction }) {
+    const { s, e } = interaction;
     if (!s || !e) {
       return;
     }
@@ -98,7 +94,7 @@ export class PixelFillEllipseTool extends PixelTool {
     const cy = Math.round(s.y + ry);
 
     forEachInRect(s, e, (x, y) => {
-      if (Math.pow((x-cx) / rx, 2) + Math.pow((y-cy) / ry, 2) < 1) {
+      if (Math.pow((x - cx) / rx, 2) + Math.pow((y - cy) / ry, 2) < 1) {
         context.fillPixel(x, y, color);
       }
     });
@@ -108,16 +104,18 @@ export class PixelFillEllipseTool extends PixelTool {
 export class PixelPenTool extends PixelTool {
   constructor() {
     super();
-    this.name = 'pen';
+    this.name = "pen";
   }
 
-  render(context, {color, interaction: {points}}) {
+  render(context, { color, interaction: { points } }) {
     if (!points || !points.length) {
       return;
     }
     let prev = points[0];
     for (const point of points) {
-      forEachInLine(prev.x, prev.y, point.x, point.y, (x, y) => context.fillPixel(x, y, color));
+      forEachInLine(prev.x, prev.y, point.x, point.y, (x, y) =>
+        context.fillPixel(x, y, color)
+      );
       prev = point;
     }
   }
@@ -126,11 +124,11 @@ export class PixelPenTool extends PixelTool {
 export class PixelLineTool extends PixelTool {
   constructor() {
     super();
-    this.name = 'line';
+    this.name = "line";
   }
 
-  render(context, {color, pixelSize, interaction}, isPreview) {
-    const {s, e} = interaction;
+  render(context, { color, pixelSize, interaction }, isPreview) {
+    const { s, e } = interaction;
     if (!s || !e) {
       return;
     }
@@ -141,10 +139,10 @@ export class PixelLineTool extends PixelTool {
       context.lineTo((e.x + 0.5) * pixelSize, (e.y + 0.5) * pixelSize);
       context.translate(0.5, 0.5);
       context.strokeWidth = 0.5;
-      context.strokeStyle = 'rgba(0,0,0,1)';
+      context.strokeStyle = "rgba(0,0,0,1)";
       context.stroke();
       context.translate(1, 1);
-      context.strokeStyle = 'rgba(255,255,255,1)';
+      context.strokeStyle = "rgba(255,255,255,1)";
       context.stroke();
       context.translate(-1.5, -1.5);
       context.closePath();
@@ -155,19 +153,23 @@ export class PixelLineTool extends PixelTool {
 export class PixelEraserTool extends PixelTool {
   constructor() {
     super();
-    this.name = 'eraser';
+    this.name = "eraser";
   }
 
-  render(context, {color, interaction: {points}}, isPreview) {
+  render(context, { color, interaction: { points } }, isPreview) {
     if (!points || !points.length) {
       return;
     }
     let prev = points[0];
     for (const point of points) {
       if (isPreview) {
-        forEachInLine(prev.x, prev.y, point.x, point.y, (x, y) => context.clearPixel(x, y));
+        forEachInLine(prev.x, prev.y, point.x, point.y, (x, y) =>
+          context.clearPixel(x, y)
+        );
       } else {
-        forEachInLine(prev.x, prev.y, point.x, point.y, (x, y) => context.fillPixel(x, y, "rgba(0,0,0,0)"));
+        forEachInLine(prev.x, prev.y, point.x, point.y, (x, y) =>
+          context.fillPixel(x, y, "rgba(0,0,0,0)")
+        );
       }
       prev = point;
     }
@@ -176,7 +178,10 @@ export class PixelEraserTool extends PixelTool {
 
 class PixelSelectionTool extends PixelTool {
   selectionOffsetForProps(props) {
-    const {interaction: {s, e}, initialSelectionOffset} = props;
+    const {
+      interaction: { s, e },
+      initialSelectionOffset,
+    } = props;
     return {
       x: initialSelectionOffset.x + (e.x - s.x),
       y: initialSelectionOffset.y + (e.y - s.y),
@@ -187,16 +192,20 @@ class PixelSelectionTool extends PixelTool {
     // override in subclasses
   }
 
-  shouldDrag(point, {selectionImageData, selectionOffset}) {
+  shouldDrag(point, { selectionImageData, selectionOffset }) {
     const x = point.x - selectionOffset.x;
     const y = point.y - selectionOffset.y;
-    return selectionImageData && selectionImageData.getOpaquePixels()[`${x},${y}`];
+    return (
+      selectionImageData && selectionImageData.getOpaquePixels()[`${x},${y}`]
+    );
   }
 
   mousedown(point, props, event) {
     if (this.shouldDrag(point, props)) {
       return Object.assign({}, super.mousedown(point, props), {
-        imageData: event.altKey ? getFlattenedImageData(props) : props.imageData,
+        imageData: event.altKey
+          ? getFlattenedImageData(props)
+          : props.imageData,
         initialSelectionOffset: props.selectionOffset,
         draggingSelection: true,
       });
@@ -205,7 +214,7 @@ class PixelSelectionTool extends PixelTool {
     return Object.assign({}, super.mousedown(point, props), {
       imageData: getFlattenedImageData(props),
       selectionImageData: null,
-      selectionOffset: {x: 0, y: 0},
+      selectionOffset: { x: 0, y: 0 },
       interactionPixels: this.selectionPixelsForProps(props),
     });
   }
@@ -234,32 +243,33 @@ class PixelSelectionTool extends PixelTool {
 
     const imageData = props.imageData.clone();
     for (const key of Object.keys(props.interactionPixels)) {
-      const [x, y] = key.split(',').map(v => v / 1);
+      const [x, y] = key.split(",").map((v) => v / 1);
       imageData.fillPixelRGBA(x, y, 0, 0, 0, 0);
     }
     return Object.assign({}, super.mouseup(props), {
-      selectionOffset: {x: 0, y: 0},
+      selectionOffset: { x: 0, y: 0 },
       selectionImageData,
       imageData,
       interactionPixels: null,
     });
-
   }
 }
 
 export class PixelRectSelectionTool extends PixelSelectionTool {
   constructor() {
     super();
-    this.name = 'select';
+    this.name = "select";
   }
 
-  selectionPixelsForProps({interaction}) {
+  selectionPixelsForProps({ interaction }) {
     if (!interaction.s || !interaction.e) {
       return null;
     }
     const interactionPixels = {};
-    forEachInRect(interaction.s, interaction.e, (x, y) =>
-      interactionPixels[`${x},${y}`] = true
+    forEachInRect(
+      interaction.s,
+      interaction.e,
+      (x, y) => (interactionPixels[`${x},${y}`] = true)
     );
     return interactionPixels;
   }
@@ -268,10 +278,10 @@ export class PixelRectSelectionTool extends PixelSelectionTool {
 export class PixelMagicSelectionTool extends PixelSelectionTool {
   constructor() {
     super();
-    this.name = 'magicWand';
+    this.name = "magicWand";
   }
 
-  selectionPixelsForProps({imageData, interaction}) {
+  selectionPixelsForProps({ imageData, interaction }) {
     if (!interaction.e) {
       return {};
     }
@@ -282,16 +292,16 @@ export class PixelMagicSelectionTool extends PixelSelectionTool {
 export class EyedropperTool extends PixelTool {
   constructor() {
     super();
-    this.name = 'eyedropper';
+    this.name = "eyedropper";
   }
 
   mouseup(props) {
-    const {imageData, interaction} = props;
+    const { imageData, interaction } = props;
 
     if (!interaction.e) {
       return super.mouseup(props);
     }
-    const [r,g,b,a] = imageData.getPixel(interaction.e.x, interaction.e.y);
+    const [r, g, b, a] = imageData.getPixel(interaction.e.x, interaction.e.y);
 
     return Object.assign({}, props, {
       color: `rgba(${r},${g},${b},${a})`,
@@ -299,7 +309,7 @@ export class EyedropperTool extends PixelTool {
         s: null,
         e: null,
         points: [],
-      }
+      },
     });
   }
 }

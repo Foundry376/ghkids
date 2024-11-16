@@ -2,7 +2,7 @@ import * as types from '../constants/action-types';
 
 import xhr from 'xhr';
 
-const API_ROOT = (window.location.host.includes('codako') ? `` : `http://localhost:8080`);
+const API_ROOT = `https://www.codako.org`;// (window.location.host.includes('codako') ? `` : `http://localhost:8080`);
 
 export function makeRequest(path, {method = 'GET', query = {}, headers = {}, json, body} = {}) {
   const {dispatch} = window.store;
