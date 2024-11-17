@@ -32,13 +32,13 @@ function configureStoreDev(initialState) {
     )
   );
 
-  // if (module.hot) {
-  //   // Enable Webpack hot module replacement for reducers
-  //   module.hot.accept('../reducers', () => {
-  //     const nextReducer = new URL('../reducers', import.meta.url).href.default; // eslint-disable-line global-require
-  //     store.replaceReducer(nextReducer);
-  //   });
-  // }
+  if (import.meta.hot) {
+    // Enable Webpack hot module replacement for reducers
+    import.meta.hot.accept("../reducers", () => {
+      const nextReducer = new URL("../reducers", import.meta.url).href.default; // eslint-disable-line global-require
+      store.replaceReducer(nextReducer);
+    });
+  }
 
   return store;
 }
