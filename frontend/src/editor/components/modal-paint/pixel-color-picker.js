@@ -31,8 +31,8 @@ export default class PixelColorPicker extends React.Component {
 
     return (
       <div className="pixel-color-picker">
-        <div className="active-swatch" style={{backgroundColor: color}} />
-        {ColorOptions.map(option =>
+        {/* <div className="active-swatch" style={{backgroundColor: color}} /> */}
+        <input className="active-swatch" type="color" value={color} onBlur={(e) => {if (e.target.value) { onColorChange(e.target.value); }}} />        {ColorOptions.map(option =>
           <button
             key={option}
             style={{backgroundColor: option}}

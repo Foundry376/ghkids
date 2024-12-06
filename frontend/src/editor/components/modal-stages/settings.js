@@ -86,7 +86,7 @@ export default class StageSettings extends React.Component {
                 Color
               </label>
               <input
-                type="text"
+                type="color"
                 defaultValue={backgroundAsColor}
                 onBlur={(e) => { if (e.target.value) { onChange({background: e.target.value}); }}}
               />
