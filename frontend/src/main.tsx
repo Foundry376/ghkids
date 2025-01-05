@@ -1,5 +1,3 @@
-/* eslint-disable import/default */
-
 import { render } from "react-dom";
 import { Provider } from "react-redux";
 import { Router, browserHistory } from "react-router";
