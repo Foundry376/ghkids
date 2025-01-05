@@ -5,9 +5,9 @@ import cors from "cors";
 import express from "express";
 import enforce from "express-sslify";
 import { MulterError } from "multer";
-import { requestFinishedLogger } from "./logging";
-import { logger } from "./logger";
 import path from "path";
+import { logger } from "./logger";
+import { requestFinishedLogger } from "./logging";
 
 const app = express();
 
@@ -59,10 +59,12 @@ app.use((err: Error, req: express.Request, res: express.Response, next: express.
   res.status(500).json({ message: err.toString() });
 });
 
-const adminRoot = path.join(__dirname, "..", "frontend");
-app.use(express.static(adminRoot, { index: false, immutable: true, maxAge: 60 * 60 * 24 * 1000 }));
+const frontendDist = path.join(__dirname, "..", "frontend");
+app.use(
+  express.static(frontendDist, { index: false, immutable: true, maxAge: 60 * 60 * 24 * 1000 }),
+);
 app.use("/", (req, res, next) => {
-  res.sendFile(path.join(adminRoot, "index.html"));
+  res.sendFile(path.join(frontendDist, "index.html"));
 });
 
 export default app;

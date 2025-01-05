@@ -9,6 +9,8 @@ $rule-flow-color: #5BA4CD;
 
 $create-account-notice-color: #e6dac1;
 
+@use "sass:color";
+
 @mixin cursor($name) {
   cursor: url(../img/cursor_#{$name}.cur) 0 0, auto;
   cursor: -webkit-image-set(url(../img/cursor_#{$name}.cur) 2x) 0 0, url(../img/cursor_#{$name}.cur) 0 0, auto;
@@ -188,13 +190,13 @@ $create-account-notice-color: #e6dac1;
         -45deg,
         $create-account-notice-color,
         $create-account-notice-color 10px,
-        darken($create-account-notice-color, 5%) 10px,
-        darken($create-account-notice-color, 5%) 20px
+        color.adjust($create-account-notice-color, $lightness: -5%) 10px,
+        color.adjust($create-account-notice-color, $lightness: -5%) 20px
       );
       color: rgba(0,0,0,0.8);
       padding: 2px;
       display: inline-block;
-      border: 1px solid darken($create-account-notice-color, 20%);
+      border: 1px solid color.adjust($create-account-notice-color, $lightness: - 20%);
       border-radius: 0.5rem;
       box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
       font-weight: bold;
@@ -867,11 +869,11 @@ $create-account-notice-color: #e6dac1;
 
 
 button.btn.selected {
-  background-image: linear-gradient($tint-color, darken($tint-color, 22%));
+  background-image: linear-gradient($tint-color, color.adjust($tint-color, $lightness: -22%));
   color: white;
 }
 button.btn.selected:active {
-  background-image: linear-gradient(darken($tint-color, 30%), darken($tint-color, 22%));
+  background-image: linear-gradient(color.adjust($tint-color, $lightness: -30%), color.adjust($tint-color, $lightness: -22%));
   color: white;
 }
 
@@ -998,12 +1000,12 @@ button.btn.selected:active {
     .stage-item {
       margin: 10px;
       display: inline-block;
-      border: 2px solid lighten(gray, 10%);
+      border: 2px solid color.adjust(gray, $lightness:  10%);
       background-color: gray;
       vertical-align: top;
       padding: 2px;
       &.selected {
-        border: 2px solid lighten($tint-color, 10%);
+        border: 2px solid color.adjust($tint-color, $lightness:  10%);
         background-color: $tint-color;
       }
       img {

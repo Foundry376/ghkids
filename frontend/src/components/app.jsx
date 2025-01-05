@@ -1,7 +1,7 @@
-import React from "react";
 import PropTypes from "prop-types";
-import { Link, IndexLink } from "react-router";
+import React from "react";
 import { connect } from "react-redux";
+import { IndexLink, Link } from "react-router";
 import Button from "reactstrap/lib/Button";
 
 import { logout } from "../actions/main-actions";
@@ -87,7 +87,7 @@ class App extends React.Component {
               {"Open sourced with love by "}
               <a href="http://www.foundry376.com/">Foundry376.</a>{" "}
               <a href="/terms-of-use">Terms of Use</a> and{" "}
-              <a href="/privacy-policy">Privacy</a>
+              <a href="/privacy-policy">Privacy Policy</a>
             </div>
           </div>
         </div>

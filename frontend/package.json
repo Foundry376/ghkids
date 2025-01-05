@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "tsc -b && vite build && rm -rf ../api/frontend && mv ./dist ../api/frontend",
     "lint": "eslint .",
     "preview": "vite preview"
   },
@@ -32,6 +32,10 @@
     "updeep": "^1.2.4",
     "url-loader": "0.5.7",
     "xhr": "2.3.3"
+  },
+  "resolutions": {
+    "@types/react": "^15",
+    "@types/react-dom": "^15"
   },
   "devDependencies": {
     "@eslint/js": "^9.13.0",
