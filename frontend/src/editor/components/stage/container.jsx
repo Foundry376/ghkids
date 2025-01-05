@@ -2,7 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import { connect } from 'react-redux';
 import RecordingActions from './recording/panel-actions';
-import RecordingConditions from './recording/panel-conditions';
+import { RecordingConditions } from './recording/panel-conditions';
 import Stage from './stage';
 import StageControls from './stage-controls';
 import StageRecordingControls from './stage-recording-controls';

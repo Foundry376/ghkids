@@ -1,11 +1,9 @@
-
-
-import * as Types from '../constants/action-types';
-import uiReducer from './ui-reducer';
-import charactersReducer from './characters-reducer';
-import recordingReducer from './recording-reducer';
-import worldReducer from './world-reducer';
-import {undoRedoReducerFactory} from '../utils/undo-redo';
+import * as Types from "../constants/action-types";
+import { undoRedoReducerFactory } from "../utils/undo-redo";
+import charactersReducer from "./characters-reducer";
+import recordingReducer from "./recording-reducer";
+import uiReducer from "./ui-reducer";
+import worldReducer from "./world-reducer";
 
 const reducerMap = {
   ui: uiReducer,
@@ -15,12 +13,7 @@ const reducerMap = {
 };
 
 const undoRedoReducer = undoRedoReducerFactory({
-  trackedKeys: [
-    'recording',
-    'world',
-    'characters',
-    'stages',
-  ],
+  trackedKeys: ["recording", "world", "characters", "stages"],
   ignoredActions: [
     Types.ADVANCE_GAME_STATE,
     Types.STEP_BACK_GAME_STATE,
@@ -29,11 +22,11 @@ const undoRedoReducer = undoRedoReducerFactory({
 });
 
 function applyReducerMap(map, state, action) {
- const nextState = Object.assign({}, state);
+  const nextState = Object.assign({}, state);
 
   for (const key of Object.keys(map)) {
     if (map[key] instanceof Function) {
-      nextState[key] = map[key](state[key], action);
+      nextState[key] = map[key](state[key], action, state);
     } else {
       nextState[key] = applyReducerMap(map[key], state[key], action);
     }

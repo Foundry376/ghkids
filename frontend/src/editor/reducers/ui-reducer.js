@@ -1,21 +1,27 @@
+import u from "updeep";
 
-import u from 'updeep';
+import * as Types from "../constants/action-types";
+import { WORLDS } from "../constants/constants";
+import { buildActorPath, nullActorPath } from "../utils/stage-helpers";
+import initialState from "./initial-state";
 
-import * as Types from '../constants/action-types';
-import {WORLDS} from '../constants/constants';
-import {nullActorPath, buildActorPath} from '../utils/stage-helpers';
-import initialState from './initial-state';
-
-export default function uiReducer(state = initialState.ui, action) {
+export default function uiReducer(
+  state = initialState.ui,
+  action,
+  entireState
+) {
   switch (action.type) {
     case Types.START_RECORDING: {
-      const entireState = window.editorStore.getState();
-      const {actorId, characterId} = entireState.recording;
+      const { actorId, characterId } = entireState.recording;
       const current = entireState.ui.selectedActorPath;
 
       return Object.assign({}, state, {
         selectedCharacterId: characterId,
-        selectedActorPath: buildActorPath(WORLDS.AFTER, current.stageId, actorId),
+        selectedActorPath: buildActorPath(
+          WORLDS.AFTER,
+          current.stageId,
+          actorId
+        ),
       });
     }
     case Types.CANCEL_RECORDING: {
@@ -38,7 +44,7 @@ export default function uiReducer(state = initialState.ui, action) {
         selectedActorPath: action.actorPath,
       });
     case Types.UPDATE_PLAYBACK_STATE:
-      return u({playback: action.values}, state);
+      return u({ playback: action.values }, state);
     case Types.UPDATE_PAINTING_STATE:
       return Object.assign({}, state, {
         paint: {
@@ -54,14 +60,14 @@ export default function uiReducer(state = initialState.ui, action) {
           ruleId: action.ruleId,
         },
       });
-    case Types.UPDATE_MODAL_STATE: 
+    case Types.UPDATE_MODAL_STATE:
       return Object.assign({}, state, {
         modal: {
           openId: action.openId,
         },
       });
-    case Types.UPDATE_TUTORIAL_STATE: 
-      return u({tutorial: action.values}, state);
+    case Types.UPDATE_TUTORIAL_STATE:
+      return u({ tutorial: action.values }, state);
     default:
       return state;
   }

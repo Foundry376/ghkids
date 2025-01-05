@@ -1,19 +1,19 @@
-import * as Types from "../constants/action-types";
-import worldReducer from "./world-reducer";
-import initialState from "./initial-state";
 import u from "updeep";
+import * as Types from "../constants/action-types";
+import initialState from "./initial-state";
+import worldReducer from "./world-reducer";
 
-import WorldOperator from "../utils/world-operator";
 import {
-  RECORDING_PHASE_SETUP,
   RECORDING_PHASE_RECORD,
+  RECORDING_PHASE_SETUP,
   WORLDS,
 } from "../constants/constants";
-import { getCurrentStageForWorld } from "../utils/selectors";
 import { extentByShiftingExtent } from "../utils/recording-helpers";
+import { getCurrentStageForWorld } from "../utils/selectors";
+import WorldOperator from "../utils/world-operator";
 
-function stateForEditingRule(phase, rule) {
-  const { world, characters } = window.editorStore.getState();
+function stateForEditingRule(phase, rule, entireState) {
+  const { world, characters } = entireState;
   const stage = getCurrentStageForWorld(world);
 
   const ex = rule.extent.xmax - rule.extent.xmin;
@@ -48,8 +48,11 @@ function stateForEditingRule(phase, rule) {
 
 export default function recordingReducer(
   state = initialState.recording,
-  action
+  action,
+  entireState
 ) {
+  const { world, characters } = entireState;
+
   const nextState = Object.assign({}, state, {
     beforeWorld: worldReducer(state.beforeWorld, action),
     afterWorld: worldReducer(state.afterWorld, action),
@@ -57,7 +60,6 @@ export default function recordingReducer(
 
   switch (action.type) {
     case Types.SETUP_RECORDING_FOR_ACTOR: {
-      const { world } = window.editorStore.getState();
       const { actor } = action;
       return u(
         {
@@ -81,7 +83,6 @@ export default function recordingReducer(
       );
     }
     case Types.SETUP_RECORDING_FOR_CHARACTER: {
-      const { characters } = window.editorStore.getState();
       const character = characters[action.characterId];
 
       const initialRule = {
@@ -100,13 +101,13 @@ export default function recordingReducer(
         },
       };
       return u(
-        stateForEditingRule(RECORDING_PHASE_SETUP, initialRule),
+        stateForEditingRule(RECORDING_PHASE_SETUP, initialRule, entireState),
         nextState
       );
     }
     case Types.EDIT_RULE_RECORDING: {
       return u(
-        stateForEditingRule(RECORDING_PHASE_RECORD, action.rule),
+        stateForEditingRule(RECORDING_PHASE_RECORD, action.rule, entireState),
         nextState
       );
     }

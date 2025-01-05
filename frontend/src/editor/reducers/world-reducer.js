@@ -1,12 +1,12 @@
 /* eslint no-param-reassign: 0 */
-import u from 'updeep';
+import u from "updeep";
 
-import stageCollectionReducer from './stage-collection-reducer';
+import stageCollectionReducer from "./stage-collection-reducer";
 
-import * as Types from '../constants/action-types';
-import WorldOperator from '../utils/world-operator';
+import * as Types from "../constants/action-types";
+import WorldOperator from "../utils/world-operator";
 
-export default function worldReducer(state, action) {
+export default function worldReducer(state, action, entireState) {
   if (action.worldId && action.worldId !== state.id) {
     return state;
   }
@@ -17,40 +17,49 @@ export default function worldReducer(state, action) {
 
   switch (action.type) {
     case Types.SELECT_STAGE_ID: {
-      return u({globals: {selectedStageId: {value: action.stageId}}}, state);
+      return u(
+        { globals: { selectedStageId: { value: action.stageId } } },
+        state
+      );
     }
     case Types.UPDATE_WORLD_METADATA: {
-      return u({metadata: action.metadata}, state);
+      return u({ metadata: action.metadata }, state);
     }
     case Types.UPSERT_GLOBAL: {
-      return u({globals: {[action.globalId]: action.changes}}, state);
+      return u({ globals: { [action.globalId]: action.changes } }, state);
     }
     case Types.DELETE_GLOBAL: {
-      return u({globals: u.omit(action.globalId)}, state);
+      return u({ globals: u.omit(action.globalId) }, state);
     }
     case Types.INPUT_FOR_GAME_STATE: {
-      return u({
-        input: {
-          keys: action.keys,
-          clicks: action.clicks,
+      return u(
+        {
+          input: {
+            keys: action.keys,
+            clicks: action.clicks,
+          },
         },
-      }, state);
+        state
+      );
     }
     case Types.ADVANCE_GAME_STATE: {
-      const {characters} = window.editorStore.getState();
+      const { characters } = entireState;
       return WorldOperator(state, characters).tick();
     }
     case Types.STEP_BACK_GAME_STATE: {
-      const {characters} = window.editorStore.getState();
+      const { characters } = entireState;
       return WorldOperator(state, characters).untick();
     }
     case Types.UPSERT_ACTOR:
     case Types.DELETE_ACTOR:
     case Types.DELETE_CHARACTER:
     case Types.RESTORE_INITIAL_GAME_STATE:
-      return u({
-        history: u.constant([]),
-      }, state);
+      return u(
+        {
+          history: u.constant([]),
+        },
+        state
+      );
 
     default:
       return state;
