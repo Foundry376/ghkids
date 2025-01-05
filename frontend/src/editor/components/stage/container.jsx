@@ -1,14 +1,15 @@
-import React from 'react'; import PropTypes from 'prop-types';
-import {connect} from 'react-redux';
-import Stage from './stage';
-import StageControls from './stage-controls';
-import StageRecordingTools from './stage-recording-tools';
-import StageRecordingControls from './stage-recording-controls';
+import PropTypes from 'prop-types';
+import React from 'react';
+import { connect } from 'react-redux';
 import RecordingActions from './recording/panel-actions';
 import RecordingConditions from './recording/panel-conditions';
+import Stage from './stage';
+import StageControls from './stage-controls';
+import StageRecordingControls from './stage-recording-controls';
+import StageRecordingTools from './stage-recording-tools';
 
-import {RECORDING_PHASE_SETUP, RECORDING_PHASE_RECORD} from '../../constants/constants';
-import {getCurrentStageForWorld} from '../../utils/selectors';
+import { RECORDING_PHASE_RECORD, RECORDING_PHASE_SETUP } from '../../constants/constants';
+import { getCurrentStageForWorld } from '../../utils/selectors';
 
 
 class StageContainer extends React.Component {
@@ -23,7 +24,8 @@ class StageContainer extends React.Component {
   };
 
   render() {
-    const {world, recording, playback, dispatch, characters, readonly} = this.props;
+    const { world, recording, playback, dispatch, characters, readonly } =
+      this.props;
 
     let stageA = null;
     let stageB = null;
@@ -50,7 +52,7 @@ class StageContainer extends React.Component {
       } else if (recording.phase === RECORDING_PHASE_RECORD) {
         stageA = (
           <Stage
-            style={{marginRight: 2}}
+            style={{ marginRight: 2 }}
             world={recording.beforeWorld}
             stage={getCurrentStageForWorld(recording.beforeWorld)}
             recordingExtent={recording.extent}
@@ -59,7 +61,7 @@ class StageContainer extends React.Component {
         );
         stageB = (
           <Stage
-            style={{marginLeft: 2}}
+            style={{ marginLeft: 2 }}
             world={recording.afterWorld}
             stage={getCurrentStageForWorld(recording.afterWorld)}
             recordingExtent={recording.extent}
@@ -68,7 +70,13 @@ class StageContainer extends React.Component {
         );
         actions = (
           <div className="recording-specifics">
-            <div style={{position: "absolute", transform:'translate(0, -100%)', paddingBottom: 5}}>
+            <div
+              style={{
+                position: "absolute",
+                transform: "translate(0, -100%)",
+                paddingBottom: 5,
+              }}
+            >
               <StageRecordingTools />
             </div>
             <RecordingConditions
@@ -86,28 +94,45 @@ class StageContainer extends React.Component {
       }
     }
 
-    return ( 
+    return (
       <div className="panel stages">
         <div className="stages-horizontal-flex">
-          {stageA || <Stage world={world} stage={getCurrentStageForWorld(world)} recording={null} readonly={readonly} />}
-          {stageB || <Stage style={{flex: 0}} />}
+          {stageA || (
+            <Stage
+              world={world}
+              stage={getCurrentStageForWorld(world)}
+              recording={null}
+              readonly={readonly}
+            />
+          )}
+          {stageB || <Stage style={{ flex: 0 }} />}
         </div>
-        {actions || <div className="recording-specifics" style={{height: 0}} />}
-        {controls || <StageControls {...playback} dispatch={dispatch} world={world} readonly={readonly} />}
+        {actions || (
+          <div className="recording-specifics" style={{ height: 0 }} />
+        )}
+        {controls || (
+          <StageControls
+            {...playback}
+            dispatch={dispatch}
+            world={world}
+            readonly={readonly}
+          />
+        )}
       </div>
     );
   }
 }
 
 function mapStateToProps(state) {
-  return Object.assign({}, {
-    recording: state.recording,
-    characters: state.characters,
-    playback: state.ui.playback,
-    world: state.world,
-  });
+  return Object.assign(
+    {},
+    {
+      recording: state.recording,
+      characters: state.characters,
+      playback: state.ui.playback,
+      world: state.world,
+    }
+  );
 }
 
-export default connect(
-  mapStateToProps,
-)(StageContainer);
+export default connect(mapStateToProps)(StageContainer);

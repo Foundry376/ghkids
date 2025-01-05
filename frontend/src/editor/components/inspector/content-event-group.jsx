@@ -4,6 +4,7 @@ import RuleList from './rule-list';
 import DisclosureTriangle from './disclosure-triangle';
 
 import {nameForKey} from '../../utils/event-helpers';
+import {isCollapsePersisted, persistCollapsedState} from './collapse-state-storage';
 
 export default class ContentEventGroup extends React.Component {
   static propTypes = {
@@ -18,7 +19,7 @@ export default class ContentEventGroup extends React.Component {
   constructor(props, context) {
     super(props, context);
     this.state = {
-      collapsed: false,
+      collapsed: isCollapsePersisted(props.rule.id),
     };
   }
 
@@ -50,7 +51,10 @@ export default class ContentEventGroup extends React.Component {
           <div style={{float:'left', width: 20, lineHeight:'1.15em'}}>
             <RuleStateCircle rule={rule} />
             <DisclosureTriangle
-              onClick={() => this.setState({collapsed: !collapsed})}
+              onClick={() => {
+                this.setState({collapsed: !collapsed});
+                persistCollapsedState(this.props.rule.id, !collapsed);
+              }}
               collapsed={collapsed}
             />
           </div>

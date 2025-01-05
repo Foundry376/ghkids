@@ -1,11 +1,17 @@
-import React from 'react'; import PropTypes from 'prop-types';
+import PropTypes from 'prop-types';
+import React from 'react';
 
-import ScenarioStage from './scenario-stage';
-import RuleStateCircle from './rule-state-circle';
-import DisclosureTriangle from './disclosure-triangle';
-import TapToEditLabel from '../tap-to-edit-label';
+import TapToEditLabel from "../tap-to-edit-label";
+import DisclosureTriangle from "./disclosure-triangle";
+import RuleStateCircle from "./rule-state-circle";
+import ScenarioStage from "./scenario-stage";
 
-import {TransformConditionRow, AppearanceConditionRow, VariableConditionRow} from '../stage/recording/condition-rows';
+import { toV2Condition } from "../../utils/stage-helpers";
+import { FreeformConditionRow } from "../stage/recording/condition-rows";
+import {
+  isCollapsePersisted,
+  persistCollapsedState,
+} from "./collapse-state-storage";
 
 export default class ContentRule extends React.Component {
   static propTypes = {
@@ -20,68 +26,45 @@ export default class ContentRule extends React.Component {
   constructor(props, context) {
     super(props, context);
     this.state = {
-      collapsed: false,
+      collapsed: isCollapsePersisted(props.rule.id),
     };
   }
 
   _onNameChange = (event) => {
-    this.context.onRuleChanged(this.props.rule.id, {name: event.target.value});
-  }
+    this.context.onRuleChanged(this.props.rule.id, {
+      name: event.target.value,
+    });
+  };
 
   render() {
-    const {characters} = this.context;
-    const {rule} = this.props;
-    const {collapsed} = this.state;
+    const { characters } = this.context;
+    const { rule } = this.props;
+    const { collapsed } = this.state;
 
     const conditions = [];
     Object.values(rule.actors).forEach((a) => {
       const saved = rule.conditions[a.id] || {};
 
-      if (saved['transform'] && saved['transform'].enabled) {
-        conditions.push(
-          <TransformConditionRow
-            key={`${a.id}-transform`}
-            character={characters[a.characterId]}
-            actor={a}
-            transform={a.transform}
-            enabled
-          />
-        );
-      }
-
-      if (saved['appearance'] && saved['appearance'].enabled) {
-        conditions.push(
-          <AppearanceConditionRow
-            key={`${a.id}-appearance`}
-            character={characters[a.characterId]}
-            actor={a}
-            appearance={a.appearance}
-            enabled
-          />
-        );
-      }
-
-      for (const vkey of Object.keys(a.variableValues)) {
-        if (saved[vkey] && saved[vkey].enabled) {
+      Object.entries(saved).forEach(([key, value]) => {
+        if (value && value.enabled) {
           conditions.push(
-            <VariableConditionRow
-              key={`${a.id}-var-${vkey}`}
-              character={characters[a.characterId]}
+            <FreeformConditionRow
+              key={`${a.id}-${key}`}
               actor={a}
-              variableId={vkey}
-              variableValue={a.variableValues[vkey]}
-              {...saved[vkey]}
+              actors={rule.actors}
+              condition={toV2Condition(key, value)}
+              characters={characters}
             />
           );
         }
-      }
+      });
     });
 
     return (
       <div>
         <div className="scenario">
           <RuleStateCircle rule={rule} />
-          <div style={{flex: 1}} />
+          <div style={{ flex: 1 }} />
           <ScenarioStage
             rule={rule}
             applyActions={false}
@@ -95,10 +78,13 @@ export default class ContentRule extends React.Component {
             maxWidth={75}
             maxHeight={75}
           />
-          <div style={{flex: 1}} />
+          <div style={{ flex: 1 }} />
         </div>
         <DisclosureTriangle
-          onClick={() => this.setState({collapsed: !collapsed})}
+          onClick={() => {
+            this.setState({ collapsed: !collapsed });
+            persistCollapsedState(this.props.rule.id, !collapsed);
+          }}
           enabled={conditions.length > 0}
           collapsed={conditions.length === 0 || collapsed}
         />
@@ -108,9 +94,7 @@ export default class ContentRule extends React.Component {
           onChange={this._onNameChange}
         />
         {conditions.length > 0 && !collapsed && (
-          <ul className="conditions">
-            {conditions}
-          </ul>
+          <ul className="conditions">{conditions}</ul>
         )}
       </div>
     );

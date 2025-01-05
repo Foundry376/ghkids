@@ -30,7 +30,7 @@ app.use((req, res, next) => {
   })(req, res, (err) => {
     if (err) {
       logger.error(err);
-      res.status(400).json({ error: "Request is not valid JSON" });
+      res.status(400).json({ message: "Request is not valid JSON" });
       return;
     }
     next();
@@ -52,11 +52,11 @@ app.use("/", require("./routes/characters").default);
 app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
   // Catch multer limit errors
   if (err instanceof MulterError && err.code === "LIMIT_FILE_SIZE") {
-    res.status(422).json({ error: `File too large, only files under 20MB will be uploaded` });
+    res.status(422).json({ message: `File too large, only files under 20MB will be uploaded` });
   }
 
   logger.error(err);
-  res.status(500).json({ error: err.toString() });
+  res.status(500).json({ message: err.toString() });
 });
 
 const adminRoot = path.join(__dirname, "..", "frontend");

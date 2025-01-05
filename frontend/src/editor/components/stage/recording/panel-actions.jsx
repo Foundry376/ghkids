@@ -1,13 +1,19 @@
-import React from 'react'; import PropTypes from 'prop-types';
-import {updateRecordingActionPrefs} from '../../../actions/recording-actions';
-import {actionsForRecording} from '../../../utils/recording-helpers';
-import {applyVariableOperation} from '../../../utils/stage-helpers';
-import {changeActor} from '../../../actions/stage-actions';
-import {getCurrentStageForWorld} from '../../../utils/selectors';
+import PropTypes from 'prop-types';
+import React from 'react';
+import { updateRecordingActionPrefs } from '../../../actions/recording-actions';
+import { changeActor } from '../../../actions/stage-actions';
+import { actionsForRecording } from '../../../utils/recording-helpers';
+import { getCurrentStageForWorld } from '../../../utils/selectors';
+import { applyVariableOperation } from '../../../utils/stage-helpers';
 
-import ActorDeltaCanvas from './actor-delta-canvas';
-import ActorPositionCanvas from './actor-position-canvas';
-import {TransformBlock, AppearanceBlock, VariableBlock, ActorBlock} from './blocks';
+import ActorDeltaCanvas from "./actor-delta-canvas";
+import ActorPositionCanvas from "./actor-position-canvas";
+import {
+  ActorBlock,
+  AppearanceBlock,
+  TransformBlock,
+  VariableBlock,
+} from "./blocks";
 
 class VariableActionPicker extends React.Component {
   static propTypes = {
@@ -15,10 +21,10 @@ class VariableActionPicker extends React.Component {
     value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
     onChangeOperation: PropTypes.func,
     onChangeValue: PropTypes.func,
-  }
+  };
 
   render() {
-    const {operation, value, onChangeOperation, onChangeValue} = this.props;
+    const { operation, value, onChangeOperation, onChangeValue } = this.props;
 
     return (
       <span>
@@ -37,10 +43,10 @@ class VariableActionPicker extends React.Component {
           defaultValue={value}
           className="variable-value-input"
           onFocus={(e) => e.target.select()}
-          onKeyDown={(e) => e.keyCode === 13 ? e.target.blur() : null}
-          onBlur={(e) => onChangeValue(e.target.value)}  
+          onKeyDown={(e) => (e.keyCode === 13 ? e.target.blur() : null)}
+          onBlur={(e) => onChangeValue(e.target.value)}
         />
-        {{set: 'into', add: 'to', subtract: 'from'}[operation]}
+        {{ set: "into", add: "to", subtract: "from" }[operation]}
       </span>
     );
   }
@@ -54,21 +60,37 @@ export default class RecordingActions extends React.Component {
   };
 
   _onChangeVariableOperation = (actorId, variableId, operation) => {
-    this.props.dispatch(updateRecordingActionPrefs(actorId, {[variableId]: operation}));
-  }
+    this.props.dispatch(
+      updateRecordingActionPrefs(actorId, { [variableId]: operation })
+    );
+  };
 
   _onChangeVariableValue = (actorId, variableId, operation, value) => {
-    const {dispatch, recording: {beforeWorld, afterWorld}} = this.props;
+    const {
+      dispatch,
+      recording: { beforeWorld, afterWorld },
+    } = this.props;
     const beforeStage = getCurrentStageForWorld(beforeWorld);
     const afterStage = getCurrentStageForWorld(afterWorld);
 
     const actor = beforeStage.actors[actorId];
-    const after = applyVariableOperation(actor.variableValues[variableId], operation, value);
-    dispatch(changeActor(afterStage.id, actorId, {variableValues: {[variableId]: after}}));
-  }
+    const after = applyVariableOperation(
+      actor.variableValues[variableId],
+      operation,
+      value
+    );
+    dispatch(
+      changeActor(afterStage.id, actorId, {
+        variableValues: { [variableId]: after },
+      })
+    );
+  };
 
   _renderAction(a, idx) {
-    const {characters, recording: {beforeWorld, afterWorld, extent}} = this.props;
+    const {
+      characters,
+      recording: { beforeWorld, afterWorld, extent },
+    } = this.props;
     const beforeStage = getCurrentStageForWorld(beforeWorld);
     const afterStage = getCurrentStageForWorld(afterWorld);
 
@@ -77,7 +99,7 @@ export default class RecordingActions extends React.Component {
       const afterActor = afterStage.actors[a.actorId];
       const character = characters[(actor || afterActor).characterId];
 
-      if (a.type === 'create') {
+      if (a.type === "create") {
         return (
           <li key={idx}>
             Create a
@@ -87,7 +109,7 @@ export default class RecordingActions extends React.Component {
           </li>
         );
       }
-      if (a.type === 'move') {
+      if (a.type === "move") {
         return (
           <li key={idx}>
             Move
@@ -97,7 +119,7 @@ export default class RecordingActions extends React.Component {
           </li>
         );
       }
-      if (a.type === 'delete') {
+      if (a.type === "delete") {
         return (
           <li key={idx}>
             Remove
@@ -106,14 +128,23 @@ export default class RecordingActions extends React.Component {
           </li>
         );
       }
-      if (a.type === 'variable') {
+      if (a.type === "variable") {
         return (
           <li key={idx}>
             <VariableActionPicker
               value={a.value}
               operation={a.operation}
-              onChangeValue={(v) => this._onChangeVariableValue(a.actorId, a.variable, a.operation, v)}
-              onChangeOperation={(op) => this._onChangeVariableOperation('globals', a.variable, op)}
+              onChangeValue={(v) =>
+                this._onChangeVariableValue(
+                  a.actorId,
+                  a.variable,
+                  a.operation,
+                  v
+                )
+              }
+              onChangeOperation={(op) =>
+                this._onChangeVariableOperation("globals", a.variable, op)
+              }
             />
             <VariableBlock name={character.variables[a.variable].name} />
             of
@@ -121,49 +152,61 @@ export default class RecordingActions extends React.Component {
           </li>
         );
       }
-      if (a.type === 'appearance') {
+      if (a.type === "appearance") {
         return (
           <li key={idx}>
             Change appearance of
             <ActorBlock character={character} actor={actor} />
             to
-            <AppearanceBlock character={character} appearanceId={a.to} transform={afterActor.transform} />
+            <AppearanceBlock
+              character={character}
+              appearanceId={a.to}
+              transform={afterActor.transform}
+            />
           </li>
         );
       }
-      if (a.type === 'transform') {
+      if (a.type === "transform") {
         return (
           <li key={idx}>
-            Turn 
+            Turn
             <ActorBlock character={character} actor={actor} />
-            to face
-            <TransformBlock character={character} appearanceId={afterActor.appearance} transform={a.to} />
+            to
+            <TransformBlock
+              character={character}
+              appearanceId={afterActor.appearance}
+              transform={a.to}
+            />
           </li>
         );
       }
     }
 
-    if (a.type === 'global') {
+    if (a.type === "global") {
       const valueType = afterWorld.globals[a.global].type;
-      if (valueType === 'stage') {
+      if (valueType === "stage") {
         return (
-        <li key={idx}>
-          Set
-          <VariableBlock name={"Current Stage"} />
-          to
-          <code>
-            {afterWorld.stages[a.value] && afterWorld.stages[a.value].name}
-          </code>
-        </li>
-        )
+          <li key={idx}>
+            Set
+            <VariableBlock name={"Current Stage"} />
+            to
+            <code>
+              {afterWorld.stages[a.value] && afterWorld.stages[a.value].name}
+            </code>
+          </li>
+        );
       }
       return (
         <li key={idx}>
           <VariableActionPicker
             value={a.value}
             operation={a.operation}
-            onChangeValue={(v) => this._onChangeVariableValue(a.actorId, a.variable, a.operation, v)}
-            onChangeOperation={(op) => this._onChangeVariableOperation('globals', a.variable, op)}
+            onChangeValue={(v) =>
+              this._onChangeVariableValue(a.actorId, a.variable, a.operation, v)
+            }
+            onChangeOperation={(op) =>
+              this._onChangeVariableOperation("globals", a.variable, op)
+            }
           />
           <VariableBlock name={a.global} />
         </li>
@@ -174,15 +217,13 @@ export default class RecordingActions extends React.Component {
   }
 
   render() {
-    const {recording, characters} = this.props;
-    const actions = actionsForRecording(recording, {characters});
+    const { recording, characters } = this.props;
+    const actions = actionsForRecording(recording, { characters });
 
     return (
-      <div className="panel-actions" style={{flex: 1, marginLeft: 3}}>
+      <div className="panel-actions" style={{ flex: 1, marginLeft: 3 }}>
         <h2>It should...</h2>
-        <ul>
-          {actions.map((a, idx) => this._renderAction(a, idx))}
-        </ul>
+        <ul>{actions.map((a, idx) => this._renderAction(a, idx))}</ul>
       </div>
     );
   }

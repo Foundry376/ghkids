@@ -17,12 +17,12 @@ export const userFromBasicAuth = async (
       { email: username },
     ]);
     if (!user) {
-      return res.status(401).json({ error: `This username does not exist.` });
+      return res.status(401).json({ message: `This username does not exist.` });
     }
     const hash = crypto.createHmac("sha512", user.passwordSalt);
     hash.update(password);
     if (user.passwordHash !== hash.digest("hex")) {
-      return res.status(401).json({ error: `The API key you passed is not active.` });
+      return res.status(401).json({ message: `The API key you passed is not active.` });
     }
     req.user = user;
   }

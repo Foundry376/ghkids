@@ -13,7 +13,7 @@ router.get("/users/me", userFromBasicAuth, async (req, res) => {
 router.get("/users/:username", async (req, res) => {
   const user = await AppDataSource.getRepository(User).findOneBy({ username: req.params.username });
   if (!user) {
-    return res.status(404).json({ error: "This user does not exist" });
+    return res.status(404).json({ message: "This user does not exist" });
   }
   res.json(user.serialize());
 });
@@ -37,9 +37,9 @@ router.post("/users", async (req, res) => {
     res.json(user.serialize());
   } catch (err) {
     if (`${err}`.includes("unique constraint")) {
-      res.status(400).json({ error: `Sorry, this username or email address is already in use.` });
+      res.status(400).json({ message: `Sorry, this username or email address is already in use.` });
     } else {
-      res.status(400).json({ error: `${err}` });
+      res.status(400).json({ message: `${err}` });
     }
   }
 });

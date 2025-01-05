@@ -25,7 +25,7 @@ router.get("/worlds/:objectId", async (req, res) => {
     relations: ["user", "forkParent"],
   });
   if (!world) {
-    res.status(404).json({ error: "Sorry, this world could not be found." });
+    res.status(404).json({ message: "Sorry, this world could not be found." });
     return;
   }
 
@@ -47,7 +47,7 @@ router.get("/worlds", userFromBasicAuth, async (req, res) => {
     if (req.user) {
       user = req.user;
     } else {
-      return res.status(404).json({ error: "Sorry, you must sign in." });
+      return res.status(404).json({ message: "Sorry, you must sign in." });
     }
   } else {
     user = await AppDataSource.getRepository(User).findOneBy({
@@ -56,7 +56,7 @@ router.get("/worlds", userFromBasicAuth, async (req, res) => {
   }
 
   if (!user) {
-    return res.status(401).json({ error: "This user does not exist." });
+    return res.status(401).json({ message: "This user does not exist." });
   }
 
   const worlds = await AppDataSource.getRepository(World).find({
@@ -108,7 +108,7 @@ router.post("/worlds", userFromBasicAuth, async (req, res) => {
 
 router.put("/worlds/:objectId", userFromBasicAuth, async (req, res) => {
   if (!req.user) {
-    return res.status(401).json({ error: "This user does not exist." });
+    return res.status(401).json({ message: "This user does not exist." });
   }
 
   const { objectId } = req.params;
@@ -117,7 +117,7 @@ router.put("/worlds/:objectId", userFromBasicAuth, async (req, res) => {
     id: Number(objectId),
   });
   if (!world) {
-    res.status(404).json({ error: "No world with that ID exists for that user." });
+    res.status(404).json({ message: "No world with that ID exists for that user." });
     return;
   }
   world.name = req.body.name || world.name;
@@ -140,7 +140,7 @@ router.delete("/worlds/:objectId", async (req, res) => {
     id: Number(objectId),
   });
   if (!world) {
-    res.status(404).json({ error: "No world with that ID exists for that user." });
+    res.status(404).json({ message: "No world with that ID exists for that user." });
     return;
   }
   await AppDataSource.getRepository(World).remove(world);

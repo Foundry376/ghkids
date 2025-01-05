@@ -100,8 +100,8 @@ $create-account-notice-color: #e6dac1;
   }
 
   .editor-centered-flex {
-    max-width: 1200px;
-    max-height: 800px;
+    max-width: 1210px;
+    max-height: 804px;
     margin: auto;
 
     display: flex;
@@ -228,7 +228,7 @@ $create-account-notice-color: #e6dac1;
 
     .stage-scroll-wrap {
       flex: 1;
-      overflow: scroll;
+      overflow: auto;
       margin-bottom: 4px;
       position: relative;
       background-color: #222;
@@ -303,6 +303,27 @@ $create-account-notice-color: #e6dac1;
         align-items: center;
         .left {
           flex: 1;
+          code {
+            background: none;
+            padding: 0;
+          }
+        }
+        .right {
+            display: inline-block;
+            padding: 2px;
+            border: 1px solid rgba(0,0,0,0.1);
+            background: rgba(0,0,0,0.05);
+            code {
+              background: none;
+              padding: 0;
+            }
+            input {  
+              width: 50px;
+            }
+            &.dropping-true {
+              border: 1px solid rgba(91, 192, 222, 0.6);
+              background: rgba(91, 192, 222, 0.35);
+            }
         }
         .sprite {
           zoom: 0.6;
@@ -311,8 +332,8 @@ $create-account-notice-color: #e6dac1;
         code,
         select,
         .delta-canvas {
-          margin-left: 7px;
-          margin-right: 7px;
+          margin-left: 4px;
+          margin-right: 4px;
         }
         .variable-operation-select {
           margin-right: 6px;
@@ -322,12 +343,12 @@ $create-account-notice-color: #e6dac1;
           margin-right: 6px;
           width: 50px;
         }
-        .condition-toggle {
+        .condition-remove {
           padding: 4px;
           div {
-            width: 25px;
-            height: 13px;
-            background: url(../img/visible.png) top left no-repeat;
+            width: 14px;
+            height: 14px;
+            background: url(../img/x.png) 50%;
           }
         }
       }
@@ -335,7 +356,7 @@ $create-account-notice-color: #e6dac1;
         .left {
           opacity: 0.4;
         }
-        .condition-toggle {
+        .condition-remove {
           opacity: 0.4;
           &:hover {
             opacity: 0.8;

@@ -1,31 +1,35 @@
-import React from 'react'; import PropTypes from 'prop-types';
+import PropTypes from 'prop-types';
+import React from 'react';
 
-import ButtonDropdown from 'reactstrap/lib/ButtonDropdown';
-import DropdownItem from 'reactstrap/lib/DropdownItem';
-import DropdownMenu from 'reactstrap/lib/DropdownMenu';
-import DropdownToggle from 'reactstrap/lib/DropdownToggle';
+import ButtonDropdown from "reactstrap/lib/ButtonDropdown";
+import DropdownItem from "reactstrap/lib/DropdownItem";
+import DropdownMenu from "reactstrap/lib/DropdownMenu";
+import DropdownToggle from "reactstrap/lib/DropdownToggle";
 
-import {changeActor} from '../../actions/stage-actions';
-import {upsertGlobal, deleteGlobal} from '../../actions/world-actions';
-import {changeCharacter, deleteCharacterVariable} from '../../actions/characters-actions';
-import VariableGridItem from './variable-grid-item';
-import {selectToolId} from '../../actions/ui-actions';
-import {TOOL_TRASH, TOOL_POINTER} from '../../constants/constants';
-import * as CustomPropTypes from '../../constants/custom-prop-types';
-import Sprite from '../sprites/sprite';
-
+import {
+  changeCharacter,
+  deleteCharacterVariable,
+} from "../../actions/characters-actions";
+import { changeActor } from "../../actions/stage-actions";
+import { selectToolId } from "../../actions/ui-actions";
+import { deleteGlobal, upsertGlobal } from "../../actions/world-actions";
+import { TOOL_POINTER, TOOL_TRASH } from "../../constants/constants";
+import * as CustomPropTypes from "../../constants/custom-prop-types";
+import Sprite from "../sprites/sprite";
+import { TransformImages } from "./transform-images";
+import VariableGridItem from "./variable-grid-item";
 
 function coerceToType(value, type) {
-  if (type === 'number') {
-    return (value !== '' && `${value / 1}` === value) ? value / 1 : undefined;
+  if (type === "number") {
+    return value !== "" && `${value / 1}` === value ? value / 1 : undefined;
   }
   return value;
 }
 
-
 class AppearanceGridItem extends React.Component {
   static propTypes = {
     spritesheet: PropTypes.object,
+    actorId: PropTypes.string,
     appearanceId: PropTypes.string,
     onChange: PropTypes.func,
   };
@@ -35,26 +39,46 @@ class AppearanceGridItem extends React.Component {
     this.state = {};
   }
 
+  _onDragStart = (event) => {
+    event.dataTransfer.dropEffect = "copy";
+    event.dataTransfer.effectAllowed = "copy";
+    event.dataTransfer.setData(
+      "variable",
+      JSON.stringify({
+        type: "appearance",
+        actorId: this.props.actorId,
+        value: {},
+      })
+    );
+  };
+
   render() {
-    const {spritesheet, appearanceId, onChange} = this.props;
+    const { spritesheet, appearanceId, onChange } = this.props;
 
     return (
-      <div className={`variable-box variable-set-true`}>
+      <div
+        className={`variable-box variable-set-true`}
+        draggable
+        onDragStart={this._onDragStart}
+      >
         <div className="name">Appearance</div>
         <ButtonDropdown
           size="sm"
           isOpen={this.state.open}
-          toggle={() => this.setState({open: !this.state.open})}
+          toggle={() => this.setState({ open: !this.state.open })}
         >
           <DropdownToggle caret>
             <Sprite spritesheet={spritesheet} appearance={appearanceId} />
           </DropdownToggle>
           <DropdownMenu className="with-sprites">
-          {Object.keys(spritesheet.appearances).map(id =>
-            <DropdownItem onClick={() => onChange({target: {value: id}})} key={id}>
-              <Sprite spritesheet={spritesheet} appearance={id} />
-            </DropdownItem>
-          )}
+            {Object.keys(spritesheet.appearances).map((id) => (
+              <DropdownItem
+                onClick={() => onChange({ target: { value: id } })}
+                key={id}
+              >
+                <Sprite spritesheet={spritesheet} appearance={id} />
+              </DropdownItem>
+            ))}
           </DropdownMenu>
         </ButtonDropdown>
       </div>
@@ -65,6 +89,7 @@ class AppearanceGridItem extends React.Component {
 class TransformGridItem extends React.Component {
   static propTypes = {
     spritesheet: PropTypes.object,
+    actorId: PropTypes.string,
     appearanceId: PropTypes.string,
     transform: PropTypes.string,
     onChange: PropTypes.func,
@@ -75,26 +100,48 @@ class TransformGridItem extends React.Component {
     this.state = {};
   }
 
+  _onDragStart = (event) => {
+    event.dataTransfer.dropEffect = "copy";
+    event.dataTransfer.effectAllowed = "copy";
+    event.dataTransfer.setData(
+      "variable",
+      JSON.stringify({
+        type: "transform",
+        actorId: this.props.actorId,
+        value: {},
+      })
+    );
+  };
+
   render() {
-    const {transform, spritesheet, appearanceId, onChange} = this.props;
+    const { transform, onChange } = this.props;
 
     return (
-      <div className={`variable-box variable-set-true`}>
+      <div
+        className={`variable-box variable-set-true`}
+        draggable
+        onDragStart={this._onDragStart}
+      >
         <div className="name">Direction</div>
         <ButtonDropdown
           size="sm"
           isOpen={this.state.open}
-          toggle={() => this.setState({open: !this.state.open})}
+          toggle={() => this.setState({ open: !this.state.open })}
         >
           <DropdownToggle caret>
-            <Sprite spritesheet={spritesheet} appearance={appearanceId} transform={transform} />
+            {TransformImages[transform || "none"]}
           </DropdownToggle>
           <DropdownMenu className="with-sprites">
-          {['none', 'flip-x', 'flip-y', 'flip-xy'].map(option =>
-            <DropdownItem onClick={() => onChange({target: {value: option}})} key={option}>
-              <Sprite spritesheet={spritesheet} appearance={appearanceId} transform={option} />
-            </DropdownItem>
-          )}
+            {["none", "90deg", "270deg", "180deg", "flip-x", "flip-y"].map(
+              (option) => (
+                <DropdownItem
+                  onClick={() => onChange({ target: { value: option } })}
+                  key={option}
+                >
+                  {TransformImages[option]}
+                </DropdownItem>
+              )
+            )}
           </DropdownMenu>
         </ButtonDropdown>
       </div>
@@ -119,41 +166,45 @@ export default class ContainerPaneVariables extends React.Component {
 
   _onClickVar = (id, event) => {
     if (this.context.selectedToolId === TOOL_TRASH) {
-      const {character, dispatch} = this.props;
+      const { character, dispatch } = this.props;
       dispatch(deleteCharacterVariable(character.id, id));
       if (!event.shiftKey) {
         dispatch(selectToolId(TOOL_POINTER));
       }
     }
-  }
+  };
 
   _onChangeVarDefinition = (id, changes) => {
-    const {character, dispatch} = this.props;
-    dispatch(changeCharacter(character.id, {
-      variables: {
-        [id]: changes,
-      },
-    }));
-  }
+    const { character, dispatch } = this.props;
+    dispatch(
+      changeCharacter(character.id, {
+        variables: {
+          [id]: changes,
+        },
+      })
+    );
+  };
 
   _onChangeVarValue = (id, value) => {
-    const {dispatch, selectedActorPath} = this.props;
+    const { dispatch, selectedActorPath } = this.props;
     if (!selectedActorPath.actorId) {
-      this._onChangeVarDefinition(id, {defaultValue: value});
+      this._onChangeVarDefinition(id, { defaultValue: value });
       return;
     }
-    dispatch(changeActor(selectedActorPath, {
-      variableValues: {
-        [id]: value,
-      },
-    }));
-  }
-  
+    dispatch(
+      changeActor(selectedActorPath, {
+        variableValues: {
+          [id]: value,
+        },
+      })
+    );
+  };
+
   // Globals
 
   _onChangeGlobalDefinition = (globalId, changes) => {
     this.props.dispatch(upsertGlobal(this.props.world.id, globalId, changes));
-  }
+  };
 
   _onClickGlobal = (globalId) => {
     if (this.context.selectedToolId === TOOL_TRASH) {
@@ -162,51 +213,62 @@ export default class ContainerPaneVariables extends React.Component {
         this.props.dispatch(selectToolId(TOOL_POINTER));
       }
     }
-  }
+  };
 
   _renderCharacterSection() {
-    const {character, actor, dispatch, selectedActorPath} = this.props;
+    const { character, actor, dispatch, selectedActorPath } = this.props;
     if (!character) {
-      return (
-        <div className="empty">
-          Please select a character.
-        </div>
-      );
+      return <div className="empty">Please select a character.</div>;
     }
 
     const actorValues = actor ? actor.variableValues : {};
 
     return (
       <div className="variables-grid">
-        { actor && (
+        {actor && (
           <AppearanceGridItem
+            actorId={actor.id}
             appearanceId={actor.appearance}
             spritesheet={character.spritesheet}
             onChange={(e) => {
-              dispatch(changeActor(selectedActorPath, {appearance: e.target.value}));
+              dispatch(
+                changeActor(selectedActorPath, { appearance: e.target.value })
+              );
             }}
           />
         )}
-        { actor && (
+        {actor && (
           <TransformGridItem
             transform={actor.transform}
+            actorId={actor.id}
             appearanceId={actor.appearance}
             spritesheet={character.spritesheet}
             onChange={(e) => {
-              dispatch(changeActor(selectedActorPath, {transform: e.target.value}));
+              dispatch(
+                changeActor(selectedActorPath, { transform: e.target.value })
+              );
             }}
           />
         )}
-        {Object.values(character.variables).map((definition) =>
+        {Object.values(character.variables).map((definition) => (
           <VariableGridItem
+            actorId={actor ? actor.id : null}
             key={definition.id}
             definition={definition}
             value={actorValues[definition.id]}
             onChangeDefinition={this._onChangeVarDefinition}
             onChangeValue={this._onChangeVarValue}
-            onBlurValue={(id, value) => this._onChangeVarValue(id, coerceToType(value, definition.type))}
+            onBlurValue={(id, value) =>
+              this._onChangeVarValue(id, coerceToType(value, definition.type))
+            }
             onClick={this._onClickVar}
           />
+        ))}
+        {Object.values(character.variables).length === 0 && (
+          <div className="empty">
+            Add variables (like "age" or "health") that each {character.name}{" "}
+            will have.
+          </div>
         )}
       </div>
     );
@@ -215,31 +277,38 @@ export default class ContainerPaneVariables extends React.Component {
   _renderWorldSection() {
     return (
       <div className="variables-grid">
-        {Object.values(this.props.world.globals).map((definition) =>
+        {Object.values(this.props.world.globals).map((definition) => (
           <VariableGridItem
             key={definition.id}
             definition={definition}
-            value={definition.value || ''}
+            value={definition.value || ""}
             onChangeDefinition={this._onChangeGlobalDefinition}
             onChangeValue={(id, value) =>
-              this._onChangeGlobalDefinition(id, {value})
+              this._onChangeGlobalDefinition(id, { value })
             }
             onBlurValue={(id, value) =>
-              this._onChangeGlobalDefinition(id, {value: coerceToType(value, definition.type)})
+              this._onChangeGlobalDefinition(id, {
+                value: coerceToType(value, definition.type),
+              })
             }
             onClick={this._onClickGlobal}
           />
-        )}
+        ))}
       </div>
     );
   }
 
   render() {
+    const { character, actor } = this.props;
     return (
       <div className={`scroll-container`}>
         <div className="scroll-container-contents">
           <div className="variables-section">
-            <h3>Actor</h3>
+            <h3>
+              {actor
+                ? `${character.name} at (${actor.position.x},${actor.position.y})`
+                : `${character.name} (Defaults)`}
+            </h3>
             {this._renderCharacterSection()}
           </div>
           <div className="variables-section">

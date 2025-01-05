@@ -1,81 +1,102 @@
-import React from 'react'; import PropTypes from 'prop-types';
+import React from 'react';
 
-import {TransformConditionRow, AppearanceConditionRow, VariableConditionRow} from './condition-rows';
+import { FreeformConditionRow } from "./condition-rows";
 
-import {getVariableValue, pointIsInside} from '../../../utils/stage-helpers';
-import {updateRecordingCondition} from '../../../actions/recording-actions';
-import {getCurrentStageForWorld} from '../../../utils/selectors';
+import { updateRecordingCondition } from "../../../actions/recording-actions";
+import { getCurrentStageForWorld } from "../../../utils/selectors";
+import { pointIsInside, toV2Condition } from "../../../utils/stage-helpers";
 
-
-export default class RecordingConditions extends React.Component {
-  static propTypes = {
-    dispatch: PropTypes.func,
-    recording: PropTypes.object,
-    characters: PropTypes.object,
+export class RecordingConditions extends React.Component {
+  state = {
+    dropping: false,
   };
 
   render() {
-    const {recording, characters, dispatch} = this.props;
-    const {beforeWorld, conditions, extent} = recording;
+    // eslint-disable-next-line react/prop-types
+    const { recording, characters, dispatch } = this.props;
+    const { beforeWorld, conditions, extent } = recording;
     const stage = getCurrentStageForWorld(beforeWorld);
 
     const rows = [];
     Object.values(stage.actors).forEach((a) => {
-      const saved = conditions[a.id] || {};
-      const character = characters[a.characterId];
-
       if (!pointIsInside(a.position, extent)) {
         return;
       }
-      rows.push(
-        <TransformConditionRow
-          key={`${a.id}-transform`}
-          character={character}
-          actor={a}
-          transform={a.transform}
-          onChange={(enabled) =>
-            dispatch(updateRecordingCondition(a.id, 'transform', {enabled}))
-          }
-          {...saved['transform']}
-        />
-      );
-      rows.push(
-        <AppearanceConditionRow
-          key={`${a.id}-appearance`}
-          character={character}
-          actor={a}
-          appearance={a.appearance}
-          onChange={(enabled) =>
-            dispatch(updateRecordingCondition(a.id, 'appearance', {enabled}))
-          }
-          {...saved['appearance']}
-        />
-      );
+      const saved = conditions[a.id] || {};
 
-
-      for (const vkey of Object.keys(character.variables)) {
-        rows.push(
-          <VariableConditionRow
-            key={`${a.id}-var-${vkey}`}
-            character={character}
-            actor={a}
-            variableId={vkey}
-            variableValue={getVariableValue(a, character, vkey)}
-            onChange={(enabled, comparator) =>
-              dispatch(updateRecordingCondition(a.id, vkey, {enabled, comparator}))
-            }
-            {...saved[vkey]}
-          />
-        );
-      }
+      Object.entries(saved).forEach(([key, value]) => {
+        if (value.enabled) {
+          rows.push(
+            <FreeformConditionRow
+              key={`${a.id}-${key}`}
+              actor={a}
+              actors={stage.actors}
+              condition={toV2Condition(key, value)}
+              characters={characters}
+              onChange={(enabled, rest) =>
+                dispatch(
+                  updateRecordingCondition(a.id, key, { enabled, ...rest })
+                )
+              }
+            />
+          );
+        }
+      });
     });
 
     return (
-      <div style={{flex: 1, marginRight: 3}}>
+      <div
+        style={{
+          flex: 1,
+          marginRight: 3,
+          outline: this.state.dropping
+            ? `2px solid rgba(91, 192, 222, 0.65)`
+            : "none",
+        }}
+        onDragOver={(e) => {
+          if (e.dataTransfer.types.includes("variable")) {
+            e.preventDefault();
+            this.setState({ dropping: true });
+          }
+        }}
+        onDragExit={() => {
+          this.setState({ dropping: false });
+        }}
+        onDrop={(e) => {
+          const { type, value, actorId, variableId } = JSON.parse(
+            e.dataTransfer.getData("variable")
+          );
+          this.setState({ dropping: false });
+          if (
+            conditions[actorId] &&
+            Object.values(conditions[actorId]).some(
+              (t) => t && t.type === type && t.variableId === variableId
+            )
+          ) {
+            window.alert(
+              `A condition for this actor ${type} has already been added to the list.`
+            );
+            return;
+          }
+          dispatch(
+            updateRecordingCondition(actorId, `v2-${Date.now()}`, {
+              enabled: true,
+              type: type,
+              comparator: "=",
+              variableId: variableId,
+              value: value,
+            })
+          );
+        }}
+      >
         <h2>When the picture matches and:</h2>
-        <ul>
-          {rows}
-        </ul>
+        <ul>{rows}</ul>
+        {rows.length < 2 && (
+          <div style={{ opacity: 0.5, marginTop: 8 }}>
+            Double-click an actor in the picture above and drag in their
+            variables to add conditions.
+          </div>
+        )}
       </div>
     );
   }

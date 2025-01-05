@@ -1,110 +1,201 @@
-import React from 'react'; import PropTypes from 'prop-types';
+import PropTypes from 'prop-types';
+import React from 'react';
 
-import {TransformBlock, AppearanceBlock, VariableBlock, ActorBlock} from './blocks';
+import { getVariableValue } from "../../../utils/stage-helpers";
+import {
+  ActorBlock,
+  AppearanceBlock,
+  TransformBlock,
+  VariableBlock,
+} from "./blocks";
 
-export class AppearanceConditionRow extends React.Component {
+export class FreeformConditionRow extends React.Component {
   static propTypes = {
     actor: PropTypes.object,
-    character: PropTypes.object,
-    enabled: PropTypes.bool,
+    actors: PropTypes.object,
+    characters: PropTypes.object,
     onChange: PropTypes.func,
-    appearance: PropTypes.string,
+    condition: PropTypes.shape({
+      value: PropTypes.oneOfType([
+        PropTypes.shape({
+          constant: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+        }),
+        PropTypes.shape({
+          actorId: PropTypes.string.isRequired,
+          variableId: PropTypes.string,
+        }),
+      ]),
+      type: PropTypes.string,
+      comparator: PropTypes.string,
+      variableId: PropTypes.string,
+    }),
   };
 
   static defaultProps = {
     enabled: false,
-  }
-
-  render() {
-    const {appearance, actor, character, enabled, onChange} = this.props;
-
-    return (
-      <li className={`enabled-${this.props.enabled}`}>
-        <div className="left">
-          <ActorBlock character={character} actor={actor} />
-          appearance is
-          <AppearanceBlock character={character} appearanceId={appearance} />
-        </div>
-        {onChange && (
-          <div onClick={() => onChange(!enabled)} className="condition-toggle"><div /></div>
-        )}
-      </li>
-    );
-  }
-}
-
-export class TransformConditionRow extends React.Component {
-  static propTypes = {
-    actor: PropTypes.object,
-    character: PropTypes.object,
-    enabled: PropTypes.bool,
-    onChange: PropTypes.func,
-    transform: PropTypes.string,
   };
 
-  static defaultProps = {
-    enabled: false,
-  }
-
-  render() {
-    const {transform, actor, character, enabled, onChange} = this.props;
-
-    return (
-      <li className={`enabled-${this.props.enabled}`}>
-        <div className="left">
-          <ActorBlock character={character} actor={actor} />
-          is facing
-          <TransformBlock character={character} appearanceId={actor.appearance} transform={transform} />
-        </div>
-        {onChange && (
-          <div onClick={() => onChange(!enabled)} className="condition-toggle"><div /></div>
-        )}
-      </li>
-    );
-  }
-}
-
-export class VariableConditionRow extends React.Component {
-  static propTypes = {
-    actor: PropTypes.object,
-    character: PropTypes.object,
-    enabled: PropTypes.bool,
-    onChange: PropTypes.func,
-    variableId: PropTypes.string,
-    variableValue: PropTypes.number,
-    comparator: PropTypes.string,
+  state = {
+    droppingValue: false,
   };
 
-  static defaultProps = {
-    comparator: '=',
-    enabled: false,
-  }
-
   render() {
-    const {actor, character, enabled, onChange, variableId, variableValue, comparator} = this.props;
+    const { condition, actor, actors, characters, onChange } = this.props;
+
+    const character = characters[actor.characterId];
+
+    const valueActor = condition.value.actorId
+      ? actors[condition.value.actorId]
+      : actor;
+    const valueCharacter = valueActor
+      ? characters[valueActor.characterId]
+      : character;
+
+    const disambiguate =
+      valueActor !== actor && valueActor.characterId === actor.characterId;
+
+    const onDropValue = (e) => {
+      if (e.dataTransfer.types.includes("variable")) {
+        const { actorId, variableId, type } = JSON.parse(
+          e.dataTransfer.getData("variable")
+        );
+        if (type === condition.type) {
+          onChange(true, {
+            ...condition,
+            value: actorId === actor.id ? {} : { actorId, variableId },
+          });
+          e.stopPropagation();
+        }
+      }
+      this.setState({ droppingValue: false });
+    };
 
     return (
-      <li className={`enabled-${this.props.enabled}`}>
+      <li className={`enabled-true`}>
         <div className="left">
-          <ActorBlock character={character} actor={actor} />
-          variable
-          <VariableBlock name={character.variables[variableId].name} />
-          is
+          <ActorBlock
+            character={character}
+            actor={actor}
+            disambiguate={disambiguate}
+          />
+          {condition.type === "transform" ? "direction" : condition.type}
+          {condition.variableId ? (
+            <VariableBlock
+              name={character.variables[condition.variableId].name}
+            />
+          ) : undefined}
           {onChange ? (
-            <select value={comparator} onChange={(e) => onChange(enabled, e.target.value)}>
-              <option value="<=">&lt;=</option>
-              <option value="=">=</option>
-              <option value=">=">&gt;=</option>
-            </select>
+            <ComparatorSelect
+              type={condition.type}
+              value={condition.comparator}
+              onChange={(e) =>
+                onChange(true, { ...condition, comparator: e.target.value })
+              }
+            />
           ) : (
-            ` ${comparator} `
+            ` ${condition.comparator} `
           )}
-          {variableValue}
+          <div
+            className={`right dropping-${this.state.droppingValue}`}
+            title="Drop a variable or appearance here to create an expression linking two variables."
+            onDragOver={(e) => {
+              if (e.dataTransfer.types.includes("variable")) {
+                const { type } = JSON.parse(e.dataTransfer.getData("variable"));
+                if (type === condition.type) {
+                  this.setState({ droppingValue: true });
+                  e.preventDefault();
+                  e.stopPropagation();
+                }
+              }
+            }}
+            onDragLeave={() => {
+              this.setState({ droppingValue: false });
+            }}
+            onDrop={onDropValue}
+          >
+            <FreeformConditionValue
+              actor={actor}
+              condition={condition}
+              valueActor={valueActor}
+              valueCharacter={valueCharacter}
+              disambiguate={disambiguate}
+            />
+          </div>
         </div>
         {onChange && (
-          <div onClick={() => onChange(!enabled, comparator)} className="condition-toggle"><div /></div>
+          <div onClick={() => onChange(false)} className="condition-remove">
+            <div />
+          </div>
         )}
       </li>
     );
   }
 }
+
+const FreeformConditionValue = ({
+  actor,
+  condition,
+  valueActor,
+  valueCharacter,
+  disambiguate,
+}) => {
+  const { value, type, variableId } = condition;
+
+  if (!value) {
+    return <div>Empty</div>;
+  }
+  if (valueActor !== actor) {
+    return (
+      <span>
+        <ActorBlock
+          character={valueCharacter}
+          actor={valueActor}
+          disambiguate={disambiguate}
+        />
+        {type === "transform" ? "direction" : type}
+        {value.variableId ? (
+          <VariableBlock
+            name={
+              value.variableId &&
+              valueCharacter.variables[value.variableId].name
+            }
+          />
+        ) : undefined}
+      </span>
+    );
+  }
+  if (type === "transform") {
+    return (
+      <TransformBlock
+        character={valueCharacter}
+        transform={valueActor.transform}
+      />
+    );
+  }
+  if (type === "appearance") {
+    return (
+      <AppearanceBlock
+        character={valueCharacter}
+        appearanceId={valueActor.appearance}
+      />
+    );
+  }
+  if (type === "variable") {
+    return (
+      <code>{getVariableValue(valueActor, valueCharacter, variableId)}</code>
+    );
+  }
+  return undefined;
+};
+
+const ComparatorSelect = ({ type, ...rest }) => (
+  <select {...rest}>
+    <option value="=">=</option>
+    <option value="<=" disabled={type !== "variable"}>
+      &lt;=
+    </option>
+    <option value=">=" disabled={type !== "variable"}>
+      &gt;=
+    </option>
+  </select>
+);

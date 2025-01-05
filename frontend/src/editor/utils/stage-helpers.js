@@ -1,22 +1,21 @@
-
 export function buildActorPath(worldId, stageId, actorId) {
-  return {worldId, stageId, actorId};
+  return { worldId, stageId, actorId };
 }
 
 export function nullActorPath() {
-  return {worldId: null, stageId: null, actorId: null};
+  return { worldId: null, stageId: null, actorId: null };
 }
 
-export function pointIsOutside({x, y}, {xmin, xmax, ymin, ymax}) {
-  return (x < xmin || x > xmax || y < ymin || y > ymax);
+export function pointIsOutside({ x, y }, { xmin, xmax, ymin, ymax }) {
+  return x < xmin || x > xmax || y < ymin || y > ymax;
 }
 
 export function pointIsInside(...args) {
   return !pointIsOutside(...args);
 }
 
-export function pointByAdding({x, y}, {x: dx, y: dy}) {
-  return {x: x + dx, y: y + dy};
+export function pointByAdding({ x, y }, { x: dx, y: dy }) {
+  return { x: x + dx, y: y + dy };
 }
 
 export function shuffleArray(d) {
@@ -39,14 +38,27 @@ export function getVariableValue(actor, character, id) {
   return null;
 }
 
+export function toV2Condition(id, condition) {
+  if (!condition) {
+    return null;
+  }
+  if (condition.type) {
+    return condition; // v2 already
+  }
+  if (id === "appearance" || id === "transform") {
+    return { ...condition, comparator: "=", value: {}, type: id };
+  }
+  return { ...condition, value: {}, type: "variable", variableId: id };
+}
+
 export function applyVariableOperation(existing, operation, value) {
-  if (operation === 'add') {
+  if (operation === "add") {
     return existing / 1 + value / 1;
   }
-  if (operation === 'subtract') {
+  if (operation === "subtract") {
     return existing / 1 - value / 1;
   }
-  if (operation === 'set') {
+  if (operation === "set") {
     return value / 1;
   }
 
@@ -54,7 +66,7 @@ export function applyVariableOperation(existing, operation, value) {
 }
 
 export function findRule(node, id) {
-  for (let idx = 0; idx < node.rules.length; idx ++) {
+  for (let idx = 0; idx < node.rules.length; idx++) {
     const n = node.rules[idx];
     if (n.id === id) {
       return [n, node, idx];
@@ -68,31 +80,38 @@ export function findRule(node, id) {
   return null;
 }
 
-export function getStageScreenshot(stage, {size}) {
-  const {characters} = window.editorStore.getState();
+export function getStageScreenshot(stage, { size }) {
+  const { characters } = window.editorStore.getState();
 
   const scale = Math.min(size / (stage.width * 40), size / (stage.height * 40));
   const pxPerSquare = Math.round(40 * scale);
 
-  const canvas = document.createElement('canvas');
+  const canvas = document.createElement("canvas");
   canvas.width = stage.width * pxPerSquare;
   canvas.height = stage.height * pxPerSquare;
-  const context = canvas.getContext('2d');
+  const context = canvas.getContext("2d");
 
-  if (stage.background.includes('url(')) {
+  if (stage.background.includes("url(")) {
     const background = new Image();
-    background.src = stage.background.split('url(').pop().slice(0, -1);
+    background.src = stage.background.split("url(").pop().slice(0, -1);
     context.drawImage(background, 0, 0, canvas.width, canvas.height);
   } else {
     context.fillStyle = stage.background;
     context.fillRect(0, 0, canvas.width, canvas.height);
   }
 
-  Object.values(stage.actors).forEach(actor => {
+  Object.values(stage.actors).forEach((actor) => {
     const i = new Image();
-    i.src = characters[actor.characterId].spritesheet.appearances[actor.appearance];
-    context.drawImage(i, Math.floor(actor.position.x * pxPerSquare), Math.floor(actor.position.y * pxPerSquare), pxPerSquare, pxPerSquare);
+    i.src =
+      characters[actor.characterId].spritesheet.appearances[actor.appearance];
+    context.drawImage(
+      i,
+      Math.floor(actor.position.x * pxPerSquare),
+      Math.floor(actor.position.y * pxPerSquare),
+      pxPerSquare,
+      pxPerSquare
+    );
   });
 
-  return canvas.toDataURL('image/jpeg', 0.80);
+  return canvas.toDataURL("image/jpeg", 0.8);
 }

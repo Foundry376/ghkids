@@ -1,17 +1,18 @@
-import React from 'react'; import PropTypes from 'prop-types';
-import Nav from 'reactstrap/lib/Nav';
-import NavLink from 'reactstrap/lib/NavLink';
-import NavItem from 'reactstrap/lib/NavItem';
 import classNames from 'classnames';
-import {connect} from 'react-redux';
+import PropTypes from 'prop-types';
+import React from 'react';
+import { connect } from 'react-redux';
+import Nav from 'reactstrap/lib/Nav';
+import NavItem from 'reactstrap/lib/NavItem';
+import NavLink from 'reactstrap/lib/NavLink';
 
-import ContainerPaneRules from './container-pane-rules';
-import ContainerPaneVariables from './container-pane-variables';
-import AddRuleButton from './add-rule-button';
-import AddVariableButton from './add-variable-button';
-import {getCurrentStageForWorld} from '../../utils/selectors';
+import { getCurrentStageForWorld } from "../../utils/selectors";
+import AddRuleButton from "./add-rule-button";
+import AddVariableButton from "./add-variable-button";
+import ContainerPaneRules from "./container-pane-rules";
+import ContainerPaneVariables from "./container-pane-variables";
 
-import * as CustomPropTypes from '../../constants/custom-prop-types';
+import * as CustomPropTypes from "../../constants/custom-prop-types";
 
 class Container extends React.Component {
   static propTypes = {
@@ -34,12 +35,12 @@ class Container extends React.Component {
   constructor(props, context) {
     super(props, context);
     this.state = {
-      activeTab: 'rules',
+      activeTab: props.isRecording ? "variables" : "rules",
     };
   }
 
   getChildContext() {
-    const {characters, selectedToolId, world, actor} = this.props;
+    const { characters, selectedToolId, world, actor } = this.props;
 
     return {
       characters: characters,
@@ -48,13 +49,37 @@ class Container extends React.Component {
     };
   }
 
-  _onChangeTab = (activeTab) => {
-    this.setState({activeTab});
+  componentDidUpdate(prevProps) {
+    // BG Note: This should probably move to the app state
+    if (
+      prevProps.selectedActorPath !== this.props.selectedActorPath &&
+      this.props.isRecording &&
+      this.state.activeTab === "rules"
+    ) {
+      this.setState({ activeTab: "variables" });
+    }
+    if (
+      prevProps.isRecording &&
+      !this.props.isRecording &&
+      this.state.activeTab === "variables"
+    ) {
+      this.setState({ activeTab: "rules" });
+    }
   }
+  _onChangeTab = (activeTab) => {
+    this.setState({ activeTab });
+  };
 
   render() {
-    const {character, world, actor, dispatch, selectedActorPath, isRecording} = this.props;
-    const {activeTab} = this.state;
+    const {
+      character,
+      world,
+      actor,
+      dispatch,
+      selectedActorPath,
+      isRecording,
+    } = this.props;
+    const { activeTab } = this.state;
 
     const ContentContainer = {
       rules: ContainerPaneRules,
@@ -67,25 +92,27 @@ class Container extends React.Component {
     }[activeTab];
 
     return (
-      <div className={`panel inspector-panel-container tool-${this.props.selectedToolId}`}>
+      <div
+        className={`panel inspector-panel-container tool-${this.props.selectedToolId}`}
+      >
         <Nav tabs>
           <NavItem>
             <NavLink
-              className={classNames({active: activeTab === 'rules'})}
-              onClick={() => this._onChangeTab('rules')}
+              className={classNames({ active: activeTab === "rules" })}
+              onClick={() => this._onChangeTab("rules")}
             >
               Rules
             </NavLink>
           </NavItem>
           <NavItem>
             <NavLink
-              className={classNames({active: activeTab === 'variables'})}
-              onClick={() => this._onChangeTab('variables')}
+              className={classNames({ active: activeTab === "variables" })}
+              onClick={() => this._onChangeTab("variables")}
             >
               Variables
             </NavLink>
           </NavItem>
-          <div style={{float: 'right'}}>
+          <div style={{ float: "right" }}>
             <AddButton
               character={character}
               actor={actor}
@@ -106,11 +133,14 @@ class Container extends React.Component {
   }
 }
 
-function mapStateToProps({world, ui, characters, recording}) {
-  const {worldId, actorId} = ui.selectedActorPath;
+function mapStateToProps({ world, ui, characters, recording }) {
+  const { worldId, actorId } = ui.selectedActorPath;
 
   // find the focused actor
-  const focusedWorld = [recording.beforeWorld, recording.afterWorld].find(s => s.id === worldId) || world;
+  const focusedWorld =
+    [recording.beforeWorld, recording.afterWorld].find(
+      (s) => s.id === worldId
+    ) || world;
   const focusedStage = getCurrentStageForWorld(focusedWorld);
   const focusedActor = (focusedStage.actors || {})[actorId];
 
@@ -121,10 +151,8 @@ function mapStateToProps({world, ui, characters, recording}) {
     character: characters[ui.selectedCharacterId],
     selectedToolId: ui.selectedToolId,
     selectedActorPath: ui.selectedActorPath,
-    isRecording: (recording.characterId !== null),
-});
+    isRecording: recording.characterId !== null,
+  });
 }
 
-export default connect(
-  mapStateToProps,
-)(Container);
+export default connect(mapStateToProps)(Container);
