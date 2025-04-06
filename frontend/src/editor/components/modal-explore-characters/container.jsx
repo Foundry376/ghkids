@@ -40,7 +40,7 @@ class CharacterCard extends React.Component {
         <div className="name">{this.props.name}</div>
         <div className="appearances">
           {Object.keys(this.props.spritesheet.appearances).map((key) => (
-            <Sprite key={key} spritesheet={this.props.spritesheet} appearance={key} />
+            <Sprite key={key} spritesheet={this.props.spritesheet} appearance={key} fit />
           ))}
         </div>
       </div>

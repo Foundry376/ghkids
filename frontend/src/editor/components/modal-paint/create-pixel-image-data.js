@@ -75,15 +75,24 @@ export default function CreatePixelImageData() {
     }
   };
 
-  this.fillPixel = (xx, yy, color) => {
-    if (!color) {
+  this._fillStyle = null;
+  this._fillStyleComponents = [0, 0, 0, 0];
+  Object.defineProperty(this, "fillStyle", {
+    get: () => this._fillStyle,
+    set: (color) => {
+      this._fillStyle = color;
+      this._fillStyleComponents = color.substr(5, color.length - 6).split(",");
+    },
+  });
+
+  this.fillPixel = (xx, yy) => {
+    if (!this._fillStyle) {
       throw new Error("fillPixel requires a color.");
     }
     if (xx >= this.width || xx < 0 || yy >= this.height || yy < 0) {
       return;
     }
-    const components = color.substr(5, color.length - 6).split(",");
-    this.fillPixelRGBA(xx, yy, ...components);
+    this.fillPixelRGBA(xx, yy, ...this._fillStyleComponents);
   };
 
   this.fillPixelRGBA = (xx, yy, r, g, b, a) => {

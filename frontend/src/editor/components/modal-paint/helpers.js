@@ -112,6 +112,18 @@ export function getDataURLFromImageData(imageData) {
   return tempCanvas.toDataURL();
 }
 
+export function getImageDataWithNewFrame(imageData, { width, height, offsetX, offsetY }) {
+  if (!imageData) {
+    return null;
+  }
+  tempCanvas.width = width;
+  tempCanvas.height = height;
+  const tempContext = tempCanvas.getContext("2d");
+  tempContext.clearRect(0, 0, width, height);
+  tempContext.putImageData(imageData, offsetX, offsetY);
+  return tempContext.getImageData(0, 0, width, height);
+}
+
 export function getImageDataFromDataURL(dataURL, { maxWidth, maxHeight } = {}, callback) {
   const img = new Image();
   img.onload = () => {

@@ -58,6 +58,11 @@ export default class PixelCanvas extends React.Component {
   componentDidUpdate() {
     const selectionPresent = Object.keys(this._selectionPixels()).length;
 
+    if (this._pixelContext.getPixelSize() !== this.props.pixelSize) {
+      this._pixelContext = this._pixelCanvas.getContext("2d");
+      CreatePixelContext.call(this._pixelContext, this.props.pixelSize);
+    }
+
     if (selectionPresent && !this._timer) {
       this._timer = setInterval(() => this.renderToCanvas(), SELECTION_ANTS_INTERVAL);
     } else if (!selectionPresent && this._timer) {
@@ -94,8 +99,10 @@ export default class PixelCanvas extends React.Component {
 
     c.fillStyle = "rgb(255,255,255)";
     c.clearRect(0, 0, c.canvas.width, c.canvas.height);
-    c.drawTransparentPattern();
 
+    if (this.props.pixelSize > 5) {
+      c.drawTransparentPattern();
+    }
     if (imageData) {
       c.applyPixelsFromData(imageData, 0, 0, imageData.width, imageData.height, 0, 0, {});
     }
@@ -157,7 +164,9 @@ export default class PixelCanvas extends React.Component {
       c.stroke();
     }
 
-    c.drawGrid();
+    if (this.props.pixelSize > 5) {
+      c.drawGrid();
+    }
   }
 
   _onMouseDown = (event) => {
@@ -196,17 +205,34 @@ export default class PixelCanvas extends React.Component {
   };
 
   render() {
+    if (!this.props.imageData) {
+      return <span>No image data</span>;
+    }
+
     return (
-      <canvas
-        width="440"
-        height="440"
-        className={classNames({
-          mousedown: this.state.mousedown,
-          mouseoverSelection: this.state.mouseoverSelection,
-        })}
-        onMouseDown={this._onMouseDown}
-        ref={(el) => (this._pixelCanvas = el)}
-      />
+      <div style={{ width: 455, height: 455, overflow: "scroll", lineHeight: 0 }}>
+        <div
+          style={{
+            minHeight: "100%",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            background: "#ccc",
+          }}
+        >
+          <canvas
+            style={{ backgroundColor: "white" }}
+            width={this.props.imageData.width * this.props.pixelSize}
+            height={this.props.imageData.height * this.props.pixelSize}
+            className={classNames({
+              mousedown: this.state.mousedown,
+              mouseoverSelection: this.state.mouseoverSelection,
+            })}
+            onMouseDown={this._onMouseDown}
+            ref={(el) => (this._pixelCanvas = el)}
+          />
+        </div>
+      </div>
     );
   }
 }

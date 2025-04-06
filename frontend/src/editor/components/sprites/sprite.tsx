@@ -8,6 +8,7 @@ const Sprite = ({
   spritesheet,
   appearance,
   frame,
+  fit,
 }: {
   spritesheet: Character["spritesheet"];
   appearance: string;
@@ -15,19 +16,28 @@ const Sprite = ({
   transform?: string;
   style?: CSSProperties;
   frame?: number;
+  fit?: boolean;
 }) => {
-  const { width, appearances } = spritesheet;
+  const { appearances, appearanceAnchorSquare } = spritesheet;
 
   let data = new URL("../../img/splat.png", import.meta.url).href;
   if (appearance && appearances[appearance]) {
     data = appearances[appearance][frame || 0];
   }
+  let anchor = { x: 0, y: 0 };
+  if (appearanceAnchorSquare && appearanceAnchorSquare[appearance]) {
+    anchor = appearanceAnchorSquare[appearance];
+  }
 
   const allstyle = Object.assign(
     {
-      width: width,
-      height: width,
+      width: fit ? 40 : undefined,
+      height: fit ? 40 : undefined,
       display: "inline-block",
+      objectFit: fit ? "contain" : undefined,
+      positition: "relative",
+      top: -anchor.y * 40,
+      left: -anchor.x * 40,
       transform: {
         "90deg": "rotate(90deg)",
         "180deg": "rotate(180deg)",

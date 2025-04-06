@@ -54,8 +54,9 @@ export class PixelFillRectTool extends PixelTool {
     if (!interaction.s || !interaction.e) {
       return;
     }
+    context.fillStyle = color;
     forEachInRect(interaction.s, interaction.e, (x, y) => {
-      context.fillPixel(x, y, color);
+      context.fillPixel(x, y);
     });
   }
 }
@@ -70,8 +71,9 @@ export class PixelPaintbucketTool extends PixelTool {
     if (!interaction.e) {
       return;
     }
+    context.fillStyle = color;
     imageData.getContiguousPixels(interaction.e, (p) => {
-      context.fillPixel(p.x, p.y, color);
+      context.fillPixel(p.x, p.y);
     });
   }
 }
@@ -93,9 +95,10 @@ export class PixelFillEllipseTool extends PixelTool {
     const cx = Math.round(s.x + rx);
     const cy = Math.round(s.y + ry);
 
+    context.fillStyle = color;
     forEachInRect(s, e, (x, y) => {
       if (Math.pow((x - cx) / rx, 2) + Math.pow((y - cy) / ry, 2) < 1) {
-        context.fillPixel(x, y, color);
+        context.fillPixel(x, y);
       }
     });
   }
@@ -111,9 +114,10 @@ export class PixelPenTool extends PixelTool {
     if (!points || !points.length) {
       return;
     }
+    context.fillStyle = color;
     let prev = points[0];
     for (const point of points) {
-      forEachInLine(prev.x, prev.y, point.x, point.y, (x, y) => context.fillPixel(x, y, color));
+      forEachInLine(prev.x, prev.y, point.x, point.y, (x, y) => context.fillPixel(x, y));
       prev = point;
     }
   }
@@ -130,7 +134,8 @@ export class PixelLineTool extends PixelTool {
     if (!s || !e) {
       return;
     }
-    forEachInLine(s.x, s.y, e.x, e.y, (x, y) => context.fillPixel(x, y, color));
+    context.fillStyle = color;
+    forEachInLine(s.x, s.y, e.x, e.y, (x, y) => context.fillPixel(x, y));
     if (isPreview) {
       context.beginPath();
       context.moveTo((s.x + 0.5) * pixelSize, (s.y + 0.5) * pixelSize);
@@ -163,9 +168,8 @@ export class PixelEraserTool extends PixelTool {
       if (isPreview) {
         forEachInLine(prev.x, prev.y, point.x, point.y, (x, y) => context.clearPixel(x, y));
       } else {
-        forEachInLine(prev.x, prev.y, point.x, point.y, (x, y) =>
-          context.fillPixel(x, y, "rgba(0,0,0,0)"),
-        );
+        context.fillStyle = "rgba(0,0,0,0)";
+        forEachInLine(prev.x, prev.y, point.x, point.y, (x, y) => context.fillPixel(x, y));
       }
       prev = point;
     }

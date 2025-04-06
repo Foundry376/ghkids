@@ -92,7 +92,6 @@ html {
   }
 }
 
-
 .panel {
   background-color: white;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
@@ -133,16 +132,18 @@ html {
     font-size: 0.9rem;
   }
 
-  .btn-group > .btn, button.btn {
+  .btn-group > .btn,
+  button.btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     background-clip: padding-box;
     gap: 8px;
   }
-  .btn-group-sm > .btn, button.btn-sm {
+  .btn-group-sm > .btn,
+  button.btn-sm {
     gap: 4px;
-    padding: .15rem .5rem;
+    padding: 0.15rem 0.5rem;
   }
 
   .editor-centered-flex {
@@ -531,7 +532,7 @@ html {
         padding: 10px;
         text-align: center;
 
-        &[draggable=true] {
+        &[draggable="true"] {
           cursor: grab;
         }
         .name {
@@ -542,7 +543,7 @@ html {
           background-color: $highlight-color;
         }
         &:hover:not(.selected) {
-          background-color: rgba($tint-color, 0.15);;
+          background-color: rgba($tint-color, 0.15);
         }
       }
     }
@@ -580,8 +581,8 @@ html {
 
 .modal-dialog.paint {
   user-select: none;
-  min-width: 600px;
-  max-width: 600px;
+  min-width: 640px;
+  max-width: 640px;
   canvas {
     cursor: crosshair;
   }
@@ -592,6 +593,20 @@ html {
   canvas.mousedown.mouseoverSelection {
     cursor: move;
     cursor: -webkit-grabbing;
+  }
+
+  .canvas-arrows-flex {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    gap: 4px;
+    .canvas-arrow {
+      width: 22px;
+      height: 22px;
+      padding: 2px;
+      line-height: 14px;
+    }
   }
 
   .paint-sidebar {
@@ -662,7 +677,7 @@ html {
     background-color: #c6c6c6;
     box-sizing: content-box;
     margin: 8px 0;
-    &[draggable=true] {
+    &[draggable="true"] {
       cursor: grab;
     }
     &.variable-set-true {
@@ -840,7 +855,8 @@ html {
       padding: 0;
       margin-top: 4px;
       margin-bottom: 4px;
-      &:hover, &:active {
+      &:hover,
+      &:active {
         background-color: rgba(255, 255, 255, 0.4);
         outline: 1px solid rgba(255, 255, 255, 0.5);
       }
@@ -905,7 +921,8 @@ html {
           margin-right: 10px;
         }
       }
-      .right, .left {
+      .right,
+      .left {
         display: inline-block;
       }
     }

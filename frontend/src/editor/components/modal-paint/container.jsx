@@ -23,12 +23,14 @@ import {
   getDataURLFromImageData,
   getFlattenedImageData,
   getImageDataFromDataURL,
+  getImageDataWithNewFrame,
 } from "./helpers";
 import PixelCanvas from "./pixel-canvas";
 import PixelColorPicker, { ColorOptions } from "./pixel-color-picker";
 import PixelToolbar from "./pixel-toolbar";
 
 const MAX_UNDO_STEPS = 30;
+
 const TOOLS = [
   new Tools.PixelPenTool(),
   new Tools.PixelLineTool(),
@@ -98,6 +100,7 @@ class Container extends React.Component {
 
   setImageDataFromProps(props = this.props) {
     const { characterId, characters, appearanceId } = props;
+    console.log(characterId);
     if (characterId) {
       const { spritesheet } = characters[characterId];
       const frameDataURL = spritesheet.appearances[appearanceId][0];
@@ -382,6 +385,17 @@ class Container extends React.Component {
     link.click();
   };
 
+  _onCanvasUpdateSize = (dSquaresX, dSquaresY, offsetX, offsetY) => {
+    const imageData = getImageDataWithNewFrame(this.state.imageData, {
+      width: this.state.imageData.width + 40 * dSquaresX,
+      height: this.state.imageData.height + 40 * dSquaresY,
+      offsetX: 40 * offsetX,
+      offsetY: 40 * offsetY,
+    });
+    CreatePixelImageData.call(imageData);
+    this.setStateWithCheckpoint(Object.assign({}, INITIAL_STATE, { imageData }));
+  };
+
   render() {
     const { imageData, tool, color, undoStack, redoStack } = this.state;
 
@@ -447,6 +461,7 @@ class Container extends React.Component {
                 <DropdownItem onClick={(e) => this._onGlobalPaste(e.nativeEvent)}>
                   Paste
                 </DropdownItem>
+                <DropdownItem onClick={this._onZoomOut}>Zoom Out</DropdownItem>
                 <DropdownItem divider />
                 <DropdownItem
                   onClick={() =>
@@ -504,14 +519,66 @@ class Container extends React.Component {
                   Clear Canvas
                 </Button>
               </div>
-              <div className="canvas-and-generator">
-                <PixelCanvas
-                  pixelSize={11}
-                  onMouseDown={this._onCanvasMouseDown}
-                  onMouseMove={this._onCanvasMouseMove}
-                  onMouseUp={this._onCanvasMouseUp}
-                  {...this.state}
-                />
+              <div className="canvas-arrows-flex">
+                <Button
+                  className="canvas-arrow"
+                  size="sm"
+                  onClick={() => this._onCanvasUpdateSize(0, 1, 0, 1)}
+                >
+                  +
+                </Button>
+                <div className="canvas-arrows-flex" style={{ flexDirection: "row" }}>
+                  <Button
+                    className="canvas-arrow"
+                    size="sm"
+                    onClick={() => this._onCanvasUpdateSize(1, 0, 1, 0)}
+                  >
+                    +
+                  </Button>
+                  <PixelCanvas
+                    pixelSize={8}
+                    onMouseDown={this._onCanvasMouseDown}
+                    onMouseMove={this._onCanvasMouseMove}
+                    onMouseUp={this._onCanvasMouseUp}
+                    {...this.state}
+                  />
+                  <div
+                    style={{
+                      height: "100%",
+                      display: "grid",
+                      gap: 20,
+                      gridTemplateRows: "1fr 22px 1fr",
+                    }}
+                  >
+                    <span />
+                    <Button
+                      size="sm"
+                      className="canvas-arrow"
+                      onClick={() => this._onCanvasUpdateSize(1, 0, 0, 0)}
+                    >
+                      +
+                    </Button>
+                    <div>
+                      <input
+                        type="range"
+                        min="1"
+                        max="11"
+                        style={{ writingMode: "sideways-lr" }}
+                        value={this.state.pixelSize}
+                        onChange={(e) =>
+                          this.setState({ ...this.state, pixelSize: Number(e.currentTarget.value) })
+                        }
+                      />
+                    </div>
+                  </div>
+                </div>
+                <Button
+                  className="canvas-arrow"
+                  size="sm"
+                  onClick={() => this._onCanvasUpdateSize(0, 1, 0, 0)}
+                >
+                  +
+                </Button>
                 <div
                   className="ai-sprite-generator"
                   style={{ display: "flex", alignItems: "center", gap: 8 }}

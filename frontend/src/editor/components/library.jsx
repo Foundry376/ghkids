@@ -104,6 +104,7 @@ class LibraryItem extends React.Component {
           spritesheet={spritesheet}
           frame={0}
           appearance={appearance || defaultAppearanceId(spritesheet)}
+          fit
         />
         <TapToEditLabel
           className="name"

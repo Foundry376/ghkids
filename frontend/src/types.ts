@@ -238,6 +238,7 @@ export type Character = {
     width: number;
     appearances: { [appearanceId: string]: ImageData[] };
     appearanceNames: { [appearanceId: string]: string };
+    appearanceAnchorSquare: { [appearanceId: string]: { x: number; y: number } };
   };
   variables: Record<
     string,

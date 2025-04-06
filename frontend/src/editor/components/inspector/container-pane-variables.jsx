@@ -62,12 +62,12 @@ class AppearanceGridItem extends React.Component {
           toggle={() => this.setState({ open: !this.state.open })}
         >
           <DropdownToggle caret>
-            <Sprite spritesheet={spritesheet} appearance={appearanceId} />
+            <Sprite spritesheet={spritesheet} appearance={appearanceId} fit />
           </DropdownToggle>
           <DropdownMenu className="with-sprites">
             {Object.keys(spritesheet.appearances).map((id) => (
               <DropdownItem onClick={() => onChange({ target: { value: id } })} key={id}>
-                <Sprite spritesheet={spritesheet} appearance={id} />
+                <Sprite spritesheet={spritesheet} appearance={id} fit />
               </DropdownItem>
             ))}
           </DropdownMenu>
