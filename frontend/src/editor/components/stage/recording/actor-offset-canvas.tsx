@@ -1,10 +1,15 @@
-import { PositionRelativeToRuleExtent, RuleExtent } from "../../../../types";
+import { Actor, Character, PositionRelativeToRuleExtent, RuleExtent } from "../../../../types";
+import { actorFilledPoints } from "../../../utils/stage-helpers";
 import { SquaresCanvas } from "./squares-canvas";
 
 export const ActorOffsetCanvas = ({
+  character,
+  actor,
   extent,
   offset,
 }: {
+  character: Character;
+  actor: Actor;
   extent: RuleExtent;
   offset: PositionRelativeToRuleExtent;
 }) => {
@@ -16,8 +21,11 @@ export const ActorOffsetCanvas = ({
         c.fillStyle = "#fff";
         c.fillRect(0, 0, el.width, el.height);
         c.fillStyle = "#f00";
-        c.fillRect(offset.x * squareSize, offset.y * squareSize, squareSize, squareSize);
-
+        const actorAtOffset = { ...actor, position: { ...offset } };
+        // applyAnchorAdjustment(actorAtOffset.position, character, actorAtOffset);
+        for (const p of actorFilledPoints(actorAtOffset, { [actor.characterId]: character })) {
+          c.fillRect(p.x * squareSize, p.y * squareSize, squareSize, squareSize);
+        }
         c.lineWidth = 1;
         c.strokeStyle = "rgba(0,0,0,0.4)";
         c.strokeRect(0, 0, el.width, el.height);

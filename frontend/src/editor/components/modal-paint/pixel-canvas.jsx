@@ -2,6 +2,7 @@ import classNames from "classnames";
 import PropTypes from "prop-types";
 import React from "react";
 import CreatePixelContext from "./create-pixel-context";
+import { getFilledSquares } from "./helpers";
 
 const SELECTION_ANTS_INTERVAL = 200;
 
@@ -25,6 +26,10 @@ export default class PixelCanvas extends React.Component {
     tool: PropTypes.object,
     color: PropTypes.string,
     pixelSize: PropTypes.number,
+    anchorSquare: PropTypes.shape({
+      x: PropTypes.number,
+      y: PropTypes.number,
+    }),
     imageData: PropTypes.object,
     selectionImageData: PropTypes.object,
     selectionOffset: PropTypes.shape({
@@ -94,13 +99,13 @@ export default class PixelCanvas extends React.Component {
   }
 
   renderToCanvas() {
-    const { pixelSize, imageData, selectionImageData, selectionOffset } = this.props;
+    const { pixelSize, imageData, selectionImageData, selectionOffset, tool } = this.props;
     const c = this._pixelContext;
 
     c.fillStyle = "rgb(255,255,255)";
     c.clearRect(0, 0, c.canvas.width, c.canvas.height);
 
-    if (this.props.pixelSize > 5) {
+    if (pixelSize > 3) {
       c.drawTransparentPattern();
     }
     if (imageData) {
@@ -120,8 +125,31 @@ export default class PixelCanvas extends React.Component {
       );
     }
 
-    if (this.props.tool && this.props.tool.render) {
-      this.props.tool.render(c, this.props, true);
+    if (imageData && (imageData.width > 40 || imageData.height > 40)) {
+      const anchor = this.props.anchorSquare || { x: 0, y: 0 };
+      const filled = getFilledSquares(imageData);
+
+      c.fillStyle = "rgba(100,100,100,0.15)";
+      for (let x = 0; x < imageData.width; x += 40) {
+        for (let y = 0; y < imageData.height; y += 40) {
+          const isAnchorSquare = anchor.x * 40 === x && anchor.y * 40 === y;
+          c.lineWidth = isAnchorSquare ? 2 : 1;
+          c.strokeStyle = isAnchorSquare ? "rgba(255,70,70,1)" : "rgba(100,100,100,0.25)";
+          c.strokeRect(
+            x * pixelSize + 0.5,
+            y * pixelSize + 0.5,
+            40 * pixelSize - 1,
+            40 * pixelSize - 1,
+          );
+
+          if (!filled[`${x / 40},${y / 40}`]) {
+            c.fillRect(x * pixelSize + 0.5, y * pixelSize + 0.5, 40 * pixelSize, 40 * pixelSize);
+          }
+        }
+      }
+    }
+    if (tool && tool.render) {
+      tool.render(c, this.props, true);
     }
 
     const edgePixels = getEdgePixels(this._selectionPixels());
@@ -164,7 +192,7 @@ export default class PixelCanvas extends React.Component {
       c.stroke();
     }
 
-    if (this.props.pixelSize > 5) {
+    if (pixelSize > 5) {
       c.drawGrid();
     }
   }
@@ -205,25 +233,24 @@ export default class PixelCanvas extends React.Component {
   };
 
   render() {
-    if (!this.props.imageData) {
-      return <span>No image data</span>;
-    }
+    const { width, height } = this.props.imageData || { width: 1, height: 1 };
 
     return (
-      <div style={{ width: 455, height: 455, overflow: "scroll", lineHeight: 0 }}>
+      <div
+        style={{ width: 455, height: 455, overflow: "scroll", lineHeight: 0, background: "#ccc" }}
+      >
         <div
           style={{
             minHeight: "100%",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            background: "#ccc",
           }}
         >
           <canvas
             style={{ backgroundColor: "white" }}
-            width={this.props.imageData.width * this.props.pixelSize}
-            height={this.props.imageData.height * this.props.pixelSize}
+            width={width * this.props.pixelSize}
+            height={height * this.props.pixelSize}
             className={classNames({
               mousedown: this.state.mousedown,
               mouseoverSelection: this.state.mouseoverSelection,

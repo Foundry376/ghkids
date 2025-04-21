@@ -8,7 +8,9 @@ export function forEachInRect(s, e, pixelCallback) {
   }
   for (let x = sx; x < ex; x++) {
     for (let y = sy; y < ey; y++) {
-      pixelCallback(x, y);
+      if (pixelCallback(x, y) === "break") {
+        return;
+      }
     }
   }
 }
@@ -164,4 +166,20 @@ export function getFlattenedImageData({ imageData, selectionImageData, selection
     },
   );
   return nextImageData;
+}
+
+export function getFilledSquares(imageData) {
+  const filled = {};
+
+  for (let x = 0; x < imageData.width; x += 40) {
+    for (let y = 0; y < imageData.height; y += 40) {
+      forEachInRect({ x, y }, { x: x + 40, y: y + 40 }, (x, y) => {
+        if (imageData.getPixel(x, y)[3] > 0) {
+          filled[`${Math.floor(x / 40)},${Math.floor(y / 40)}`] = true;
+          return "break";
+        }
+      });
+    }
+  }
+  return filled;
 }

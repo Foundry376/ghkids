@@ -305,3 +305,23 @@ export class EyedropperTool extends PixelTool {
     });
   }
 }
+
+export class ChooseAnchorSquareTool extends PixelTool {
+  constructor(prevTool) {
+    super();
+    this.prevTool = prevTool;
+    this.name = "anchor-square";
+  }
+
+  mouseup(props) {
+    const { imageData, interaction } = props;
+
+    if (!interaction.e) {
+      return super.mouseup(props);
+    }
+    return Object.assign({}, super.mouseup(props), {
+      anchorSquare: { x: Math.floor(interaction.e.x / 40), y: Math.floor(interaction.e.y / 40) },
+      tool: this.prevTool,
+    });
+  }
+}

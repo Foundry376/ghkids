@@ -128,7 +128,7 @@ export default function charactersReducer(
       if (!beforeStage) {
         return state;
       }
-      const recordedRule = ruleFromRecordingState(beforeStage, recording);
+      const recordedRule = ruleFromRecordingState(beforeStage, state, recording);
       if (!recordedRule) {
         return state;
       }

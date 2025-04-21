@@ -13,6 +13,7 @@ import {
   WorldMinimal,
 } from "../../types";
 import { Actions } from "../actions";
+import { DEFAULT_APPEARANCE_INFO } from "../components/sprites/sprite";
 import {
   getAfterWorldForRecording,
   offsetForEditingRule,
@@ -63,6 +64,10 @@ function recordingReducer(
   switch (action.type) {
     case Types.SETUP_RECORDING_FOR_ACTOR: {
       const { actor } = action;
+      const { anchor, width, height } =
+        characters[actor.characterId].spritesheet.appearanceInfo?.[actor.appearance] ||
+        DEFAULT_APPEARANCE_INFO;
+
       return u(
         {
           ruleId: null,
@@ -73,10 +78,10 @@ function recordingReducer(
           conditions: u.constant({ [actor.id]: {} }),
           beforeWorld: u.constant(u({ id: WORLDS.BEFORE }, world)),
           extent: u.constant({
-            xmin: actor.position.x,
-            xmax: actor.position.x,
-            ymin: actor.position.y,
-            ymax: actor.position.y,
+            xmin: actor.position.x - anchor.x,
+            xmax: actor.position.x - anchor.x + width - 1,
+            ymin: actor.position.y - anchor.y,
+            ymax: actor.position.y - anchor.y + height - 1,
             ignored: {},
           }),
         },

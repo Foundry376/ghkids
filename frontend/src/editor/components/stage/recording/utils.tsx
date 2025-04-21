@@ -13,7 +13,7 @@ import {
 } from "../../../../types";
 import { WORLDS } from "../../../constants/constants";
 import { extentByShiftingExtent } from "../../../utils/recording-helpers";
-import { pointIsInside } from "../../../utils/stage-helpers";
+import { actorFilledPoints, pointIsInside } from "../../../utils/stage-helpers";
 import WorldOperator from "../../../utils/world-operator";
 
 export function offsetForEditingRule(extent: RuleExtent, world: WorldMinimal) {
@@ -37,7 +37,7 @@ export function getAfterWorldForRecording(
   if (!beforeStage) {
     return beforeWorld;
   }
-  const recordedRule = ruleFromRecordingState(beforeStage, recording);
+  const recordedRule = ruleFromRecordingState(beforeStage, characters, recording);
   if (!recordedRule) {
     return beforeWorld;
   }
@@ -69,7 +69,11 @@ export function getAfterWorldForRecording(
   ) as WorldMinimal;
 }
 
-export function ruleFromRecordingState(beforeStage: Stage, recording: RecordingState) {
+export function ruleFromRecordingState(
+  beforeStage: Stage,
+  characters: Characters,
+  recording: RecordingState,
+) {
   const mainActor = Object.values(beforeStage.actors).find((a) => a.id === recording.actorId);
   if (!mainActor) {
     return null;
@@ -82,7 +86,7 @@ export function ruleFromRecordingState(beforeStage: Stage, recording: RecordingS
   // to main-actor relative positions and extent.
 
   for (const a of Object.values(beforeStage.actors)) {
-    if (pointIsInside(a.position, recording.extent)) {
+    if (actorFilledPoints(a, characters).some((p) => pointIsInside(p, recording.extent))) {
       recordingActors[a.id] = Object.assign({}, a, {
         position: {
           x: a.position.x - mainActor.position.x,

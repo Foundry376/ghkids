@@ -228,6 +228,12 @@ export type Stage = {
   startActors: { [actorId: string]: Actor };
 };
 
+export type AppearanceInfo = {
+  anchor: { x: number; y: number };
+  filled: { [xy: string]: boolean };
+  width: number;
+  height: number;
+};
 export type Characters = { [id: string]: Character };
 
 export type Character = {
@@ -235,10 +241,11 @@ export type Character = {
   name: string;
   rules: RuleTreeItem[];
   spritesheet: {
-    width: number;
     appearances: { [appearanceId: string]: ImageData[] };
     appearanceNames: { [appearanceId: string]: string };
-    appearanceAnchorSquare: { [appearanceId: string]: { x: number; y: number } };
+    appearanceInfo: {
+      [appearanceId: string]: AppearanceInfo;
+    };
   };
   variables: Record<
     string,

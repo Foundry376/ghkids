@@ -581,8 +581,8 @@ html {
 
 .modal-dialog.paint {
   user-select: none;
-  min-width: 640px;
-  max-width: 640px;
+  min-width: 660px;
+  max-width: 660px;
   canvas {
     cursor: crosshair;
   }
@@ -943,6 +943,7 @@ html {
         border: 1px solid #bbb;
         box-sizing: content-box;
         vertical-align: middle;
+        overflow: hidden;
       }
 
       i {
@@ -1145,7 +1146,7 @@ button.btn.selected:active {
 }
 
 .pixel-color-picker {
-  max-width: 116px;
+  width: 117px;
   .color {
     padding: 3px;
     margin-right: 2px;

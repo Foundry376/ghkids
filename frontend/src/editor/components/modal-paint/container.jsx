@@ -21,10 +21,12 @@ import CreatePixelImageData from "./create-pixel-image-data";
 import {
   getBlobFromImageData,
   getDataURLFromImageData,
+  getFilledSquares,
   getFlattenedImageData,
   getImageDataFromDataURL,
   getImageDataWithNewFrame,
 } from "./helpers";
+
 import PixelCanvas from "./pixel-canvas";
 import PixelColorPicker, { ColorOptions } from "./pixel-color-picker";
 import PixelToolbar from "./pixel-toolbar";
@@ -48,7 +50,8 @@ const TOOLS = [
 const INITIAL_STATE = {
   color: ColorOptions[3],
   tool: TOOLS.find((t) => t.name === "pen"),
-
+  pixelSize: 11,
+  anchorSquare: { x: 0, y: 0 },
   imageData: null,
   selectionImageData: null,
   selectionOffset: {
@@ -100,13 +103,21 @@ class Container extends React.Component {
 
   setImageDataFromProps(props = this.props) {
     const { characterId, characters, appearanceId } = props;
-    console.log(characterId);
+
     if (characterId) {
-      const { spritesheet } = characters[characterId];
-      const frameDataURL = spritesheet.appearances[appearanceId][0];
+      const { appearances, appearanceInfo } = characters[characterId].spritesheet;
+      const anchorSquare = appearanceInfo?.[appearanceId]?.anchor || { x: 0, y: 0 };
+      const frameDataURL = appearances[appearanceId][0];
+
       getImageDataFromDataURL(frameDataURL, {}, (imageData) => {
         CreatePixelImageData.call(imageData);
-        this.setState(Object.assign({}, INITIAL_STATE, { imageData }));
+        this.setState(
+          Object.assign({}, INITIAL_STATE, {
+            imageData,
+            anchorSquare,
+            pixelSize: pixelSizeToFit(imageData),
+          }),
+        );
       });
     } else {
       this.setState(Object.assign({}, INITIAL_STATE));
@@ -158,10 +169,21 @@ class Container extends React.Component {
 
   _onCloseAndSave = () => {
     const { dispatch, characterId, appearanceId } = this.props;
-    const imageDataURL = getDataURLFromImageData(getFlattenedImageData(this.state));
+    const flattened = getFlattenedImageData(this.state);
+    const imageDataURL = getDataURLFromImageData(flattened);
     dispatch(
       changeCharacter(characterId, {
-        spritesheet: { appearances: { [appearanceId]: [imageDataURL] } },
+        spritesheet: {
+          appearances: { [appearanceId]: [imageDataURL] },
+          appearanceInfo: {
+            [appearanceId]: {
+              anchor: this.state.anchorSquare,
+              filled: getFilledSquares(flattened),
+              width: flattened.width / 40,
+              height: flattened.height / 40,
+            },
+          },
+        },
       }),
     );
     dispatch(paintCharacterAppearance(null));
@@ -326,6 +348,10 @@ class Container extends React.Component {
     });
   };
 
+  _onChooseAnchorSquare = () => {
+    this._onChooseTool(new Tools.ChooseAnchorSquareTool(this.state.tool));
+  };
+
   _onChooseFile = (event) => {
     const reader = new FileReader();
     reader.addEventListener(
@@ -393,7 +419,16 @@ class Container extends React.Component {
       offsetY: 40 * offsetY,
     });
     CreatePixelImageData.call(imageData);
-    this.setStateWithCheckpoint(Object.assign({}, INITIAL_STATE, { imageData }));
+    this.setStateWithCheckpoint(
+      Object.assign({}, INITIAL_STATE, {
+        pixelSize: pixelSizeToFit(imageData),
+        anchorSquare: {
+          x: this.state.anchorSquare.x + offsetX,
+          y: this.state.anchorSquare.y + offsetY,
+        },
+        imageData,
+      }),
+    );
   };
 
   render() {
@@ -432,9 +467,6 @@ class Container extends React.Component {
               isOpen={this.state.dropdownOpen}
               toggle={() => this.setState({ dropdownOpen: !this.state.dropdownOpen })}
             >
-              <DropdownToggle className="icon">
-                <i className="fa fa-ellipsis-v" />
-              </DropdownToggle>
               <DropdownMenu right>
                 <DropdownItem onClick={() => this._onSelectAll()}>Select All</DropdownItem>
                 {this.state.selectionImageData ? (
@@ -461,7 +493,6 @@ class Container extends React.Component {
                 <DropdownItem onClick={(e) => this._onGlobalPaste(e.nativeEvent)}>
                   Paste
                 </DropdownItem>
-                <DropdownItem onClick={this._onZoomOut}>Zoom Out</DropdownItem>
                 <DropdownItem divider />
                 <DropdownItem
                   onClick={() =>
@@ -500,15 +531,25 @@ class Container extends React.Component {
                   Rotate -90º
                 </DropdownItem>
                 <DropdownItem divider />
+                <DropdownItem
+                  onClick={this._onChooseAnchorSquare}
+                  disabled={imageData && imageData.width === 40 && imageData.height === 40}
+                >
+                  Choose Anchor Square
+                </DropdownItem>
+                <DropdownItem divider />
                 <label htmlFor="hiddenFileInput" className="dropdown-item" style={{ margin: 0 }}>
                   Import Image from File...
                 </label>
                 <DropdownItem onClick={this._onDownloadImage}>Download Sprite as PNG</DropdownItem>
               </DropdownMenu>
+              <DropdownToggle className="icon">
+                <i className="fa fa-ellipsis-v" />
+              </DropdownToggle>
             </ButtonDropdown>
           </div>
           <ModalBody>
-            <div className="flex-horizontal">
+            <div className="flex-horizontal" style={{ gap: 8 }}>
               <div className="paint-sidebar">
                 <PixelColorPicker
                   color={color}
@@ -536,7 +577,6 @@ class Container extends React.Component {
                     +
                   </Button>
                   <PixelCanvas
-                    pixelSize={8}
                     onMouseDown={this._onCanvasMouseDown}
                     onMouseMove={this._onCanvasMouseMove}
                     onMouseUp={this._onCanvasMouseUp}
@@ -561,8 +601,8 @@ class Container extends React.Component {
                     <div>
                       <input
                         type="range"
-                        min="1"
-                        max="11"
+                        min={1}
+                        max={11}
                         style={{ writingMode: "sideways-lr" }}
                         value={this.state.pixelSize}
                         onChange={(e) =>
@@ -630,6 +670,13 @@ class Container extends React.Component {
 
 function mapStateToProps(state) {
   return Object.assign({}, state.ui.paint, { characters: state.characters });
+}
+
+function pixelSizeToFit(imageData) {
+  return Math.max(
+    1,
+    Math.min(Math.floor(455 / imageData.width), Math.floor(455 / imageData.height)),
+  );
 }
 
 export default connect(mapStateToProps)(Container);

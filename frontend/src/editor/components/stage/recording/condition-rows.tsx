@@ -149,7 +149,7 @@ export const FreeformConditionRow = (props: FreeformConditionRowProps) => {
       <div className="left">
         <ActorBlock character={character} actor={actor} disambiguate={disambiguate} />
         {condition.type === "transform" ? "direction" : condition.type}
-        {"variableId" in condition ? (
+        {"variableId" in condition && condition.variableId ? (
           <VariableBlock name={character.variables[condition.variableId].name} />
         ) : undefined}
         {onChange ? (

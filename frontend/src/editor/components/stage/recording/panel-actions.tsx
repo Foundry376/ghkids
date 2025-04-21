@@ -34,6 +34,8 @@ export const RecordingActions = (props: { characters: Characters; recording: Rec
             <ActorBlock actor={a.actor} character={characters[a.actor.characterId]} />
             at
             <ActorOffsetCanvas
+              actor={a.actor}
+              character={characters[a.actor.characterId]}
               extent={extent}
               offset={{
                 x: a.offset!.x + mainActorBeforePosition.x - extent.xmin,
@@ -56,6 +58,8 @@ export const RecordingActions = (props: { characters: Characters; recording: Rec
               <ActorDeltaCanvas delta={a.delta} />
             ) : (
               <ActorOffsetCanvas
+                actor={actor}
+                character={character}
                 extent={extent}
                 offset={{
                   x: a.offset!.x + mainActorBeforePosition.x - extent.xmin,

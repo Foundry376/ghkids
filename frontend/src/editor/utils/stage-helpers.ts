@@ -1,6 +1,7 @@
 import {
   Actor,
   Character,
+  Characters,
   MathOperation,
   Position,
   RuleCondition,
@@ -11,6 +12,7 @@ import {
   RuleTreeItem,
   Stage,
 } from "../../types";
+import { DEFAULT_APPEARANCE_INFO } from "../components/sprites/sprite";
 
 export function buildActorPath(worldId: string, stageId: string, actorId: string) {
   return { worldId, stageId, actorId };
@@ -18,6 +20,44 @@ export function buildActorPath(worldId: string, stageId: string, actorId: string
 
 export function nullActorPath() {
   return { worldId: null, stageId: null, actorId: null };
+}
+
+export function applyAnchorAdjustment(
+  position: Position,
+  character: Character,
+  { appearance, transform }: Pick<Actor, "appearance" | "transform">,
+) {
+  const info = character.spritesheet.appearanceInfo?.[appearance] || DEFAULT_APPEARANCE_INFO;
+  const [x, y] = pointApplyingTransform(info.anchor.x, info.anchor.y, info, transform);
+  position.x += x;
+  position.y += y;
+}
+
+export function actorFillsPoint(actor: Actor, characters: Characters, point: Position): boolean {
+  return actorFilledPoints(actor, characters).some((p) => p.x === point.x && p.y === point.y);
+}
+
+export function actorFilledPoints(actor: Actor, characters: Characters) {
+  const character = characters[actor.characterId];
+  const info = character?.spritesheet.appearanceInfo?.[actor.appearance];
+  const { x, y } = actor.position;
+  if (!info) {
+    return [{ x, y }];
+  }
+  const results: Position[] = [];
+  const [ix, iy] = pointApplyingTransform(info.anchor.x, info.anchor.y, info, actor.transform);
+
+  for (let dx = 0; dx < info.width; dx++) {
+    for (let dy = 0; dy < info.height; dy++) {
+      if (info.filled[`${dx},${dy}`]) {
+        const [sx, sy] = pointApplyingTransform(dx, dy, info, actor.transform);
+        results.push({ x: x + sx - ix, y: y + sy - iy });
+      }
+    }
+  }
+  console.log(info);
+  console.log(results);
+  return results;
 }
 
 export function pointIsOutside({ x, y }: Position, { xmin, xmax, ymin, ymax }: RuleExtent) {
@@ -30,6 +70,31 @@ export function pointIsInside(a: Position, b: RuleExtent) {
 
 export function pointByAdding({ x, y }: Position, { x: dx, y: dy }: Position) {
   return { x: x + dx, y: y + dy };
+}
+
+export function pointApplyingTransform(
+  x: number,
+  y: number,
+  { width, height }: { width: number; height: number },
+  transform: Actor["transform"],
+) {
+  if (transform === "90deg") {
+    return [height - 1 - y, x];
+  }
+  if (transform === "270deg") {
+    return [width - 1 - x, y];
+  }
+  if (transform === "180deg") {
+    return [width - 1 - x, height - 1 - y];
+  }
+  if (transform === "flip-x") {
+    return [width - 1 - x, y];
+  }
+  if (transform === "flip-y") {
+    return [x, height - 1 - y];
+  }
+
+  return [x, y];
 }
 
 export function shuffleArray<T>(d: Array<T>): Array<T> {
