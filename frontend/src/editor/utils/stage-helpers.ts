@@ -37,6 +37,16 @@ export function actorFillsPoint(actor: Actor, characters: Characters, point: Pos
   return actorFilledPoints(actor, characters).some((p) => p.x === point.x && p.y === point.y);
 }
 
+export function actorIntersectsExtent(actor: Actor, characters: Characters, extent: RuleExtent) {
+  const points = new Set(actorFilledPoints(actor, characters).map((p) => `${p.x},${p.y}`));
+  for (let x = extent.xmin; x <= extent.xmax; x++) {
+    for (let y = extent.ymin; y <= extent.ymax; y++) {
+      if (points.has(`${x},${y}`)) return true;
+    }
+  }
+  return false;
+}
+
 export function actorFilledPoints(actor: Actor, characters: Characters) {
   const character = characters[actor.characterId];
   const info = character?.spritesheet.appearanceInfo?.[actor.appearance];
@@ -93,7 +103,6 @@ export function pointApplyingTransform(
   if (transform === "flip-y") {
     return [x, height - 1 - y];
   }
-
   return [x, y];
 }
 

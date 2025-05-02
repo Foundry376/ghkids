@@ -59,7 +59,6 @@ const ActorSprite = (props: {
       info,
       actor.transform,
     );
-    console.log(`${cellX},${cellY}`);
     if (info && !info.filled[`${cellX},${cellY}`]) {
       event.preventDefault();
       return false;
@@ -103,23 +102,6 @@ const ActorSprite = (props: {
 
   return (
     <div
-      draggable={draggable}
-      data-stage-character-id={character.id}
-      onDragStart={(event) => {
-        if (isEventInFilledSquare(event)) {
-          onDragStart(event);
-        }
-      }}
-      onClick={(event) => {
-        if (isEventInFilledSquare(event)) {
-          onClick(event);
-        }
-      }}
-      onDoubleClick={(event) => {
-        if (isEventInFilledSquare(event)) {
-          onDoubleClick(event);
-        }
-      }}
       className="animated"
       style={{
         position: "absolute",
@@ -127,14 +109,33 @@ const ActorSprite = (props: {
         transitionDuration: `${transitionDuration}ms`,
         left: (actor.position.x - info.anchor.x) * STAGE_CELL_SIZE,
         top: (actor.position.y - info.anchor.y) * STAGE_CELL_SIZE,
+        pointerEvents: "none",
       }}
     >
       <img
+        draggable={draggable}
+        data-stage-character-id={character.id}
+        onDragStart={(event) => {
+          if (isEventInFilledSquare(event)) {
+            onDragStart(event);
+          }
+        }}
+        onClick={(event) => {
+          if (isEventInFilledSquare(event)) {
+            onClick(event);
+          }
+        }}
+        onDoubleClick={(event) => {
+          if (isEventInFilledSquare(event)) {
+            onDoubleClick(event);
+          }
+        }}
         src={data}
         className={`sprite ${toolItem ? "tool-item" : ""} ${selected ? "outlined" : ""}`}
         style={{
           transform: SPRITE_TRANSFORM_CSS[actor.transform ?? "none"],
           transformOrigin: `${((info.anchor.x + 0.5) / info.width) * 100}% ${((info.anchor.y + 0.5) / info.height) * 100}%`,
+          pointerEvents: "auto",
         }}
       />
     </div>

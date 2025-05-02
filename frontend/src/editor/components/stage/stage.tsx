@@ -477,7 +477,13 @@ export const Stage = ({
     >
       <div
         ref={(e) => (el.current = e)}
-        style={{ top, left }}
+        style={{
+          top,
+          left,
+          width: stage.width * STAGE_CELL_SIZE,
+          height: stage.height * STAGE_CELL_SIZE,
+          overflow: recordingExtent ? "visible" : "hidden",
+        }}
         className="stage"
         onDragOver={onDragOver}
         onDrop={onDrop}

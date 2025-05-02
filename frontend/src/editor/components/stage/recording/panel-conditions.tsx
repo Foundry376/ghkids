@@ -6,7 +6,7 @@ import { useDispatch } from "react-redux";
 import { Characters, RecordingState } from "../../../../types";
 import { updateRecordingCondition } from "../../../actions/recording-actions";
 import { getCurrentStageForWorld } from "../../../utils/selectors";
-import { pointIsInside, toV2Condition } from "../../../utils/stage-helpers";
+import { actorIntersectsExtent, toV2Condition } from "../../../utils/stage-helpers";
 
 export const RecordingConditions = ({
   recording,
@@ -42,7 +42,7 @@ export const RecordingConditions = ({
   });
 
   Object.values(stage.actors).forEach((a) => {
-    if (!pointIsInside(a.position, extent)) {
+    if (!actorIntersectsExtent(a, characters, extent)) {
       return;
     }
     const saved = conditions[a.id] || {};

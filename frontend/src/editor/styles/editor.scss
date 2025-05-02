@@ -317,12 +317,14 @@ html {
   .handle-bottom {
     cursor: move;
     cursor: ns-resize;
+    z-index: 2;
   }
 
   .handle-left,
   .handle-right {
     cursor: move;
     cursor: ew-resize;
+    z-index: 2;
   }
 
   .tool-ignored-square {

@@ -23,6 +23,8 @@ import {
 } from "../../types";
 import { getCurrentStageForWorld } from "./selectors";
 import {
+  actorFillsPoint,
+  actorIntersectsExtent,
   applyVariableOperation,
   getVariableValue,
   pointByAdding,
@@ -205,7 +207,7 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
     }
 
     function checkRuleScenario(rule: Rule): { [ruleActorId: string]: Actor } | false {
-      const ruleActorsUnmatched = Object.values(rule.actors);
+      const ruleActorsUsed = new Set<string>(); // x-y-ruleactorId
       const stageActorsForRuleActorIds: { [ruleActorId: string]: Actor } = {};
 
       /** Ben Note: We now allow conditions to specify other actors on the RHS
@@ -250,18 +252,18 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
         for (let y = rule.extent.ymin; y <= rule.extent.ymax; y++) {
           const ignoreExtraActors = rule.extent.ignored[`${x},${y}`];
 
-          const stageActorsAtPos = actorsAtPosition(
-            wrappedPosition(pointByAdding(me.position, { x, y })),
-          );
-
-          const ruleActorsAtPos = ruleActorsUnmatched.filter(
-            (r) => r.position.x === x && r.position.y === y,
-          );
-
-          if (stageActorsAtPos === null) {
+          const stagePos = wrappedPosition(pointByAdding(me.position, { x, y }));
+          if (stagePos === null) {
             return false; // offscreen?
           }
-
+          const stageActorsAtPos = Object.values(actors).filter((actor) =>
+            actorFillsPoint(actor, characters, stagePos),
+          );
+          const ruleActorsAtPos = Object.values(rule.actors).filter(
+            (actor) =>
+              actorFillsPoint(actor, characters, { x, y }) &&
+              !ruleActorsUsed.has(`${actor.id}-${x}-${y}`),
+          );
           if (stageActorsAtPos.length !== ruleActorsAtPos.length && !ignoreExtraActors) {
             return false;
           }
@@ -269,17 +271,21 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
           // make sure the stage actors match the rule actors, and the
           // additional conditions also match.
           for (const s of stageActorsAtPos) {
-            const idx = ruleActorsUnmatched.findIndex(
-              (r) =>
-                r.position.x === x &&
-                r.position.y === y &&
-                actorsMatch(s, r, rule.conditions[r.id] || {}, stageActorsForReferencedActorId),
-            );
+            const match = ruleActorsAtPos.find((r) => {
+              const ruleActorRootPos = wrappedPosition(pointByAdding(me.position, r.position));
+              if (!ruleActorRootPos) {
+                return false;
+              }
+              return (
+                actorsMatch(s, r, rule.conditions[r.id] || {}, stageActorsForReferencedActorId) &&
+                ruleActorRootPos.x === s.position.x &&
+                ruleActorRootPos.y === s.position.y
+              );
+            });
 
-            if (idx !== -1) {
-              const match = ruleActorsUnmatched[idx];
+            if (match) {
               stageActorsForRuleActorIds[match.id] = s;
-              ruleActorsUnmatched.splice(idx, 1);
+              ruleActorsUsed.add(`${match.id}-${stagePos.x}-${stagePos.y}`);
             } else if (!ignoreExtraActors) {
               return false;
             }
@@ -335,6 +341,10 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
       }
       for (const actorId of Object.keys(rule.conditions)) {
         if (actorId === "globals") {
+          continue;
+        }
+        const actor = rule.actors[actorId];
+        if (!actor || !actorIntersectsExtent(actor, characters, rule.extent)) {
           continue;
         }
         requiredActorIds.push(actorId);
