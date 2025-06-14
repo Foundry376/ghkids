@@ -323,6 +323,7 @@ class Container extends React.Component {
   };
 
   _onChooseTool = (tool) => {
+    console.log(`[PixelToolbar] Tool clicked: ${tool.name}`);
     this.setState({
       tool: tool,
       imageData: getFlattenedImageData(this.state),
@@ -333,6 +334,7 @@ class Container extends React.Component {
   _onCanvasMouseDown = (event, pixel) => {
     const tool = this.state.tool;
     if (tool) {
+      console.log(`[Canvas] MouseDown with tool: ${tool.name}, pixel:`, pixel, 'event:', event);
       this.setStateWithCheckpoint(tool.mousedown(pixel, this.state, event));
     }
   };
@@ -347,6 +349,7 @@ class Container extends React.Component {
   _onCanvasMouseUp = (event, pixel) => {
     const tool = this.state.tool;
     if (tool) {
+      console.log(`[Canvas] MouseUp with tool: ${tool.name}, pixel:`, pixel, 'event:', event);
       this.setState(tool.mouseup(tool.mousemove(pixel, this.state)));
     }
   };
@@ -390,8 +393,6 @@ class Container extends React.Component {
     const prompt = `Generate a pixel art sprite with a solid background based on the following description: ${description}`;
     console.log(prompt);
 
-    // const simulatedImageDataURL = "data:image/png;base64,..."; // Replace with actual API call
-
     // Call the backend API
 
     this.setState({ isGeneratingSprite: true });
@@ -408,6 +409,37 @@ class Container extends React.Component {
     } finally {
       this.setState({ isGeneratingSprite: false });
     }
+
+    // Wait for the image to be loaded and state to be updated before applying magic wand
+    setTimeout(() => {
+      if (this.state.imageData) {
+
+        // Step 1: Clear any selection and set tool to magicWand
+        const magicWandTool = TOOLS.find(t => t.name === 'magicWand');
+
+        this.setState({
+          tool: magicWandTool,
+          imageData: getFlattenedImageData(this.state),
+          selectionImageData: null,
+          shouldDrag: true
+        });
+
+        // Step 2: Simulate mousedown on (0,0)
+        this.setStateWithCheckpoint(
+          magicWandTool.mousedown({x: 0, y: 0}, 
+            this.state, 
+            { altKey: false },
+            { draggingSelection: true }
+          ));
+
+        // Step 3: Simulate mouseup
+        this.setState(magicWandTool.mouseup(magicWandTool.mousemove({x: 0, y: 0}, this.state)));
+
+        // Step 4: Wait and clear selection to remove background
+        this.setStateWithCheckpoint({ selectionImageData: null });
+      } else {
+      }
+    }, 500);
   };
 
   _onDownloadImage = () => {

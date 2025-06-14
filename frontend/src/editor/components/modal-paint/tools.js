@@ -239,20 +239,22 @@ class PixelSelectionTool extends PixelTool {
   }
 
   mousedown(point, props, event) {
+
     if (this.shouldDrag(point, props)) {
       return Object.assign({}, super.mousedown(point, props), {
-        imageData: event.altKey ? getFlattenedImageData(props) : props.imageData,
+        imageData: event && event.altKey ? getFlattenedImageData(props) : props.imageData,
         initialSelectionOffset: props.selectionOffset,
         draggingSelection: true,
       });
     }
 
-    return Object.assign({}, super.mousedown(point, props), {
+    const result = Object.assign({}, super.mousedown(point, props), {
       imageData: getFlattenedImageData(props),
       selectionImageData: null,
       selectionOffset: { x: 0, y: 0 },
       interactionPixels: this.selectionPixelsForProps(props),
     });
+    return result;
   }
 
   mousemove(point, props) {
@@ -267,6 +269,7 @@ class PixelSelectionTool extends PixelTool {
   }
 
   mouseup(props) {
+
     if (props.draggingSelection) {
       return Object.assign({}, super.mouseup(props), {
         selectionOffset: this.selectionOffsetForProps(props),
@@ -274,7 +277,17 @@ class PixelSelectionTool extends PixelTool {
       });
     }
 
+
+    if (!props.imageData) {
+      return props;
+    }
+
     const selectionImageData = props.imageData.clone();
+
+    if (!props.interactionPixels) {
+      return props;
+    }
+
     selectionImageData.maskUsingPixels(props.interactionPixels);
 
     const imageData = props.imageData.clone();
@@ -282,12 +295,16 @@ class PixelSelectionTool extends PixelTool {
       const [x, y] = key.split(",").map(Number);
       imageData.fillPixelRGBA(x, y, 0, 0, 0, 0);
     }
-    return Object.assign({}, super.mouseup(props), {
+
+    const result = Object.assign({}, super.mouseup(props), {
       selectionOffset: { x: 0, y: 0 },
       selectionImageData,
       imageData,
       interactionPixels: null,
     });
+
+
+    return result;
   }
 }
 
@@ -314,10 +331,17 @@ export class PixelMagicSelectionTool extends PixelSelectionTool {
   }
 
   selectionPixelsForProps({ imageData, interaction }) {
-    if (!interaction.e) {
+
+    if (!interaction || !interaction.e) {
       return {};
     }
-    return imageData.getContiguousPixels(interaction.e);
+
+    if (!imageData) {
+      return {};
+    }
+
+    const pixels = imageData.getContiguousPixels(interaction.e);
+    return pixels;
   }
 }
 
