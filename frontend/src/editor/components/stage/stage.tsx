@@ -915,7 +915,7 @@ export const Stage = ({
             height: stage.height * STAGE_CELL_SIZE,
             background: backgroundCSS,
             pointerEvents: "none",
-            filter: "brightness(1) saturate(0.8)",
+            filter: "brightness(0.8) saturate(0.8)",
           }}
         />
 
