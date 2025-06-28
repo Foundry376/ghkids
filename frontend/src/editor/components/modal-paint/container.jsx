@@ -51,6 +51,7 @@ const TOOLS = [
 const INITIAL_STATE = {
   color: ColorOptions[3],
   tool: TOOLS.find((t) => t.name === "pen"),
+  spriteName: "",
   toolSize: 1,
   pixelSize: 11,
   anchorSquare: { x: 0, y: 0 },
@@ -169,10 +170,9 @@ class Container extends React.Component {
     this.props.dispatch(paintCharacterAppearance(null));
   };
 
-  _onCloseAndSave = () => {
-    const { dispatch, characterId, appearanceId } = this.props;
+  _onCloseAndSave = async () => {
+    const { dispatch, characterId, appearanceId, characters } = this.props;
     const flattened = getFlattenedImageData(this.state);
-
     // Trim inwards from all sides if an entire row / column of tiles is empty.
     // We want to "auto-shrink" the canvas if the kid goes wild with the + button.
     const filledTiles = Object.keys(getFilledSquares(flattened)).map((str) => str.split(","));
@@ -189,28 +189,61 @@ class Container extends React.Component {
     });
 
     const imageDataURL = getDataURLFromImageData(trimmed);
-    dispatch(
-      changeCharacter(characterId, {
-        spritesheet: {
-          appearances: { [appearanceId]: [imageDataURL] },
-          appearanceInfo: {
-            [appearanceId]: {
-              anchor: this.state.anchorSquare,
-              filled: getFilledSquares(flattened),
-              width: flattened.width / 40,
-              height: flattened.height / 40,
+    const character = characters[characterId];
+    let { spriteName } = this.state;
+    
+    // If spriteName is empty, generate a name from the backend
+    if (!spriteName) {
+      try {
+        const nameResp = await makeRequest("/generate-sprite-name", {
+          method: "POST",
+          json: { imageData: imageDataURL },
+        });
+        if (nameResp && nameResp.name) {
+          spriteName = nameResp.name;
+          this.setState({ spriteName });
+        }
+      } catch (err) {
+        console.error("Failed to auto-generate sprite name:", err);
+      }
+    }
+
+    let values = {
+      spritesheet: { appearances: { [appearanceId]: [imageDataURL] } },
+    };
+    // Only update the name if it is still "Untitled" and we have a generated spriteName
+    if (character && character.name === "Untitled" && spriteName) {
+      values.name = spriteName;
+    }
+
+    // Close modal first
+    dispatch(paintCharacterAppearance(null));
+    
+    // Then update character data after a small delay to prevent modal reopening
+    setTimeout(() => {
+      dispatch(
+        changeCharacter(characterId, {
+          spritesheet: {
+            appearances: { [appearanceId]: [imageDataURL] },
+            appearanceInfo: {
+              [appearanceId]: {
+                anchor: this.state.anchorSquare,
+                filled: getFilledSquares(flattened),
+                width: flattened.width / 40,
+                height: flattened.height / 40,
+              },
             },
           },
-        },
-      }),
-    );
-    dispatch(paintCharacterAppearance(null));
+        }),
+      );
+    }, 10);
   };
 
   _onClearAll = () => {
     const empty = this.state.imageData.clone();
     empty.clearPixelsInRect(0, 0, empty.width, empty.height);
     this.setStateWithCheckpoint({
+      spriteName: "",
       imageData: empty,
       selectionOffset: { x: 0, y: 0 },
       selectionImageData: null,
@@ -393,8 +426,6 @@ class Container extends React.Component {
     const prompt = `Generate a pixel art sprite with a solid background based on the following description: ${description}`;
     console.log(prompt);
 
-    // Call the backend API
-
     this.setState({ isGeneratingSprite: true });
     try {
       const data = await makeRequest(`/generate-sprite?prompt=${encodeURIComponent(prompt)}`);
@@ -403,6 +434,13 @@ class Container extends React.Component {
         this._onApplyExternalDataURL(data.imageUrl);
       } else {
         console.error("Failed to generate sprite:", data.error);
+      }
+
+      if (data.name) {
+        this.setState({ spriteName: data.name });
+        console.log("spriteName", this.state.spriteName);
+      } else {
+        console.error("Failed to generate sprite name:", data.error);
       }
     } catch (error) {
       console.error("Error fetching sprite:", error);
@@ -714,7 +752,7 @@ class Container extends React.Component {
               color="primary"
               key="save"
               data-tutorial-id="paint-save-and-close"
-              onClick={this._onCloseAndSave}
+              onClick={async () => {await this._onCloseAndSave();}}
             >
               Save Changes
             </Button>
