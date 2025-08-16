@@ -31,6 +31,8 @@ import PixelCanvas from "./pixel-canvas";
 import PixelColorPicker, { ColorOptions } from "./pixel-color-picker";
 import { PixelToolSize } from "./pixel-tool-size";
 import PixelToolbar from "./pixel-toolbar";
+import SpriteVariablesPanel from "./sprite-variables-panel";
+import VariableOverlay from "./variable-overlay";
 
 const MAX_UNDO_STEPS = 30;
 
@@ -67,6 +69,9 @@ const INITIAL_STATE = {
 
   interaction: {},
   interactionPixels: null,
+  
+  showVariables: false,
+  visibleVariables: {},
 };
 
 class Container extends React.Component {
@@ -113,6 +118,11 @@ class Container extends React.Component {
       const spriteName = appearanceNames?.[appearanceId] || "Untitled";
       const frameDataURL = appearances[appearanceId][0];
 
+      const variableOverlay = appearanceInfo?.[appearanceId]?.variableOverlay || {
+        showVariables: false,
+        visibleVariables: {},
+      };
+
       getImageDataFromDataURL(frameDataURL, {}, (imageData) => {
         CreatePixelImageData.call(imageData);
         this.setState(
@@ -120,6 +130,8 @@ class Container extends React.Component {
             imageData,
             anchorSquare,
             pixelSize: pixelSizeToFit(imageData),
+            showVariables: variableOverlay.showVariables,
+            visibleVariables: variableOverlay.visibleVariables,
             spriteName,
           }),
         );
@@ -193,7 +205,6 @@ class Container extends React.Component {
     const imageDataURL = getDataURLFromImageData(trimmed);
     const character = characters[characterId];
     let { spriteName } = this.state;
-
     // If spriteName is empty, generate a name from the backend
     if (!spriteName) {
       try {
@@ -234,6 +245,10 @@ class Container extends React.Component {
                 filled: getFilledSquares(flattened),
                 width: flattened.width / 40,
                 height: flattened.height / 40,
+                variableOverlay: {
+                  showVariables: this.state.showVariables,
+                  visibleVariables: this.state.visibleVariables,
+                },
               },
             },
           },
@@ -512,6 +527,44 @@ class Container extends React.Component {
     link.click();
   };
 
+  _onToggleVariableVisibility = (variableId) => {
+    const newVisibleVariables = {
+      ...this.state.visibleVariables,
+      [variableId]: !this.state.visibleVariables[variableId],
+    };
+    
+    // Automatically set showVariables to true if any variable is checked
+    const hasVisibleVariables = Object.values(newVisibleVariables).some(Boolean);
+    
+    this.setState({
+      visibleVariables: newVisibleVariables,
+      showVariables: hasVisibleVariables,
+    }, () => {
+      // Immediately save the variable overlay settings to the character
+      this._saveVariableOverlaySettings();
+    });
+  };
+
+  _saveVariableOverlaySettings = () => {
+    const { dispatch, characterId, appearanceId } = this.props;
+    if (!characterId || !appearanceId) return;
+
+    dispatch(
+      changeCharacter(characterId, {
+        spritesheet: {
+          appearanceInfo: {
+            [appearanceId]: {
+              variableOverlay: {
+                showVariables: this.state.showVariables,
+                visibleVariables: this.state.visibleVariables,
+              },
+            },
+          },
+        },
+      }),
+    );
+  };
+
   _onCanvasUpdateSize = (dSquaresX, dSquaresY, offsetX, offsetY) => {
     const imageData = getImageDataWithNewFrame(this.state.imageData, {
       width: this.state.imageData.width + 40 * dSquaresX,
@@ -667,6 +720,14 @@ class Container extends React.Component {
                 <Button size="sm" style={{ width: 114 }} onClick={this._onClearAll}>
                   Clear Canvas
                 </Button>
+                
+                <SpriteVariablesPanel
+                  character={this.props.characters[this.props.characterId]}
+                  actor={this.props.currentActor}
+                  showVariables={this.state.showVariables}
+                  visibleVariables={this.state.visibleVariables}
+                  onToggleVariableVisibility={this._onToggleVariableVisibility}
+                />
               </div>
               <div className="canvas-arrows-flex">
                 <Button
@@ -684,12 +745,22 @@ class Container extends React.Component {
                   >
                     +
                   </Button>
-                  <PixelCanvas
-                    onMouseDown={this._onCanvasMouseDown}
-                    onMouseMove={this._onCanvasMouseMove}
-                    onMouseUp={this._onCanvasMouseUp}
-                    {...this.state}
-                  />
+                  <div style={{ position: "relative" }}>
+                    <PixelCanvas
+                      onMouseDown={this._onCanvasMouseDown}
+                      onMouseMove={this._onCanvasMouseMove}
+                      onMouseUp={this._onCanvasMouseUp}
+                      {...this.state}
+                    />
+                    <VariableOverlay
+                      character={this.props.characters[this.props.characterId]}
+                      actor={this.props.currentActor}
+                      showVariables={this.state.showVariables}
+                      visibleVariables={this.state.visibleVariables}
+                      pixelSize={this.state.pixelSize}
+                      imageData={this.state.imageData}
+                    />
+                  </div>
                   <div
                     style={{
                       height: "100%",
@@ -779,7 +850,21 @@ class Container extends React.Component {
 }
 
 function mapStateToProps(state) {
-  return Object.assign({}, state.ui.paint, { characters: state.characters });
+  const { selectedActorPath } = state.ui;
+  let currentActor = null;
+  
+  if (selectedActorPath.worldId && selectedActorPath.stageId && selectedActorPath.actorId) {
+    const stage = state.world.stages[selectedActorPath.stageId];
+    if (stage && stage.actors[selectedActorPath.actorId]) {
+      currentActor = stage.actors[selectedActorPath.actorId];
+    }
+  }
+  
+  return Object.assign({}, state.ui.paint, { 
+    characters: state.characters,
+    currentActor: currentActor,
+    selectedActorPath: selectedActorPath
+  });
 }
 
 function pixelSizeToFit(imageData) {

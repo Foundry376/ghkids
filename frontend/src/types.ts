@@ -40,44 +40,44 @@ export type VariableComparator =
 
 export type RuleAction =
   | {
-      type: "appearance";
-      actorId: string;
-      value: RuleValue;
-    }
+    type: "appearance";
+    actorId: string;
+    value: RuleValue;
+  }
   | {
-      type: "variable";
-      actorId: string;
-      variable: string; // ID
-      operation: MathOperation;
-      value: RuleValue;
-    }
+    type: "variable";
+    actorId: string;
+    variable: string; // ID
+    operation: MathOperation;
+    value: RuleValue;
+  }
   | {
-      type: "global";
-      global: string; // ID
-      operation: MathOperation;
-      value: RuleValue;
-    }
+    type: "global";
+    global: string; // ID
+    operation: MathOperation;
+    value: RuleValue;
+  }
   | {
-      type: "delete";
-      actorId: string;
-    }
+    type: "delete";
+    actorId: string;
+  }
   | {
-      type: "create";
-      actor: Actor;
-      actorId: string;
-      offset: PositionRelativeToMainActor;
-    }
+    type: "create";
+    actor: Actor;
+    actorId: string;
+    offset: PositionRelativeToMainActor;
+  }
   | {
-      type: "move";
-      actorId: string;
-      delta?: { x: number; y: number };
-      offset?: PositionRelativeToMainActor;
-    }
+    type: "move";
+    actorId: string;
+    delta?: { x: number; y: number };
+    offset?: PositionRelativeToMainActor;
+  }
   | {
-      type: "transform";
-      actorId: string;
-      value: RuleValue;
-    };
+    type: "transform";
+    actorId: string;
+    value: RuleValue;
+  };
 
 export type ActorTransform = "0" | "flip-x" | "flip-y" | "90" | "180" | "270";
 
@@ -197,6 +197,10 @@ export type AppearanceInfo = {
   filled: { [xy: string]: boolean };
   width: number;
   height: number;
+  variableOverlay?: {
+    showVariables: boolean;
+    visibleVariables: { [variableId: string]: boolean };
+  };
 };
 export type Characters = { [id: string]: Character };
 
@@ -229,16 +233,16 @@ export type EvaluatedRuleIds = {
 
 export type Global =
   | {
-      id: string;
-      name: string;
-      value: string;
-    }
+    id: string;
+    name: string;
+    value: string;
+  }
   | {
-      id: "selectedStageId";
-      name: "Current Stage";
-      value: string;
-      type: "stage";
-    };
+    id: "selectedStageId";
+    name: "Current Stage";
+    value: string;
+    type: "stage";
+  };
 
 export type Globals = {
   selectedStageId: Global;
