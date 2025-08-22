@@ -113,13 +113,15 @@ class Container extends React.Component {
     const { characterId, characters, appearanceId } = props;
 
     if (characterId) {
-      const { appearances, appearanceInfo } = characters[characterId].spritesheet;
+      const { appearances, appearanceInfo, appearanceNames } = characters[characterId].spritesheet;
       const anchorSquare = appearanceInfo?.[appearanceId]?.anchor || { x: 0, y: 0 };
+      const spriteName = appearanceNames?.[appearanceId] || "Untitled";
+      const frameDataURL = appearances[appearanceId][0];
+
       const variableOverlay = appearanceInfo?.[appearanceId]?.variableOverlay || {
         showVariables: false,
         visibleVariables: {},
       };
-      const frameDataURL = appearances[appearanceId][0];
 
       getImageDataFromDataURL(frameDataURL, {}, (imageData) => {
         CreatePixelImageData.call(imageData);
@@ -130,6 +132,7 @@ class Container extends React.Component {
             pixelSize: pixelSizeToFit(imageData),
             showVariables: variableOverlay.showVariables,
             visibleVariables: variableOverlay.visibleVariables,
+            spriteName,
           }),
         );
       });
@@ -235,6 +238,7 @@ class Container extends React.Component {
         upsertCharacter(characterId, {
           spritesheet: {
             appearances: { [appearanceId]: [imageDataURL] },
+            appearanceNames: { [appearanceId]: values.name },
             appearanceInfo: {
               [appearanceId]: {
                 anchor: this.state.anchorSquare,
