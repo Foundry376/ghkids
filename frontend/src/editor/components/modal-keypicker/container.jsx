@@ -22,14 +22,12 @@ class Container extends React.Component {
     super(props, context);
     this.state = {
       key: props.initialKey,
-      key: props.replaceConditionKey,
     };
   }
 
   componentWillReceiveProps(nextProps) {
     this.setState({
       key: nextProps.initialKey,
-      replaceConditionKey: nextProps.replaceConditionKey,
     });
   }
 

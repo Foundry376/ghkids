@@ -10,6 +10,7 @@ import {
   setRecordingExtent,
   setupRecordingForActor,
   toggleSquareIgnored,
+  upsertRecordingCondition,
 } from "../../actions/recording-actions";
 import {
   changeActor,
@@ -382,6 +383,19 @@ export const Stage = ({
         break;
       case TOOLS.RECORD:
         dispatch(setupRecordingForActor({ characterId: actor.characterId, actor }));
+        dispatch(selectToolId(TOOLS.POINTER));
+        handled = true;
+        break;
+      case TOOLS.ADD_CLICK_CONDITION:
+        dispatch(
+          upsertRecordingCondition({
+            key: `${Math.random()}`,
+            left: { globalId: "click" },
+            right: { constant: actor.id },
+            comparator: "=",
+            enabled: true,
+          }),
+        );
         dispatch(selectToolId(TOOLS.POINTER));
         handled = true;
         break;

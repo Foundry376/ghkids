@@ -26,7 +26,10 @@ export enum TOOLS {
   TRASH = "trash",
   RECORD = "record",
   PAINT = "paint",
+
+  // Used in the recording flow
   IGNORE_SQUARE = "ignore-square",
+  ADD_CLICK_CONDITION = "add-click-condition",
 }
 
 export enum RECORDING_PHASE {

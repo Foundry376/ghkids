@@ -254,12 +254,20 @@ export type Global =
       type: "stage";
     }
   | {
+      id: "click";
+      name: "Clicked Actor";
+      value: string;
+      type: "actor";
+    }
+  | {
       id: "keypress";
       name: "Key Pressed";
       value: string;
+      type: "key";
     };
 
 export type Globals = {
+  click: Global;
   keypress: Global;
   selectedStageId: Global;
   [globalId: string]: Global;

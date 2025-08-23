@@ -9,10 +9,17 @@ const InitialWorld: World = {
     [stage.id]: stage,
   },
   globals: {
+    click: {
+      id: "click",
+      name: "Clicked Actor",
+      value: "",
+      type: "actor",
+    },
     keypress: {
       id: "keypress",
       name: "Key Pressed",
       value: "",
+      type: "key",
     },
     selectedStageId: {
       id: "selectedStageId",

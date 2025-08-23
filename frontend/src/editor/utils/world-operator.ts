@@ -24,6 +24,7 @@ import {
   VariableComparator,
   WorldMinimal,
 } from "../../types";
+import { FrameAccumulator } from "./frame-accumulator";
 import { getCurrentStageForWorld } from "./selectors";
 import {
   actorFillsPoint,
@@ -39,56 +40,6 @@ import { deepClone } from "./utils";
 import { CONTAINER_TYPES, FLOW_BEHAVIORS } from "./world-constants";
 
 let IDSeed = Date.now();
-
-export type FrameActor = Actor & { deleted?: boolean };
-export type Frame = { actors: { [actorId: string]: FrameActor }; id: number };
-
-class FrameAccumulator {
-  changes: { [actorId: string]: FrameActor[] } = {};
-  initial: Frame;
-
-  constructor(actors: { [actorId: string]: FrameActor }) {
-    this.initial = { actors, id: Date.now() };
-  }
-  push(actor: FrameActor) {
-    this.changes[actor.id] ||= [];
-    this.changes[actor.id].push(deepClone(actor));
-  }
-  getFrames() {
-    // Perform the first action for each actor in the first frame, then the second action
-    // for each actor, etc. until there are no more actions to perform.
-    const frames: Frame[] = [];
-    const remaining = { ...this.changes };
-    const frameCountsByActor = Object.fromEntries(
-      Object.entries(this.changes).map(([id, a]) => [id, a.length]),
-    );
-
-    let current: Frame = deepClone(this.initial);
-
-    while (true) {
-      const changeActorIds = Object.keys(remaining);
-      if (changeActorIds.length === 0) {
-        break;
-      }
-      for (const actorId of changeActorIds) {
-        const actorVersion = remaining[actorId].shift()!;
-        actorVersion.frameCount = frameCountsByActor[actorId];
-        if (actorVersion.deleted) {
-          delete current.actors[actorId];
-        } else {
-          current.actors[actorId] = actorVersion;
-        }
-        if (remaining[actorId].length === 0) {
-          delete remaining[actorId];
-        }
-      }
-      frames.push(current);
-      current = deepClone(current);
-      current.id += 0.1;
-    }
-    return frames;
-  }
-}
 
 export default function WorldOperator(previousWorld: WorldMinimal, characters: Characters) {
   let stage: Stage;
@@ -388,6 +339,17 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
         }
       }
 
+      // Re-check conditions - We check the conditions that involve actorIds when
+      // matching the rule actors to the stage actors, but we haven't checked
+      // global-to-global or global-to-variable style rules yet.
+      for (const condition of rule.conditions) {
+        const left = resolveRuleValue(condition.left, globals, characters, actors);
+        const right = resolveRuleValue(condition.right, globals, characters, actors);
+        if (!comparatorMatches(condition.comparator, left, right)) {
+          return false;
+        }
+      }
+
       return stageActorsForRuleActorIds;
     }
 
@@ -584,11 +546,8 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
 
     // mutable things
     globals = deepClone(previousWorld.globals);
-    globals.keypress = {
-      id: "keypress",
-      name: "Key Pressed",
-      value: Object.keys(input.keys).join(","),
-    };
+    globals.keypress = { ...globals.keypress, value: Object.keys(input.keys).join(",") };
+    globals.click = { ...globals.click, value: Object.keys(input.clicks)[0] };
 
     actors = deepClone(stage.actors);
     frameAccumulator = new FrameAccumulator(stage.actors);

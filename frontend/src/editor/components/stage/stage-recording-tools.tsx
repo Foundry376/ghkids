@@ -36,6 +36,16 @@ const StageRecordingTools = () => {
       >
         <img src={new URL("../../img/icon_event_key.png", import.meta.url).href} />
       </Button>
+      <Button
+        className={classNames({
+          "tool-click": true,
+          selected: selectedToolId === TOOLS.ADD_CLICK_CONDITION,
+          enabled: true,
+        })}
+        onClick={() => dispatch(selectToolId(TOOLS.ADD_CLICK_CONDITION))}
+      >
+        <img src={new URL("../../img/icon_event_click.png", import.meta.url).href} />
+      </Button>
     </div>
   );
 };

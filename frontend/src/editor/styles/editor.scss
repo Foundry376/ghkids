@@ -61,6 +61,9 @@ html {
 .tool-stamp {
   @include cursor("stamp");
 }
+.tool-add-click-condition {
+  @include cursor("add_click_condition");
+}
 .tool-pointer {
   cursor: default;
 }
@@ -307,6 +310,7 @@ html {
     z-index: 2;
   }
 
+  .tool-click,
   .tool-keypress,
   .tool-ignored-square {
     img {
@@ -719,6 +723,14 @@ html {
       padding: 5px 0;
       font-size: 1.2em;
       font-weight: bold;
+    }
+    .value.sprite code {
+      color: black;
+      padding-left: 0.5;
+      font-size: 0.7rem;
+    }
+    .value.sprite img {
+      zoom: 0.6;
     }
     input.value {
       cursor: text;

@@ -17,7 +17,7 @@ import {
 import { pickConditionValueFromKeyboard, selectToolId } from "../../../actions/ui-actions";
 import { TOOLS } from "../../../constants/constants";
 import { AppearanceDropdown, TransformDropdown } from "../../inspector/container-pane-variables";
-import { ActorVariableBlock, AppearanceBlock, TransformBlock } from "./blocks";
+import { ActorBlock, ActorVariableBlock, AppearanceBlock, TransformBlock } from "./blocks";
 
 interface FreeformConditionRowProps {
   actors: Stage["actors"];
@@ -31,6 +31,7 @@ type ImpliedDatatype =
   | { type: "transform" }
   | { type: "appearance"; character: Character }
   | { type: "key" }
+  | { type: "actor" }
   | null;
 
 export const FreeformConditionRow = ({
@@ -44,28 +45,32 @@ export const FreeformConditionRow = ({
   const selectedToolId = useSelector<EditorState>((state) => state.ui.selectedToolId);
   const dispatch = useDispatch();
 
-  const leftActor = "actorId" in left ? actors[left.actorId] : null;
-  const leftCharacter = leftActor && characters[leftActor.characterId];
-  const rightActor = "actorId" in right ? actors[right.actorId] : null;
-  const rightCharacter = rightActor && characters[rightActor.characterId];
+  const impliedDatatype: ImpliedDatatype = (() => {
+    const variableIds = [
+      "variableId" in left && left.variableId,
+      "variableId" in right && right.variableId,
+    ];
+    const globals = [
+      "globalId" in left && world.globals[left.globalId],
+      "globalId" in right && world.globals[right.globalId],
+    ];
 
-  const disambiguate =
-    leftActor && rightActor && leftActor !== rightActor
-      ? leftActor.characterId === rightActor.characterId
-      : false;
-
-  const variableIds = [
-    "variableId" in left && left.variableId,
-    "variableId" in right && right.variableId,
-  ];
-  const globalIds = ["globalId" in left && left.globalId, "globalId" in right && right.globalId];
-  const impliedDatatype: ImpliedDatatype = variableIds.includes("transform")
-    ? { type: "transform" }
-    : variableIds.includes("appearance")
-      ? { type: "appearance", character: leftCharacter! || rightCharacter! }
-      : globalIds.includes("keypress")
-        ? { type: "key" }
-        : null;
+    const globalType = globals.map((g) => (g && `type` in g ? g.type : null)).filter(Boolean)[0];
+    if (globalType) {
+      return { type: globalType } as ImpliedDatatype;
+    }
+    if (variableIds.includes("transform")) {
+      return { type: "transform" };
+    }
+    if (variableIds.includes("appearance")) {
+      const actorId = "actorId" in left ? left.actorId : "actorId" in right ? right.actorId : null;
+      const character = actorId && characters[actors[actorId].characterId];
+      if (character) {
+        return { type: "appearance", character };
+      }
+    }
+    return null;
+  })();
 
   const onToolClick = (e: React.MouseEvent) => {
     if (selectedToolId === TOOLS.TRASH) {
@@ -81,10 +86,9 @@ export const FreeformConditionRow = ({
       <FreeformConditionValue
         conditionId={condition.key}
         value={left}
-        actor={leftActor}
+        actors={actors}
         world={world}
-        character={leftCharacter}
-        disambiguate={disambiguate}
+        characters={characters}
         onChange={onChange ? (value) => onChange(true, { ...condition, left: value }) : undefined}
         impliedDatatype={impliedDatatype}
       />
@@ -102,10 +106,9 @@ export const FreeformConditionRow = ({
       <FreeformConditionValue
         conditionId={condition.key}
         value={right}
-        actor={rightActor}
+        actors={actors}
         world={world}
-        character={rightCharacter}
-        disambiguate={disambiguate}
+        characters={characters}
         onChange={onChange ? (value) => onChange(true, { ...condition, right: value }) : undefined}
         impliedDatatype={impliedDatatype}
       />
@@ -120,26 +123,30 @@ export const FreeformConditionRow = ({
   );
 };
 
+const GLOBAL_ICONS: { [id: string]: string } = {
+  click: new URL("../../../img/icon_event_click.png", import.meta.url).href,
+  keypress: new URL("../../../img/icon_event_key.png", import.meta.url).href,
+  selectedStageId: new URL("../../../img/sidebar_choose_background.png", import.meta.url).href,
+};
+
 export const FreeformConditionValue = ({
   value,
-  actor,
-  character,
   world,
-  disambiguate,
+  actors,
+  characters,
   onChange,
   impliedDatatype,
   conditionId,
 }: {
   value: RuleValue;
-  actor: Actor | null;
-  character: Character | null;
   world: WorldMinimal;
-  disambiguate: boolean;
+  characters: Characters;
+  actors: { [actorId: string]: Actor };
   onChange?: (value: RuleValue) => void;
   impliedDatatype: ImpliedDatatype;
   conditionId?: string;
 }) => {
-  const selectedToolId = useSelector<EditorState>((state) => state.ui.selectedToolId);
+  const selectedToolId = useSelector<EditorState, TOOLS>((state) => state.ui.selectedToolId);
   const dispatch = useDispatch();
 
   const [droppingValue, setDroppingValue] = useState(false);
@@ -151,6 +158,10 @@ export const FreeformConditionValue = ({
       onChange?.(value);
       e.stopPropagation();
     }
+    if (e.dataTransfer.types.includes("sprite")) {
+      const { actorId } = JSON.parse(e.dataTransfer.getData("sprite"));
+      onChange?.({ constant: actorId });
+    }
     setDroppingValue(false);
   };
 
@@ -158,15 +169,22 @@ export const FreeformConditionValue = ({
     if (!value) {
       return <div>Empty</div>;
     }
-    if ("actorId" in value && actor && character) {
-      return (
-        <ActorVariableBlock
-          character={character}
-          actor={actor}
-          disambiguate={disambiguate}
-          variableId={value.variableId}
-        />
-      );
+    if ("actorId" in value) {
+      const actor = actors[value.actorId];
+      const character = actor && characters[actor.characterId];
+
+      if (actor && character) {
+        const disambiguate =
+          Object.values(actors).filter((a) => a.characterId === character.id).length > 1;
+        return (
+          <ActorVariableBlock
+            character={character}
+            actor={actor}
+            disambiguate={disambiguate}
+            variableId={value.variableId}
+          />
+        );
+      }
     }
     if ("constant" in value) {
       if (impliedDatatype?.type === "transform") {
@@ -197,6 +215,15 @@ export const FreeformConditionValue = ({
           );
         }
       }
+      if (impliedDatatype?.type === "actor") {
+        const actor = actors[value.constant];
+        const character = actor && characters[actor.characterId];
+        if (actor && character) {
+          const disambiguate =
+            Object.values(actors).filter((a) => a.characterId === character.id).length > 1;
+          return <ActorBlock actor={actor} character={character} disambiguate={disambiguate} />;
+        }
+      }
       if (impliedDatatype?.type === "key" && conditionId && onChange) {
         return (
           <Button
@@ -224,30 +251,18 @@ export const FreeformConditionValue = ({
     }
 
     if ("globalId" in value) {
-      const icon =
-        value.globalId === "keypress" ? (
-          <img
-            style={{ width: 40, height: 40, zoom: 0.6, verticalAlign: "middle", marginRight: 8 }}
-            src={new URL("../../../img/icon_event_key.png", import.meta.url).href}
-          />
-        ) : value.globalId === "selectedStageId" ? (
-          <img
-            style={{ width: 40, height: 40, zoom: 0.6, verticalAlign: "middle", marginRight: 8 }}
-            src={new URL("../../../img/sidebar_choose_background.png", import.meta.url).href}
-          />
-        ) : (
-          <div
-            style={{
-              fontSize: "20px",
-              lineHeight: "24px",
-              paddingTop: 2,
-              marginRight: 8,
-              verticalAlign: "middle",
-            }}
-          >
-            🌐
-          </div>
-        );
+      const icon = GLOBAL_ICONS[value.globalId] ? (
+        <img
+          style={{ width: 40, height: 40, zoom: 0.6, verticalAlign: "middle", marginRight: 8 }}
+          src={GLOBAL_ICONS[value.globalId]}
+        />
+      ) : (
+        <span
+          style={{ fontSize: "20px", lineHeight: "24px", marginRight: 6, verticalAlign: "middle" }}
+        >
+          🌐
+        </span>
+      );
 
       return (
         <code>
@@ -325,6 +340,9 @@ const ComparatorLabels = {
 function comparatorsForImpliedDatatype(inferred: ImpliedDatatype) {
   if (inferred?.type === "key") {
     return ["=", "contains"];
+  }
+  if (inferred?.type === "actor") {
+    return ["=", "!="];
   }
   return ["=", "!="];
 }
