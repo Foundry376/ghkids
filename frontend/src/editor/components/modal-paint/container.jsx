@@ -446,7 +446,6 @@ class Container extends React.Component {
   _onGenerateSprite = async () => {
     const description = this.state.spriteDescription;
     const prompt = `Generate a pixel art sprite with a solid background based on the following description: ${description}`;
-    console.log(prompt);
 
     this.setState({ isGeneratingSprite: true });
     try {

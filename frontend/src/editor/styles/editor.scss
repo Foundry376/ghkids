@@ -723,6 +723,8 @@ html {
       padding: 5px 0;
       font-size: 1.2em;
       font-weight: bold;
+      overflow: hidden;
+      white-space: nowrap;
     }
     .value.sprite code {
       color: black;

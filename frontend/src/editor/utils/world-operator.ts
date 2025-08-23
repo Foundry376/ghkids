@@ -36,10 +36,8 @@ import {
   resolveRuleValue,
   shuffleArray,
 } from "./stage-helpers";
-import { deepClone } from "./utils";
+import { deepClone, makeId } from "./utils";
 import { CONTAINER_TYPES, FLOW_BEHAVIORS } from "./world-constants";
-
-let IDSeed = Date.now();
 
 export default function WorldOperator(previousWorld: WorldMinimal, characters: Characters) {
   let stage: Stage;
@@ -402,7 +400,7 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
             throw new Error(`Action cannot create at this position`);
           }
           const nextActor = Object.assign(deepClone(action.actor), {
-            id: createActorIds ? `${IDSeed++}` : action.actorId,
+            id: createActorIds ? makeId("actor") : action.actorId,
             position: nextPos,
             variableValues: {},
           });

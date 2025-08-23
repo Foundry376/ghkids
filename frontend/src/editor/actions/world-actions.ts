@@ -23,7 +23,7 @@ export type ActionUpsertGlobal = {
 };
 
 export function createGlobal(worldId?: string): ActionUpsertGlobal {
-  const globalId = `${Date.now()}`;
+  const globalId = makeId("global");
   return {
     type: types.UPSERT_GLOBAL,
     worldId,

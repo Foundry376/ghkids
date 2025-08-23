@@ -14,6 +14,7 @@ import {
 } from "../../actions/recording-actions";
 import { selectToolId } from "../../actions/ui-actions";
 import { TOOLS } from "../../constants/constants";
+import { makeId } from "../../utils/utils";
 
 const RuleAddButton = ({
   character,
@@ -38,7 +39,7 @@ const RuleAddButton = ({
   };
 
   const _onCreateFlowContainer = () => {
-    const id = `${Date.now()}`;
+    const id = makeId("rule");
     dispatch(createCharacterFlowContainer(character.id, { id }));
   };
 

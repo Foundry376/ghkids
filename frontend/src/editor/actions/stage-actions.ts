@@ -4,12 +4,13 @@ import * as types from "../constants/action-types";
 
 import { Actions } from ".";
 import { defaultAppearanceId } from "../utils/character-helpers";
+import { makeId } from "../utils/utils";
 import { selectStageId } from "./ui-actions";
 
 // stage collection actions
 
 export function createStage(worldId: string, stageName: string) {
-  const stageId = `${Date.now()}`;
+  const stageId = makeId("stage");
   return (dispatch: Dispatch<Actions>) => {
     dispatch({
       type: types.CREATE_STAGE,
@@ -157,7 +158,7 @@ export function createActor(
   character: Character,
   initialValues: DeepPartial<Actor>,
 ) {
-  const newID = `${Date.now()}`;
+  const newID = makeId("actor");
 
   const newActor: DeepPartial<Actor> = Object.assign(
     {

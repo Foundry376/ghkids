@@ -14,7 +14,7 @@ import { editRuleRecording } from "../../actions/recording-actions";
 import { selectToolId } from "../../actions/ui-actions";
 import { TOOLS } from "../../constants/constants";
 import { findRule } from "../../utils/stage-helpers";
-import { deepClone } from "../../utils/utils";
+import { deepClone, makeId } from "../../utils/utils";
 import { RuleList } from "./rule-list";
 
 export const RuleActionsContext = React.createContext<{
@@ -167,7 +167,7 @@ export const ContainerPaneRules = ({ character }: { character: Character | null 
       throw new Error(`Parent rules are not rule containers`);
     }
 
-    const copyOfRule = { ...sourceRule, id: `${Date.now()}` };
+    const copyOfRule = { ...sourceRule, id: makeId("rule") };
     if ("name" in copyOfRule) {
       copyOfRule.name = `${copyOfRule.name} Copy`;
     }

@@ -12,7 +12,7 @@ import { ruleFromRecordingState } from "../components/stage/recording/utils";
 import * as Types from "../constants/action-types";
 import { getCurrentStageForWorld } from "../utils/selectors";
 import { findRule } from "../utils/stage-helpers";
-import { deepClone } from "../utils/utils";
+import { deepClone, makeId } from "../utils/utils";
 import { CONTAINER_TYPES, FLOW_BEHAVIORS } from "../utils/world-constants";
 import initialState from "./initial-state";
 
@@ -165,7 +165,7 @@ export default function charactersReducer(
       ) as RuleTreeEventItem;
       const rulesWithinIdle: RuleTreeItem[] = idleContainer ? idleContainer.rules : rules;
 
-      rulesWithinIdle.unshift({ ...recordedRule, id: `${Date.now()}`, name: "Untitled Rule" });
+      rulesWithinIdle.unshift({ ...recordedRule, id: makeId("rule"), name: "Untitled Rule" });
       return u.updateIn(recording.characterId, { rules }, state);
     }
     default:

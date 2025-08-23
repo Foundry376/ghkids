@@ -232,7 +232,7 @@ export const FreeformConditionValue = ({
               dispatch(pickConditionValueFromKeyboard(true, value.constant, conditionId));
             }}
           >
-            {value.constant}
+            {value.constant || "Choose…"}
           </Button>
         );
       }

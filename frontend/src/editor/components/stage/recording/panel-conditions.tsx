@@ -7,6 +7,7 @@ import { Characters, RecordingState } from "../../../../types";
 import { upsertRecordingCondition } from "../../../actions/recording-actions";
 import { getCurrentStageForWorld } from "../../../utils/selectors";
 import { actorIntersectsExtent } from "../../../utils/stage-helpers";
+import { makeId } from "../../../utils/utils";
 
 export const RecordingConditions = ({
   recording,
@@ -76,7 +77,7 @@ export const RecordingConditions = ({
           dispatch(
             upsertRecordingCondition({
               enabled: true,
-              key: `v3-${Date.now()}`,
+              key: makeId("condition"),
               comparator: "=",
               left: globalId ? { globalId } : { actorId, variableId },
               right: { constant: value },

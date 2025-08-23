@@ -44,7 +44,16 @@ export const VariableGridItem = ({
 
   let content = null;
 
-  if ("type" in definition && definition.type === "stage") {
+  const type =
+    "type" in definition
+      ? definition.type
+      : displayValue?.startsWith("stage:")
+        ? "stage"
+        : displayValue?.startsWith("actor")
+          ? "actor"
+          : null;
+
+  if (type === "stage") {
     content = (
       <ConnectedStagePicker
         value={`${displayValue}`}
@@ -52,7 +61,7 @@ export const VariableGridItem = ({
         onChange={(e) => onChangeValue(definition.id, e.target.value)}
       />
     );
-  } else if ("type" in definition && definition.type === "actor") {
+  } else if (type === "actor") {
     content = (
       <div className="value sprite">
         {displayValue && <ConnectedActorBlock actorId={displayValue} />}

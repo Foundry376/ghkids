@@ -8,6 +8,7 @@ import ModalFooter from "reactstrap/lib/ModalFooter";
 
 import { upsertRecordingCondition } from "../../actions/recording-actions";
 import { pickConditionValueFromKeyboard } from "../../actions/ui-actions";
+import { makeId } from "../../utils/utils";
 import Keyboard, { keyToCodakoKey } from "./keyboard";
 
 class Container extends React.Component {
@@ -47,7 +48,7 @@ class Container extends React.Component {
     dispatch(pickConditionValueFromKeyboard(false, null, null));
     dispatch(
       upsertRecordingCondition({
-        key: this.props.replaceConditionKey || `${Math.random()}`,
+        key: this.props.replaceConditionKey || makeId("condition"),
         enabled: true,
         left: { globalId: "keypress" },
         comparator: "contains",
@@ -89,7 +90,6 @@ class Container extends React.Component {
 }
 
 function mapStateToProps(state) {
-  console.log(state.ui.keypicker);
   return Object.assign({}, state.ui.keypicker);
 }
 

@@ -47,6 +47,7 @@ import {
   WorldMinimal,
 } from "../../../types";
 import { defaultAppearanceId } from "../../utils/character-helpers";
+import { makeId } from "../../utils/utils";
 import { keyToCodakoKey } from "../modal-keypicker/keyboard";
 
 interface StageProps {
@@ -389,7 +390,7 @@ export const Stage = ({
       case TOOLS.ADD_CLICK_CONDITION:
         dispatch(
           upsertRecordingCondition({
-            key: `${Math.random()}`,
+            key: makeId("condition"),
             left: { globalId: "click" },
             right: { constant: actor.id },
             comparator: "=",
