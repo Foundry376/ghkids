@@ -42,7 +42,8 @@ export default class StageRecordingControls extends React.Component {
     const next = {
       [RECORDING_PHASE.RECORD]: (
         <span>
-          <i className="fa fa-checkmark" /> Save Recording
+          <i className="fa fa-checkmark" />{" "}
+          {this.props.recording.actions ? "Save Recording" : "Save Conditions"}
         </span>
       ),
     }[phase];

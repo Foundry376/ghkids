@@ -9,7 +9,7 @@ import { TOOLS } from "../../../constants/constants";
 import { deepClone } from "../../../utils/utils";
 import { ActorDeltaCanvas } from "./actor-delta-canvas";
 import { ActorOffsetCanvas } from "./actor-offset-canvas";
-import { ActorBlock, VariableBlock } from "./blocks";
+import { ActorBlock, ActorVariableBlock, VariableBlock } from "./blocks";
 import { FreeformConditionValue } from "./condition-rows";
 import { getAfterWorldForRecording } from "./utils";
 import { VariableActionPicker } from "./variable-action-picker";
@@ -105,9 +105,7 @@ export const RecordingActions = (props: { characters: Characters; recording: Rec
               disambiguate={false}
             />
             {{ set: "into", add: "to", subtract: "from" }[a.operation]}
-            <VariableBlock name={character.variables[a.variable].name} />
-            of
-            <ActorBlock character={character} actor={actor} />
+            <ActorVariableBlock character={character} actor={actor} variableId={a.variable} />
           </>
         );
       }
@@ -192,6 +190,10 @@ export const RecordingActions = (props: { characters: Characters; recording: Rec
   };
 
   const [droppingValue, setDroppingValue] = useState(false);
+
+  if (!actions) {
+    return <span />;
+  }
 
   const onDropValue = (e: React.DragEvent) => {
     if (e.dataTransfer.types.includes("variable")) {

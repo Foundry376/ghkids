@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 
 import { useDispatch, useSelector } from "react-redux";
+import { Button } from "reactstrap";
 import {
   Actor,
   ActorTransform,
@@ -13,10 +14,10 @@ import {
   VariableComparator,
   WorldMinimal,
 } from "../../../../types";
-import { selectToolId } from "../../../actions/ui-actions";
+import { pickConditionValueFromKeyboard, selectToolId } from "../../../actions/ui-actions";
 import { TOOLS } from "../../../constants/constants";
 import { AppearanceDropdown, TransformDropdown } from "../../inspector/container-pane-variables";
-import { ActorBlock, AppearanceBlock, TransformBlock, VariableBlock } from "./blocks";
+import { ActorVariableBlock, AppearanceBlock, TransformBlock } from "./blocks";
 
 interface FreeformConditionRowProps {
   actors: Stage["actors"];
@@ -26,7 +27,11 @@ interface FreeformConditionRowProps {
   onChange?: (keep: boolean, condition: RuleCondition) => void;
 }
 
-type ImpliedDatatype = { type: "transform" } | { type: "appearance"; character: Character } | null;
+type ImpliedDatatype =
+  | { type: "transform" }
+  | { type: "appearance"; character: Character }
+  | { type: "key" }
+  | null;
 
 export const FreeformConditionRow = ({
   condition,
@@ -53,11 +58,14 @@ export const FreeformConditionRow = ({
     "variableId" in left && left.variableId,
     "variableId" in right && right.variableId,
   ];
+  const globalIds = ["globalId" in left && left.globalId, "globalId" in right && right.globalId];
   const impliedDatatype: ImpliedDatatype = variableIds.includes("transform")
     ? { type: "transform" }
     : variableIds.includes("appearance")
       ? { type: "appearance", character: leftCharacter! || rightCharacter! }
-      : null;
+      : globalIds.includes("keypress")
+        ? { type: "key" }
+        : null;
 
   const onToolClick = (e: React.MouseEvent) => {
     if (selectedToolId === TOOLS.TRASH) {
@@ -71,6 +79,7 @@ export const FreeformConditionRow = ({
   return (
     <li className={`enabled-true tool-${selectedToolId}`} onClick={onToolClick}>
       <FreeformConditionValue
+        conditionId={condition.key}
         value={left}
         actor={leftActor}
         world={world}
@@ -91,6 +100,7 @@ export const FreeformConditionRow = ({
       )}
 
       <FreeformConditionValue
+        conditionId={condition.key}
         value={right}
         actor={rightActor}
         world={world}
@@ -118,6 +128,7 @@ export const FreeformConditionValue = ({
   disambiguate,
   onChange,
   impliedDatatype,
+  conditionId,
 }: {
   value: RuleValue;
   actor: Actor | null;
@@ -126,6 +137,7 @@ export const FreeformConditionValue = ({
   disambiguate: boolean;
   onChange?: (value: RuleValue) => void;
   impliedDatatype: ImpliedDatatype;
+  conditionId?: string;
 }) => {
   const selectedToolId = useSelector<EditorState>((state) => state.ui.selectedToolId);
   const dispatch = useDispatch();
@@ -148,18 +160,12 @@ export const FreeformConditionValue = ({
     }
     if ("actorId" in value && actor && character) {
       return (
-        <div>
-          <ActorBlock character={character} actor={actor} disambiguate={disambiguate} />
-          {value.variableId === "transform" ? (
-            "direction"
-          ) : value.variableId === "appearance" ? (
-            "appearance"
-          ) : (
-            <VariableBlock
-              name={(value.variableId && character.variables[value.variableId].name) || ""}
-            />
-          )}
-        </div>
+        <ActorVariableBlock
+          character={character}
+          actor={actor}
+          disambiguate={disambiguate}
+          variableId={value.variableId}
+        />
       );
     }
     if ("constant" in value) {
@@ -191,17 +197,64 @@ export const FreeformConditionValue = ({
           );
         }
       }
-      return (
-        <input
-          type="text"
-          value={value.constant}
-          style={{ width: 80 }}
-          onChange={(e) => onChange?.({ constant: e.target.value })}
-        />
-      );
+      if (impliedDatatype?.type === "key" && conditionId && onChange) {
+        return (
+          <Button
+            size="sm"
+            onClick={() => {
+              dispatch(pickConditionValueFromKeyboard(true, value.constant, conditionId));
+            }}
+          >
+            {value.constant}
+          </Button>
+        );
+      }
+
+      if (onChange) {
+        return (
+          <input
+            type="text"
+            value={value.constant}
+            style={{ width: 80 }}
+            onChange={(e) => onChange?.({ constant: e.target.value })}
+          />
+        );
+      }
+      return <code>"{value.constant}"</code>;
     }
+
     if ("globalId" in value) {
-      return world.globals[value.globalId]?.name ?? "Unknown global";
+      const icon =
+        value.globalId === "keypress" ? (
+          <img
+            style={{ width: 40, height: 40, zoom: 0.6, verticalAlign: "middle", marginRight: 8 }}
+            src={new URL("../../../img/icon_event_key.png", import.meta.url).href}
+          />
+        ) : value.globalId === "selectedStageId" ? (
+          <img
+            style={{ width: 40, height: 40, zoom: 0.6, verticalAlign: "middle", marginRight: 8 }}
+            src={new URL("../../../img/sidebar_choose_background.png", import.meta.url).href}
+          />
+        ) : (
+          <div
+            style={{
+              fontSize: "20px",
+              lineHeight: "24px",
+              paddingTop: 2,
+              marginRight: 8,
+              verticalAlign: "middle",
+            }}
+          >
+            🌐
+          </div>
+        );
+
+      return (
+        <code>
+          {icon}
+          {world.globals[value.globalId]?.name ?? value.globalId}
+        </code>
+      );
     }
 
     return <span />;
@@ -269,6 +322,13 @@ const ComparatorLabels = {
   "ends-with": "ends with",
 };
 
+function comparatorsForImpliedDatatype(inferred: ImpliedDatatype) {
+  if (inferred?.type === "key") {
+    return ["=", "contains"];
+  }
+  return ["=", "!="];
+}
+
 const ComparatorSelect = ({
   value,
   onChange,
@@ -281,7 +341,9 @@ const ComparatorSelect = ({
 }) => (
   <select {...rest} value={value} onChange={(e) => onChange(e.target.value as VariableComparator)}>
     {Object.entries(ComparatorLabels)
-      .filter((t) => (impliedDatatype ? ["=", "!="].includes(t[0]) : true))
+      .filter((t) =>
+        impliedDatatype ? comparatorsForImpliedDatatype(impliedDatatype).includes(t[0]) : true,
+      )
       .map(([key, value]) => (
         <option key={key} value={key}>
           {value}

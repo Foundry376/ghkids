@@ -108,10 +108,13 @@ export const RuleList = ({
 
   const _onRuleDoubleClick = (event: React.MouseEvent<unknown>, rule: RuleTreeItem) => {
     event.stopPropagation();
-    if (rule.type === CONTAINER_TYPES.EVENT || rule.type === CONTAINER_TYPES.FLOW) {
-      return;
+
+    if (rule.type === CONTAINER_TYPES.FLOW && rule.check) {
+      onRuleReRecord(rule.check);
     }
-    onRuleReRecord(rule);
+    if (rule.type === "rule") {
+      onRuleReRecord(rule);
+    }
   };
 
   const _onDragStart = (event: React.DragEvent<unknown>, rule: RuleTreeItem) => {

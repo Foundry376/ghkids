@@ -13,7 +13,9 @@ import {
   Rule,
   RuleCondition,
   RuleTreeEventItem,
+  RuleTreeFlowItem,
   RuleTreeFlowItemAll,
+  RuleTreeFlowItemCheck,
   RuleTreeFlowItemFirst,
   RuleTreeFlowItemRandom,
   RuleTreeFlowLoopItem,
@@ -173,6 +175,10 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
       case "<=":
         return Number(a) <= Number(b);
       case "contains":
+        if (`${a}`.includes(",")) {
+          // This is a special hack for keypress so "ArrowLeft,Space" doesn't match "A"
+          return a?.split(",").some((v) => v === b);
+        }
         return `${a}`.includes(`${b}`);
       case "ends-with":
         return `${a}`.endsWith(`${b}`);
@@ -251,7 +257,8 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
       if (rule.type === CONTAINER_TYPES.EVENT) {
         return checkEvent(rule) && tickRulesTree(rule);
       } else if (rule.type === CONTAINER_TYPES.FLOW) {
-        return tickRulesTree(rule);
+        const checkMet = !rule.check || !!checkRuleScenario(rule.check);
+        return checkMet && tickRulesTree(rule);
       }
       const stageActorForId = checkRuleScenario(rule);
       if (stageActorForId) {
@@ -274,7 +281,9 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
       throw new Error(`Unknown trigger event: ${trigger}`);
     }
 
-    function checkRuleScenario(rule: Rule): { [ruleActorId: string]: Actor } | false {
+    function checkRuleScenario(
+      rule: Rule | NonNullable<RuleTreeFlowItem["check"]>,
+    ): { [ruleActorId: string]: Actor } | false {
       const ruleActorsUsed = new Set<string>(); // x-y-ruleactorId
       const stageActorsForRuleActorIds: { [ruleActorId: string]: Actor } = {};
 
@@ -368,11 +377,13 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
 
       // If any actions call for offsets that are not valid positions on the stage
       // (offscreen and stage doesn't wrap), return false.
-      for (const action of rule.actions) {
-        if ("offset" in action && action.offset) {
-          const stagePos = wrappedPosition(pointByAdding(me.position, action.offset));
-          if (stagePos === null) {
-            return false;
+      if ("actions" in rule && rule.actions) {
+        for (const action of rule.actions) {
+          if ("offset" in action && action.offset) {
+            const stagePos = wrappedPosition(pointByAdding(me.position, action.offset));
+            if (stagePos === null) {
+              return false;
+            }
           }
         }
       }
@@ -380,11 +391,14 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
       return stageActorsForRuleActorIds;
     }
 
-    function getActionAndConditionActorIds(rule: Rule) {
+    function getActionAndConditionActorIds(rule: Rule | NonNullable<RuleTreeFlowItem["check"]>) {
       const requiredActorIds: string[] = [];
-      for (const action of rule.actions) {
-        if ("actorId" in action && rule.actors[action.actorId]) {
-          requiredActorIds.push(action.actorId);
+
+      if ("actions" in rule && rule.actions) {
+        for (const action of rule.actions) {
+          if ("actorId" in action && rule.actors[action.actorId]) {
+            requiredActorIds.push(action.actorId);
+          }
         }
       }
       for (const { left, right } of rule.conditions) {
@@ -508,7 +522,7 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
   }
 
   function resetForRule(
-    rule: Rule,
+    rule: Rule | RuleTreeFlowItemCheck,
     { offset, applyActions }: { offset: Position; applyActions: boolean },
   ) {
     // read-only things
@@ -524,7 +538,7 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
     }
 
     for (const cond of Object.values(rule.conditions)) {
-      if ("globalId" in cond.left) {
+      if ("globalId" in cond.left && globals[cond.left.globalId]) {
         const value = resolveRuleValue(cond.right, globals, characters, rule.actors);
         if (value) {
           globals[cond.left.globalId].value = value;
@@ -534,7 +548,7 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
 
     // lay out the before state and apply any rules that apply to
     // the actors currently on the board
-    if (applyActions) {
+    if (applyActions && "actions" in rule && rule.actions) {
       const operator = ActorOperator(actors[rule.mainActorId]);
       operator.applyRule(rule, { createActorIds: false, stageActorForId: { ...actors } });
     }
@@ -570,6 +584,12 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
 
     // mutable things
     globals = deepClone(previousWorld.globals);
+    globals.keypress = {
+      id: "keypress",
+      name: "Key Pressed",
+      value: Object.keys(input.keys).join(","),
+    };
+
     actors = deepClone(stage.actors);
     frameAccumulator = new FrameAccumulator(stage.actors);
     evaluatedRuleIds = {};

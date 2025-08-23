@@ -6,64 +6,69 @@ import Modal from "reactstrap/lib/Modal";
 import ModalBody from "reactstrap/lib/ModalBody";
 import ModalFooter from "reactstrap/lib/ModalFooter";
 
-import { upsertCharacter } from "../../actions/characters-actions";
-import { pickCharacterRuleEventKey } from "../../actions/ui-actions";
-import { findRule } from "../../utils/stage-helpers";
-import { deepClone } from "../../utils/utils";
-import Keyboard from "./keyboard";
+import { upsertRecordingCondition } from "../../actions/recording-actions";
+import { pickConditionValueFromKeyboard } from "../../actions/ui-actions";
+import Keyboard, { keyToCodakoKey } from "./keyboard";
 
 class Container extends React.Component {
   static propTypes = {
     dispatch: PropTypes.func,
-    characters: PropTypes.object,
-    characterId: PropTypes.string,
-    ruleId: PropTypes.string,
-    initialKeyCode: PropTypes.string,
+    open: PropTypes.bool,
+    initialKey: PropTypes.string,
+    replaceConditionKey: PropTypes.string,
   };
 
   constructor(props, context) {
     super(props, context);
     this.state = {
-      keyCode: props.initialKeyCode,
+      key: props.initialKey,
+      key: props.replaceConditionKey,
     };
   }
 
   componentWillReceiveProps(nextProps) {
-    this.setState({ keyCode: nextProps.initialKeyCode });
+    this.setState({
+      key: nextProps.initialKey,
+      replaceConditionKey: nextProps.replaceConditionKey,
+    });
   }
 
   _onClose = () => {
-    this.props.dispatch(pickCharacterRuleEventKey(null));
+    this.props.dispatch(pickConditionValueFromKeyboard(false, null, null));
   };
 
   _onCloseAndSave = () => {
-    const { dispatch, characterId, ruleId, characters } = this.props;
-    const rules = deepClone(characters[characterId].rules);
+    const { dispatch } = this.props;
 
-    if (!this.state.keyCode) {
+    if (!this.state.key) {
       return window.alert(
         "Uhoh - press a key on your keyboard or choose one in the picture to continue.",
       );
     }
 
-    const [rule] = findRule({ rules }, ruleId);
-    rule.code = this.state.keyCode;
-
-    dispatch(pickCharacterRuleEventKey(null));
-    dispatch(upsertCharacter(characterId, { rules }));
+    dispatch(pickConditionValueFromKeyboard(false, null, null));
+    dispatch(
+      upsertRecordingCondition({
+        key: this.props.replaceConditionKey || `${Math.random()}`,
+        enabled: true,
+        left: { globalId: "keypress" },
+        comparator: "contains",
+        right: { constant: this.state.key },
+      }),
+    );
   };
 
   _onKeyDown = (event) => {
-    this.setState({ keyCode: event.keyCode });
+    this.setState({ key: keyToCodakoKey(event.key) });
     event.preventDefault();
   };
 
   render() {
-    const { characterId } = this.props;
+    const { open } = this.props;
 
     return (
       <Modal
-        isOpen={characterId !== null}
+        isOpen={open}
         backdrop="static"
         toggle={() => {}}
         style={{ maxWidth: 600, minWidth: 600 }}
@@ -72,9 +77,7 @@ class Container extends React.Component {
           <h4 style={{ flex: 1 }}>Choose Key</h4>
         </div>
         <ModalBody>
-          {characterId !== null && (
-            <Keyboard keyCode={this.state.keyCode} onKeyDown={this._onKeyDown} />
-          )}
+          {open && <Keyboard value={this.state.key} onKeyDown={this._onKeyDown} />}
         </ModalBody>
         <ModalFooter>
           <Button onClick={this._onClose}>Cancel</Button>{" "}
@@ -88,9 +91,8 @@ class Container extends React.Component {
 }
 
 function mapStateToProps(state) {
-  return Object.assign({}, state.ui.keypicker, {
-    characters: state.characters,
-  });
+  console.log(state.ui.keypicker);
+  return Object.assign({}, state.ui.keypicker);
 }
 
 export default connect(mapStateToProps)(Container);

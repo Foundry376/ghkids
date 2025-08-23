@@ -76,18 +76,18 @@ export function paintCharacterAppearance(characterId: string, appearanceId: stri
   };
 }
 
-export function pickCharacterRuleEventKey(
-  characterId: string,
-  ruleId: string,
-  initialKeyCode: number | null,
+export function pickConditionValueFromKeyboard(
+  open: boolean,
+  initialKey: string | null,
+  replaceConditionKey: string | null,
 ) {
   return (dispatch: Dispatch<Actions>) => {
     dispatch(stopPlayback());
     dispatch({
       type: types.UPDATE_KEYPICKER_STATE,
-      characterId,
-      ruleId,
-      initialKeyCode,
+      open,
+      initialKey,
+      replaceConditionKey,
     });
   };
 }
@@ -146,9 +146,9 @@ export type ActionUpdatePaintingState = {
 
 export type ActionUpdateKeypickerState = {
   type: "UPDATE_KEYPICKER_STATE";
-  characterId: string;
-  ruleId: string;
-  initialKeyCode: number | null;
+  open: boolean;
+  initialKey: string | null;
+  replaceConditionKey: string | null;
 };
 
 export type ActionUpdateTutorialState = {

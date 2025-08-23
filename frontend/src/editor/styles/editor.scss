@@ -307,10 +307,11 @@ html {
     z-index: 2;
   }
 
+  .tool-keypress,
   .tool-ignored-square {
     img {
-      width: 20px;
-      height: 20px;
+      width: 30px;
+      height: 30px;
     }
     padding: 4px;
   }
@@ -813,7 +814,7 @@ html {
       background-color: $rule-flow-color;
       .header {
         user-select: none;
-        height: 50px;
+        // height: 50px;
         .name {
           padding-left: 0;
         }
@@ -935,6 +936,12 @@ html {
       border-left: 1px solid rgba(0, 0, 0, 0.2);
       font-size: 13px;
       padding: 2px;
+      li {
+        display: flex;
+        flex-direction: row;
+        align-items: baseline;
+        gap: 4px;
+      }
       code {
         background-color: transparent;
         padding: 4px;
@@ -948,33 +955,34 @@ html {
         display: inline-block;
       }
     }
-    .scenario {
-      display: flex;
-      text-align: center;
-      margin-bottom: 3px;
-      pointer-events: none;
+  }
 
-      .scenario-stage {
-        user-select: none;
-        position: relative;
-        display: inline-block;
-        background:
-          url(../img/board-grid.png) top left,
-          url(../img/checker.png);
-        background-size: 40px, 8px;
-        border: 1px solid #bbb;
-        box-sizing: content-box;
-        vertical-align: middle;
-        overflow: hidden;
-        * {
-          pointer-events: none !important;
-        }
-      }
+  .scenario {
+    display: flex;
+    text-align: center;
+    margin-bottom: 3px;
+    pointer-events: none;
 
-      i {
-        margin: 5px;
-        align-self: center;
+    .scenario-stage {
+      user-select: none;
+      position: relative;
+      display: inline-block;
+      background:
+        url(../img/board-grid.png) top left,
+        url(../img/checker.png);
+      background-size: 40px, 8px;
+      border: 1px solid #bbb;
+      box-sizing: content-box;
+      vertical-align: middle;
+      overflow: hidden;
+      * {
+        pointer-events: none !important;
       }
+    }
+
+    i {
+      margin: 5px;
+      align-self: center;
     }
   }
 }

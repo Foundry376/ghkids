@@ -79,11 +79,7 @@ export default function uiReducer(
       });
     case Types.UPDATE_KEYPICKER_STATE:
       return Object.assign({}, state, {
-        keypicker: {
-          initialKeyCode: action.initialKeyCode,
-          characterId: action.characterId,
-          ruleId: action.ruleId,
-        },
+        keypicker: action,
       });
     case Types.UPDATE_MODAL_STATE:
       return Object.assign({}, state, {

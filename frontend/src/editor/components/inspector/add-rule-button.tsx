@@ -6,16 +6,13 @@ import DropdownMenu from "reactstrap/lib/DropdownMenu";
 import DropdownToggle from "reactstrap/lib/DropdownToggle";
 
 import { useDispatch } from "react-redux";
-import { Actor, Character, RuleTreeEventItem } from "../../../types";
-import {
-  createCharacterEventContainer,
-  createCharacterFlowContainer,
-} from "../../actions/characters-actions";
+import { Actor, Character } from "../../../types";
+import { createCharacterFlowContainer } from "../../actions/characters-actions";
 import {
   setupRecordingForActor,
   setupRecordingForCharacter,
 } from "../../actions/recording-actions";
-import { pickCharacterRuleEventKey, selectToolId } from "../../actions/ui-actions";
+import { selectToolId } from "../../actions/ui-actions";
 import { TOOLS } from "../../constants/constants";
 
 const RuleAddButton = ({
@@ -45,24 +42,6 @@ const RuleAddButton = ({
     dispatch(createCharacterFlowContainer(character.id, { id }));
   };
 
-  const _onCreateEventContainer = (
-    eventType: RuleTreeEventItem["event"],
-    eventCode: RuleTreeEventItem["code"] | null = null,
-  ) => {
-    const id = `${Date.now()}`;
-
-    dispatch(
-      createCharacterEventContainer(character.id, {
-        id,
-        eventType,
-        eventCode: eventCode ? eventCode : undefined,
-      }),
-    );
-    if (eventType === "key" && !eventCode) {
-      dispatch(pickCharacterRuleEventKey(character.id, id, null));
-    }
-  };
-
   return (
     <ButtonDropdown
       isOpen={open}
@@ -74,21 +53,11 @@ const RuleAddButton = ({
       </DropdownToggle>
       <DropdownMenu right>
         <DropdownItem onClick={_onCreateRule}>
-          <span className="badge rule" /> Add New Rule
+          <span className="badge rule" /> Add Rule
         </DropdownItem>
         <DropdownItem divider />
         <DropdownItem onClick={_onCreateFlowContainer}>
-          <span className="badge rule-flow" /> Add Flow Container
-        </DropdownItem>
-        <DropdownItem divider />
-        <DropdownItem
-          data-tutorial-id="inspector-add-rule-key"
-          onClick={() => _onCreateEventContainer("key")}
-        >
-          <span className="badge rule-event" /> When a Key is Pressed...
-        </DropdownItem>
-        <DropdownItem onClick={() => _onCreateEventContainer("click")}>
-          <span className="badge rule-event" /> When I&#39;m Clicked...
+          <span className="badge rule-flow" /> Add Rule Container
         </DropdownItem>
       </DropdownMenu>
     </ButtonDropdown>

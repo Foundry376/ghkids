@@ -10,6 +10,7 @@ import {
   Rule,
   RuleAction,
   RuleCondition,
+  RuleTreeFlowItemCheck,
   World,
   WorldMinimal,
 } from "../../types";
@@ -25,8 +26,13 @@ import { extentByShiftingExtent } from "../utils/recording-helpers";
 import { getCurrentStageForWorld } from "../utils/selectors";
 import WorldOperator from "../utils/world-operator";
 
-function stateForEditingRule(phase: RECORDING_PHASE, rule: Rule, entireState: EditorState) {
+function stateForEditingRule(
+  phase: RECORDING_PHASE,
+  rule: Rule | RuleTreeFlowItemCheck,
+  entireState: EditorState,
+) {
   const { world, characters } = entireState;
+
   const offset = offsetForEditingRule(rule.extent, world);
   return {
     ruleId: rule.id,
@@ -34,7 +40,7 @@ function stateForEditingRule(phase: RECORDING_PHASE, rule: Rule, entireState: Ed
     phase: phase,
     actorId: rule.mainActorId,
     conditions: u.constant(rule.conditions),
-    actions: u.constant(rule.actions),
+    actions: "actions" in rule ? u.constant(rule.actions) : u.constant(null),
     extent: u.constant(extentByShiftingExtent(rule.extent, offset)),
     beforeWorld: u.constant(
       WorldOperator(u({ id: WORLDS.BEFORE }, world) as World, characters).resetForRule(rule, {
@@ -56,7 +62,13 @@ function recordingReducer(
     beforeWorld: worldReducer(state.beforeWorld, action, entireState),
   });
 
-  if ("worldId" in action && action.worldId && action.worldId === state.afterWorld.id) {
+  if (
+    nextState.actions &&
+    state.afterWorld &&
+    "worldId" in action &&
+    action.worldId &&
+    action.worldId === state.afterWorld.id
+  ) {
     const recordingAction = buildActionFromStageActions(state, action);
     if (recordingAction) {
       nextState.actions = [...nextState.actions, recordingAction];
@@ -196,7 +208,7 @@ function buildActionFromStageActions(
 
   switch (action.type) {
     case Types.UPSERT_ACTOR: {
-      const existing = getCurrentStageForWorld(afterWorld)?.actors[action.actorId];
+      const existing = afterWorld && getCurrentStageForWorld(afterWorld)?.actors[action.actorId];
       if (!existing) {
         return {
           type: "create",
@@ -275,8 +287,8 @@ export default function recordingReducerWithDerivedState(
 
   if (
     !nextState.afterWorld ||
-    nextState.actions !== state.actions ||
-    nextState.beforeWorld !== state.beforeWorld
+    nextState.beforeWorld !== state.beforeWorld ||
+    nextState.actions !== state.actions
   ) {
     nextState.afterWorld = getAfterWorldForRecording(
       nextState.beforeWorld,

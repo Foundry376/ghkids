@@ -46,6 +46,7 @@ import {
   WorldMinimal,
 } from "../../../types";
 import { defaultAppearanceId } from "../../utils/character-helpers";
+import { keyToCodakoKey } from "../modal-keypicker/keyboard";
 
 interface StageProps {
   stage: StageType;
@@ -176,14 +177,14 @@ export const Stage = ({
     event.preventDefault();
     event.stopPropagation();
 
-    if (event.keyCode === 127 || event.keyCode === 8) {
+    if (event.key === "Delete" || event.key === "Backspace") {
       if (selectedActorPath.worldId === world.id) {
         dispatch(deleteActor(selectedActorPath));
       }
       return;
     }
 
-    dispatch(recordKeyForGameState(world.id, `${event.keyCode}`));
+    dispatch(recordKeyForGameState(world.id, keyToCodakoKey(`${event.key}`)));
   };
 
   const onDragOver = (event: React.DragEvent) => {

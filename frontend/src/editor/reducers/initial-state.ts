@@ -9,6 +9,11 @@ const InitialWorld: World = {
     [stage.id]: stage,
   },
   globals: {
+    keypress: {
+      id: "keypress",
+      name: "Key Pressed",
+      value: "",
+    },
     selectedStageId: {
       id: "selectedStageId",
       name: "Current Stage",
@@ -47,9 +52,9 @@ const InitialState: EditorState = {
       running: false,
     },
     keypicker: {
-      characterId: null,
-      initialKeyCode: null,
-      ruleId: null,
+      open: false,
+      initialKey: null,
+      replaceConditionKey: null,
     },
     paint: {
       characterId: null,

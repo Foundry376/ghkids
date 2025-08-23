@@ -1,4 +1,4 @@
-import { useContext, useState } from "react";
+import { useState } from "react";
 import { DisclosureTriangle } from "./disclosure-triangle";
 import { RuleList } from "./rule-list";
 import { RuleStateCircle } from "./rule-state-circle";
@@ -6,7 +6,6 @@ import { RuleStateCircle } from "./rule-state-circle";
 import { Character, RuleTreeEventItem } from "../../../types";
 import { nameForKey } from "../../utils/event-helpers";
 import { isCollapsePersisted, persistCollapsedState } from "./collapse-state-storage";
-import { RuleActionsContext } from "./container-pane-rules";
 
 export const ContentEventGroup = ({
   rule,
@@ -15,8 +14,6 @@ export const ContentEventGroup = ({
   rule: RuleTreeEventItem;
   character: Character;
 }) => {
-  const { onRulePickKey } = useContext(RuleActionsContext);
-
   const [collapsed, setCollapsed] = useState(isCollapsePersisted(rule.id));
 
   const _name = () => {
@@ -54,9 +51,7 @@ export const ContentEventGroup = ({
           className="icon"
           src={new URL(`../../img/icon_event_${rule.event}.png`, import.meta.url).href}
         />
-        <div className="name" onClick={() => onRulePickKey(rule.id)}>
-          {_name()}
-        </div>
+        <div className="name">{_name()}</div>
       </div>
       <RuleList parentId={rule.id} rules={rule.rules} collapsed={collapsed} character={character} />
     </div>

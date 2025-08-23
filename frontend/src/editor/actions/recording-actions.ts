@@ -7,6 +7,7 @@ import {
   Rule,
   RuleCondition,
   RuleExtent,
+  RuleTreeFlowItemCheck,
 } from "../../types";
 import * as types from "../constants/action-types";
 import { stopPlayback } from "./ui-actions";
@@ -49,7 +50,13 @@ export type ActionSetupRecordingForCharacter = {
   characterId: string;
 };
 
-export function editRuleRecording({ characterId, rule }: { characterId: string; rule: Rule }) {
+export function editRuleRecording({
+  characterId,
+  rule,
+}: {
+  characterId: string;
+  rule: Rule | RuleTreeFlowItemCheck;
+}) {
   return (dispatch: Dispatch<Actions>) => {
     dispatch(stopPlayback());
     dispatch({
@@ -63,7 +70,7 @@ export function editRuleRecording({ characterId, rule }: { characterId: string; 
 export type ActionEditRuleRecording = {
   type: "EDIT_RULE_RECORDING";
   characterId: string;
-  rule: Rule;
+  rule: Rule | RuleTreeFlowItemCheck;
 };
 
 export function cancelRecording(): ActionCancelRecording {

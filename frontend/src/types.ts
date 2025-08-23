@@ -25,7 +25,7 @@ export type PositionRelativeToMainActor = {
   y: number;
 };
 
-export type FrameInput = { keys: { [keyCode: string]: true }; clicks: { [actorId: string]: true } };
+export type FrameInput = { keys: { [key: string]: true }; clicks: { [actorId: string]: true } };
 
 export type MathOperation = "add" | "set" | "subtract";
 
@@ -40,44 +40,44 @@ export type VariableComparator =
 
 export type RuleAction =
   | {
-    type: "appearance";
-    actorId: string;
-    value: RuleValue;
-  }
+      type: "appearance";
+      actorId: string;
+      value: RuleValue;
+    }
   | {
-    type: "variable";
-    actorId: string;
-    variable: string; // ID
-    operation: MathOperation;
-    value: RuleValue;
-  }
+      type: "variable";
+      actorId: string;
+      variable: string; // ID
+      operation: MathOperation;
+      value: RuleValue;
+    }
   | {
-    type: "global";
-    global: string; // ID
-    operation: MathOperation;
-    value: RuleValue;
-  }
+      type: "global";
+      global: string; // ID
+      operation: MathOperation;
+      value: RuleValue;
+    }
   | {
-    type: "delete";
-    actorId: string;
-  }
+      type: "delete";
+      actorId: string;
+    }
   | {
-    type: "create";
-    actor: Actor;
-    actorId: string;
-    offset: PositionRelativeToMainActor;
-  }
+      type: "create";
+      actor: Actor;
+      actorId: string;
+      offset: PositionRelativeToMainActor;
+    }
   | {
-    type: "move";
-    actorId: string;
-    delta?: { x: number; y: number };
-    offset?: PositionRelativeToMainActor;
-  }
+      type: "move";
+      actorId: string;
+      delta?: { x: number; y: number };
+      offset?: PositionRelativeToMainActor;
+    }
   | {
-    type: "transform";
-    actorId: string;
-    value: RuleValue;
-  };
+      type: "transform";
+      actorId: string;
+      value: RuleValue;
+    };
 
 export type ActorTransform = "0" | "flip-x" | "flip-y" | "90" | "180" | "270";
 
@@ -97,11 +97,21 @@ export type RuleTreeEventItem = {
   id: string;
 };
 
+export type RuleTreeFlowItemCheck = {
+  id: string;
+  mainActorId: string;
+  conditions: RuleCondition[];
+  actors: { [actorIdInRule: string]: Actor };
+  extent: RuleExtent;
+};
+
 export type RuleTreeFlowItemBase = {
   type: "group-flow";
   name: string;
   rules: RuleTreeItem[];
   id: string;
+
+  check?: RuleTreeFlowItemCheck;
 };
 
 export type RuleTreeFlowItemFirst = RuleTreeFlowItemBase & {
@@ -233,18 +243,24 @@ export type EvaluatedRuleIds = {
 
 export type Global =
   | {
-    id: string;
-    name: string;
-    value: string;
-  }
+      id: string;
+      name: string;
+      value: string;
+    }
   | {
-    id: "selectedStageId";
-    name: "Current Stage";
-    value: string;
-    type: "stage";
-  };
+      id: "selectedStageId";
+      name: "Current Stage";
+      value: string;
+      type: "stage";
+    }
+  | {
+      id: "keypress";
+      name: "Key Pressed";
+      value: string;
+    };
 
 export type Globals = {
+  keypress: Global;
   selectedStageId: Global;
   [globalId: string]: Global;
 };
@@ -291,9 +307,9 @@ export type UIState = {
     running: boolean;
   };
   keypicker: {
-    characterId: string | null;
-    initialKeyCode: string | null;
-    ruleId: string | null;
+    open: boolean | null;
+    replaceConditionKey: string | null;
+    initialKey: string | null;
   };
   paint: {
     characterId: string | null;
@@ -336,7 +352,7 @@ export type RecordingState = {
   characterId: string | null;
   actorId: string | null;
   ruleId: string | null;
-  actions: RuleAction[];
+  actions: RuleAction[] | null; // null for flow checks
   conditions: RuleCondition[];
   extent: RuleExtent;
   beforeWorld: WorldMinimal & { id: WORLDS.BEFORE };

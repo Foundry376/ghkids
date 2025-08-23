@@ -49,6 +49,31 @@ export const AppearanceBlock = ({
   );
 };
 
+export const ActorVariableBlock = ({
+  character,
+  actor,
+  disambiguate,
+  variableId,
+}: {
+  character: Character;
+  actor: Actor;
+  disambiguate?: boolean;
+  variableId: string;
+}) => {
+  return (
+    <div>
+      <ActorBlock character={character} actor={actor} disambiguate={disambiguate} />
+      {variableId === "transform" ? (
+        "direction"
+      ) : variableId === "appearance" ? (
+        "appearance"
+      ) : (
+        <VariableBlock name={(variableId && character.variables[variableId].name) || ""} />
+      )}
+    </div>
+  );
+};
+
 export const TransformBlock = ({
   character,
   appearanceId,

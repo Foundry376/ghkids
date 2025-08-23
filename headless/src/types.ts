@@ -188,9 +188,7 @@ export type EditorState = {
       running: false;
     };
     keypicker: {
-      characterId: null;
       initialKeyCode: null;
-      ruleId: null;
     };
     paint: {
       characterId: null;
