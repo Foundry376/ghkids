@@ -1,6 +1,7 @@
 import { DeepPartial } from "redux";
 import { Global, World } from "../../types";
 import * as types from "../constants/action-types";
+import { makeId } from "../utils/utils";
 
 export function upsertGlobal(
   worldId: string,

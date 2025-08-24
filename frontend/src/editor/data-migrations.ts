@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { Game } from "../types";
+import { makeId } from "./utils/utils";
 
 export function applyValueChanges(value: any) {
   if (value === "none") {
@@ -17,7 +18,7 @@ export function applyValueChanges(value: any) {
 
 export function applyDataMigrations(game: Game): Game {
   // Update old-style rules
-  let conditionKey = Date.now();
+  let conditionKey = makeId("condition");
 
   const nonmigrated = JSON.stringify(game);
   const result = JSON.parse(JSON.stringify(game), (key, value) => {
