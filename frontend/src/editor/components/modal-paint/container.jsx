@@ -232,7 +232,8 @@ class Container extends React.Component {
               [appearanceId]: [imageDataURL],
             },
             appearanceNames: {
-              [appearanceId]: generatedSpriteName || appearanceNames[appearanceId],
+              [appearanceId]:
+                generatedSpriteName || character.spritesheet.appearanceNames?.[appearanceId],
             },
             appearanceInfo: {
               [appearanceId]: {
