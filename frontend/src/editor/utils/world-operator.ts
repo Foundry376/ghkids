@@ -341,8 +341,18 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
       // matching the rule actors to the stage actors, but we haven't checked
       // global-to-global or global-to-variable style rules yet.
       for (const condition of rule.conditions) {
-        const left = resolveRuleValue(condition.left, globals, characters, actors);
-        const right = resolveRuleValue(condition.right, globals, characters, actors);
+        const left = resolveRuleValue(
+          condition.left,
+          globals,
+          characters,
+          stageActorsForRuleActorIds,
+        );
+        const right = resolveRuleValue(
+          condition.right,
+          globals,
+          characters,
+          stageActorsForRuleActorIds,
+        );
         if (!comparatorMatches(condition.comparator, left, right)) {
           return false;
         }
