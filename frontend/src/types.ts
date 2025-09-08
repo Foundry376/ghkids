@@ -1,5 +1,5 @@
 import { RECORDING_PHASE, TOOLS, WORLDS } from "./editor/constants/constants";
-import { Frame } from "./editor/utils/world-operator";
+import { Frame } from "./editor/utils/frame-accumulator";
 
 export type ImageData = string;
 
