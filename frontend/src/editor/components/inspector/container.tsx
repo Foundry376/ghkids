@@ -117,7 +117,7 @@ function mapStateToProps({ world, ui, characters, recording }: EditorState) {
   const focusedWorld =
     [recording.beforeWorld, recording.afterWorld].find((s) => s.id === worldId) || world;
   const focusedStage = getCurrentStageForWorld(focusedWorld)!;
-  const focusedActor = (focusedStage.actors || {})[actorId!];
+  const focusedActor = (focusedStage?.actors || {})[actorId!];
 
   return Object.assign({}, ui, {
     actor: focusedActor,

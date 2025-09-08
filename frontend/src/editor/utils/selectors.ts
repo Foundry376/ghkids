@@ -13,10 +13,14 @@ export function getCurrentStage(state: EditorState) {
 }
 
 export function getCurrentStageForWorld(world: Pick<World, "stages" | "globals">): Stage | null {
-  return (
-    (world &&
-      Object.keys(world.stages).length > 0 &&
-      world.stages[world.globals.selectedStageId.value]) ||
-    null
-  );
+  if (!world) {
+    return null;
+  }
+  const stageIds = Object.keys(world.stages);
+  if (stageIds.length === 0) {
+    return null;
+  }
+
+  const currentId = world.globals.selectedStageId?.value ?? stageIds[0];
+  return world.stages[currentId] || null;
 }

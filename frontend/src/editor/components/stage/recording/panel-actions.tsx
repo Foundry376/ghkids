@@ -85,9 +85,6 @@ export const RecordingActions = (props: { characters: Characters; recording: Rec
         );
       }
 
-      const leftActor = "actorId" in a.value ? afterStage.actors[a.value.actorId] : null;
-      const leftCharacter = leftActor && characters[leftActor.characterId];
-
       if (a.type === "variable") {
         return (
           <>
@@ -97,12 +94,11 @@ export const RecordingActions = (props: { characters: Characters; recording: Rec
             />
             <FreeformConditionValue
               value={a.value}
-              actor={leftActor}
               world={beforeWorld}
-              character={leftCharacter}
+              actors={afterStage.actors}
+              characters={characters}
               onChange={(value) => onChange({ ...a, value })}
               impliedDatatype={null}
-              disambiguate={false}
             />
             {{ set: "into", add: "to", subtract: "from" }[a.operation]}
             <ActorVariableBlock character={character} actor={actor} variableId={a.variable} />
@@ -117,12 +113,11 @@ export const RecordingActions = (props: { characters: Characters; recording: Rec
             to
             <FreeformConditionValue
               value={a.value}
-              actor={leftActor}
               world={beforeWorld}
-              character={leftCharacter}
+              actors={afterStage.actors}
+              characters={characters}
               onChange={(value) => onChange({ ...a, value })}
               impliedDatatype={{ type: "appearance", character }}
-              disambiguate={false}
             />
           </>
         );
@@ -135,12 +130,11 @@ export const RecordingActions = (props: { characters: Characters; recording: Rec
             to
             <FreeformConditionValue
               value={a.value}
-              actor={leftActor}
               world={beforeWorld}
-              character={leftCharacter}
+              actors={afterStage.actors}
+              characters={characters}
               onChange={(value) => onChange({ ...a, value })}
               impliedDatatype={{ type: "transform" }}
-              disambiguate={false}
             />
           </>
         );
@@ -148,8 +142,6 @@ export const RecordingActions = (props: { characters: Characters; recording: Rec
     }
 
     if (a.type === "global") {
-      const leftActor = "actorId" in a.value ? afterStage.actors[a.value.actorId] : null;
-      const leftCharacter = leftActor && characters[leftActor.characterId];
       const declaration = beforeWorld.globals[a.global];
 
       if ("type" in declaration && declaration.type === "stage" && "constant" in a.value) {
@@ -172,12 +164,11 @@ export const RecordingActions = (props: { characters: Characters; recording: Rec
           />
           <FreeformConditionValue
             value={a.value}
-            actor={leftActor}
             world={beforeWorld}
-            character={leftCharacter}
+            actors={afterStage.actors}
+            characters={characters}
             onChange={(value) => onChange({ ...a, value })}
             impliedDatatype={null}
-            disambiguate={false}
           />
           {{ set: "into", add: "to", subtract: "from" }[a.operation]}
 

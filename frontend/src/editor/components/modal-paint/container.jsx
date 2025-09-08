@@ -184,6 +184,7 @@ class Container extends React.Component {
   _onCloseAndSave = async () => {
     const { dispatch, characterId, appearanceId, characters } = this.props;
     const flattened = getFlattenedImageData(this.state);
+
     // Trim inwards from all sides if an entire row / column of tiles is empty.
     // We want to "auto-shrink" the canvas if the kid goes wild with the + button.
     const filledTiles = Object.keys(getFilledSquares(flattened)).map((str) => str.split(","));
