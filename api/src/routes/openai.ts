@@ -25,71 +25,71 @@ router.get("/generate-sprite", userFromBasicAuth, async (req, res) => {
     })
     .then((response) => {
       const imageUrl = response.data[0].url;
-    if (!imageUrl) {
-      res.status(500).json({ error: "Failed to retrieve image URL" });
-      return;
-    }
-    console.log("Downloading image from URL:", imageUrl);
+      if (!imageUrl) {
+        res.status(500).json({ error: "Failed to retrieve image URL" });
+        return;
+      }
+      console.log("Downloading image from URL:", imageUrl);
 
-    // Download the image using https
+      // Download the image using https
       https
         .get(imageUrl, (imageResponse) => {
-      const data: Buffer[] = [];
+          const data: Buffer[] = [];
 
           imageResponse.on("data", (chunk) => {
             data.push(chunk);
           });
 
           imageResponse.on("end", () => {
-  const imageBuffer = Buffer.concat(data);
+            const imageBuffer = Buffer.concat(data);
 
             // Save the image locally
-  fs.writeFileSync("image.png", imageBuffer);
-  console.log("Image saved locally as 'image.png'");
+            fs.writeFileSync("image.png", imageBuffer);
+            console.log("Image saved locally as 'image.png'");
 
-  const namePrompt = `Give a short, straightforward name for a sprite described as: ${prompt}. For example, if the sprite is a cute mouse, respond with "Mouse". Respond with only the name.`;
-  openai.chat.completions.create({
-    model: "gpt-3.5-turbo",
-    messages: [
-      { role: "system", content: "You are a helpful assistant for naming video game sprites." },
-      { role: "user", content: namePrompt },
-    ],
-    max_tokens: 10,
-    temperature: 0.9,
-  })
-  .then((nameResponse) => {
-    const spriteName = nameResponse.choices[0]?.message?.content?.trim() || "Unnamed Sprite";
-    res.setHeader("Access-Control-Allow-Origin", "*");
-    res.setHeader("Content-Type", "application/json");
+            const namePrompt = `Give a short, straightforward name for a sprite described as: ${prompt}. For example, if the sprite is a cute mouse, respond with "Mouse". Respond with only the name.`;
+            openai.chat.completions.create({
+              model: "gpt-3.5-turbo",
+              messages: [
+                { role: "system", content: "You are a helpful assistant for naming video game sprites." },
+                { role: "user", content: namePrompt },
+              ],
+              max_tokens: 10,
+              temperature: 0.9,
+            })
+              .then((nameResponse) => {
+                const spriteName = nameResponse.choices[0]?.message?.content?.trim() || "Unnamed Sprite";
+                res.setHeader("Access-Control-Allow-Origin", "*");
+                res.setHeader("Content-Type", "application/json");
 
-        // Send the image as a base64 data URL and the generated name
-    res.json({
-      imageUrl: `data:image/png;base64,${imageBuffer.toString("base64")}`,
-      name: spriteName,
-    });
-  })
-  .catch((err) => {
-    console.error("Error generating sprite name:", err);
-    res.setHeader("Access-Control-Allow-Origin", "*");
-    res.setHeader("Content-Type", "application/json");
-    res.json({
-      imageUrl: `data:image/png;base64,${imageBuffer.toString("base64")}`,
-      name: "Unnamed Sprite",
-    });
-  });
-});
+                // Send the image as a base64 data URL and the generated name
+                res.json({
+                  imageUrl: `data:image/png;base64,${imageBuffer.toString("base64")}`,
+                  name: spriteName,
+                });
+              })
+              .catch((err) => {
+                console.error("Error generating sprite name:", err);
+                res.setHeader("Access-Control-Allow-Origin", "*");
+                res.setHeader("Content-Type", "application/json");
+                res.json({
+                  imageUrl: `data:image/png;base64,${imageBuffer.toString("base64")}`,
+                  name: "Unnamed Sprite",
+                });
+              });
+          });
         })
         .on("error", (error) => {
-      console.error("Error downloading image:", error.message);
-      res.status(500).json({ error: "Failed to download image" });
-    });
+          console.error("Error downloading image:", error.message);
+          res.status(500).json({ error: "Failed to download image" });
+        });
     })
     .catch((error) => {
-    console.error(
-      "Error generating image:",
-      error.response ? error.response.data : error.message,
-    );
-    res.status(500).json({ error: "Failed to generate image" });
+      console.error(
+        "Error generating image:",
+        error.response ? error.response.data : error.message,
+      );
+      res.status(500).json({ error: "Failed to generate image" });
     });
 });
 
@@ -145,6 +145,184 @@ router.post("/generate-sprite-name", userFromBasicAuth, (req, res) => {
       console.error("Error generating sprite name:", error);
       res.status(500).json({ error: "Failed to generate sprite name" });
     });
+});
+
+router.post("/generate-rule-name", userFromBasicAuth, async (req, res) => {
+  try {
+    openai = openai || new OpenAI({});
+    const { recording } = req.body as { recording?: unknown };
+
+    if (!recording) {
+      res.status(400).json({ error: "Missing recording" });
+      return;
+    }
+
+    // Log the incoming recording data for debugging
+    console.log("Generating rule name for recording:", JSON.stringify(recording, null, 2));
+
+    const fewShotExamples = `
+Examples of good rule names:
+Input:
+{
+    "mainActorName": "Dog",
+    "actions": [
+        {
+            "type": "move",
+            "actorName": "Dog",
+            "offset": {
+                "x": 1,
+                "y": 0
+            }
+        }
+    ],
+}
+Output: "Move Right"
+Input:
+{
+    "mainActorName": "Dog",
+    "actions": [
+        {
+            "type": "move",
+            "actorName": "Dog",
+            "offset": {
+                "x": 0,
+                "y": -3
+            }
+        }
+    ]
+}
+Output: "Leap Up"
+
+Input:
+{
+    "mainActorName": "Dog",
+    "actions": [
+        {
+            "type": "move",
+            "actorName": "Dog",
+            "offset": {
+                "x": 1,
+                "y": 0
+            }
+        },
+        {
+            "type": "delete",
+            "actorName": "bone"
+        },
+        {
+            "type": "variable",
+            "actorName": "Dog",
+            "operation": "add",
+            "variableName": "Health",
+            "value": {
+                "constant": "1"
+            }
+        }
+    ]
+}
+Output: "Eat Bone"
+
+Input:
+{
+    "mainActorName": "Dog",
+    "actions": [
+        {
+            "type": "variable",
+            "actorName": "Dog",
+            "operation": "add",
+            "variableName": "Health",
+            "value": {
+                "constant": "1"
+            }
+        }
+    ],
+    "conditions": [
+        {
+            "comparator": "=",
+            "enabled": true,
+            "key": "main-actor-appearance",
+            "left": {
+                "actorName": "Dog",
+                "variableName": "appearance"
+            },
+            "right": {
+                "constant": "Sleeping"
+            }
+        }
+    ]
+}
+Output: "Sleep"
+
+Input:
+{
+    "mainActorName": "Dog",
+    "actions": [
+        {
+            "type": "move",
+            "actorName": "ball",
+            "offset": {
+                "x": 2,
+                "y": 0
+            }
+        },
+        {
+            "type": "move",
+            "actorName": "Dog",
+            "offset": {
+                "x": 1,
+                "y": 0
+            }
+        }
+    ]
+}
+Output: "Roll Ball"
+`;
+
+    const prompt =
+      "Propose a short, straightforward 1–3 word Title Case name for this gameplay rule recording. " +
+      "Be creative and think about how the characters are interacting with each other. " +
+      "Instead of describing what the rule does, describe the main action or behavior (i.e. instead of move, say jump, fight, escape, eat, etc.) " +
+      "Focus on the main action or behavior. Respond with only the name.\n\n" +
+
+      // Very concise input format primer
+      "The structure of the rules are divided into a series of actions that animate the characters. " +
+      "The actions are defined by (x,y) offsets relative to the main actor in a coordinate system where the main actor is at (0,0). " +
+      "Input format (very brief): a rule has start_scene (initial actor positions/appearances), " +
+      "actions (e.g., move, delete, variable changes), optional conditions (what must be true, like appearance or variable value), and extent (coordinate metadata). " +
+      "Coordinates are offsets relative to the main actor at (0,0); negative y is up, negative x is left. " +
+      "Actors, variables, and appearances are provided as names, not IDs.\n\n" +
+
+      "Here are some examples:\n" +
+      fewShotExamples + "\n" +
+      "Rule data:\n" +
+      JSON.stringify(recording, null, 2);
+
+    // Log the prompt being sent to OpenAI for debugging
+    console.log("Prompt sent to OpenAI:", prompt);
+
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4.1-mini",
+      messages: [
+        {
+          role: "system",
+          content: "You generate concise, evocative names for gameplay rules. Focus on the main action or behavior. Output only the name.",
+        },
+        { role: "user", content: prompt },
+      ],
+      max_tokens: 12,
+      temperature: 0.7,
+    });
+
+    const name = completion.choices[0]?.message?.content?.trim() || "Unnamed Rule";
+    console.log("Generated rule name:", name);
+
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Content-Type", "application/json");
+    res.json({ name });
+  } catch (error) {
+    console.error("Error generating rule name:", error);
+    res.status(500).json({ error: "Failed to generate rule name" });
+  }
 });
 
 router.get("/generate-background", userFromBasicAuth, async (req, res) => {

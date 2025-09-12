@@ -144,7 +144,7 @@ export default function charactersReducer(
       ) as RuleTreeEventItem;
       const rulesWithinIdle: RuleTreeItem[] = idleContainer ? idleContainer.rules : rules;
 
-      rulesWithinIdle.unshift({ ...recordedRule, id: `${Date.now()}`, name: "Untitled Rule" });
+      rulesWithinIdle.unshift({ ...recordedRule, id: `${Date.now()}`, name: action.name || "Untitled Rule" });
       return u.updateIn(recording.characterId, { rules }, state);
     }
     default:
