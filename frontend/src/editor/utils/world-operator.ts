@@ -13,7 +13,9 @@ import {
   Rule,
   RuleCondition,
   RuleTreeEventItem,
+  RuleTreeFlowItem,
   RuleTreeFlowItemAll,
+  RuleTreeFlowItemCheck,
   RuleTreeFlowItemFirst,
   RuleTreeFlowItemRandom,
   RuleTreeFlowLoopItem,
@@ -22,6 +24,7 @@ import {
   VariableComparator,
   WorldMinimal,
 } from "../../types";
+import { FrameAccumulator } from "./frame-accumulator";
 import { getCurrentStageForWorld } from "./selectors";
 import {
   actorFillsPoint,
@@ -33,60 +36,8 @@ import {
   resolveRuleValue,
   shuffleArray,
 } from "./stage-helpers";
-import { deepClone } from "./utils";
+import { deepClone, makeId } from "./utils";
 import { CONTAINER_TYPES, FLOW_BEHAVIORS } from "./world-constants";
-
-let IDSeed = Date.now();
-
-export type FrameActor = Actor & { deleted?: boolean };
-export type Frame = { actors: { [actorId: string]: FrameActor }; id: number };
-
-class FrameAccumulator {
-  changes: { [actorId: string]: FrameActor[] } = {};
-  initial: Frame;
-
-  constructor(actors: { [actorId: string]: FrameActor }) {
-    this.initial = { actors, id: Date.now() };
-  }
-  push(actor: FrameActor) {
-    this.changes[actor.id] ||= [];
-    this.changes[actor.id].push(deepClone(actor));
-  }
-  getFrames() {
-    // Perform the first action for each actor in the first frame, then the second action
-    // for each actor, etc. until there are no more actions to perform.
-    const frames: Frame[] = [];
-    const remaining = { ...this.changes };
-    const frameCountsByActor = Object.fromEntries(
-      Object.entries(this.changes).map(([id, a]) => [id, a.length]),
-    );
-
-    let current: Frame = deepClone(this.initial);
-
-    while (true) {
-      const changeActorIds = Object.keys(remaining);
-      if (changeActorIds.length === 0) {
-        break;
-      }
-      for (const actorId of changeActorIds) {
-        const actorVersion = remaining[actorId].shift()!;
-        actorVersion.frameCount = frameCountsByActor[actorId];
-        if (actorVersion.deleted) {
-          delete current.actors[actorId];
-        } else {
-          current.actors[actorId] = actorVersion;
-        }
-        if (remaining[actorId].length === 0) {
-          delete remaining[actorId];
-        }
-      }
-      frames.push(current);
-      current = deepClone(current);
-      current.id += 0.1;
-    }
-    return frames;
-  }
-}
 
 export default function WorldOperator(previousWorld: WorldMinimal, characters: Characters) {
   let stage: Stage;
@@ -173,6 +124,10 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
       case "<=":
         return Number(a) <= Number(b);
       case "contains":
+        if (`${a}`.includes(",")) {
+          // This is a special hack for keypress so "ArrowLeft,Space" doesn't match "A"
+          return a?.split(",").some((v) => v === b);
+        }
         return `${a}`.includes(`${b}`);
       case "ends-with":
         return `${a}`.endsWith(`${b}`);
@@ -251,7 +206,8 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
       if (rule.type === CONTAINER_TYPES.EVENT) {
         return checkEvent(rule) && tickRulesTree(rule);
       } else if (rule.type === CONTAINER_TYPES.FLOW) {
-        return tickRulesTree(rule);
+        const checkMet = !rule.check || !!checkRuleScenario(rule.check);
+        return checkMet && tickRulesTree(rule);
       }
       const stageActorForId = checkRuleScenario(rule);
       if (stageActorForId) {
@@ -274,7 +230,9 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
       throw new Error(`Unknown trigger event: ${trigger}`);
     }
 
-    function checkRuleScenario(rule: Rule): { [ruleActorId: string]: Actor } | false {
+    function checkRuleScenario(
+      rule: Rule | NonNullable<RuleTreeFlowItem["check"]>,
+    ): { [ruleActorId: string]: Actor } | false {
       const ruleActorsUsed = new Set<string>(); // x-y-ruleactorId
       const stageActorsForRuleActorIds: { [ruleActorId: string]: Actor } = {};
 
@@ -368,23 +326,49 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
 
       // If any actions call for offsets that are not valid positions on the stage
       // (offscreen and stage doesn't wrap), return false.
-      for (const action of rule.actions) {
-        if ("offset" in action && action.offset) {
-          const stagePos = wrappedPosition(pointByAdding(me.position, action.offset));
-          if (stagePos === null) {
-            return false;
+      if ("actions" in rule && rule.actions) {
+        for (const action of rule.actions) {
+          if ("offset" in action && action.offset) {
+            const stagePos = wrappedPosition(pointByAdding(me.position, action.offset));
+            if (stagePos === null) {
+              return false;
+            }
           }
+        }
+      }
+
+      // Re-check conditions - We check the conditions that involve actorIds when
+      // matching the rule actors to the stage actors, but we haven't checked
+      // global-to-global or global-to-variable style rules yet.
+      for (const condition of rule.conditions) {
+        const left = resolveRuleValue(
+          condition.left,
+          globals,
+          characters,
+          stageActorsForRuleActorIds,
+        );
+        const right = resolveRuleValue(
+          condition.right,
+          globals,
+          characters,
+          stageActorsForRuleActorIds,
+        );
+        if (!comparatorMatches(condition.comparator, left, right)) {
+          return false;
         }
       }
 
       return stageActorsForRuleActorIds;
     }
 
-    function getActionAndConditionActorIds(rule: Rule) {
+    function getActionAndConditionActorIds(rule: Rule | NonNullable<RuleTreeFlowItem["check"]>) {
       const requiredActorIds: string[] = [];
-      for (const action of rule.actions) {
-        if ("actorId" in action && rule.actors[action.actorId]) {
-          requiredActorIds.push(action.actorId);
+
+      if ("actions" in rule && rule.actions) {
+        for (const action of rule.actions) {
+          if ("actorId" in action && rule.actors[action.actorId]) {
+            requiredActorIds.push(action.actorId);
+          }
         }
       }
       for (const { left, right } of rule.conditions) {
@@ -426,7 +410,7 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
             throw new Error(`Action cannot create at this position`);
           }
           const nextActor = Object.assign(deepClone(action.actor), {
-            id: createActorIds ? `${IDSeed++}` : action.actorId,
+            id: createActorIds ? makeId("actor") : action.actorId,
             position: nextPos,
             variableValues: {},
           });
@@ -508,7 +492,7 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
   }
 
   function resetForRule(
-    rule: Rule,
+    rule: Rule | RuleTreeFlowItemCheck,
     { offset, applyActions }: { offset: Position; applyActions: boolean },
   ) {
     // read-only things
@@ -524,7 +508,7 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
     }
 
     for (const cond of Object.values(rule.conditions)) {
-      if ("globalId" in cond.left) {
+      if ("globalId" in cond.left && globals[cond.left.globalId]) {
         const value = resolveRuleValue(cond.right, globals, characters, rule.actors);
         if (value) {
           globals[cond.left.globalId].value = value;
@@ -534,7 +518,7 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
 
     // lay out the before state and apply any rules that apply to
     // the actors currently on the board
-    if (applyActions) {
+    if (applyActions && "actions" in rule && rule.actions) {
       const operator = ActorOperator(actors[rule.mainActorId]);
       operator.applyRule(rule, { createActorIds: false, stageActorForId: { ...actors } });
     }
@@ -570,6 +554,9 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
 
     // mutable things
     globals = deepClone(previousWorld.globals);
+    globals.keypress = { ...globals.keypress, value: Object.keys(input.keys).join(",") };
+    globals.click = { ...globals.click, value: Object.keys(input.clicks)[0] };
+
     actors = deepClone(stage.actors);
     frameAccumulator = new FrameAccumulator(stage.actors);
     evaluatedRuleIds = {};

@@ -39,6 +39,9 @@ export function getAfterWorldForRecording(
   if (!beforeStage) {
     return cloned;
   }
+  if (!recording?.actions) {
+    return cloned;
+  }
   const recordedRule = ruleFromRecordingState(beforeStage, characters, recording);
   if (!recordedRule) {
     return cloned;
@@ -106,7 +109,7 @@ export function ruleFromRecordingState(
     mainActorId: recording.actorId!,
     conditions: recording.conditions,
     actors: recordingActors,
-    actions: recording.actions,
+    actions: recording.actions!,
     extent: extentByShiftingExtent(recording.extent, {
       x: -mainActor.position.x,
       y: -mainActor.position.y,

@@ -10,6 +10,7 @@ import {
   setRecordingExtent,
   setupRecordingForActor,
   toggleSquareIgnored,
+  upsertRecordingCondition,
 } from "../../actions/recording-actions";
 import {
   changeActor,
@@ -46,6 +47,8 @@ import {
   WorldMinimal,
 } from "../../../types";
 import { defaultAppearanceId } from "../../utils/character-helpers";
+import { makeId } from "../../utils/utils";
+import { keyToCodakoKey } from "../modal-keypicker/keyboard";
 
 interface StageProps {
   stage: StageType;
@@ -176,14 +179,14 @@ export const Stage = ({
     event.preventDefault();
     event.stopPropagation();
 
-    if (event.keyCode === 127 || event.keyCode === 8) {
+    if (event.key === "Delete" || event.key === "Backspace") {
       if (selectedActorPath.worldId === world.id) {
         dispatch(deleteActor(selectedActorPath));
       }
       return;
     }
 
-    dispatch(recordKeyForGameState(world.id, `${event.keyCode}`));
+    dispatch(recordKeyForGameState(world.id, keyToCodakoKey(`${event.key}`)));
   };
 
   const onDragOver = (event: React.DragEvent) => {
@@ -381,6 +384,19 @@ export const Stage = ({
         break;
       case TOOLS.RECORD:
         dispatch(setupRecordingForActor({ characterId: actor.characterId, actor }));
+        dispatch(selectToolId(TOOLS.POINTER));
+        handled = true;
+        break;
+      case TOOLS.ADD_CLICK_CONDITION:
+        dispatch(
+          upsertRecordingCondition({
+            key: makeId("condition"),
+            left: { globalId: "click" },
+            right: { constant: actor.id },
+            comparator: "=",
+            enabled: true,
+          }),
+        );
         dispatch(selectToolId(TOOLS.POINTER));
         handled = true;
         break;

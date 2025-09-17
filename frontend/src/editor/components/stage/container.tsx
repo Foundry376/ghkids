@@ -41,22 +41,26 @@ const StageContainer = ({ readonly }: { readonly?: boolean }) => {
           recordingCentered
         />
       );
-      stageB = (
-        <Stage
-          style={{ marginLeft: 2 }}
-          world={recording.afterWorld}
-          stage={getCurrentStageForWorld(recording.afterWorld)!}
-          recordingExtent={recording.extent}
-          recordingCentered
-        />
-      );
+      if (recording.actions !== null) {
+        stageB = (
+          <Stage
+            style={{ marginLeft: 2 }}
+            world={recording.afterWorld}
+            stage={getCurrentStageForWorld(recording.afterWorld)!}
+            recordingExtent={recording.extent}
+            recordingCentered
+          />
+        );
+      }
       actions = (
         <div className="recording-specifics">
           <div style={{ position: "absolute", transform: "translate(0, -100%)", paddingBottom: 5 }}>
             <StageRecordingTools />
           </div>
           <RecordingConditions characters={characters} recording={recording} />
-          <RecordingActions characters={characters} recording={recording} />
+          {recording.actions !== null && (
+            <RecordingActions characters={characters} recording={recording} />
+          )}
         </div>
       );
     }

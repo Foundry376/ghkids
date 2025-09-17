@@ -8,9 +8,11 @@ on:
   workflow_dispatch:
 
 jobs:
-  deploy:
-    name: Deploy to Fly.io
+  deploy-staging:
+    if: github.event_name == 'push'
+    name: Deploy to Fly.io (Staging)
     runs-on: ubuntu-latest
+    environment: staging
 
     steps:
       - name: Checkout code
@@ -25,7 +27,31 @@ jobs:
       - name: Install Fly.io CLI
         uses: superfly/flyctl-actions/setup-flyctl@v1
 
-      - name: Deploy to Fly.io
-        run: cd api && flyctl deploy --remote-only
+      - name: Deploy to Fly.io (Staging)
+        run: cd api && flyctl deploy -a codako-staging --remote-only
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+
+  deploy-prod:
+    if: github.event_name == 'workflow_dispatch'
+    name: Deploy to Fly.io (Production)
+    runs-on: ubuntu-latest
+    environment: prod
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build Front-end
+        run: cd frontend && yarn install && yarn build
+
+      - name: Build API
+        run: cd api && yarn install && yarn build
+
+      - name: Install Fly.io CLI
+        uses: superfly/flyctl-actions/setup-flyctl@v1
+
+      - name: Deploy to Fly.io (Production)
+        run: cd api && flyctl deploy -a codako-prod --remote-only
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}

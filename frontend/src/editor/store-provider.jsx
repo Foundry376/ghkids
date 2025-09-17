@@ -1,14 +1,14 @@
 /* eslint-disable import/default */
 
-import React from "react";
 import PropTypes from "prop-types";
+import React from "react";
 import { Provider } from "react-redux";
 import u from "updeep";
 
-import initialData from "./reducers/initial-state";
+import { default as initialData, default as InitialState } from "./reducers/initial-state";
 import configureStore from "./store/configureStore";
-import { getStageScreenshot } from "./utils/stage-helpers";
 import { getCurrentStage } from "./utils/selectors";
+import { getStageScreenshot } from "./utils/stage-helpers";
 
 export default class StoreProvider extends React.Component {
   static propTypes = {
@@ -33,10 +33,10 @@ export default class StoreProvider extends React.Component {
   getStateForStore = (world) => {
     const { data, name, id } = world;
 
-    // perform migrations here as necessary
     const fullState = u(
       {
         world: {
+          globals: InitialState["world"]["globals"],
           metadata: { name, id },
         },
       },

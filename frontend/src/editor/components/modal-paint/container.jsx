@@ -53,7 +53,6 @@ const TOOLS = [
 const INITIAL_STATE = {
   color: ColorOptions[3],
   tool: TOOLS.find((t) => t.name === "pen"),
-  spriteName: "",
   toolSize: 1,
   pixelSize: 11,
   anchorSquare: { x: 0, y: 0 },
@@ -69,7 +68,7 @@ const INITIAL_STATE = {
 
   interaction: {},
   interactionPixels: null,
-  
+
   showVariables: false,
   visibleVariables: {},
 };
@@ -115,7 +114,6 @@ class Container extends React.Component {
     if (characterId) {
       const { appearances, appearanceInfo, appearanceNames } = characters[characterId].spritesheet;
       const anchorSquare = appearanceInfo?.[appearanceId]?.anchor || { x: 0, y: 0 };
-      const spriteName = appearanceNames?.[appearanceId] || "Untitled";
       const frameDataURL = appearances[appearanceId][0];
 
       const variableOverlay = appearanceInfo?.[appearanceId]?.variableOverlay || {
@@ -132,7 +130,6 @@ class Container extends React.Component {
             pixelSize: pixelSizeToFit(imageData),
             showVariables: variableOverlay.showVariables,
             visibleVariables: variableOverlay.visibleVariables,
-            spriteName,
           }),
         );
       });
@@ -187,6 +184,7 @@ class Container extends React.Component {
   _onCloseAndSave = async () => {
     const { dispatch, characterId, appearanceId, characters } = this.props;
     const flattened = getFlattenedImageData(this.state);
+
     // Trim inwards from all sides if an entire row / column of tiles is empty.
     // We want to "auto-shrink" the canvas if the kid goes wild with the + button.
     const filledTiles = Object.keys(getFilledSquares(flattened)).map((str) => str.split(","));
@@ -204,29 +202,22 @@ class Container extends React.Component {
 
     const imageDataURL = getDataURLFromImageData(trimmed);
     const character = characters[characterId];
-    let { spriteName } = this.state;
+
     // If spriteName is empty, generate a name from the backend
-    if (!spriteName) {
+    let generatedSpriteName = "";
+
+    if (character.name === "Untitled") {
       try {
         const nameResp = await makeRequest("/generate-sprite-name", {
           method: "POST",
           json: { imageData: imageDataURL },
         });
         if (nameResp && nameResp.name) {
-          spriteName = nameResp.name;
-          this.setState({ spriteName });
+          generatedSpriteName = nameResp.name;
         }
       } catch (err) {
         console.error("Failed to auto-generate sprite name:", err);
       }
-    }
-
-    let values = {
-      spritesheet: { appearances: { [appearanceId]: [imageDataURL] } },
-    };
-    // Only update the name if it is still "Untitled" and we have a generated spriteName
-    if (character && character.name === "Untitled" && spriteName) {
-      values.name = spriteName;
     }
 
     // Close modal first
@@ -236,9 +227,15 @@ class Container extends React.Component {
     setTimeout(() => {
       dispatch(
         upsertCharacter(characterId, {
+          name: generatedSpriteName || character.name,
           spritesheet: {
-            appearances: { [appearanceId]: [imageDataURL] },
-            appearanceNames: { [appearanceId]: values.name },
+            appearances: {
+              [appearanceId]: [imageDataURL],
+            },
+            appearanceNames: {
+              [appearanceId]:
+                generatedSpriteName || character.spritesheet.appearanceNames?.[appearanceId],
+            },
             appearanceInfo: {
               [appearanceId]: {
                 anchor: this.state.anchorSquare,
@@ -451,7 +448,6 @@ class Container extends React.Component {
   _onGenerateSprite = async () => {
     const description = this.state.spriteDescription;
     const prompt = `Generate a pixel art sprite with a solid background based on the following description: ${description}`;
-    console.log(prompt);
 
     this.setState({ isGeneratingSprite: true });
     try {
@@ -532,17 +528,20 @@ class Container extends React.Component {
       ...this.state.visibleVariables,
       [variableId]: !this.state.visibleVariables[variableId],
     };
-    
+
     // Automatically set showVariables to true if any variable is checked
     const hasVisibleVariables = Object.values(newVisibleVariables).some(Boolean);
-    
-    this.setState({
-      visibleVariables: newVisibleVariables,
-      showVariables: hasVisibleVariables,
-    }, () => {
-      // Immediately save the variable overlay settings to the character
-      this._saveVariableOverlaySettings();
-    });
+
+    this.setState(
+      {
+        visibleVariables: newVisibleVariables,
+        showVariables: hasVisibleVariables,
+      },
+      () => {
+        // Immediately save the variable overlay settings to the character
+        this._saveVariableOverlaySettings();
+      },
+    );
   };
 
   _saveVariableOverlaySettings = () => {
@@ -720,7 +719,7 @@ class Container extends React.Component {
                 <Button size="sm" style={{ width: 114 }} onClick={this._onClearAll}>
                   Clear Canvas
                 </Button>
-                
+
                 <SpriteVariablesPanel
                   character={this.props.characters[this.props.characterId]}
                   actor={this.props.currentActor}
@@ -852,18 +851,18 @@ class Container extends React.Component {
 function mapStateToProps(state) {
   const { selectedActorPath } = state.ui;
   let currentActor = null;
-  
+
   if (selectedActorPath.worldId && selectedActorPath.stageId && selectedActorPath.actorId) {
     const stage = state.world.stages[selectedActorPath.stageId];
     if (stage && stage.actors[selectedActorPath.actorId]) {
       currentActor = stage.actors[selectedActorPath.actorId];
     }
   }
-  
-  return Object.assign({}, state.ui.paint, { 
+
+  return Object.assign({}, state.ui.paint, {
     characters: state.characters,
     currentActor: currentActor,
-    selectedActorPath: selectedActorPath
+    selectedActorPath: selectedActorPath,
   });
 }
 

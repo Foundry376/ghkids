@@ -490,7 +490,7 @@ const baseTutorialSteps: TutorialStep[] = [
       style: "outline",
     },
     waitsFor: {
-      stateMatching: (state) => state.ui.keypicker.characterId === "aamlcui8uxr",
+      stateMatching: (state) => !!state.ui.keypicker.open,
     },
   },
   {
@@ -503,7 +503,7 @@ const baseTutorialSteps: TutorialStep[] = [
       style: "outline",
     },
     waitsFor: {
-      stateMatching: (state) => state.ui.keypicker.characterId === null,
+      stateMatching: (state) => !state.ui.keypicker.open,
     },
   },
   {

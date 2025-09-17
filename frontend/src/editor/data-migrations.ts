@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { Game } from "../types";
+import { makeId } from "./utils/utils";
 
 export function applyValueChanges(value: any) {
   if (value === "none") {
@@ -16,9 +17,6 @@ export function applyValueChanges(value: any) {
 }
 
 export function applyDataMigrations(game: Game): Game {
-  // Update old-style rules
-  let conditionKey = Date.now();
-
   const nonmigrated = JSON.stringify(game);
   const result = JSON.parse(JSON.stringify(game), (key, value) => {
     try {
@@ -108,7 +106,7 @@ export function applyDataMigrations(game: Game): Game {
                     if (!condition.left || !Object.keys(condition.left).length) {
                       throw new Error("Invalid condition left side");
                     }
-                    condition.key = `${conditionKey++}`;
+                    condition.key = makeId("condition");
                     delete condition.value;
                     delete condition.type;
                     delete condition.variableId;

@@ -1,12 +1,18 @@
 import u from "updeep";
 
-import { Character, EditorState, RuleTreeEventItem, RuleTreeItem } from "../../types";
+import {
+  Character,
+  EditorState,
+  RuleTreeEventItem,
+  RuleTreeFlowItemCheck,
+  RuleTreeItem,
+} from "../../types";
 import { Actions } from "../actions";
 import { ruleFromRecordingState } from "../components/stage/recording/utils";
 import * as Types from "../constants/action-types";
 import { getCurrentStageForWorld } from "../utils/selectors";
 import { findRule } from "../utils/stage-helpers";
-import { deepClone } from "../utils/utils";
+import { deepClone, makeId } from "../utils/utils";
 import { CONTAINER_TYPES, FLOW_BEHAVIORS } from "../utils/world-constants";
 import initialState from "./initial-state";
 
@@ -133,9 +139,24 @@ export default function charactersReducer(
       }
 
       if (recording.ruleId) {
-        const [existingRule, parentRule, parentIdx] = findRule({ rules }, recording.ruleId);
-        if (!existingRule) return state;
-        parentRule.rules[parentIdx] = Object.assign({}, existingRule, recordedRule);
+        if (recording.ruleId.endsWith("-check")) {
+          const ruleId = recording.ruleId.replace("-check", "");
+          const [existingRule, parentRule, parentIdx] = findRule({ rules }, ruleId);
+          if (!existingRule || !("check" in existingRule)) {
+            return state;
+          }
+          const check: RuleTreeFlowItemCheck = Object.assign({}, existingRule.check, {
+            conditions: recordedRule.conditions,
+            actors: recordedRule.actors,
+            extent: recordedRule.extent,
+          });
+          parentRule.rules[parentIdx] = Object.assign({}, existingRule, { check });
+        } else {
+          const [existingRule, parentRule, parentIdx] = findRule({ rules }, recording.ruleId);
+          if (!existingRule) return state;
+          parentRule.rules[parentIdx] = Object.assign({}, existingRule, recordedRule);
+        }
+
         return u.updateIn(recording.characterId, { rules }, state);
       }
 
@@ -144,7 +165,7 @@ export default function charactersReducer(
       ) as RuleTreeEventItem;
       const rulesWithinIdle: RuleTreeItem[] = idleContainer ? idleContainer.rules : rules;
 
-      rulesWithinIdle.unshift({ ...recordedRule, id: `${Date.now()}`, name: action.name || "Untitled Rule" });
+      rulesWithinIdle.unshift({ ...recordedRule, id: makeId("rule"), name: "Untitled Rule" });
       return u.updateIn(recording.characterId, { rules }, state);
     }
     default:

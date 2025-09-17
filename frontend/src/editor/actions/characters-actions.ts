@@ -1,6 +1,7 @@
 import { DeepPartial } from "redux";
 import { Character, RuleTreeEventItem } from "../../types";
 import * as types from "../constants/action-types";
+import { makeId } from "../utils/utils";
 
 export function upsertCharacter(
   characterId: string,
@@ -95,7 +96,7 @@ export type ActionCreateCharacterEventContainer = {
 };
 
 export function createCharacterVariable(characterId: string): ActionCreateCharacterVariable {
-  const variableId = `${Date.now()}`;
+  const variableId = makeId("var");
   return {
     type: types.CREATE_CHARACTER_VARIABLE,
     characterId,

@@ -32,6 +32,7 @@ import {
 
 import { Character, Characters, EditorState, UIState } from "../../types";
 import { defaultAppearanceId } from "../utils/character-helpers";
+import { makeId } from "../utils/utils";
 import Sprite from "./sprites/sprite";
 import { TapToEditLabel } from "./tap-to-edit-label";
 
@@ -171,7 +172,7 @@ export const Library: React.FC = () => {
       "characterId" in ui.stampToolItem
     ) {
       const existing = characters[ui.stampToolItem.characterId];
-      const newCharacterId = `${Date.now()}`;
+      const newCharacterId = makeId("character");
       dispatch(upsertCharacter(newCharacterId, { ...existing, name: `${existing.name} Copy` }));
       if (!event.shiftKey) {
         dispatch(selectToolId(TOOLS.POINTER));
@@ -188,7 +189,7 @@ export const Library: React.FC = () => {
       const character = ui.selectedCharacterId ? characters[ui.selectedCharacterId] : null;
       if (!character) return;
 
-      const newAppearanceId = `${Date.now()}`;
+      const newAppearanceId = makeId("appearance");
       const newAppearanceData = character.spritesheet.appearances[ui.stampToolItem.appearanceId][0];
       dispatch(createCharacterAppearance(character.id, newAppearanceId, newAppearanceData));
       if (!event.shiftKey) {
@@ -246,7 +247,7 @@ export const Library: React.FC = () => {
   };
 
   const onCreateCharacter = useCallback(() => {
-    const newCharacterId = `${Date.now()}`;
+    const newCharacterId = makeId("character");
     dispatch(createCharacter(newCharacterId));
     dispatch(paintCharacterAppearance(newCharacterId, "idle"));
   }, [dispatch]);
@@ -261,7 +262,7 @@ export const Library: React.FC = () => {
     const { spritesheet } = characters[ui.selectedCharacterId];
     const appearance = spritesheet.appearances[defaultAppearanceId(spritesheet)];
 
-    const newAppearanceId = `${Date.now()}`;
+    const newAppearanceId = makeId("appearance");
     const newAppearanceData = appearance ? appearance[0] : null;
     dispatch(createCharacterAppearance(ui.selectedCharacterId, newAppearanceId, newAppearanceData));
     dispatch(paintCharacterAppearance(ui.selectedCharacterId, newAppearanceId));

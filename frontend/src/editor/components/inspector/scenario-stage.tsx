@@ -3,7 +3,7 @@ import WorldOperator from "../../utils/world-operator";
 import ActorSprite from "../sprites/actor-sprite";
 
 import React from "react";
-import { Rule, WorldMinimal } from "../../../types";
+import { Rule, RuleTreeFlowItemCheck, WorldMinimal } from "../../../types";
 import { extentIgnoredPositions } from "../../utils/recording-helpers";
 import { getCurrentStageForWorld } from "../../utils/selectors";
 import RecordingIgnoredSprite from "../sprites/recording-ignored-sprite";
@@ -15,7 +15,7 @@ export const ScenarioStage = React.memo(
     maxWidth,
     maxHeight,
   }: {
-    rule: Rule;
+    rule: Rule | RuleTreeFlowItemCheck;
     applyActions: boolean;
     maxWidth: number;
     maxHeight: number;

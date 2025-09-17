@@ -1,13 +1,15 @@
 import { useContext, useState } from "react";
 import { TapToEditLabel } from "../tap-to-edit-label";
-import { DisclosureTriangle } from "./disclosure-triangle";
 import { RuleList } from "./rule-list";
 import { RuleStateCircle } from "./rule-state-circle";
 
-import { Character, RuleTreeFlowItem } from "../../../types";
+import { Character, RuleTreeFlowItem, RuleTreeFlowItemCheck } from "../../../types";
+import { defaultAppearanceId } from "../../utils/character-helpers";
 import { FLOW_BEHAVIORS } from "../../utils/world-constants";
 import { isCollapsePersisted, persistCollapsedState } from "./collapse-state-storage";
 import { RuleActionsContext } from "./container-pane-rules";
+import { ContentFlowGroupCheck } from "./content-flow-group-check";
+import { DisclosureTriangle } from "./disclosure-triangle";
 
 export const ContentFlowGroup = ({
   rule,
@@ -16,8 +18,9 @@ export const ContentFlowGroup = ({
   rule: RuleTreeFlowItem;
   character: Character;
 }) => {
+  const [checkCollapsed, setCheckCollapsed] = useState(isCollapsePersisted(rule.id));
   const [collapsed, setCollapsed] = useState(isCollapsePersisted(rule.id));
-  const { onRuleChanged } = useContext(RuleActionsContext);
+  const { onRuleChanged, onRuleReRecord } = useContext(RuleActionsContext);
 
   const _onNameChange = (name: string) => {
     onRuleChanged(rule.id, { name });
@@ -31,6 +34,39 @@ export const ContentFlowGroup = ({
     onRuleChanged(rule.id, { loopCount: JSON.parse(event.target.value) });
   };
 
+  const _onAddCheck = () => {
+    const check: RuleTreeFlowItemCheck = {
+      id: `${rule.id}-check`,
+      mainActorId: "main",
+      conditions: [
+        {
+          left: { actorId: "main", variableId: "appearance" },
+          right: { constant: defaultAppearanceId(character.spritesheet) },
+          comparator: "=",
+          key: "main-appearance",
+          enabled: true,
+        },
+      ],
+      extent: {
+        xmax: 0,
+        ymax: 0,
+        xmin: 0,
+        ymin: 0,
+        ignored: {},
+      },
+      actors: {
+        main: {
+          id: "main",
+          characterId: character.id,
+          variableValues: {},
+          appearance: defaultAppearanceId(character.spritesheet),
+          position: { x: 0, y: 0 },
+        },
+      },
+    };
+    onRuleChanged(rule.id, { check });
+    onRuleReRecord(check);
+  };
   const variables = Object.values(character.variables);
 
   return (
@@ -38,6 +74,40 @@ export const ContentFlowGroup = ({
       <div className={`header ${rule.behavior}`}>
         <div style={{ float: "left", width: 20 }}>
           <RuleStateCircle rule={rule} />
+        </div>
+        <TapToEditLabel className="name" value={rule.name} onChange={_onNameChange} />
+
+        <div>
+          <div style={{ display: "inline-block", width: 16 }}>
+            <DisclosureTriangle
+              onClick={() => {
+                setCheckCollapsed(!checkCollapsed);
+                if (rule.check) {
+                  persistCollapsedState(rule.check.id, !collapsed);
+                }
+              }}
+              enabled={!!rule.check}
+              collapsed={!rule.check || checkCollapsed}
+            />
+          </div>
+          <select
+            value={rule.check ? "when" : "always"}
+            onChange={(e) => {
+              if (e.target.value === "when") {
+                _onAddCheck();
+              } else {
+                onRuleChanged(rule.id, { check: undefined });
+              }
+            }}
+          >
+            <option value="always">Always</option>
+            <option value="when">When</option>
+          </select>
+        </div>
+
+        {rule.check && !checkCollapsed && <ContentFlowGroupCheck check={rule.check} />}
+
+        <div style={{ display: "inline-block", width: 16 }}>
           <DisclosureTriangle
             onClick={() => {
               setCollapsed(!collapsed);
@@ -83,7 +153,6 @@ export const ContentFlowGroup = ({
             {variables.length === 0 ? <option disabled>No variables defined</option> : undefined}
           </select>
         ) : undefined}
-        <TapToEditLabel className="name" value={rule.name} onChange={_onNameChange} />
       </div>
       <RuleList parentId={rule.id} rules={rule.rules} collapsed={collapsed} character={character} />
     </div>
