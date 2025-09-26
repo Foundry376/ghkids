@@ -83,14 +83,16 @@ export type ActionCancelRecording = {
   type: "CANCEL_RECORDING";
 };
 
-export function finishRecording(): ActionFinishRecording {
+export function finishRecording(name?: string): ActionFinishRecording {
   return {
     type: types.FINISH_RECORDING,
+    name,
   };
 }
 
 export type ActionFinishRecording = {
   type: "FINISH_RECORDING";
+  name?: string;
 };
 
 export function setRecordingExtent(extent: RuleExtent): ActionSetRecordingExtent {
