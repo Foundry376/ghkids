@@ -53,7 +53,7 @@ html {
   @include cursor("paint");
 }
 .tool-record {
-  @include cursor("camera");
+  @include cursor("rule");
 }
 .tool-ignore-square {
   @include cursor("ignored_square");
