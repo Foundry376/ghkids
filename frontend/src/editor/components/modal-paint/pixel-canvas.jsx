@@ -81,8 +81,8 @@ export default class PixelCanvas extends React.Component {
   _pixelForEvent({ clientX, clientY }) {
     const { top, left } = this._pixelCanvas.getBoundingClientRect();
     return {
-      x: Math.floor((clientX - left + this.props.pixelSize / 2) / this.props.pixelSize),
-      y: Math.floor((clientY - top + this.props.pixelSize / 2) / this.props.pixelSize),
+      x: Math.round((clientX - left + this.props.pixelSize / 2) / this.props.pixelSize),
+      y: Math.round((clientY - top + this.props.pixelSize / 2) / this.props.pixelSize),
     };
   }
 
