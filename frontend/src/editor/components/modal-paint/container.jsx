@@ -321,8 +321,12 @@ class Container extends React.Component {
       "text/plain": JSON.stringify(this.state.selectionOffset),
     };
 
-    const clipboardItem = new ClipboardItem(data);
-    await navigator.clipboard.write([clipboardItem]);
+    try {
+      const clipboardItem = new ClipboardItem(data);
+      await navigator.clipboard.write([clipboardItem]);
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   _onGlobalCut = (event) => {

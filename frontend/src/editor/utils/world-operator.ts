@@ -261,6 +261,9 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
           return [stageActorsForRuleActorIds[otherActorId]];
         }
         const oactor = rule.actors[otherActorId];
+        if (!oactor) {
+          return []; // this seems it should not happen
+        }
         const stagePosition = wrappedPosition(pointByAdding(me.position, oactor.position));
         if (!stagePosition) {
           return [];
