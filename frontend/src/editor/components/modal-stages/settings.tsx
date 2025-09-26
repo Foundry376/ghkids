@@ -202,6 +202,12 @@ export const StageSettings = ({
                   className="form-control"
                   placeholder="Describe a new background..."
                   value={backgroundPrompt}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === "Return") {
+                      _onGenerateBackground();
+                      e.preventDefault();
+                    }
+                  }}
                   onChange={(e) => setBackgroundPrompt(e.target.value)}
                 />
                 <Button
@@ -210,7 +216,7 @@ export const StageSettings = ({
                   disabled={isGenerating}
                 >
                   {isGenerating ? (
-                    <span>
+                    <span style={{ whiteSpace: "nowrap" }}>
                       <i className="fa fa-spinner fa-spin" style={{ marginRight: "5px" }} />
                       Drawing...
                     </span>

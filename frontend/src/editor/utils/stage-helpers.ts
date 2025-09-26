@@ -190,8 +190,9 @@ export function findRule(
   }
   return [null, { rules: [] }, 0] as const;
 }
+type HTMLImageElementLoaded = HTMLImageElement & { _codakoloaded?: boolean };
 
-let bgImages: { [url: string]: HTMLImageElement } = {};
+let bgImages: { [url: string]: HTMLImageElementLoaded } = {};
 
 function cssURLToURL(cssUrl: string) {
   if (cssUrl.includes("/Layer0_2.png")) {
@@ -204,7 +205,7 @@ function cssURLToURL(cssUrl: string) {
 }
 
 export function prepareCrossoriginImages(stages: Stage[]) {
-  const next: { [url: string]: HTMLImageElement } = {};
+  const next: { [url: string]: HTMLImageElementLoaded } = {};
 
   for (const stage of stages) {
     const url = cssURLToURL(stage.background);
@@ -212,8 +213,15 @@ export function prepareCrossoriginImages(stages: Stage[]) {
 
     next[url] = bgImages[url];
     if (!next[url]) {
-      const background = new Image();
+      const background = new Image() as HTMLImageElementLoaded;
       background.crossOrigin = "anonymous";
+      background._codakoloaded = false;
+      background.onload = () => {
+        background._codakoloaded = true;
+      };
+      background.onerror = (e) => {
+        console.error(`Failed to load image: ${background.src}: ${e}`);
+      };
       background.src = url;
       next[url] = background;
     }
@@ -264,7 +272,7 @@ export function getStageScreenshot(stage: Stage, { size }: { size: number }) {
   const backgroundUrl = cssURLToURL(stage.background);
   if (backgroundUrl) {
     const backgroundImage = bgImages[backgroundUrl];
-    if (backgroundImage) {
+    if (backgroundImage && backgroundImage._codakoloaded) {
       context.drawImage(backgroundImage, 0, 0, canvas.width, canvas.height);
     }
   } else {

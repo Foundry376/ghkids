@@ -184,7 +184,14 @@ class Container extends React.Component {
   _onCloseAndSave = async () => {
     const { dispatch, characterId, appearanceId, characters } = this.props;
     const flattened = getFlattenedImageData(this.state);
-
+    if (!flattened) {
+      alert(
+        `Sorry, an error ocurred and we\'re unable to save your image. Did you copy/paste,` +
+          ` import from a file, or use the AI Generation feature? Please let me know at` +
+          ` ben@foundry376.com and include what browser you're using!`,
+      );
+      return;
+    }
     // Trim inwards from all sides if an entire row / column of tiles is empty.
     // We want to "auto-shrink" the canvas if the kid goes wild with the + button.
     const filledTiles = Object.keys(getFilledSquares(flattened)).map((str) => str.split(","));
@@ -341,7 +348,14 @@ class Container extends React.Component {
     if (this.state.imageData === null) {
       return; // modal closed
     }
-    const items = await navigator.clipboard.read();
+    try {
+      const items = await navigator.clipboard.read();
+    } catch (err) {
+      alert(
+        `Codako doesn't have permission to view your clipboard. ` +
+          `Please grant permission in your browser and try again!`,
+      );
+    }
     const imageItem = items.find((i) => i.types.some((t) => t.includes("image")));
     const offsetItem = items.find((d) => d.types.includes("text/plain"));
 

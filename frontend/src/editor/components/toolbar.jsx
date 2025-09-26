@@ -133,7 +133,7 @@ const Toolbar = ({ selectedToolId, dispatch, metadata, stageName, isInTutorial }
 function mapStateToProps(state) {
   return {
     selectedToolId: state.ui.selectedToolId,
-    stageName: getCurrentStage(state).name,
+    stageName: getCurrentStage(state)?.name,
     metadata: state.world.metadata,
     isInTutorial: state.ui.tutorial.stepSet === "base",
   };
