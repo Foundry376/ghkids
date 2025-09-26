@@ -2,7 +2,9 @@ import u from "updeep";
 
 import {
   Character,
+  Characters,
   EditorState,
+  Rule,
   RuleTreeEventItem,
   RuleTreeFlowItemCheck,
   RuleTreeItem,
@@ -27,7 +29,7 @@ export default function charactersReducer(
     }
 
     case Types.DELETE_CHARACTER: {
-      return u.omit(action.characterId, state);
+      return scrubCharacterFromCharacters(state, action.characterId);
     }
 
     case Types.CREATE_CHARACTER_VARIABLE: {
@@ -171,4 +173,51 @@ export default function charactersReducer(
     default:
       return state;
   }
+}
+
+function scrubCharacterFromCharacters(state: Characters, characterId: string): Characters {
+  const next = deepClone(state);
+  delete next[characterId];
+
+  const scrubRule = (item: RuleTreeItem) => {
+    const container: Rule | RuleTreeFlowItemCheck | undefined =
+      item.type === "rule" ? item : item.type === "group-flow" ? item.check : undefined;
+    if (!container) {
+      return;
+    }
+    const removedIds = Object.values(container.actors)
+      .filter((a) => a.characterId === characterId)
+      .map((a) => a.id);
+
+    for (const id of removedIds) {
+      delete container.actors[id];
+    }
+    container.conditions = container.conditions.filter(
+      (r) =>
+        !(
+          ("actorId" in r.left && removedIds.includes(r.left.actorId)) ||
+          ("actorId" in r.right && removedIds.includes(r.right.actorId))
+        ),
+    );
+    if ("actions" in container) {
+      (container as Rule).actions = (container as Rule).actions.filter(
+        (r) =>
+          !("actorId" in r && removedIds.includes(r.actorId)) &&
+          !("actor" in r && r.actor.characterId === characterId),
+      );
+    }
+    console.log(container);
+    if ("rules" in item) {
+      for (const rule of item.rules) {
+        scrubRule(rule);
+      }
+    }
+  };
+
+  for (const id of Object.keys(next)) {
+    for (const rule of next[id].rules) {
+      scrubRule(rule);
+    }
+  }
+  return next;
 }

@@ -118,17 +118,27 @@ const LibraryItem: React.FC<LibraryItemProps> = ({
   );
 };
 
+const RECORDING_DELETE_CHARACTER = `Please exit the recording before deleting characters.`;
+const CONFIRM_DELETE_CHARACTER = `Are you sure you want to delete this character? If this character appears in other rules, they'll be removed.`;
+
 export const Library: React.FC = () => {
   const dispatch = useDispatch();
   const characters = useSelector<EditorState, Characters>((s) => s.characters);
   const ui = useSelector<EditorState, UIState>((s) => s.ui);
+  const recordingActorId = useSelector<EditorState, string | null>((s) => s.recording.actorId);
 
   const [characterDropdownOpen, setCharacterDropdownOpen] = useState(false);
 
   const onClickCharacter = useCallback(
     (event: React.MouseEvent<HTMLDivElement>, characterId: string) => {
       if (ui.selectedToolId === TOOLS.TRASH) {
-        dispatch(deleteCharacter(characterId));
+        if (recordingActorId) {
+          window.alert(RECORDING_DELETE_CHARACTER);
+          return;
+        }
+        if (window.confirm(CONFIRM_DELETE_CHARACTER)) {
+          dispatch(deleteCharacter(characterId));
+        }
         if (!event.shiftKey) {
           dispatch(selectToolId(TOOLS.POINTER));
         }

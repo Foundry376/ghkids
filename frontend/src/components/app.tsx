@@ -105,7 +105,19 @@ const App = () => {
   return (
     <div className="page-container">
       {!hidesNav && _renderNav()}
-      <Sentry.ErrorBoundary fallback={<div>Something went wrong</div>}>
+      <Sentry.ErrorBoundary
+        fallback={(errorData) => (
+          <div>
+            Something went wrong!
+            <h2>
+              <code>{`${errorData.error}`}</code>
+            </h2>
+            <pre>
+              <code>{errorData.componentStack}</code>
+            </pre>
+          </div>
+        )}
+      >
         {content}
       </Sentry.ErrorBoundary>
       {!hidesFooter && _renderFooter()}
