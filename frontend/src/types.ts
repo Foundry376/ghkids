@@ -3,7 +3,7 @@ import { Frame } from "./editor/utils/frame-accumulator";
 
 export type ImageData = string;
 
-export type ActorPath = { worldId: string | null; stageId: string | null; actorId: string | null };
+export type ActorSelection = { worldId: string; stageId: string; actorIds: string[] };
 
 export type Position = {
   x: number;
@@ -300,9 +300,9 @@ export type World = WorldMinimal & {
 export type UIState = {
   selectedToolId: TOOLS;
   selectedCharacterId: string | null;
-  selectedActorPath: ActorPath;
+  selectedActors: ActorSelection | null;
   stampToolItem:
-    | ActorPath
+    | ActorSelection
     | { characterId: string }
     | { characterId: string; appearanceId: string }
     | { ruleId: string }

@@ -1,7 +1,7 @@
 import { Dispatch } from "redux";
 import { EditorState, Stage } from "../../types";
 import { Actions } from "../actions";
-import { changeActor } from "../actions/stage-actions";
+import { changeActors } from "../actions/stage-actions";
 import { stopPlayback } from "../actions/ui-actions";
 import { getCurrentStageForWorld } from "../utils/selectors";
 import { RECORDING_PHASE, TOOLS } from "./constants";
@@ -30,12 +30,12 @@ export const poseFrames = {
 const baseTutorialCharacterPath = {
   worldId: "root",
   stageId: "root",
-  actorId: "1483668698770",
+  actorIds: ["1483668698770"],
 };
 const baseTutorialBoulderPath = {
   worldId: "root",
   stageId: "root",
-  actorId: "1483691260895",
+  actorIds: ["1483691260895"],
 };
 
 export type TutorialStep = {
@@ -258,7 +258,7 @@ const baseTutorialSteps: TutorialStep[] = [
     },
     onEnter: (dispatch) => {
       dispatch(stopPlayback());
-      dispatch(changeActor(baseTutorialCharacterPath, { position: { x: 9, y: 9 } }));
+      dispatch(changeActors(baseTutorialCharacterPath, { position: { x: 9, y: 9 } }));
     },
     waitsFor: {
       stateMatching: (state) => state.ui.selectedToolId === "record",
@@ -273,10 +273,10 @@ const baseTutorialSteps: TutorialStep[] = [
       style: "outline",
     },
     onEnter: (dispatch) => {
-      dispatch(changeActor(baseTutorialCharacterPath, { position: { x: 9, y: 9 } }));
+      dispatch(changeActors(baseTutorialCharacterPath, { position: { x: 9, y: 9 } }));
     },
     waitsFor: {
-      stateMatching: (state) => state.recording.actorId === baseTutorialCharacterPath.actorId,
+      stateMatching: (state) => state.recording.actorId === baseTutorialCharacterPath.actorIds[0]!,
     },
   },
   {
@@ -378,7 +378,7 @@ const baseTutorialSteps: TutorialStep[] = [
     soundURL: new URL("../sounds/tutorial/base_28.mp3", import.meta.url).href,
     annotation: { selectors: ["[data-tutorial-id=play]"], style: "outline" },
     onEnter: (dispatch) => {
-      dispatch(changeActor(baseTutorialCharacterPath, { position: { x: 2, y: 9 } }));
+      dispatch(changeActors(baseTutorialCharacterPath, { position: { x: 2, y: 9 } }));
     },
     waitsFor: {
       stateMatching: (_state, stage) => {
@@ -589,7 +589,7 @@ const baseTutorialSteps: TutorialStep[] = [
     text: `here when the boulder starts to fall. Remember how we created our first rule?`,
     soundURL: new URL("../sounds/tutorial/base_46.mp3", import.meta.url).href,
     onEnter: (dispatch) => {
-      dispatch(changeActor(baseTutorialCharacterPath, { position: { x: 12, y: 9 } }));
+      dispatch(changeActors(baseTutorialCharacterPath, { position: { x: 12, y: 9 } }));
     },
   },
   {
@@ -669,8 +669,8 @@ const baseTutorialSteps: TutorialStep[] = [
     text: `Press 'Play'! Walk the hero toward the boulder and let's see if it falls.`,
     soundURL: new URL("../sounds/tutorial/base_54.mp3", import.meta.url).href,
     onEnter: (dispatch) => {
-      dispatch(changeActor(baseTutorialBoulderPath, { position: { x: 14, y: 5 } }));
-      dispatch(changeActor(baseTutorialCharacterPath, { position: { x: 9, y: 9 } }));
+      dispatch(changeActors(baseTutorialBoulderPath, { position: { x: 14, y: 5 } }));
+      dispatch(changeActors(baseTutorialCharacterPath, { position: { x: 9, y: 9 } }));
     },
     annotation: { selectors: ["[data-tutorial-id=play]"], style: "outline" },
     waitsFor: {
@@ -769,8 +769,8 @@ const baseTutorialSteps: TutorialStep[] = [
     soundURL: new URL("../sounds/tutorial/base_64.mp3", import.meta.url).href,
     pose: "sitting-talking",
     onEnter: (dispatch) => {
-      dispatch(changeActor(baseTutorialBoulderPath, { position: { x: 14, y: 5 } }));
-      dispatch(changeActor(baseTutorialCharacterPath, { position: { x: 2, y: 9 } }));
+      dispatch(changeActors(baseTutorialBoulderPath, { position: { x: 14, y: 5 } }));
+      dispatch(changeActors(baseTutorialCharacterPath, { position: { x: 2, y: 9 } }));
     },
     annotation: { selectors: ["[data-tutorial-id=play]"], style: "outline" },
     waitsFor: {

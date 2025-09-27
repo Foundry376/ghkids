@@ -10,7 +10,6 @@ import { selectToolId, selectToolItem } from "../../actions/ui-actions";
 import { TOOLS } from "../../constants/constants";
 import { CONTAINER_TYPES } from "../../utils/world-constants";
 import { RuleActionsContext } from "./container-pane-rules";
-import { InspectorContext } from "./inspector-context";
 
 const DROP_INDEX_NA = 1000;
 const DROP_INDEX_INSIDE_BUT_INDETERMINATE = -1;
@@ -34,7 +33,7 @@ export const RuleList = ({
 }) => {
   const { onRuleMoved, onRuleReRecord, onRuleDeleted, onRuleStamped } =
     useContext(RuleActionsContext);
-  const { selectedToolId } = useContext(InspectorContext);
+  const selectedToolId = useSelector<EditorState, TOOLS>((state) => state.ui.selectedToolId);
   const stampToolItem = useSelector<EditorState, UIState["stampToolItem"]>(
     (s) => s.ui.stampToolItem,
   );

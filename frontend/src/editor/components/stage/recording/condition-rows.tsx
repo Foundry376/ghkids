@@ -42,7 +42,7 @@ export const FreeformConditionRow = ({
   onChange,
 }: FreeformConditionRowProps) => {
   const { left, right, comparator } = condition;
-  const selectedToolId = useSelector<EditorState>((state) => state.ui.selectedToolId);
+  const selectedToolId = useSelector<EditorState, TOOLS>((state) => state.ui.selectedToolId);
   const dispatch = useDispatch();
 
   const impliedDatatype: ImpliedDatatype = (() => {
@@ -159,8 +159,8 @@ export const FreeformConditionValue = ({
       e.stopPropagation();
     }
     if (e.dataTransfer.types.includes("sprite")) {
-      const { actorId } = JSON.parse(e.dataTransfer.getData("sprite"));
-      onChange?.({ constant: actorId });
+      const { dragAnchorActorId } = JSON.parse(e.dataTransfer.getData("sprite"));
+      onChange?.({ constant: dragAnchorActorId });
     }
     setDroppingValue(false);
   };

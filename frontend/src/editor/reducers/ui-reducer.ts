@@ -5,7 +5,7 @@ import { Actions } from "../actions";
 import * as Types from "../constants/action-types";
 import { TOOLS, WORLDS } from "../constants/constants";
 import { getCurrentStageForWorld } from "../utils/selectors";
-import { buildActorPath, nullActorPath } from "../utils/stage-helpers";
+import { buildActorSelection } from "../utils/stage-helpers";
 import initialState from "./initial-state";
 
 export default function uiReducer(
@@ -22,19 +22,19 @@ export default function uiReducer(
       }
       return Object.assign({}, state, {
         selectedCharacterId: characterId,
-        selectedActorPath: buildActorPath(WORLDS.AFTER, stage.id!, actor.id!),
+        selectedActors: buildActorSelection(WORLDS.AFTER, stage.id!, [actor.id!]),
       });
     }
     case Types.CANCEL_RECORDING: {
       return Object.assign({}, state, {
         selectedToolId: TOOLS.POINTER,
-        selectedActorPath: nullActorPath(),
+        selectedActors: null,
       });
     }
     case Types.FINISH_RECORDING: {
       return Object.assign({}, state, {
         selectedToolId: TOOLS.POINTER,
-        selectedActorPath: nullActorPath(),
+        selectedActors: null,
       });
     }
     case Types.SELECT_TOOL_ID:
@@ -49,13 +49,15 @@ export default function uiReducer(
     case Types.SELECT_DEFINITION_ID:
       return Object.assign({}, state, {
         selectedCharacterId: action.characterId,
-        selectedActorPath: action.actorPath,
+        selectedActors: action.actors,
       });
-    case Types.DELETE_ACTOR: {
-      if (state.selectedActorPath.actorId === action.actorId) {
-        return Object.assign({}, state, {
-          selectedActorPath: nullActorPath(),
-        });
+    case Types.DELETE_ACTORS: {
+      if (
+        state.selectedActors &&
+        state.selectedActors.worldId === action.worldId &&
+        state.selectedActors.stageId === action.stageId
+      ) {
+        return Object.assign({}, state, { selectedActors: null });
       }
       return state;
     }
@@ -63,7 +65,7 @@ export default function uiReducer(
       if (state.selectedCharacterId === action.characterId) {
         return Object.assign({}, state, {
           selectedCharacterId: null,
-          selectedActorPath: nullActorPath(),
+          selectedActors: null,
         });
       }
       return state;

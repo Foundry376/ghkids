@@ -13,9 +13,10 @@ import {
   upsertRecordingCondition,
 } from "../../actions/recording-actions";
 import {
-  changeActor,
-  createActor,
-  deleteActor,
+  changeActors,
+  changeActorsIndividually,
+  createActors,
+  deleteActors,
   recordClickForGameState,
   recordKeyForGameState,
 } from "../../actions/stage-actions";
@@ -32,7 +33,7 @@ import {
   actorFilledPoints,
   actorFillsPoint,
   applyAnchorAdjustment,
-  buildActorPath,
+  buildActorSelection,
   pointIsOutside,
 } from "../../utils/stage-helpers";
 
@@ -118,11 +119,11 @@ export const Stage = ({
 
   const dispatch = useDispatch();
   const characters = useSelector<EditorState, Characters>((state) => state.characters);
-  const { selectedActorPath, selectedToolId, stampToolItem, playback } = useSelector<
+  const { selectedActors, selectedToolId, stampToolItem, playback } = useSelector<
     EditorState,
-    Pick<UIState, "selectedActorPath" | "selectedToolId" | "stampToolItem" | "playback">
+    Pick<UIState, "selectedActors" | "selectedToolId" | "stampToolItem" | "playback">
   >((state) => ({
-    selectedActorPath: state.ui.selectedActorPath,
+    selectedActors: state.ui.selectedActors,
     selectedToolId: state.ui.selectedToolId,
     stampToolItem: state.ui.stampToolItem,
     playback: state.ui.playback,
@@ -130,13 +131,14 @@ export const Stage = ({
 
   // Helpers
 
-  const actorPath = (actorId: string) => {
-    return buildActorPath(world.id, stage.id, actorId);
+  const selFor = (actorIds: string[]) => {
+    return buildActorSelection(world.id, stage.id, actorIds);
   };
 
-  const stagePath = () => {
-    return { stageId: stage.id, worldId: world.id };
-  };
+  const selected =
+    selectedActors && selectedActors?.worldId === world.id && selectedActors?.stageId === stage.id
+      ? selectedActors.actorIds.map((a) => stage.actors[a])
+      : [];
 
   const centerOnExtent = () => {
     if (!recordingExtent) {
@@ -174,7 +176,14 @@ export const Stage = ({
   };
 
   const onKeyDown = (event: React.KeyboardEvent) => {
-    if (event.shiftKey || event.metaKey || event.ctrlKey) {
+    const isShortcut = event.metaKey || event.ctrlKey;
+
+    if (isShortcut && event.key === "a") {
+      dispatch(select(null, selFor(Object.keys(stage.actors))));
+      event.preventDefault();
+      return;
+    }
+    if (event.shiftKey || isShortcut) {
       // do not catch these events, they're probably actual hotkeys
       return;
     }
@@ -183,8 +192,8 @@ export const Stage = ({
     event.stopPropagation();
 
     if (event.key === "Delete" || event.key === "Backspace") {
-      if (selectedActorPath.worldId === world.id) {
-        dispatch(deleteActor(selectedActorPath));
+      if (selected.length) {
+        dispatch(deleteActors(selFor(selected.map((a) => a.id))));
       }
       return;
     }
@@ -256,12 +265,6 @@ export const Stage = ({
     return { left: event.clientX - stageOffset.left, top: event.clientY - stageOffset.top };
   };
 
-  const getPositionForPxOffset = ({ left, top }: { left: number; top: number }) => {
-    return {
-      x: Math.round(left / STAGE_CELL_SIZE / scale),
-      y: Math.round(top / STAGE_CELL_SIZE / scale),
-    };
-  };
   const getPositionForEvent = (event: MouseEvent | React.MouseEvent | React.DragEvent) => {
     const dragOffset =
       "dataTransfer" in event && event.dataTransfer && event.dataTransfer.getData("drag-offset");
@@ -271,7 +274,10 @@ export const Stage = ({
     const { dragLeft, dragTop } = dragOffset ? JSON.parse(dragOffset) : halfOffset;
 
     const px = getPxOffsetForEvent(event);
-    return getPositionForPxOffset({ left: px.left - dragLeft, top: px.top - dragTop });
+    return {
+      x: Math.round((px.left - dragLeft) / STAGE_CELL_SIZE / scale),
+      y: Math.round((px.top - dragTop) / STAGE_CELL_SIZE / scale),
+    };
   };
 
   const onDropAppearance = (event: React.DragEvent) => {
@@ -284,12 +290,12 @@ export const Stage = ({
       (a) => actorFillsPoint(a, characters, position) && a.characterId === characterId,
     );
     if (actor) {
-      dispatch(changeActor(actorPath(actor.id), { appearance }));
+      dispatch(changeActors(selFor([actor.id]), { appearance }));
     }
   };
 
-  const onDropActorAtPosition = (
-    { actorId }: { actorId: string },
+  const onDropActorsAtPosition = (
+    { actorIds, dragAnchorActorId }: { actorIds: string[]; dragAnchorActorId: string },
     position: Position,
     mode: "stamp-copy" | "move",
   ) => {
@@ -297,37 +303,64 @@ export const Stage = ({
       return;
     }
 
-    const actor = stage.actors[actorId];
-    const character = characters[actor.characterId];
+    const anchorActor = stage.actors[dragAnchorActorId];
+    const anchorCharacter = characters[anchorActor.characterId];
 
-    applyAnchorAdjustment(position, character, actor);
+    applyAnchorAdjustment(position, anchorCharacter, anchorActor);
 
-    if (actor.position.x === position.x && actor.position.y === position.y) {
+    const offsetX = position.x - anchorActor.position.x;
+    const offsetY = position.y - anchorActor.position.y;
+
+    if (offsetX === 0 && offsetY === 0) {
       // attempting to drop in the same place we started the drag, don't do anything
       return;
     }
 
     if (mode === "stamp-copy") {
-      const clonedActor = Object.assign({}, actor, { position });
-      const clonedActorPoints = actorFilledPoints(clonedActor, characters).map(
-        (p) => `${p.x},${p.y}`,
-      );
+      const creates = actorIds
+        .map((aid) => {
+          const actor = stage.actors[aid];
+          const character = characters[actor.characterId];
+          const clonedActor = Object.assign({}, actor, {
+            position: {
+              x: actor.position.x + offsetX,
+              y: actor.position.y + offsetY,
+            },
+          });
+          const clonedActorPoints = actorFilledPoints(clonedActor, characters).map(
+            (p) => `${p.x},${p.y}`,
+          );
 
-      // If there is an exact copy of this actor that overlaps this position already, don't
-      // drop. It's probably a mistake, and you can override by dropping elsewhere and then
-      // dragging it to this square.
-      const positionContainsCloneAlready = Object.values(stage.actors).find(
-        (a) =>
-          a.characterId === actor.characterId &&
-          a.appearance === actor.appearance &&
-          actorFilledPoints(a, characters).some((p) => clonedActorPoints.includes(`${p.x},${p.y}`)),
-      );
-      if (positionContainsCloneAlready) {
-        return;
-      }
-      dispatch(createActor(stagePath(), character, clonedActor));
+          // If there is an exact copy of this actor that overlaps this position already, don't
+          // drop. It's probably a mistake, and you can override by dropping elsewhere and then
+          // dragging it to this square.
+          const positionContainsCloneAlready = Object.values(stage.actors).find(
+            (a) =>
+              a.characterId === actor.characterId &&
+              a.appearance === actor.appearance &&
+              actorFilledPoints(a, characters).some((p) =>
+                clonedActorPoints.includes(`${p.x},${p.y}`),
+              ),
+          );
+          if (positionContainsCloneAlready) {
+            return;
+          }
+          return { character, initialValues: clonedActor };
+        })
+        .filter((c): c is NonNullable<typeof c> => !!c);
+
+      dispatch(createActors(world.id, stage.id, creates));
     } else if (mode === "move") {
-      dispatch(changeActor(actorPath(actorId), { position }));
+      const upserts = actorIds.map((aid) => ({
+        id: aid,
+        values: {
+          position: {
+            x: stage.actors[aid].position.x + offsetX,
+            y: stage.actors[aid].position.y + offsetY,
+          },
+        },
+      }));
+      dispatch(changeActorsIndividually(world.id, stage.id, upserts));
     } else {
       throw new Error("Invalid mode");
     }
@@ -356,24 +389,28 @@ export const Stage = ({
     if (positionContainsCloneAlready) {
       return;
     }
-    dispatch(createActor(stagePath(), character, newActor));
+    dispatch(createActors(world.id, stage.id, [{ character, initialValues: newActor }]));
   };
 
   const onDropSprite = (event: React.DragEvent) => {
-    const { actorId, characterId } = JSON.parse(event.dataTransfer.getData("sprite"));
+    const ids: { actorIds: string[]; dragAnchorActorId: string } | { characterId: string } =
+      JSON.parse(event.dataTransfer.getData("sprite"));
     const position = getPositionForEvent(event);
-    if (actorId) {
-      onDropActorAtPosition({ actorId }, position, event.altKey ? "stamp-copy" : "move");
-    } else if (characterId) {
-      onDropCharacterAtPosition({ characterId }, position);
+    if ("actorIds" in ids) {
+      onDropActorsAtPosition(ids, position, event.altKey ? "stamp-copy" : "move");
+    } else if (ids.characterId) {
+      onDropCharacterAtPosition(ids, position);
     }
   };
 
   const onStampAtPosition = (position: Position) => {
-    if (stampToolItem && "actorId" in stampToolItem && stampToolItem.actorId) {
-      onDropActorAtPosition({ actorId: stampToolItem.actorId }, position, "stamp-copy");
-    } else if (stampToolItem && "characterId" in stampToolItem) {
-      onDropCharacterAtPosition(stampToolItem, position);
+    const item = stampToolItem;
+
+    if (item && "actorIds" in item && item.actorIds) {
+      const ids = { actorIds: item.actorIds, dragAnchorActorId: item.actorIds[0] };
+      onDropActorsAtPosition(ids, position, "stamp-copy");
+    } else if (item && "characterId" in item) {
+      onDropCharacterAtPosition(item, position);
     }
   };
 
@@ -387,7 +424,7 @@ export const Stage = ({
         break;
       case TOOLS.STAMP:
         if (!stampToolItem) {
-          dispatch(selectToolItem(actorPath(actor.id)));
+          dispatch(selectToolItem(selFor([actor.id])));
           handled = true;
         }
         break;
@@ -412,8 +449,20 @@ export const Stage = ({
       case TOOLS.POINTER:
         if (playback.running) {
           dispatch(recordClickForGameState(world.id, actor.id));
+        } else if (event.shiftKey) {
+          const selectedIds = selected.map((a) => a.id);
+          dispatch(
+            select(
+              actor.characterId,
+              selFor(
+                selectedIds.includes(actor.id)
+                  ? selectedIds.filter((a) => a !== actor.id)
+                  : [...selectedIds, actor.id],
+              ),
+            ),
+          );
         } else {
-          onSelectActor(actor);
+          dispatch(select(actor.characterId, selFor([actor.id])));
         }
         handled = true;
         break;
@@ -482,7 +531,7 @@ export const Stage = ({
         .reverse()
         .find((a) => actorFillsPoint(a, characters, { x, y }));
       if (actor) {
-        dispatch(deleteActor(actorPath(actor.id)));
+        dispatch(deleteActors(selFor([actor.id])));
       }
     }
   };
@@ -496,25 +545,36 @@ export const Stage = ({
 
     if (selectionRect) {
       const selectedActors: Actor[] = [];
-      const a = getPositionForPxOffset(selectionRect.start);
-      const b = getPositionForPxOffset(selectionRect.end);
-      const minX = Math.min(a.x, b.x);
-      const maxX = Math.max(a.x, b.x);
-      const minY = Math.min(a.y, b.y);
-      const maxY = Math.max(a.y, b.y);
+      const [minLeft, maxLeft] = [selectionRect.start.left, selectionRect.end.left].sort(
+        (a, b) => a - b,
+      );
+      const [minTop, maxTop] = [selectionRect.start.top, selectionRect.end.top].sort(
+        (a, b) => a - b,
+      );
+      const min = {
+        x: Math.floor(minLeft / STAGE_CELL_SIZE / scale),
+        y: Math.floor(minTop / STAGE_CELL_SIZE / scale),
+      };
+      const max = {
+        x: Math.floor(maxLeft / STAGE_CELL_SIZE / scale),
+        y: Math.floor(maxTop / STAGE_CELL_SIZE / scale),
+      };
       for (const actor of Object.values(stage.actors)) {
         if (
-          actor.position.x >= minX &&
-          actor.position.x <= maxX &&
-          actor.position.y >= minY &&
-          actor.position.y <= maxY
+          actor.position.x >= min.x &&
+          actor.position.x <= max.x &&
+          actor.position.y >= min.y &&
+          actor.position.y <= max.y
         ) {
           selectedActors.push(actor);
         }
       }
-      if (selectedActors.length === 1) {
-        onSelectActor(selectedActors[0]);
-      }
+      const characterId =
+        selectedActors.length &&
+        selectedActors.every((a) => a.characterId === selectedActors[0].characterId)
+          ? selectedActors[0].characterId
+          : null;
+      dispatch(select(characterId, selFor(selectedActors.map((a) => a.id))));
       setSelectionRect(null);
     }
     if (!event.shiftKey) {
@@ -533,7 +593,7 @@ export const Stage = ({
 
   const onSelectActor = (actor: Actor) => {
     if (selectedToolId === TOOLS.POINTER) {
-      dispatch(select(actor.characterId, actorPath(actor.id)));
+      dispatch(select(actor.characterId, selFor([actor.id])));
     }
   };
 
@@ -593,15 +653,6 @@ export const Stage = ({
     );
   }
 
-  let selected = null;
-  if (
-    selectedActorPath.worldId === world.id &&
-    selectedActorPath.stageId === stage.id &&
-    selectedActorPath.actorId
-  ) {
-    selected = stage.actors[selectedActorPath.actorId];
-  }
-
   const backgroundValue =
     typeof stage.background === "string"
       ? stage.background.includes("/Layer0_2.png")
@@ -613,6 +664,42 @@ export const Stage = ({
   const backgroundCSS = `url('/src/editor/img/board-grid.png') top left / 40px,
     linear-gradient(rgba(255,255,255,0.5), rgba(255,255,255,0.5)),
     ${backgroundValue}${backgroundValue?.includes("url(") ? " 50% 50% / cover" : ""}`;
+
+  const renderActor = (actor: Actor) => {
+    const character = characters[actor.characterId];
+
+    // Prevent animating when an actor wraps off one end of the stage to the other
+    // by assigning it a new react key.
+    const lastPosition = lastActorPositions.current[actor.id] || {
+      x: Number.NaN,
+      y: Number.NaN,
+    };
+    const didWrap =
+      Math.abs(lastPosition.x - actor.position.x) > 6 ||
+      Math.abs(lastPosition.y - actor.position.y) > 6;
+    lastActorPositions.current[actor.id] = Object.assign({}, actor.position);
+
+    const draggable = !readonly && !DRAGGABLE_TOOLS.includes(selectedToolId);
+
+    return (
+      <ActorSprite
+        key={`${actor.id}-${didWrap}`}
+        selected={selected.includes(actor)}
+        onMouseUp={(event) => onMouseUpActor(actor, event)}
+        onDoubleClick={() => onSelectActor(actor)}
+        transitionDuration={playback.speed / (actor.frameCount || 1)}
+        character={character}
+        actor={actor}
+        dragActorIds={
+          draggable
+            ? selected.includes(actor)
+              ? selected.map((a) => a.id)
+              : [actor.id]
+            : undefined
+        }
+      />
+    );
+  };
 
   return (
     <div
@@ -651,31 +738,9 @@ export const Stage = ({
             filter: "brightness(1) saturate(0.8)",
           }}
         />
-        {Object.values(stage.actors).map((actor) => {
-          const character = characters[actor.characterId];
 
-          const lastPosition = lastActorPositions.current[actor.id] || {
-            x: Number.NaN,
-            y: Number.NaN,
-          };
-          const didWrap =
-            Math.abs(lastPosition.x - actor.position.x) > 6 ||
-            Math.abs(lastPosition.y - actor.position.y) > 6;
-          lastActorPositions.current[actor.id] = Object.assign({}, actor.position);
+        {Object.values(stage.actors).map(renderActor)}
 
-          return (
-            <ActorSprite
-              draggable={!readonly && !DRAGGABLE_TOOLS.includes(selectedToolId)}
-              key={`${actor.id}-${didWrap}`}
-              selected={actor === selected}
-              onMouseUp={(event) => onMouseUpActor(actor, event)}
-              onDoubleClick={() => onSelectActor(actor)}
-              transitionDuration={playback.speed / (actor.frameCount || 1)}
-              character={character}
-              actor={actor}
-            />
-          );
-        })}
         {recordingExtent ? renderRecordingExtent() : []}
         {selectionRect ? (
           <div

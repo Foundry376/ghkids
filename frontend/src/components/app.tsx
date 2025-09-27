@@ -113,6 +113,7 @@ const App = () => {
               <code>{`${errorData.error}`}</code>
             </h2>
             <pre>
+              <code>{`${errorData.error && typeof errorData.error === "object" && "stack" in errorData.error ? errorData.error.stack : null}`}</code>
               <code>{errorData.componentStack}</code>
             </pre>
           </div>

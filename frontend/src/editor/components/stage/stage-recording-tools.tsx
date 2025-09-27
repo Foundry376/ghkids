@@ -7,9 +7,7 @@ import { pickConditionValueFromKeyboard, selectToolId } from "../../actions/ui-a
 import { TOOLS } from "../../constants/constants";
 
 const StageRecordingTools = () => {
-  const selectedToolId = useSelector<EditorState, EditorState["ui"]["selectedToolId"]>(
-    (sel) => sel.ui.selectedToolId,
-  );
+  const selectedToolId = useSelector<EditorState, TOOLS>((state) => state.ui.selectedToolId);
   const dispatch = useDispatch();
 
   return (

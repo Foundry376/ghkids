@@ -5,5 +5,4 @@ export const InspectorContext = React.createContext<{
   world: WorldMinimal;
   characters: Characters;
   evaluatedRuleIdsForActor: EvaluatedRuleIds[""];
-  selectedToolId: string;
 }>(new Error() as never);

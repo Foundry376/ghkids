@@ -69,9 +69,9 @@ function recordingReducer(
     action.worldId &&
     action.worldId === state.afterWorld.id
   ) {
-    const recordingAction = buildActionFromStageActions(state, action);
-    if (recordingAction) {
-      nextState.actions = [...nextState.actions, recordingAction];
+    const recordingActions = buildActionsFromStageActions(state, action);
+    if (recordingActions) {
+      nextState.actions = [...nextState.actions, ...recordingActions];
     }
   }
 
@@ -200,78 +200,85 @@ function recordingReducer(
   }
 }
 
-function buildActionFromStageActions(
+function buildActionsFromStageActions(
   { actorId, beforeWorld, afterWorld }: RecordingState,
   action: Actions,
-): RuleAction | null {
+): RuleAction[] | null {
   const mainActorBeforePosition = getCurrentStageForWorld(beforeWorld)!.actors[actorId!].position;
 
   switch (action.type) {
-    case Types.UPSERT_ACTOR: {
-      const existing = afterWorld && getCurrentStageForWorld(afterWorld)?.actors[action.actorId];
-      if (!existing) {
-        return {
-          type: "create",
-          actor: action.values as Actor,
-          actorId: action.actorId,
-          offset: {
-            x: action.values.position!.x! - mainActorBeforePosition.x,
-            y: action.values.position!.y! - mainActorBeforePosition.y,
-          },
-        };
-      }
-      if ("position" in action.values) {
-        const pos = action.values.position!;
-        if (pos.x === existing.position.x && pos.y === existing.position.y) {
-          return null;
-        }
-        return {
-          type: "move",
-          actorId: action.actorId,
-          offset: { x: pos.x! - mainActorBeforePosition.x, y: pos.y! - mainActorBeforePosition.y },
-        };
-      }
-      if ("variableValues" in action.values) {
-        const [key, value] = Object.entries(action.values.variableValues || {})[0];
-        if (existing.variableValues[key] === value) {
-          return null;
-        }
-        return {
-          type: "variable",
-          actorId: action.actorId,
-          operation: "set",
-          variable: key,
-          value: { constant: value! },
-        };
-      }
+    case Types.UPSERT_ACTORS: {
+      return action.upserts
+        .map(({ id: actorId, values }): RuleAction | null => {
+          const existing = afterWorld && getCurrentStageForWorld(afterWorld)?.actors[actorId];
+          if (!existing) {
+            return {
+              type: "create",
+              actor: values as Actor,
+              actorId: actorId,
+              offset: {
+                x: values.position!.x! - mainActorBeforePosition.x,
+                y: values.position!.y! - mainActorBeforePosition.y,
+              },
+            };
+          }
+          if ("position" in values) {
+            const pos = values.position!;
+            if (pos.x === existing.position.x && pos.y === existing.position.y) {
+              return null;
+            }
+            return {
+              type: "move",
+              actorId: actorId,
+              offset: {
+                x: pos.x! - mainActorBeforePosition.x,
+                y: pos.y! - mainActorBeforePosition.y,
+              },
+            };
+          }
+          if ("variableValues" in values) {
+            const [key, value] = Object.entries(values.variableValues || {})[0];
+            if (existing.variableValues[key] === value) {
+              return null;
+            }
+            return {
+              type: "variable",
+              actorId: actorId,
+              operation: "set",
+              variable: key,
+              value: { constant: value! },
+            };
+          }
 
-      if ("transform" in action.values) {
-        if (existing.transform === action.values.transform) {
+          if ("transform" in values) {
+            if (existing.transform === values.transform) {
+              return null;
+            }
+            return {
+              type: "transform",
+              actorId: actorId,
+              value: { constant: values.transform! },
+            };
+          }
+          if ("appearance" in values) {
+            if (existing.appearance === values.appearance) {
+              return null;
+            }
+            return {
+              type: "appearance",
+              actorId: actorId,
+              value: { constant: values.appearance! },
+            };
+          }
           return null;
-        }
-        return {
-          type: "transform",
-          actorId: action.actorId,
-          value: { constant: action.values.transform! },
-        };
-      }
-      if ("appearance" in action.values) {
-        if (existing.appearance === action.values.appearance) {
-          return null;
-        }
-        return {
-          type: "appearance",
-          actorId: action.actorId,
-          value: { constant: action.values.appearance! },
-        };
-      }
-      return null;
+        })
+        .filter((a): a is RuleAction => !!a);
     }
-    case Types.DELETE_ACTOR: {
-      return {
+    case Types.DELETE_ACTORS: {
+      return action.actorIds.map((actorId) => ({
         type: "delete",
-        actorId: action.actorId,
-      };
+        actorId,
+      }));
     }
     default:
       return null;

@@ -1,6 +1,6 @@
 import Toolbar from "./components/toolbar";
 
-import InspectorContainer from "./components/inspector/container";
+import { InspectorContainer } from "./components/inspector/container";
 import StageContainer from "./components/stage/container";
 import TutorialContainer from "./components/tutorial/container";
 

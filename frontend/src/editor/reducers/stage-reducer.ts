@@ -10,18 +10,17 @@ export default function stageReducer(state: Stage, action: Actions) {
   }
 
   switch (action.type) {
-    case Types.UPSERT_ACTOR: {
-      return u(
-        {
-          actors: u.updateIn(action.actorId, action.values),
-        },
-        state,
-      );
+    case Types.UPSERT_ACTORS: {
+      let next = state;
+      for (const { id, values } of action.upserts) {
+        next = u({ actors: u.updateIn(id, values) }, next) as Stage;
+      }
+      return next;
     }
-    case Types.DELETE_ACTOR: {
+    case Types.DELETE_ACTORS: {
       return u(
         {
-          actors: u.omit(action.actorId),
+          actors: u.omit(action.actorIds),
         },
         state,
       );

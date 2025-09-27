@@ -9870,11 +9870,7 @@
     "ui": {
       "selectedToolId": "pointer",
       "selectedCharacterId": "1489789590410",
-      "selectedActorPath": {
-        "worldId": "root",
-        "stageId": "5233a60cfd685f755e000002",
-        "actorId": "1490425459949"
-      },
+      "selectedActors": null,
       "tutorial": {
         "stepIndex": 0
       },

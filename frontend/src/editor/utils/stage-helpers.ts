@@ -13,12 +13,8 @@ import {
 } from "../../types";
 import { DEFAULT_APPEARANCE_INFO } from "../components/sprites/sprite";
 
-export function buildActorPath(worldId: string, stageId: string, actorId: string) {
-  return { worldId, stageId, actorId };
-}
-
-export function nullActorPath() {
-  return { worldId: null, stageId: null, actorId: null };
+export function buildActorSelection(worldId: string, stageId: string, actorIds: string[]) {
+  return { worldId, stageId, actorIds };
 }
 
 export function applyAnchorAdjustment(

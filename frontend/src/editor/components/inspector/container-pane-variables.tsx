@@ -1,20 +1,26 @@
-import React, { useContext, useState } from "react";
+import React, { useState } from "react";
 
 import ButtonDropdown from "reactstrap/lib/ButtonDropdown";
 import DropdownItem from "reactstrap/lib/DropdownItem";
 import DropdownMenu from "reactstrap/lib/DropdownMenu";
 import DropdownToggle from "reactstrap/lib/DropdownToggle";
 
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { DeepPartial } from "redux";
-import { Actor, ActorPath, Character, Global, WorldMinimal } from "../../../types";
+import {
+  Actor,
+  ActorSelection,
+  Character,
+  EditorState,
+  Global,
+  WorldMinimal,
+} from "../../../types";
 import { deleteCharacterVariable, upsertCharacter } from "../../actions/characters-actions";
-import { changeActor } from "../../actions/stage-actions";
+import { changeActors } from "../../actions/stage-actions";
 import { selectToolId } from "../../actions/ui-actions";
 import { deleteGlobal, upsertGlobal } from "../../actions/world-actions";
 import { TOOLS } from "../../constants/constants";
 import Sprite from "../sprites/sprite";
-import { InspectorContext } from "./inspector-context";
 import { TransformImages, TransformLabels } from "./transform-images";
 import { VariableGridItem } from "./variable-grid-item";
 
@@ -123,15 +129,16 @@ export const ContainerPaneVariables = ({
   character,
   actor,
   world,
-  selectedActorPath,
 }: {
   character: Character;
   actor: Actor | null;
   world: WorldMinimal;
-  selectedActorPath: ActorPath;
 }) => {
   const dispatch = useDispatch();
-  const { selectedToolId } = useContext(InspectorContext);
+  const selectedToolId = useSelector<EditorState, TOOLS>((state) => state.ui.selectedToolId);
+  const selectedActors = useSelector<EditorState, ActorSelection | null>(
+    (state) => state.ui.selectedActors,
+  );
 
   // Chararacter and actor variables
 
@@ -155,12 +162,12 @@ export const ContainerPaneVariables = ({
   };
 
   const _onChangeVarValue = (id: string, value: string | undefined) => {
-    if (!selectedActorPath.actorId) {
+    if (!selectedActors) {
       _onChangeVarDefinition(id, { defaultValue: value });
       return;
     }
     dispatch(
-      changeActor(selectedActorPath, {
+      changeActors(selectedActors, {
         variableValues: {
           [id]: value,
         },
@@ -194,7 +201,7 @@ export const ContainerPaneVariables = ({
             value={actor.appearance}
             spritesheet={character.spritesheet}
             onChange={(appearance) => {
-              dispatch(changeActor(selectedActorPath, { appearance }));
+              dispatch(changeActors(selectedActors!, { appearance }));
             }}
           />
         )}
@@ -203,7 +210,7 @@ export const ContainerPaneVariables = ({
             value={actor.transform}
             actorId={actor.id}
             onChange={(value) => {
-              dispatch(changeActor(selectedActorPath, { transform: value }));
+              dispatch(changeActors(selectedActors!, { transform: value }));
             }}
           />
         )}

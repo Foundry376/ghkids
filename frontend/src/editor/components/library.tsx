@@ -9,7 +9,6 @@ import DropdownMenu from "reactstrap/lib/DropdownMenu";
 import DropdownToggle from "reactstrap/lib/DropdownToggle";
 
 import { MODALS, TOOLS } from "../constants/constants";
-import { nullActorPath } from "../utils/stage-helpers";
 
 import {
   changeCharacterAppearanceName,
@@ -152,10 +151,10 @@ export const Library: React.FC = () => {
         dispatch(setupRecordingForCharacter({ characterId }));
         dispatch(selectToolId(TOOLS.POINTER));
       } else {
-        dispatch(select(characterId, nullActorPath()));
+        dispatch(select(characterId, null));
       }
     },
-    [ui.selectedToolId, characters, dispatch],
+    [ui.selectedToolId, recordingActorId, dispatch, characters],
   );
 
   const onClickAppearance = useCallback(
@@ -221,7 +220,7 @@ export const Library: React.FC = () => {
             onChangeLabel={(name) => dispatch(upsertCharacter(id, { name }))}
             onClick={(event) => onClickCharacter(event, id)}
             selected={id === ui.selectedCharacterId}
-            outlined={id === ui.selectedCharacterId && !ui.selectedActorPath.actorId}
+            outlined={id === ui.selectedCharacterId && !ui.selectedActors}
           />
         ))}
       </div>

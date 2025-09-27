@@ -174,10 +174,10 @@ export type EditorState = {
   ui: {
     selectedToolId: "pointer";
     selectedCharacterId: "aamlcui8uxr";
-    selectedActorPath: {
+    selectedActors: {
       worldId: "root";
       stageId: "root";
-      actorId: "1483668698770";
+      actorIds: ["1483668698770"];
     };
     tutorial: {
       stepIndex: 0;

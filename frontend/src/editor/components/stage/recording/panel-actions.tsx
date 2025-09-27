@@ -17,7 +17,7 @@ import { VariableActionPicker } from "./variable-action-picker";
 export const RecordingActions = (props: { characters: Characters; recording: RecordingState }) => {
   const { characters, recording } = props;
   const { beforeWorld, actions, extent } = recording;
-  const selectedToolId = useSelector<EditorState>((state) => state.ui.selectedToolId);
+  const selectedToolId = useSelector<EditorState, TOOLS>((state) => state.ui.selectedToolId);
   const dispatch = useDispatch();
 
   const beforeStage = getCurrentStageForWorld(beforeWorld);

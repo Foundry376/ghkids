@@ -1,6 +1,5 @@
 import { EditorState, World } from "../../types";
 import { RECORDING_PHASE, TOOLS, WORLDS } from "../constants/constants";
-import { nullActorPath } from "../utils/stage-helpers";
 import stage from "./initial-state-stage";
 
 const InitialWorld: World = {
@@ -50,7 +49,7 @@ const InitialState: EditorState = {
     selectedToolId: TOOLS.POINTER,
     stampToolItem: null,
     selectedCharacterId: null,
-    selectedActorPath: nullActorPath(),
+    selectedActors: null,
     tutorial: {
       stepIndex: 0,
     },

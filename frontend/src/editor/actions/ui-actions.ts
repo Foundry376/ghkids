@@ -1,6 +1,6 @@
 import { DeepPartial, Dispatch } from "redux";
 import { Actions } from ".";
-import { ActorPath, EditorState } from "../../types";
+import { ActorSelection, EditorState } from "../../types";
 import * as types from "../constants/action-types";
 
 export function selectToolId(toolId: string): ActionSelectToolId {
@@ -24,11 +24,14 @@ export function selectStageId(worldId: string, stageId: string): ActionSelectSta
   };
 }
 
-export function select(characterId: string, actorPath: ActorPath): ActionSelectDefinitionId {
+export function select(
+  characterId: string | null,
+  actors: ActorSelection | null,
+): ActionSelectDefinitionId {
   return {
     type: types.SELECT_DEFINITION_ID,
     characterId,
-    actorPath,
+    actors,
   };
 }
 
@@ -119,8 +122,8 @@ export type ActionSelectStageId = {
 
 export type ActionSelectDefinitionId = {
   type: "SELECT_DEFINITION_ID";
-  characterId: string;
-  actorPath: ActorPath;
+  characterId: string | null;
+  actors: ActorSelection | null;
 };
 
 export type ActionUpdatePlaybackState = {

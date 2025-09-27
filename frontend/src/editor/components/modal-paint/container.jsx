@@ -867,20 +867,25 @@ class Container extends React.Component {
 }
 
 function mapStateToProps(state) {
-  const { selectedActorPath } = state.ui;
+  const { selectedActors } = state.ui;
+
   let currentActor = null;
 
-  if (selectedActorPath.worldId && selectedActorPath.stageId && selectedActorPath.actorId) {
-    const stage = state.world.stages[selectedActorPath.stageId];
-    if (stage && stage.actors[selectedActorPath.actorId]) {
-      currentActor = stage.actors[selectedActorPath.actorId];
+  if (
+    selectedActors &&
+    selectedActors.worldId &&
+    selectedActors.stageId &&
+    selectedActors.actorIds.length === 1
+  ) {
+    const stage = state.world.stages[selectedActors.stageId];
+    if (stage && stage.actors[selectedActors.actorIds[0]]) {
+      currentActor = stage.actors[selectedActors.actorIds[0]];
     }
   }
 
   return Object.assign({}, state.ui.paint, {
     characters: state.characters,
     currentActor: currentActor,
-    selectedActorPath: selectedActorPath,
   });
 }
 

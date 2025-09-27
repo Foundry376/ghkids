@@ -53,8 +53,8 @@ export default function worldReducer(
       const { characters } = entireState;
       return WorldOperator(state, characters).untick();
     }
-    case Types.UPSERT_ACTOR:
-    case Types.DELETE_ACTOR:
+    case Types.UPSERT_ACTORS:
+    case Types.DELETE_ACTORS:
     case Types.DELETE_CHARACTER:
     case Types.RESTORE_INITIAL_GAME_STATE:
       return u(

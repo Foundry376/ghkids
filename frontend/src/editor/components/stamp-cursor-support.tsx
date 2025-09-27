@@ -32,8 +32,8 @@ export const StampCursorSupport = () => {
         customCursorImage = spritesheet.appearances[appearanceId][0];
         customCursorTransform = "0";
       }
-    } else if ("actorId" in stampToolItem && stampToolItem.actorId) {
-      const actor = stage?.actors[stampToolItem.actorId];
+    } else if ("actorIds" in stampToolItem && stampToolItem.actorIds) {
+      const actor = stage?.actors[stampToolItem.actorIds[0]];
       const spritesheet = actor && characters[actor.characterId]?.spritesheet;
       customCursorImage = actor && spritesheet && spritesheet.appearances[actor.appearance][0];
       customCursorTransform = actor?.transform ?? "0";
