@@ -61,6 +61,7 @@ interface StageProps {
 
 type Offset = { top: string | number; left: string | number };
 type MouseStatus = { isDown: boolean; visited: { [posKey: string]: true } };
+type SelectionRect = { start: { top: number; left: number }; end: { top: number; left: number } };
 
 const DRAGGABLE_TOOLS = [TOOLS.IGNORE_SQUARE, TOOLS.TRASH, TOOLS.STAMP];
 
@@ -78,6 +79,8 @@ export const Stage = ({
   const [scale, setScale] = useState(
     stage.scale && typeof stage.scale === "number" ? stage.scale : 1,
   );
+
+  const [selectionRect, setSelectionRect] = useState<SelectionRect | null>(null);
 
   const lastFiredExtent = useRef<string | null>(null);
   const lastActorPositions = useRef<{ [actorId: string]: Position }>({});
@@ -248,21 +251,27 @@ export const Stage = ({
     dispatch(setRecordingExtent(nextExtent));
   };
 
-  const getPositionForEvent = (event: React.MouseEvent | React.DragEvent) => {
+  const getPxOffsetForEvent = (event: MouseEvent | React.MouseEvent | React.DragEvent) => {
     const stageOffset = el.current!.getBoundingClientRect();
+    return { left: event.clientX - stageOffset.left, top: event.clientY - stageOffset.top };
+  };
+
+  const getPositionForPxOffset = ({ left, top }: { left: number; top: number }) => {
+    return {
+      x: Math.round(left / STAGE_CELL_SIZE / scale),
+      y: Math.round(top / STAGE_CELL_SIZE / scale),
+    };
+  };
+  const getPositionForEvent = (event: MouseEvent | React.MouseEvent | React.DragEvent) => {
     const dragOffset =
       "dataTransfer" in event && event.dataTransfer && event.dataTransfer.getData("drag-offset");
 
     // subtracting half when no offset is present is a lazy way of doing Math.floor instead of Math.round!
-    const halfOffset = {
-      dragTop: STAGE_CELL_SIZE / 2,
-      dragLeft: STAGE_CELL_SIZE / 2,
-    };
+    const halfOffset = { dragTop: STAGE_CELL_SIZE / 2, dragLeft: STAGE_CELL_SIZE / 2 };
     const { dragLeft, dragTop } = dragOffset ? JSON.parse(dragOffset) : halfOffset;
-    return {
-      x: Math.round((event.clientX - dragLeft - stageOffset.left) / STAGE_CELL_SIZE / scale),
-      y: Math.round((event.clientY - dragTop - stageOffset.top) / STAGE_CELL_SIZE / scale),
-    };
+
+    const px = getPxOffsetForEvent(event);
+    return getPositionForPxOffset({ left: px.left - dragLeft, top: px.top - dragTop });
   };
 
   const onDropAppearance = (event: React.DragEvent) => {
@@ -417,20 +426,45 @@ export const Stage = ({
     }
   };
 
-  const onMouseDown = () => {
-    const onEnd = () => {
-      document.removeEventListener("mouseup", onEnd);
-      mouse.current = { isDown: false, visited: {} };
+  const onMouseDown = (event: React.MouseEvent) => {
+    const onMouseUpAnywhere = (e: MouseEvent) => {
+      document.removeEventListener("mouseup", onMouseUpAnywhere);
+      document.removeEventListener("mousemove", onMouseMoveAnywhere);
+      onMouseUp.current?.(e);
     };
-    document.addEventListener("mouseup", onEnd);
+    const onMouseMoveAnywhere = (e: MouseEvent) => {
+      onMouseMove.current?.(e);
+    };
+    document.addEventListener("mouseup", onMouseUpAnywhere);
+    document.addEventListener("mousemove", onMouseMoveAnywhere);
     mouse.current = { isDown: true, visited: {} };
+
+    const isClickOnBackground = event.target === event.currentTarget;
+    if (selectedToolId === TOOLS.POINTER && isClickOnBackground) {
+      setSelectionRect({ start: getPxOffsetForEvent(event), end: getPxOffsetForEvent(event) });
+    } else {
+      setSelectionRect(null);
+    }
   };
 
-  const onMouseMove = (event: React.MouseEvent) => {
+  // Note: In this handler, the mouse cursor may be outside the stage
+  const onMouseMove = useRef<(event: MouseEvent) => void>();
+  onMouseMove.current = (event: MouseEvent) => {
     if (!mouse.current.isDown) {
       return;
     }
+
+    // If we are dragging to select a region, update the region.
+    // Otherwise, process this event as a tool stroke.
+    if (selectionRect) {
+      setSelectionRect({ ...selectionRect, end: getPxOffsetForEvent(event) });
+      return;
+    }
+
     const { x, y } = getPositionForEvent(event);
+    if (!(x >= 0 && x < stage.width && y >= 0 && y < stage.height)) {
+      return;
+    }
     const posKey = `${x},${y}`;
     if (mouse.current.visited[posKey]) {
       return;
@@ -453,8 +487,36 @@ export const Stage = ({
     }
   };
 
-  const onMouseUp = (event: React.MouseEvent) => {
-    onMouseMove(event);
+  // Note: In this handler, the mouse cursor may be outside the stage
+  const onMouseUp = useRef<(event: MouseEvent) => void>();
+  onMouseUp.current = (event: MouseEvent) => {
+    mouse.current = { isDown: false, visited: {} };
+
+    onMouseMove.current?.(event);
+
+    if (selectionRect) {
+      const selectedActors: Actor[] = [];
+      const a = getPositionForPxOffset(selectionRect.start);
+      const b = getPositionForPxOffset(selectionRect.end);
+      const minX = Math.min(a.x, b.x);
+      const maxX = Math.max(a.x, b.x);
+      const minY = Math.min(a.y, b.y);
+      const maxY = Math.max(a.y, b.y);
+      for (const actor of Object.values(stage.actors)) {
+        if (
+          actor.position.x >= minX &&
+          actor.position.x <= maxX &&
+          actor.position.y >= minY &&
+          actor.position.y <= maxY
+        ) {
+          selectedActors.push(actor);
+        }
+      }
+      if (selectedActors.length === 1) {
+        onSelectActor(selectedActors[0]);
+      }
+      setSelectionRect(null);
+    }
     if (!event.shiftKey) {
       if (TOOLS.TRASH === selectedToolId || TOOLS.STAMP === selectedToolId) {
         dispatch(selectToolId(TOOLS.POINTER));
@@ -576,8 +638,6 @@ export const Stage = ({
         onBlur={onBlur}
         onContextMenu={onRightClickStage}
         onMouseDown={onMouseDown}
-        onMouseMove={onMouseMove}
-        onMouseUp={onMouseUp}
         tabIndex={0}
       >
         <div
@@ -587,6 +647,7 @@ export const Stage = ({
             width: stage.width * STAGE_CELL_SIZE,
             height: stage.height * STAGE_CELL_SIZE,
             background: backgroundCSS,
+            pointerEvents: "none",
             filter: "brightness(1) saturate(0.8)",
           }}
         />
@@ -616,6 +677,22 @@ export const Stage = ({
           );
         })}
         {recordingExtent ? renderRecordingExtent() : []}
+        {selectionRect ? (
+          <div
+            className="stage-selection-box"
+            style={{
+              position: "absolute",
+              left: Math.min(selectionRect.start.left, selectionRect.end.left),
+              top: Math.min(selectionRect.start.top, selectionRect.end.top),
+              width:
+                Math.max(selectionRect.start.left, selectionRect.end.left) -
+                Math.min(selectionRect.start.left, selectionRect.end.left),
+              height:
+                Math.max(selectionRect.start.top, selectionRect.end.top) -
+                Math.min(selectionRect.start.top, selectionRect.end.top),
+            }}
+          />
+        ) : null}
       </div>
     </div>
   );

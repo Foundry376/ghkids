@@ -289,6 +289,11 @@ html {
           top 400ms ease-out,
           left 400ms ease-out;
       }
+      .stage-selection-box {
+        background: rgba(0, 0, 0, 0.1);
+        border: 2px dashed rgba(0, 0, 0, 0.3);
+        outline: 2px solid rgba(255, 255, 255, 0.3);
+      }
     }
 
     .actions {
