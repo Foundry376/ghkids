@@ -11,16 +11,6 @@ $create-account-notice-color: #e6dac1;
 
 @use "sass:color";
 
-@mixin cursor($name) {
-  cursor:
-    url(../img/cursor_#{$name}.cur) 0 0,
-    auto;
-  // cursor:
-  //   -webkit-image-set(url(../img/cursor_#{$name}.cur) 2x) 0 0,
-  //   url(../img/cursor_#{$name}.cur) 0 0,
-  //   auto;
-}
-
 /*
 ::-webkit-scrollbar {
   width: 10px;
@@ -46,26 +36,10 @@ html {
   -webkit-touch-callout: none; // prevent tap-to-enlarge sprite image
 }
 
-.tool-trash {
-  @include cursor("trashcan");
-}
-.tool-paint {
-  @include cursor("paint");
-}
-.tool-record {
-  @include cursor("rule");
-}
-.tool-ignore-square {
-  @include cursor("ignored_square");
-}
-.tool-stamp {
-  @include cursor("stamp");
-}
-.tool-add-click-condition {
-  @include cursor("add_click_condition");
-}
-.tool-pointer {
-  cursor: default;
+.editor:not(.tool-pointer) .tool-supported {
+  // These cursors are rendered manually so we can center them and draw them large.
+  // The code is in cursor-support.ts
+  cursor: none;
 }
 
 .sprite {
@@ -782,7 +756,6 @@ html {
       }
     }
     .variable-box input:hover {
-      @include cursor("trashcan");
     }
   }
 }

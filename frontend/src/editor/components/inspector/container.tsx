@@ -61,7 +61,7 @@ export const InspectorContainer = () => {
           : {},
       }}
     >
-      <div className={`panel inspector-panel-container tool-${ui.selectedToolId}`}>
+      <div className={`panel inspector-panel-container tool-supported`}>
         <Nav tabs>
           <NavItem>
             <NavLink

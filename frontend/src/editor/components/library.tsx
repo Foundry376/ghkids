@@ -282,7 +282,7 @@ export const Library: React.FC = () => {
   }, [characterDropdownOpen]);
 
   return (
-    <div className={`library-container tool-${ui.selectedToolId}`}>
+    <div className={`library-container tool-supported`}>
       <div className="panel library" data-tutorial-id="characters">
         <div className="header">
           <h2>Library</h2>

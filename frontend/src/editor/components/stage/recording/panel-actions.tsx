@@ -251,7 +251,7 @@ export const RecordingActions = (props: { characters: Characters; recording: Rec
           return (
             <li
               key={idx}
-              className={`tool-${selectedToolId}`}
+              className={`tool-supported`}
               onClick={(e) => {
                 if (selectedToolId === TOOLS.TRASH) {
                   onRemoveAction(a);

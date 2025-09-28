@@ -54,7 +54,14 @@ const StageContainer = ({ readonly }: { readonly?: boolean }) => {
       }
       actions = (
         <div className="recording-specifics">
-          <div style={{ position: "absolute", transform: "translate(0, -100%)", paddingBottom: 5 }}>
+          <div
+            style={{
+              position: "absolute",
+              zIndex: 2,
+              transform: "translate(0, -100%)",
+              paddingBottom: 5,
+            }}
+          >
             <StageRecordingTools />
           </div>
           <RecordingConditions characters={characters} recording={recording} />

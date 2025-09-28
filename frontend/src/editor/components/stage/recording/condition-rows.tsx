@@ -82,7 +82,7 @@ export const FreeformConditionRow = ({
   };
 
   return (
-    <li className={`enabled-true tool-${selectedToolId}`} onClick={onToolClick}>
+    <li className={`enabled-true tool-supported`} onClick={onToolClick}>
       <FreeformConditionValue
         conditionId={condition.key}
         value={left}
@@ -308,7 +308,7 @@ export const FreeformConditionValue = ({
       tabIndex={0}
       onKeyDown={onKeyDown}
       onClick={onToolClick}
-      className={`right tool-${selectedToolId} dropping-${droppingValue}`}
+      className={`right tool-supported dropping-${droppingValue}`}
       title="Drop a variable or appearance here to create an expression linking two variables."
       onDragOver={(e) => {
         if (e.dataTransfer.types.includes(`variable`)) {

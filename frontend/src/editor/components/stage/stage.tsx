@@ -405,7 +405,6 @@ export const Stage = ({
 
   const onStampAtPosition = (position: Position) => {
     const item = stampToolItem;
-
     if (item && "actorIds" in item && item.actorIds) {
       const ids = { actorIds: item.actorIds, dragAnchorActorId: item.actorIds[0] };
       onDropActorsAtPosition(ids, position, "stamp-copy");
@@ -471,6 +470,7 @@ export const Stage = ({
     // If we didn't handle the event, let it bubble up to the stage onClick handler
 
     if (handled) {
+      event.preventDefault();
       event.stopPropagation();
     }
   };
@@ -539,9 +539,9 @@ export const Stage = ({
   // Note: In this handler, the mouse cursor may be outside the stage
   const onMouseUp = useRef<(event: MouseEvent) => void>();
   onMouseUp.current = (event: MouseEvent) => {
-    mouse.current = { isDown: false, visited: {} };
-
     onMouseMove.current?.(event);
+
+    mouse.current = { isDown: false, visited: {} };
 
     if (selectionRect) {
       const selectedActors: Actor[] = [];
@@ -577,7 +577,7 @@ export const Stage = ({
       dispatch(select(characterId, selFor(selectedActors.map((a) => a.id))));
       setSelectionRect(null);
     }
-    if (!event.shiftKey) {
+    if (!event.shiftKey && !event.defaultPrevented) {
       if (TOOLS.TRASH === selectedToolId || TOOLS.STAMP === selectedToolId) {
         dispatch(selectToolId(TOOLS.POINTER));
       }
@@ -706,7 +706,7 @@ export const Stage = ({
       style={style}
       ref={(e) => (scrollEl.current = e)}
       data-stage-wrap-id={world.id}
-      className={`stage-scroll-wrap tool-${selectedToolId} running-${playback.running}`}
+      className={`stage-scroll-wrap tool-supported running-${playback.running}`}
     >
       <div
         ref={(e) => (el.current = e)}

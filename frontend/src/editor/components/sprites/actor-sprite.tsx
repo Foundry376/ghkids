@@ -145,7 +145,7 @@ const ActorSprite = (props: {
         src={data}
         className={`sprite ${selected ? "outlined" : ""}`}
         style={{
-          transform: SPRITE_TRANSFORM_CSS[actor.transform ?? "none"],
+          transform: SPRITE_TRANSFORM_CSS[actor.transform ?? "0"],
           transformOrigin: `${((info.anchor.x + 0.5) / info.width) * 100}% ${((info.anchor.y + 0.5) / info.height) * 100}%`,
           pointerEvents: "auto",
         }}
