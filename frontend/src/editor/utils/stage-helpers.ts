@@ -85,7 +85,7 @@ export function pointApplyingTransform(
     return [height - 1 - y, x];
   }
   if (transform === "270") {
-    return [width - 1 - x, y];
+    return [y, width - 1 - x];
   }
   if (transform === "180") {
     return [width - 1 - x, height - 1 - y];
@@ -95,6 +95,12 @@ export function pointApplyingTransform(
   }
   if (transform === "flip-y") {
     return [x, height - 1 - y];
+  }
+  if (transform === "d1") {
+    return [y, x];
+  }
+  if (transform === "d2") {
+    return [height - 1 - y, width - 1 - x];
   }
   return [x, y];
 }
@@ -243,6 +249,14 @@ export function applyActorTransformToContext(
       context.scale(-1, 1);
       break;
     case "flip-y":
+      context.scale(1, -1);
+      break;
+    case "d1":
+      context.rotate((90 * Math.PI) / 180);
+      context.scale(1, -1);
+      break;
+    case "d2":
+      context.rotate((-90 * Math.PI) / 180);
       context.scale(1, -1);
       break;
     case "0":

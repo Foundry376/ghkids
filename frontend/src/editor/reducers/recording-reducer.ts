@@ -15,7 +15,6 @@ import {
   WorldMinimal,
 } from "../../types";
 import { Actions } from "../actions";
-import { DEFAULT_APPEARANCE_INFO } from "../components/sprites/sprite";
 import {
   getAfterWorldForRecording,
   offsetForEditingRule,
@@ -24,6 +23,7 @@ import { RECORDING_PHASE, WORLDS } from "../constants/constants";
 import { defaultAppearanceId } from "../utils/character-helpers";
 import { extentByShiftingExtent } from "../utils/recording-helpers";
 import { getCurrentStageForWorld } from "../utils/selectors";
+import { actorFilledPoints } from "../utils/stage-helpers";
 import WorldOperator from "../utils/world-operator";
 
 function stateForEditingRule(
@@ -78,9 +78,7 @@ function recordingReducer(
   switch (action.type) {
     case Types.SETUP_RECORDING_FOR_ACTOR: {
       const { actor } = action;
-      const { anchor, width, height } =
-        characters[actor.characterId].spritesheet.appearanceInfo?.[actor.appearance] ||
-        DEFAULT_APPEARANCE_INFO;
+      const filled = actorFilledPoints(actor, characters);
 
       return u(
         {
@@ -101,10 +99,10 @@ function recordingReducer(
           beforeWorld: u.constant(u({ id: WORLDS.BEFORE }, world)),
           afterWorld: u.constant(u({ id: WORLDS.AFTER }, world)),
           extent: u.constant({
-            xmin: actor.position.x - anchor.x,
-            xmax: actor.position.x - anchor.x + width - 1,
-            ymin: actor.position.y - anchor.y,
-            ymax: actor.position.y - anchor.y + height - 1,
+            xmin: Math.min(...filled.map((f) => f.x)),
+            xmax: Math.max(...filled.map((f) => f.x)),
+            ymin: Math.min(...filled.map((f) => f.y)),
+            ymax: Math.max(...filled.map((f) => f.y)),
             ignored: {},
           }),
         },

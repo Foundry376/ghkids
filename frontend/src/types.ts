@@ -79,7 +79,7 @@ export type RuleAction =
       value: RuleValue;
     };
 
-export type ActorTransform = "0" | "flip-x" | "flip-y" | "90" | "180" | "270";
+export type ActorTransform = "0" | "90" | "180" | "270" | "flip-x" | "flip-y" | "d1" | "d2";
 
 export type RuleExtent = {
   xmin: number;

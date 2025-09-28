@@ -6,6 +6,7 @@ import DropdownMenu from "reactstrap/lib/DropdownMenu";
 import DropdownToggle from "reactstrap/lib/DropdownToggle";
 
 import { useDispatch, useSelector } from "react-redux";
+import { Button } from "reactstrap";
 import { DeepPartial } from "redux";
 import {
   Actor,
@@ -21,6 +22,7 @@ import { selectToolId } from "../../actions/ui-actions";
 import { deleteGlobal, upsertGlobal } from "../../actions/world-actions";
 import { TOOLS } from "../../constants/constants";
 import Sprite from "../sprites/sprite";
+import { TransformEditorModal } from "./transform-editor";
 import { TransformImages, TransformLabels } from "./transform-images";
 import { VariableGridItem } from "./variable-grid-item";
 
@@ -78,6 +80,8 @@ export const AppearanceDropdown = ({ spritesheet, value, onChange }: AppeanceDro
 type TransformDropdownProps = {
   value: Actor["transform"];
   onChange: (value: Actor["transform"] | undefined) => void;
+  characterId?: string;
+  appearance?: string;
   displayAsLabel?: boolean;
 };
 
@@ -99,29 +103,35 @@ const TransformGridItem = (props: TransformDropdownProps & { actorId: string }) 
   );
 };
 
-export const TransformDropdown = ({ value, onChange, displayAsLabel }: TransformDropdownProps) => {
+export const TransformDropdown = ({
+  value,
+  characterId,
+  appearance,
+  onChange,
+  displayAsLabel,
+}: TransformDropdownProps) => {
   const [open, setOpen] = useState(false);
+  const transform = value || "0";
 
   return (
-    <ButtonDropdown size="sm" isOpen={open} toggle={() => setOpen(!open)}>
-      <DropdownToggle caret>
-        {(displayAsLabel ? TransformLabels[value || "0"] : TransformImages[value || "0"]) || value}
-      </DropdownToggle>
-      <DropdownMenu className="with-sprites" container="body">
-        {[
-          "0" as const,
-          "90" as const,
-          "270" as const,
-          "180" as const,
-          "flip-x" as const,
-          "flip-y" as const,
-        ].map((option) => (
-          <DropdownItem onClick={() => onChange(option)} key={option}>
-            {TransformImages[option]}
-          </DropdownItem>
-        ))}
-      </DropdownMenu>
-    </ButtonDropdown>
+    <>
+      <Button
+        onClick={() => setOpen(true)}
+        style={{ width: "100%", height: displayAsLabel ? 30 : 46 }}
+      >
+        {displayAsLabel ? TransformLabels[transform] : TransformImages[transform]}
+      </Button>
+      <TransformEditorModal
+        open={open}
+        characterId={characterId}
+        appearance={appearance}
+        value={transform}
+        onChange={(value) => {
+          setOpen(false);
+          onChange(value);
+        }}
+      />
+    </>
   );
 };
 
@@ -209,6 +219,8 @@ export const ContainerPaneVariables = ({
           <TransformGridItem
             value={actor.transform}
             actorId={actor.id}
+            characterId={actor.characterId}
+            appearance={actor.appearance}
             onChange={(value) => {
               dispatch(changeActors(selectedActors!, { transform: value }));
             }}

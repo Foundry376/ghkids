@@ -15,6 +15,8 @@ export const SPRITE_TRANSFORM_CSS: { [key: string]: string } = {
   "270": `rotate(270deg)`,
   "flip-x": `scale(-1, 1)`,
   "flip-y": `scale(1, -1)`,
+  d1: `rotate(90deg) scale(1, -1)`, // reflect over y = x
+  d2: `rotate(-90deg) scale(1, -1)`, // reflect over y = -x
 };
 
 const Sprite = ({

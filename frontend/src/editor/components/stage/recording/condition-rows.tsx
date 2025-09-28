@@ -28,7 +28,7 @@ interface FreeformConditionRowProps {
 }
 
 type ImpliedDatatype =
-  | { type: "transform" }
+  | { type: "transform"; characterId?: string; appearance?: string }
   | { type: "appearance"; character: Character }
   | { type: "key" }
   | { type: "actor" }
@@ -60,7 +60,12 @@ export const FreeformConditionRow = ({
       return { type: globalType } as ImpliedDatatype;
     }
     if (variableIds.includes("transform")) {
-      return { type: "transform" };
+      const actorId = "actorId" in left ? left.actorId : "actorId" in right ? right.actorId : null;
+      return {
+        type: "transform",
+        characterId: actorId ? actors[actorId]?.characterId : undefined,
+        appearance: actorId ? actors[actorId]?.appearance : undefined,
+      };
     }
     if (variableIds.includes("appearance")) {
       const actorId = "actorId" in left ? left.actorId : "actorId" in right ? right.actorId : null;
@@ -192,6 +197,8 @@ export const FreeformConditionValue = ({
           return (
             <TransformDropdown
               value={(value.constant as ActorTransform) ?? ""}
+              appearance={impliedDatatype.appearance}
+              characterId={impliedDatatype.characterId}
               onChange={(e) => onChange?.({ constant: e ?? "" })}
               displayAsLabel
             />

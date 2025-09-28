@@ -661,7 +661,7 @@ export const Stage = ({
       : "";
 
   // linear gradient to blur cover the background image
-  const backgroundCSS = `url('/src/editor/img/board-grid.png') top left / 40px,
+  const backgroundCSS = `url('/src/editor/img/board-grid.png') top left / ${STAGE_CELL_SIZE}px,
     linear-gradient(rgba(255,255,255,0.5), rgba(255,255,255,0.5)),
     ${backgroundValue}${backgroundValue?.includes("url(") ? " 50% 50% / cover" : ""}`;
 

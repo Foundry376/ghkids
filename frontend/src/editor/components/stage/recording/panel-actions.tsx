@@ -134,7 +134,11 @@ export const RecordingActions = (props: { characters: Characters; recording: Rec
               actors={afterStage.actors}
               characters={characters}
               onChange={(value) => onChange({ ...a, value })}
-              impliedDatatype={{ type: "transform" }}
+              impliedDatatype={{
+                type: "transform",
+                characterId: actor.characterId,
+                appearance: actor.appearance,
+              }}
             />
           </>
         );

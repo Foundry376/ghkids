@@ -13,7 +13,7 @@ import { StageImagesLoader } from "./components/stage/stage-images-loader";
 
 import { useSelector } from "react-redux";
 import { EditorState } from "../types";
-import { StampCursorSupport } from "./components/stamp-cursor-support";
+import { StampCursorSupport } from "./components/cursor-support";
 import "./styles/editor.scss";
 
 const RootEditor = () => {
