@@ -3,10 +3,13 @@ import { Actions } from ".";
 import { ActorSelection, EditorState } from "../../types";
 import * as types from "../constants/action-types";
 
-export function selectToolId(toolId: string): ActionSelectToolId {
-  return {
-    type: types.SELECT_TOOL_ID,
-    toolId,
+export function selectToolId(toolId: string) {
+  return (dispatch: Dispatch<Actions>) => {
+    dispatch(stopPlayback());
+    dispatch({
+      type: types.SELECT_TOOL_ID,
+      toolId,
+    });
   };
 }
 export function selectToolItem(toolItem: EditorState["ui"]["stampToolItem"]): ActionSelectToolItem {
