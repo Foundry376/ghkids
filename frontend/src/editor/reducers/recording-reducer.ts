@@ -51,6 +51,21 @@ function stateForEditingRule(
   };
 }
 
+function isActionForSameVarOrGlobal(r: RuleAction, n: RuleAction) {
+  if (n.type === "global" && r.type === "global" && r.global === n.global) {
+    return true;
+  }
+  if (
+    n.type === "variable" &&
+    r.type === "variable" &&
+    r.variable === n.variable &&
+    r.actorId === n.actorId
+  ) {
+    return true;
+  }
+  return false;
+}
+
 function recordingReducer(
   state = initialState.recording,
   action: Actions,
@@ -69,9 +84,18 @@ function recordingReducer(
     action.worldId &&
     action.worldId === state.afterWorld.id
   ) {
+    // Look at what was modified in the after stage and create a rule action for it.
+    // Normally, rule actions are appended to the list of actions in the rule, but
+    // if you modify a var or global you've already modified in the rule, the new
+    // action replaces it. There isn't any value in intra-rule changes.
     const recordingActions = buildActionsFromStageActions(state, action);
     if (recordingActions) {
-      nextState.actions = [...nextState.actions, ...recordingActions];
+      nextState.actions = [
+        ...nextState.actions.filter(
+          (r) => !recordingActions.some((n) => isActionForSameVarOrGlobal(n, r)),
+        ),
+        ...recordingActions,
+      ];
     }
   }
 
