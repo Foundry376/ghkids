@@ -1,5 +1,5 @@
 import classNames from "classnames";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
 import Nav from "reactstrap/lib/Nav";
 import NavItem from "reactstrap/lib/NavItem";
@@ -33,13 +33,10 @@ export const InspectorContainer = () => {
   const focusedActor = (focusedStage?.actors || {})[actorIds[0]!] ?? null;
   const focusedCharacter = characters[ui.selectedCharacterId!] ?? null;
 
-  // useEffect(() => {
-  //   setActiveTab("variables");
-
-  //   if (!isRecording) {
-  //     setActiveTab("rules");
-  //   }
-  // }, [isRecording]);
+  // When you enter and exit recording mode, switch to the relevant tab
+  useEffect(() => {
+    setActiveTab(isRecording ? "variables" : "rules");
+  }, [isRecording]);
 
   const ContentContainer = {
     rules: ContainerPaneRules,
