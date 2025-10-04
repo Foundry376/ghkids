@@ -476,6 +476,9 @@ export const Stage = ({
   };
 
   const onMouseDown = (event: React.MouseEvent) => {
+    if (playback.running) {
+      return;
+    }
     const onMouseUpAnywhere = (e: MouseEvent) => {
       document.removeEventListener("mouseup", onMouseUpAnywhere);
       document.removeEventListener("mousemove", onMouseMoveAnywhere);
@@ -691,7 +694,7 @@ export const Stage = ({
         character={character}
         actor={actor}
         dragActorIds={
-          draggable
+          draggable && !playback.running
             ? selected.includes(actor)
               ? selected.map((a) => a.id)
               : [actor.id]
