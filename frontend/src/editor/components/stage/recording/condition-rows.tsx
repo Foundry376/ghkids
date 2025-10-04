@@ -96,6 +96,7 @@ export const FreeformConditionRow = ({
         characters={characters}
         onChange={onChange ? (value) => onChange(true, { ...condition, left: value }) : undefined}
         impliedDatatype={impliedDatatype}
+        comparator={comparator}
       />
 
       {onChange ? (
@@ -116,6 +117,7 @@ export const FreeformConditionRow = ({
         characters={characters}
         onChange={onChange ? (value) => onChange(true, { ...condition, right: value }) : undefined}
         impliedDatatype={impliedDatatype}
+        comparator={comparator}
       />
 
       <div style={{ flex: 1 }} />
@@ -142,6 +144,7 @@ export const FreeformConditionValue = ({
   onChange,
   impliedDatatype,
   conditionId,
+  comparator,
 }: {
   value: RuleValue;
   world: WorldMinimal;
@@ -150,6 +153,7 @@ export const FreeformConditionValue = ({
   onChange?: (value: RuleValue) => void;
   impliedDatatype: ImpliedDatatype;
   conditionId?: string;
+  comparator: VariableComparator;
 }) => {
   const selectedToolId = useSelector<EditorState, TOOLS>((state) => state.ui.selectedToolId);
   const dispatch = useDispatch();
@@ -208,18 +212,23 @@ export const FreeformConditionValue = ({
         }
       }
       if (impliedDatatype?.type === "appearance") {
-        if (onChange) {
-          return (
-            <AppearanceDropdown
-              value={value.constant}
-              spritesheet={impliedDatatype.character.spritesheet}
-              onChange={(e) => onChange?.({ constant: e ?? "" })}
-            />
-          );
-        } else {
-          return (
-            <AppearanceBlock character={impliedDatatype.character} appearanceId={value.constant} />
-          );
+        if (["!=", "="].includes(comparator)) {
+          if (onChange) {
+            return (
+              <AppearanceDropdown
+                value={value.constant}
+                spritesheet={impliedDatatype.character.spritesheet}
+                onChange={(e) => onChange?.({ constant: e ?? "" })}
+              />
+            );
+          } else {
+            return (
+              <AppearanceBlock
+                character={impliedDatatype.character}
+                appearanceId={value.constant}
+              />
+            );
+          }
         }
       }
       if (impliedDatatype?.type === "actor") {
@@ -350,6 +359,9 @@ function comparatorsForImpliedDatatype(inferred: ImpliedDatatype) {
   }
   if (inferred?.type === "actor") {
     return ["=", "!="];
+  }
+  if (inferred?.type === "appearance") {
+    return ["=", "!=", "contains", "starts-with", "ends-with"];
   }
   return ["=", "!="];
 }

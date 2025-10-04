@@ -85,18 +85,18 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
       const leftValue: [string | null, Actor | null][] =
         "actorId" in left
           ? (stageActorsForId as ActorLookupFn)(left.actorId).map((actor) => [
-              getVariableValue(actor, character, left.variableId),
+              getVariableValue(actor, character, left.variableId, comparator),
               actor,
             ])
-          : [[resolveRuleValue(left, globals, characters, actors), null]];
+          : [[resolveRuleValue(left, globals, characters, actors, comparator), null]];
 
       const rightValue: [string | null, Actor | null][] =
         "actorId" in right
           ? (stageActorsForId as ActorLookupFn)(right.actorId).map((actor) => [
-              getVariableValue(actor, character, right.variableId),
+              getVariableValue(actor, character, right.variableId, comparator),
               actor,
             ])
-          : [[resolveRuleValue(right, globals, characters, actors), null]];
+          : [[resolveRuleValue(right, globals, characters, actors, comparator), null]];
 
       let found = false;
       for (const leftOpt of leftValue) {
@@ -182,7 +182,7 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
           const actor = actors[me.id];
           const character = characters[actor.characterId];
           iterations = Number(
-            getVariableValue(actor, character, struct.loopCount.variableId) ?? "0",
+            getVariableValue(actor, character, struct.loopCount.variableId, "=") ?? "0",
           );
         }
       }
@@ -349,12 +349,14 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
           globals,
           characters,
           stageActorsForRuleActorIds,
+          condition.comparator,
         );
         const right = resolveRuleValue(
           condition.right,
           globals,
           characters,
           stageActorsForRuleActorIds,
+          condition.comparator,
         );
         if (!comparatorMatches(condition.comparator, left, right)) {
           return false;
@@ -430,7 +432,7 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
           global.value = applyVariableOperation(
             global.value,
             action.operation,
-            resolveRuleValue(action.value, globals, characters, stageActorForId) ?? "",
+            resolveRuleValue(action.value, globals, characters, stageActorForId, "=") ?? "",
           );
         } else if ("actorId" in action && action.actorId) {
           // find the actor on the stage that matches
@@ -458,7 +460,7 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
             frameAccumulator?.push({ ...stageActor, deleted: true });
           } else if (action.type === "appearance") {
             stageActor.appearance =
-              resolveRuleValue(action.value, globals, characters, stageActorForId) ?? "";
+              resolveRuleValue(action.value, globals, characters, stageActorForId, "=") ?? "";
             frameAccumulator?.push(stageActor);
           } else if (action.type === "transform") {
             stageActor.transform = resolveRuleValue(
@@ -466,16 +468,21 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
               globals,
               characters,
               stageActorForId,
+              "=",
             ) as ActorTransform;
             frameAccumulator?.push(stageActor);
           } else if (action.type === "variable") {
             const current =
-              getVariableValue(stageActor, characters[stageActor.characterId], action.variable) ??
-              "0";
+              getVariableValue(
+                stageActor,
+                characters[stageActor.characterId],
+                action.variable,
+                "=",
+              ) ?? "0";
             const next = applyVariableOperation(
               current,
               action.operation,
-              resolveRuleValue(action.value, globals, characters, stageActorForId) ?? "",
+              resolveRuleValue(action.value, globals, characters, stageActorForId, "=") ?? "",
             );
             stageActor.variableValues[action.variable] = next;
           } else {
@@ -512,7 +519,13 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
 
     for (const cond of Object.values(rule.conditions)) {
       if ("globalId" in cond.left && globals[cond.left.globalId]) {
-        const value = resolveRuleValue(cond.right, globals, characters, rule.actors);
+        const value = resolveRuleValue(
+          cond.right,
+          globals,
+          characters,
+          rule.actors,
+          cond.comparator,
+        );
         if (value) {
           globals[cond.left.globalId].value = value;
         }

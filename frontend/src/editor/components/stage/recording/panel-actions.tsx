@@ -99,6 +99,7 @@ export const RecordingActions = (props: { characters: Characters; recording: Rec
               characters={characters}
               onChange={(value) => onChange({ ...a, value })}
               impliedDatatype={null}
+              comparator="="
             />
             {{ set: "into", add: "to", subtract: "from" }[a.operation]}
             <ActorVariableBlock character={character} actor={actor} variableId={a.variable} />
@@ -118,6 +119,7 @@ export const RecordingActions = (props: { characters: Characters; recording: Rec
               characters={characters}
               onChange={(value) => onChange({ ...a, value })}
               impliedDatatype={{ type: "appearance", character }}
+              comparator="="
             />
           </>
         );
@@ -134,6 +136,7 @@ export const RecordingActions = (props: { characters: Characters; recording: Rec
               actors={afterStage.actors}
               characters={characters}
               onChange={(value) => onChange({ ...a, value })}
+              comparator="="
               impliedDatatype={{
                 type: "transform",
                 characterId: actor.characterId,
@@ -173,6 +176,7 @@ export const RecordingActions = (props: { characters: Characters; recording: Rec
             characters={characters}
             onChange={(value) => onChange({ ...a, value })}
             impliedDatatype={null}
+            comparator="="
           />
           {{ set: "into", add: "to", subtract: "from" }[a.operation]}
 

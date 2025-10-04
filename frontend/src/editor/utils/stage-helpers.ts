@@ -10,6 +10,7 @@ import {
   RuleTreeItem,
   RuleValue,
   Stage,
+  VariableComparator,
 } from "../../types";
 import { DEFAULT_APPEARANCE_INFO } from "../components/sprites/sprite";
 
@@ -120,6 +121,7 @@ export function resolveRuleValue(
   globals: Globals,
   characters: Characters,
   actors: Stage["actors"],
+  comparator: VariableComparator,
 ): string | null {
   if (!val) {
     console.warn(`A rule value is missing?`);
@@ -133,6 +135,7 @@ export function resolveRuleValue(
       actors[val.actorId],
       characters[actors[val.actorId].characterId],
       val.variableId,
+      comparator,
     );
   }
   if ("globalId" in val) {
@@ -142,9 +145,25 @@ export function resolveRuleValue(
   return "";
 }
 
-export function getVariableValue(actor: Actor, character: Character, id: string) {
+/** Why does the value of a variable depend on `comparator`? It's gross, but we
+ * want to allow an appearances to be compared-by-identity against an appearance ID,
+ * or compared-by-name against a string. They can be renamed, and renaming one shouldn't
+ * break rules saying "appearance = foo".
+ *
+ * Alternatively we could make "= foo" a dynamic lookup of the appearance name, but the
+ * game doesn't currently enforce that appearances need to have unique names.
+ */
+export function getVariableValue(
+  actor: Actor,
+  character: Character,
+  id: string,
+  comparator: VariableComparator,
+) {
   if (id === "appearance") {
-    return actor.appearance ?? null;
+    if (["=", "!="].includes(comparator)) {
+      return actor.appearance ?? null;
+    }
+    return character.spritesheet.appearanceNames[actor.appearance];
   }
   if (id === "transform") {
     return actor.transform ?? null;
