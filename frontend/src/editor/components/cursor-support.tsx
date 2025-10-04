@@ -30,22 +30,38 @@ cursorEl.style.pointerEvents = "none";
 cursorEl.style.zIndex = "1000";
 cursorEl.style.position = "absolute";
 cursorEl.onload = () => {
-  cursorEl.style.width = `${cursorEl.naturalWidth}px`;
-  cursorEl.style.height = `${cursorEl.naturalHeight}px`;
+  updateCursor();
 };
 document.body.appendChild(cursorEl);
 
+const lastPoint: { x: number; y: number } = { x: 0, y: 0 };
 document.addEventListener("mousemove", (e) => {
+  lastPoint.x = e.clientX;
+  lastPoint.y = e.clientY;
+  updateCursor();
+});
+
+function updateCursor() {
   if (!cursorEl.getAttribute("src")) {
     return;
   }
   // We need this to follow the cursor as fast as possible, so no React to see here.
-  cursorEl.style.top = `${e.clientY}px`;
-  cursorEl.style.left = `${e.clientX}px`;
-  const overEl = document.elementFromPoint(e.clientX, e.clientY);
+  cursorEl.style.top = `${lastPoint.y}px`;
+  cursorEl.style.left = `${lastPoint.x}px`;
+  const overEl = document.elementFromPoint(lastPoint.x, lastPoint.y);
   const toolEl = overEl instanceof HTMLElement ? overEl.closest(".tool-supported") : null;
   cursorEl.style.display = toolEl ? "initial" : "none";
-});
+
+  let zoom = 1;
+  if (cursorEl.dataset.toolIsStageItem === "true") {
+    const stageZoomEl = overEl instanceof HTMLElement ? overEl.closest("[data-stage-zoom]") : null;
+    if (stageZoomEl instanceof HTMLElement) {
+      zoom = Number(stageZoomEl.dataset["stageZoom"] ?? 1);
+    }
+  }
+  cursorEl.style.width = `${cursorEl.naturalWidth * zoom}px`;
+  cursorEl.style.height = `${cursorEl.naturalHeight * zoom}px`;
+}
 
 export const StampCursorSupport = () => {
   const stage = useSelector<EditorState, Stage | null>((state) => getCurrentStage(state));
@@ -57,8 +73,11 @@ export const StampCursorSupport = () => {
   useLayoutEffect(() => {
     cursorEl.style.transformOrigin = "0%,0%";
     cursorEl.style.transform = "translate(-50%, -50%)";
+    cursorEl.dataset.toolIsStageItem = `false`;
 
     if (selectedToolId == TOOLS.STAMP && stampToolItem) {
+      cursorEl.dataset.toolIsStageItem = `true`;
+
       if ("characterId" in stampToolItem) {
         const spritesheet = characters[stampToolItem.characterId]?.spritesheet;
         if (spritesheet) {

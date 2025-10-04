@@ -44,8 +44,10 @@ html {
 
 .sprite {
   &.outlined {
-    filter: drop-shadow(2px 0 0.5px $outline-color) drop-shadow(-2px 0 0.5px $outline-color)
-      drop-shadow(0 -2px 0.5px $outline-color) drop-shadow(0 2px 0.5px $outline-color);
+    filter: drop-shadow(var(--outline-width) 0 0.5px $outline-color)
+      drop-shadow(calc(-1 * var(--outline-width)) 0 0.5px $outline-color)
+      drop-shadow(0 calc(-1 * var(--outline-width)) 0.5px $outline-color)
+      drop-shadow(0 var(--outline-width) 0.5px $outline-color);
   }
 }
 

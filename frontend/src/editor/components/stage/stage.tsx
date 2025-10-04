@@ -706,18 +706,22 @@ export const Stage = ({
       style={style}
       ref={(e) => (scrollEl.current = e)}
       data-stage-wrap-id={world.id}
+      data-stage-zoom={scale}
       className={`stage-scroll-wrap tool-supported running-${playback.running}`}
     >
       <div
         ref={(e) => (el.current = e)}
-        style={{
-          top,
-          left,
-          width: stage.width * STAGE_CELL_SIZE,
-          height: stage.height * STAGE_CELL_SIZE,
-          overflow: recordingExtent ? "visible" : "hidden",
-          zoom: scale,
-        }}
+        style={
+          {
+            top,
+            left,
+            width: stage.width * STAGE_CELL_SIZE,
+            height: stage.height * STAGE_CELL_SIZE,
+            overflow: recordingExtent ? "visible" : "hidden",
+            zoom: scale,
+            "--outline-width": `${2.0 / scale}px`,
+          } as CSSProperties
+        }
         className="stage"
         onDragOver={onDragOver}
         onDrop={onDrop}
@@ -742,23 +746,23 @@ export const Stage = ({
         {Object.values(stage.actors).map(renderActor)}
 
         {recordingExtent ? renderRecordingExtent() : []}
-        {selectionRect ? (
-          <div
-            className="stage-selection-box"
-            style={{
-              position: "absolute",
-              left: Math.min(selectionRect.start.left, selectionRect.end.left),
-              top: Math.min(selectionRect.start.top, selectionRect.end.top),
-              width:
-                Math.max(selectionRect.start.left, selectionRect.end.left) -
-                Math.min(selectionRect.start.left, selectionRect.end.left),
-              height:
-                Math.max(selectionRect.start.top, selectionRect.end.top) -
-                Math.min(selectionRect.start.top, selectionRect.end.top),
-            }}
-          />
-        ) : null}
       </div>
+      {selectionRect ? (
+        <div
+          className="stage-selection-box"
+          style={{
+            position: "absolute",
+            left: Math.min(selectionRect.start.left, selectionRect.end.left),
+            top: Math.min(selectionRect.start.top, selectionRect.end.top),
+            width:
+              Math.max(selectionRect.start.left, selectionRect.end.left) -
+              Math.min(selectionRect.start.left, selectionRect.end.left),
+            height:
+              Math.max(selectionRect.start.top, selectionRect.end.top) -
+              Math.min(selectionRect.start.top, selectionRect.end.top),
+          }}
+        />
+      ) : null}
     </div>
   );
 };
