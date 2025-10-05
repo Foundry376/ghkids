@@ -767,11 +767,8 @@ html {
 
   .name {
     display: inline-block;
-    font-size: 0.9em;
-    line-height: 1.2em;
     font-weight: bold;
     padding: 0px 4px 0px 4px;
-    margin-bottom: 2px;
     color: #222;
     text-shadow: 0px 1px rgba(255, 255, 255, 0.4);
     background-color: transparent;
@@ -779,6 +776,9 @@ html {
     vertical-align: middle;
     width: 185px;
     min-height: 18px;
+    padding-left: 0;
+    font-size: 1.1em;
+    line-height: 1.4em;
   }
 
   input.name {
@@ -796,35 +796,9 @@ html {
     -webkit-box-shadow: inset 0 0 2px 1px rgba(255, 255, 255, 0.4);
     box-shadow: inset 0 0 2px 1px rgba(255, 255, 255, 0.4);
 
-    &.group-event {
-      background-color: $rule-event-color;
-      .header {
-        user-select: none;
-        height: 36px;
-      }
-    }
-
     &.group-flow {
       background-color: $rule-flow-color;
-      .header {
-        user-select: none;
-        // height: 50px;
-        .name {
-          padding-left: 0;
-        }
-      }
-      .header.loop {
-        height: 70px;
-        select:nth-of-type(1) {
-          margin-bottom: 0;
-        }
-        select:nth-of-type(2) {
-          margin-top: 0;
-        }
-        .name {
-          margin-left: 20px;
-        }
-      }
+      user-select: none;
     }
 
     .keycode {
@@ -842,7 +816,6 @@ html {
       display: inline-block;
       width: 12px;
       height: 12px;
-      margin-top: 3px;
       border-radius: 12px;
       background-color: transparent;
       border: 1px solid rgba(0, 0, 0, 0.2);
@@ -900,7 +873,7 @@ html {
       border-color: rgba(0, 0, 0, 0.4) transparent transparent transparent;
       opacity: 0;
       &.disclosed {
-        border-width: 6px 0 6px 10.4px;
+        border-width: 6px 0 6px 12.4px;
         border-color: transparent transparent transparent rgba(0, 0, 0, 0.4);
       }
       &.enabled {
@@ -917,7 +890,11 @@ html {
     -moz-box-shadow: inset 0 0 2px 0px rgba(255, 255, 255, 0.4);
     -webkit-box-shadow: inset 0 0 2px 0px rgba(255, 255, 255, 0.4);
     box-shadow: inset 0 0 2px 0px rgba(255, 255, 255, 0.4);
-
+    .name {
+      padding-left: 4px;
+      font-size: 0.9em;
+      line-height: 1.2em;
+    }
     .action {
       margin-left: 3px;
       margin-right: 3px;
