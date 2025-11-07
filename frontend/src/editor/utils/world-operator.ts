@@ -123,6 +123,10 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
         return Number(a) >= Number(b);
       case "<=":
         return Number(a) <= Number(b);
+      case ">":
+        return Number(a) > Number(b);
+      case "<":
+        return Number(a) < Number(b);
       case "contains":
         if (`${a}`.includes(",")) {
           // This is a special hack for keypress so "ArrowLeft,Space" doesn't match "A"

@@ -34,6 +34,8 @@ export type VariableComparator =
   | "!="
   | ">="
   | "<="
+  | ">"
+  | "<"
   | "contains"
   | "starts-with"
   | "ends-with";

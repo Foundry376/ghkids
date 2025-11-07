@@ -346,7 +346,9 @@ export const FreeformConditionValue = ({
 const ComparatorLabels = {
   "=": "is",
   "!=": "is not",
+  "<": "<",
   "<=": "<=",
+  ">": ">",
   ">=": ">=",
   contains: "contains",
   "starts-with": "starts with",

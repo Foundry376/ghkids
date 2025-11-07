@@ -1,5 +1,5 @@
 import { CSSProperties } from "react";
-import { AppearanceInfo, Character } from "../../../types";
+import { ActorTransform, AppearanceInfo, Character } from "../../../types";
 
 export const DEFAULT_APPEARANCE_INFO: AppearanceInfo = {
   anchor: { x: 0, y: 0 },
@@ -31,7 +31,7 @@ const Sprite = ({
   spritesheet: Character["spritesheet"];
   appearance: string;
   className?: string;
-  transform?: string;
+  transform?: ActorTransform;
   style?: CSSProperties;
   frame?: number;
   fit?: boolean;
