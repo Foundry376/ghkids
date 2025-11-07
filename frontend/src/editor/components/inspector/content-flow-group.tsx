@@ -41,7 +41,7 @@ export const ContentFlowGroup = ({
       conditions: [
         {
           left: { actorId: "main", variableId: "appearance" },
-          right: { constant: defaultAppearanceId(character.spritesheet) },
+          right: { constant: `${defaultAppearanceId(character.spritesheet)}::0` },
           comparator: "=",
           key: "main-appearance",
           enabled: true,
@@ -59,7 +59,7 @@ export const ContentFlowGroup = ({
           id: "main",
           characterId: character.id,
           variableValues: {},
-          appearance: defaultAppearanceId(character.spritesheet),
+          appearance: `${defaultAppearanceId(character.spritesheet)}::0`,
           position: { x: 0, y: 0 },
         },
       },

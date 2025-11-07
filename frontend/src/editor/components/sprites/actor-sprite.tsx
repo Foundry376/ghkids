@@ -1,6 +1,6 @@
 import { Actor, Character } from "../../../types";
 import { STAGE_CELL_SIZE } from "../../constants/constants";
-import { pointApplyingTransform } from "../../utils/stage-helpers";
+import { appearanceParts, pointApplyingTransform } from "../../utils/stage-helpers";
 import VariableOverlay from "../modal-paint/variable-overlay";
 import { DEFAULT_APPEARANCE_INFO, SPRITE_TRANSFORM_CSS } from "./sprite";
 
@@ -46,7 +46,8 @@ const ActorSprite = (props: {
   }
 
   const { appearances, appearanceInfo } = character.spritesheet;
-  const info = appearanceInfo?.[actor.appearance] || DEFAULT_APPEARANCE_INFO;
+  const [appearanceId, transform] = appearanceParts(actor.appearance);
+  const info = appearanceInfo?.[appearanceId] || DEFAULT_APPEARANCE_INFO;
 
   const isEventInFilledSquare = (event: React.DragEvent | React.MouseEvent<HTMLDivElement>) => {
     if (!(event.target instanceof HTMLElement)) {
@@ -58,7 +59,7 @@ const ActorSprite = (props: {
       Math.floor((event.clientX - left) / 40),
       Math.floor((event.clientY - top) / 40),
       info,
-      actor.transform,
+      transform,
     );
     if (info && !info.filled[`${cellX},${cellY}`]) {
       event.preventDefault();
@@ -98,8 +99,8 @@ const ActorSprite = (props: {
   };
 
   let data = new URL("../../img/splat.png", import.meta.url).href;
-  if (appearances[actor.appearance]) {
-    data = appearances[actor.appearance][0];
+  if (appearances[appearanceId]) {
+    data = appearances[appearanceId][0];
   }
 
   const variableOverlay = info.variableOverlay || { showVariables: false, visibleVariables: {} };
@@ -145,7 +146,7 @@ const ActorSprite = (props: {
         src={data}
         className={`sprite ${selected ? "outlined" : ""}`}
         style={{
-          transform: SPRITE_TRANSFORM_CSS[actor.transform ?? "0"],
+          transform: SPRITE_TRANSFORM_CSS[transform ?? "0"],
           transformOrigin: `${((info.anchor.x + 0.5) / info.width) * 100}% ${((info.anchor.y + 0.5) / info.height) * 100}%`,
           pointerEvents: "auto",
         }}

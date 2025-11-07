@@ -305,7 +305,8 @@ html {
     height: 200px;
     display: flex;
 
-    & > div {
+    & > div,
+    .floating-controls {
       background-color: #eee;
       padding: 3px 6px;
       margin-bottom: 4px;

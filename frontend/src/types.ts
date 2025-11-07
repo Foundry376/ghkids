@@ -78,6 +78,7 @@ export type RuleAction =
   | {
       type: "transform";
       actorId: string;
+      operation: MathOperation;
       value: RuleValue;
     };
 
@@ -182,7 +183,6 @@ export type Actor = {
   variableValues: Record<string, string>;
   appearance: string;
   position: PositionRelativeToWorld;
-  transform?: ActorTransform;
   frameCount?: number; // used to sync subdivided animation frames to CSS durations
 };
 

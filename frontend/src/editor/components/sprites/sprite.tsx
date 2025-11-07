@@ -1,5 +1,6 @@
 import { CSSProperties } from "react";
-import { ActorTransform, AppearanceInfo, Character } from "../../../types";
+import { AppearanceInfo, Character } from "../../../types";
+import { appearanceParts } from "../../utils/stage-helpers";
 
 export const DEFAULT_APPEARANCE_INFO: AppearanceInfo = {
   anchor: { x: 0, y: 0 },
@@ -22,7 +23,6 @@ export const SPRITE_TRANSFORM_CSS: { [key: string]: string } = {
 const Sprite = ({
   style,
   className,
-  transform = "0",
   spritesheet,
   appearance,
   frame,
@@ -31,18 +31,18 @@ const Sprite = ({
   spritesheet: Character["spritesheet"];
   appearance: string;
   className?: string;
-  transform?: ActorTransform;
   style?: CSSProperties;
   frame?: number;
   fit?: boolean;
 }) => {
   const { appearances, appearanceInfo } = spritesheet;
+  const [apperanceId, transform] = appearanceParts(appearance);
 
   let data = new URL("../../img/splat.png", import.meta.url).href;
-  if (appearance && appearances[appearance]) {
-    data = appearances[appearance][frame || 0];
+  if (apperanceId && appearances[apperanceId]) {
+    data = appearances[apperanceId][frame || 0];
   }
-  const { anchor } = appearanceInfo?.[appearance] || DEFAULT_APPEARANCE_INFO;
+  const { anchor } = appearanceInfo?.[apperanceId] || DEFAULT_APPEARANCE_INFO;
   const transformValue = SPRITE_TRANSFORM_CSS[transform];
 
   const allstyle = Object.assign(

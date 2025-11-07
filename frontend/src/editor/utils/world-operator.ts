@@ -11,6 +11,7 @@ import {
   Position,
   PositionRelativeToWorld,
   Rule,
+  RuleAction,
   RuleCondition,
   RuleTreeEventItem,
   RuleTreeFlowItem,
@@ -29,6 +30,8 @@ import { getCurrentStageForWorld } from "./selectors";
 import {
   actorFillsPoint,
   actorIntersectsExtent,
+  appearanceParts,
+  applyTransformOperation,
   applyVariableOperation,
   getVariableValue,
   isNever,
@@ -97,6 +100,8 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
               actor,
             ])
           : [[resolveRuleValue(right, globals, characters, actors, comparator), null]];
+
+      console.log(leftValue, rightValue);
 
       let found = false;
       for (const leftOpt of leftValue) {
@@ -412,6 +417,8 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
       const origin = deepClone(me.position);
       const { stageActorForId, createActorIds } = opts;
 
+      const lastActionForActorId: { [actorId: string]: RuleAction } = {};
+
       for (const action of rule.actions) {
         if (action.type === "create") {
           const nextPos = wrappedPosition(pointByAdding(origin, action.offset));
@@ -431,6 +438,8 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
           // creates the actor and then moves them, etc.
           stageActorForId[nextActor.id] = nextActor;
           stageActorForId[action.actorId] = nextActor;
+          lastActionForActorId[nextActor.id] = action;
+          lastActionForActorId[action.actorId] = action;
         } else if (action.type === "global") {
           const global = globals[action.global];
           global.value = applyVariableOperation(
@@ -467,14 +476,21 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
               resolveRuleValue(action.value, globals, characters, stageActorForId, "=") ?? "";
             frameAccumulator?.push(stageActor);
           } else if (action.type === "transform") {
-            stageActor.transform = resolveRuleValue(
+            const [appearanceId, current] = appearanceParts(stageActor.appearance);
+            const value = resolveRuleValue(
               action.value,
               globals,
               characters,
               stageActorForId,
               "=",
             ) as ActorTransform;
-            frameAccumulator?.push(stageActor);
+            const next = applyTransformOperation(current ?? "0", action.operation ?? "set", value);
+            stageActor.appearance = `${appearanceId}::${next}`;
+
+            const lastActionType = lastActionForActorId[stageActor.id]?.type;
+            if (!["create", "appearance"].includes(lastActionType)) {
+              frameAccumulator?.push(stageActor);
+            }
           } else if (action.type === "variable") {
             const current =
               getVariableValue(
@@ -483,15 +499,14 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
                 action.variable,
                 "=",
               ) ?? "0";
-            const next = applyVariableOperation(
-              current,
-              action.operation,
-              resolveRuleValue(action.value, globals, characters, stageActorForId, "=") ?? "",
-            );
+            const value =
+              resolveRuleValue(action.value, globals, characters, stageActorForId, "=") ?? "";
+            const next = applyVariableOperation(current, action.operation, value);
             stageActor.variableValues[action.variable] = next;
           } else {
             throw new Error(`Not sure how to apply action: ${action}`);
           }
+          lastActionForActorId[action.actorId] = action;
         } else {
           throw new Error(`Not sure how to apply action: ${action}`);
         }

@@ -23,7 +23,7 @@ import { RECORDING_PHASE, WORLDS } from "../constants/constants";
 import { defaultAppearanceId } from "../utils/character-helpers";
 import { extentByShiftingExtent } from "../utils/recording-helpers";
 import { getCurrentStageForWorld } from "../utils/selectors";
-import { actorFilledPoints } from "../utils/stage-helpers";
+import { actorFilledPoints, appearanceParts } from "../utils/stage-helpers";
 import WorldOperator from "../utils/world-operator";
 
 function stateForEditingRule(
@@ -114,7 +114,7 @@ function recordingReducer(
           conditions: u.constant([
             {
               left: { actorId: actor.id, variableId: "appearance" },
-              right: { constant: actor.appearance },
+              right: { constant: appearanceParts(actor.appearance).join("::") },
               enabled: true,
               comparator: "=",
               key: "main-actor-appearance",
@@ -148,7 +148,7 @@ function recordingReducer(
           dude: {
             id: "dude",
             variableValues: {},
-            appearance: defaultAppearanceId(character.spritesheet),
+            appearance: `${defaultAppearanceId(character.spritesheet)}::0`,
             characterId: action.characterId,
             position: { x: 0, y: 0 },
           },
@@ -272,19 +272,20 @@ function buildActionsFromStageActions(
             };
           }
 
-          if ("transform" in values) {
-            if (existing.transform === values.transform) {
-              return null;
-            }
-            return {
-              type: "transform",
-              actorId: actorId,
-              value: { constant: values.transform! },
-            };
-          }
           if ("appearance" in values) {
             if (existing.appearance === values.appearance) {
               return null;
+            }
+            const [eId] = appearanceParts(existing?.appearance);
+            const [vId, vTransform] = appearanceParts(values.appearance ?? "");
+            console.log(eId, vId, vTransform);
+            if (eId === vId) {
+              return {
+                type: "transform",
+                actorId: actorId,
+                operation: "set",
+                value: { constant: vTransform! },
+              };
             }
             return {
               type: "appearance",

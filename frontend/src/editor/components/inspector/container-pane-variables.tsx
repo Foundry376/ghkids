@@ -21,6 +21,7 @@ import { changeActors } from "../../actions/stage-actions";
 import { selectToolId } from "../../actions/ui-actions";
 import { deleteGlobal, upsertGlobal } from "../../actions/world-actions";
 import { TOOLS } from "../../constants/constants";
+import { appearanceParts } from "../../utils/stage-helpers";
 import Sprite from "../sprites/sprite";
 import { TransformEditorModal } from "./transform-editor";
 import { TransformImages, TransformLabels } from "./transform-images";
@@ -32,11 +33,13 @@ type AppeanceDropdownProps = {
   onChange: (appearanceId: string) => void;
 };
 
-const AppearanceGridItem = (
-  props: AppeanceDropdownProps & {
-    actorId: string;
-  },
-) => {
+const AppearanceGridItem = (props: {
+  spritesheet: Character["spritesheet"];
+  actor: Actor;
+  onChange: (appearanceId: string) => void;
+}) => {
+  const [open, setOpen] = useState(false);
+
   const _onDragStart = (event: React.DragEvent) => {
     event.dataTransfer.dropEffect = "copy";
     event.dataTransfer.effectAllowed = "copy";
@@ -44,8 +47,8 @@ const AppearanceGridItem = (
       "variable",
       JSON.stringify({
         variableId: "appearance",
-        actorId: props.actorId,
-        value: props.value,
+        actorId: props.actor.id,
+        value: props.actor.appearance,
       }),
     );
   };
@@ -53,7 +56,22 @@ const AppearanceGridItem = (
   return (
     <div className={`variable-box variable-set-true`} draggable onDragStart={_onDragStart}>
       <div className="name">Appearance</div>
-      <AppearanceDropdown {...props} />
+      <AppearanceDropdown value={props.actor.appearance} {...props} />
+
+      <div style={{ display: "flex", marginTop: 2 }}>
+        <Button size="sm" style={{ width: 120 }} onClick={() => setOpen(true)}>
+          Turn…
+        </Button>
+        <TransformEditorModal
+          open={open}
+          characterId={props.actor.characterId}
+          value={props.actor.appearance}
+          onChange={(value) => {
+            setOpen(false);
+            props.onChange(value);
+          }}
+        />
+      </div>
     </div>
   );
 };
@@ -78,54 +96,38 @@ export const AppearanceDropdown = ({ spritesheet, value, onChange }: AppeanceDro
 };
 
 type TransformDropdownProps = {
-  value: Actor["transform"];
-  onChange: (value: Actor["transform"] | undefined) => void;
+  value: string;
+  onChange: (value: string | undefined) => void;
   characterId?: string;
-  appearance?: string;
   displayAsLabel?: boolean;
-};
-
-const TransformGridItem = (props: TransformDropdownProps & { actorId: string }) => {
-  const _onDragStart = (event: React.DragEvent) => {
-    event.dataTransfer.dropEffect = "copy";
-    event.dataTransfer.effectAllowed = "copy";
-    event.dataTransfer.setData(
-      "variable",
-      JSON.stringify({ variableId: "transform", actorId: props.actorId, value: props.value }),
-    );
-  };
-
-  return (
-    <div className={`variable-box variable-set-true`} draggable onDragStart={_onDragStart}>
-      <div className="name">Direction</div>
-      <TransformDropdown {...props} />
-    </div>
-  );
+  children?: React.ReactNode;
+  className?: string;
 };
 
 export const TransformDropdown = ({
   value,
   characterId,
-  appearance,
   onChange,
   displayAsLabel,
+  children,
+  className,
 }: TransformDropdownProps) => {
   const [open, setOpen] = useState(false);
-  const transform = value || "0";
+  const [, transform] = appearanceParts(value);
 
   return (
     <>
       <Button
+        className={className}
         onClick={() => setOpen(true)}
         style={{ width: "100%", height: displayAsLabel ? 30 : 46 }}
       >
-        {displayAsLabel ? TransformLabels[transform] : TransformImages[transform]}
+        {children || displayAsLabel ? TransformLabels[transform] : TransformImages[transform]}
       </Button>
       <TransformEditorModal
         open={open}
         characterId={characterId}
-        appearance={appearance}
-        value={transform}
+        value={value}
         onChange={(value) => {
           setOpen(false);
           onChange(value);
@@ -207,22 +209,10 @@ export const ContainerPaneVariables = ({
       <div className="variables-grid">
         {actor && (
           <AppearanceGridItem
-            actorId={actor.id}
-            value={actor.appearance}
+            actor={actor}
             spritesheet={character.spritesheet}
             onChange={(appearance) => {
               dispatch(changeActors(selectedActors!, { appearance }));
-            }}
-          />
-        )}
-        {actor && (
-          <TransformGridItem
-            value={actor.transform}
-            actorId={actor.id}
-            characterId={actor.characterId}
-            appearance={actor.appearance}
-            onChange={(value) => {
-              dispatch(changeActors(selectedActors!, { transform: value }));
             }}
           />
         )}

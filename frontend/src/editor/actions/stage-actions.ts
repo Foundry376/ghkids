@@ -168,7 +168,7 @@ export function createActors(
       const newActor: DeepPartial<Actor> = Object.assign(
         {
           variableValues: {},
-          appearance: defaultAppearanceId(character.spritesheet),
+          appearance: `${defaultAppearanceId(character.spritesheet)}::0`,
         },
         initialValues,
         {

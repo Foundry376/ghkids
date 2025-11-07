@@ -4,6 +4,7 @@ import { Characters, EditorState, Stage } from "../../types";
 import { TOOLS } from "../constants/constants";
 import { defaultAppearanceId } from "../utils/character-helpers";
 import { getCurrentStage } from "../utils/selectors";
+import { appearanceParts } from "../utils/stage-helpers";
 import { DEFAULT_APPEARANCE_INFO, SPRITE_TRANSFORM_CSS } from "./sprites/sprite";
 
 const IMAGES = {
@@ -93,13 +94,13 @@ export const StampCursorSupport = () => {
 
         if (actor && character) {
           const { appearances, appearanceInfo } = character.spritesheet;
-          const info = appearanceInfo?.[actor.appearance] || DEFAULT_APPEARANCE_INFO;
-          cursorEl.setAttribute("src", appearances[actor.appearance][0]);
-
+          const [appearanceId, transform] = appearanceParts(actor.appearance);
+          const info = appearanceInfo?.[appearanceId] || DEFAULT_APPEARANCE_INFO;
+          cursorEl.setAttribute("src", appearances[appearanceId][0]);
           const tx = ((info.anchor.x + 0.5) / info.width) * 100;
           const ty = ((info.anchor.y + 0.5) / info.height) * 100;
           cursorEl.style.transformOrigin = `${tx}% ${ty}%`;
-          cursorEl.style.transform = `${SPRITE_TRANSFORM_CSS[actor.transform ?? "0"]} translate(-${tx}%, -${ty}%)`;
+          cursorEl.style.transform = `${SPRITE_TRANSFORM_CSS[transform ?? "0"]} translate(-${tx}%, -${ty}%)`;
         }
       } else if ("ruleId" in stampToolItem) {
         cursorEl.setAttribute("src", IMAGES.CURSOR_STAMP_RULE);

@@ -12,6 +12,7 @@ import {
   Stage,
   VariableComparator,
 } from "../../types";
+import { RELATIVE_TRANSFORMS } from "../components/inspector/transform-editor";
 import { DEFAULT_APPEARANCE_INFO } from "../components/sprites/sprite";
 
 export function buildActorSelection(worldId: string, stageId: string, actorIds: string[]) {
@@ -21,9 +22,10 @@ export function buildActorSelection(worldId: string, stageId: string, actorIds: 
 export function applyAnchorAdjustment(
   position: Position,
   character: Character,
-  { appearance, transform }: Pick<Actor, "appearance" | "transform">,
+  { appearance }: Pick<Actor, "appearance">,
 ) {
-  const info = character.spritesheet.appearanceInfo?.[appearance] || DEFAULT_APPEARANCE_INFO;
+  const [appearanceId, transform] = appearanceParts(appearance);
+  const info = character.spritesheet.appearanceInfo?.[appearanceId] || DEFAULT_APPEARANCE_INFO;
   const [x, y] = pointApplyingTransform(info.anchor.x, info.anchor.y, info, transform);
   position.x += x;
   position.y += y;
@@ -45,18 +47,19 @@ export function actorIntersectsExtent(actor: Actor, characters: Characters, exte
 
 export function actorFilledPoints(actor: Actor, characters: Characters) {
   const character = characters[actor.characterId];
-  const info = character?.spritesheet.appearanceInfo?.[actor.appearance];
+  const [appearanceId, transform] = appearanceParts(actor.appearance);
+  const info = character?.spritesheet.appearanceInfo?.[appearanceId];
   const { x, y } = actor.position;
   if (!info) {
     return [{ x, y }];
   }
   const results: Position[] = [];
-  const [ix, iy] = pointApplyingTransform(info.anchor.x, info.anchor.y, info, actor.transform);
+  const [ix, iy] = pointApplyingTransform(info.anchor.x, info.anchor.y, info, transform);
 
   for (let dx = 0; dx < info.width; dx++) {
     for (let dy = 0; dy < info.height; dy++) {
       if (info.filled[`${dx},${dy}`]) {
-        const [sx, sy] = pointApplyingTransform(dx, dy, info, actor.transform);
+        const [sx, sy] = pointApplyingTransform(dx, dy, info, transform);
         results.push({ x: x + sx - ix, y: y + sy - iy });
       }
     }
@@ -80,7 +83,7 @@ export function pointApplyingTransform(
   x: number,
   y: number,
   { width, height }: { width: number; height: number },
-  transform: Actor["transform"],
+  transform: ActorTransform,
 ) {
   if (transform === "90") {
     return [height - 1 - y, x];
@@ -160,13 +163,11 @@ export function getVariableValue(
   comparator: VariableComparator,
 ) {
   if (id === "appearance") {
+    const [appearanceId, transform] = appearanceParts(actor.appearance);
     if (["=", "!="].includes(comparator)) {
-      return actor.appearance ?? null;
+      return `${appearanceId}::${transform}`;
     }
-    return character.spritesheet.appearanceNames[actor.appearance];
-  }
-  if (id === "transform") {
-    return actor.transform ?? null;
+    return `${appearanceId}::${transform}::${character.spritesheet.appearanceNames[actor.appearance]}`;
   }
   if (actor.variableValues[id] !== undefined) {
     return actor.variableValues[id] ?? null;
@@ -175,6 +176,21 @@ export function getVariableValue(
     return character.variables[id].defaultValue ?? null;
   }
   return null;
+}
+
+export function applyTransformOperation(
+  existing: ActorTransform,
+  operation: MathOperation,
+  value: ActorTransform,
+) {
+  if (operation === "add") {
+    return RELATIVE_TRANSFORMS[existing][value];
+  }
+  if (operation === "set") {
+    return value;
+  }
+
+  throw new Error(`applyTransformOperation unknown operation ${operation}`);
 }
 
 export function applyVariableOperation(existing: string, operation: MathOperation, value: string) {
@@ -312,7 +328,8 @@ export function getStageScreenshot(stage: Stage, { size }: { size: number }) {
   Object.values(stage.actors).forEach((actor) => {
     const i = new Image();
     const { appearances, appearanceInfo } = characters[actor.characterId].spritesheet;
-    i.src = appearances[actor.appearance];
+    const [id, transform] = appearanceParts(actor.appearance);
+    i.src = appearances[id];
     const info = appearanceInfo?.[actor.appearance] || DEFAULT_APPEARANCE_INFO;
 
     context.save();
@@ -320,7 +337,7 @@ export function getStageScreenshot(stage: Stage, { size }: { size: number }) {
       Math.floor((actor.position.x + 0.5) * pxPerSquare),
       Math.floor((actor.position.y + 0.5) * pxPerSquare),
     );
-    applyActorTransformToContext(context, actor.transform ?? "0");
+    applyActorTransformToContext(context, transform);
     context.drawImage(
       i,
       -(info.anchor.x + 0.5) * pxPerSquare,
@@ -337,6 +354,11 @@ export function getStageScreenshot(stage: Stage, { size }: { size: number }) {
     console.warn(`getStageScreenshot: ${err}`);
   }
   return null;
+}
+
+export function appearanceParts(appearance: string) {
+  const [appearanceId, transform = "0"] = appearance.split("::");
+  return [appearanceId, transform] as [string, ActorTransform];
 }
 
 export function isNever(val: never) {

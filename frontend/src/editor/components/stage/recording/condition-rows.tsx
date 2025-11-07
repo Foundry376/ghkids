@@ -16,6 +16,7 @@ import {
 } from "../../../../types";
 import { pickConditionValueFromKeyboard, selectToolId } from "../../../actions/ui-actions";
 import { TOOLS } from "../../../constants/constants";
+import { appearanceParts } from "../../../utils/stage-helpers";
 import { AppearanceDropdown, TransformDropdown } from "../../inspector/container-pane-variables";
 import { ActorBlock, ActorVariableBlock, AppearanceBlock, TransformBlock } from "./blocks";
 
@@ -200,10 +201,9 @@ export const FreeformConditionValue = ({
         if (onChange) {
           return (
             <TransformDropdown
-              value={(value.constant as ActorTransform) ?? ""}
-              appearance={impliedDatatype.appearance}
+              value={`::${value.constant}`}
               characterId={impliedDatatype.characterId}
-              onChange={(e) => onChange?.({ constant: e ?? "" })}
+              onChange={(e) => onChange?.({ constant: appearanceParts(e ?? "")[1] })}
               displayAsLabel
             />
           );

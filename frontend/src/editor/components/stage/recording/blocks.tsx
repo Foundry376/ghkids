@@ -22,12 +22,7 @@ export const ActorBlock = ({
 }) => {
   return (
     <code>
-      <Sprite
-        spritesheet={character.spritesheet}
-        appearance={actor.appearance}
-        transform={actor.transform}
-        fit
-      />
+      <Sprite spritesheet={character.spritesheet} appearance={actor.appearance} fit />
       {disambiguate
         ? `${character.name} (${actor.position.x},${actor.position.y})`
         : character.name}
@@ -38,21 +33,14 @@ export const ActorBlock = ({
 export const AppearanceBlock = ({
   character,
   appearanceId,
-  transform,
 }: {
   character: Character;
   appearanceId: string;
-  transform?: string;
 }) => {
   const name = character.spritesheet.appearanceNames[appearanceId] || "";
   return (
     <code>
-      <Sprite
-        spritesheet={character.spritesheet}
-        appearance={appearanceId}
-        transform={transform}
-        fit
-      />
+      <Sprite spritesheet={character.spritesheet} appearance={appearanceId} fit />
       {name.trim()}
     </code>
   );
@@ -89,18 +77,13 @@ export const TransformBlock = ({
   transform,
 }: {
   character?: Character;
-  transform?: ActorTransform;
   appearanceId?: string;
+  transform?: ActorTransform;
 }) => {
   return (
     <code>
       {appearanceId && character && (
-        <Sprite
-          spritesheet={character.spritesheet}
-          appearance={appearanceId}
-          transform={transform}
-          fit
-        />
+        <Sprite spritesheet={character.spritesheet} appearance={appearanceId} fit />
       )}
       {TransformLabels[transform || "0"]}
     </code>
