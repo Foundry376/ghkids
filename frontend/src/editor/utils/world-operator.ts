@@ -413,7 +413,7 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
       const origin = deepClone(me.position);
       const { stageActorForId, createActorIds } = opts;
 
-      for (const action of rule.actions) {
+      rule.actions.forEach((action, actionIdx) => {
         if (action.type === "create") {
           const nextPos = wrappedPosition(pointByAdding(origin, action.offset));
           if (!nextPos) {
@@ -424,7 +424,7 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
             position: nextPos,
             variableValues: {},
           });
-          frameAccumulator?.push(nextActor);
+          frameAccumulator?.push({ ...nextActor, actionIdx });
           actors[nextActor.id] = nextActor;
 
           // Note: Allow subsequent lookups to use the actor's real new ID on the stage
@@ -459,14 +459,20 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
               throw new Error(`Action cannot create at this position`);
             }
             stageActor.position = nextPos;
-            frameAccumulator?.push(stageActor);
+            if (!action.noAnimationFrame) {
+              frameAccumulator?.push({ ...stageActor, actionIdx });
+            }
           } else if (action.type === "delete") {
             delete actors[stageActor.id];
-            frameAccumulator?.push({ ...stageActor, deleted: true });
+            if (!action.noAnimationFrame) {
+              frameAccumulator?.push({ ...stageActor, actionIdx, deleted: true });
+            }
           } else if (action.type === "appearance") {
             stageActor.appearance =
               resolveRuleValue(action.value, globals, characters, stageActorForId, "=") ?? "";
-            frameAccumulator?.push(stageActor);
+            if (!action.noAnimationFrame) {
+              frameAccumulator?.push({ ...stageActor, actionIdx });
+            }
           } else if (action.type === "transform") {
             const value = resolveRuleValue(
               action.value,
@@ -481,6 +487,9 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
               value,
             );
             stageActor.transform = next;
+            if (!action.noAnimationFrame) {
+              frameAccumulator?.push({ ...stageActor, actionIdx });
+            }
           } else if (action.type === "variable") {
             const current =
               getVariableValue(
@@ -499,7 +508,7 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
         } else {
           throw new Error(`Not sure how to apply action: ${action}`);
         }
-      }
+      });
     }
 
     return {
@@ -540,6 +549,8 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
       }
     }
 
+    frameAccumulator = new FrameAccumulator(actors);
+
     // lay out the before state and apply any rules that apply to
     // the actors currently on the board
     if (applyActions && "actions" in rule && rule.actions) {
@@ -550,11 +561,8 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
     return u(
       {
         globals: u.constant(globals),
-        stages: {
-          [stage.id]: {
-            actors: u.constant(actors),
-          },
-        },
+        stages: { [stage.id]: { actors: u.constant(actors) } },
+        evaluatedTickFrames: frameAccumulator.getFrames(),
       },
       previousWorld,
     );

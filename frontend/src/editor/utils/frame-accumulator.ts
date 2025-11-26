@@ -1,7 +1,7 @@
 import { Actor } from "../../types";
 import { deepClone } from "./utils";
 
-export type FrameActor = Actor & { deleted?: boolean };
+export type FrameActor = Actor & { deleted?: boolean; actionIdx?: number };
 export type Frame = { actors: { [actorId: string]: FrameActor }; id: number };
 
 export class FrameAccumulator {

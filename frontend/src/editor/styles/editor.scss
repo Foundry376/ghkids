@@ -319,6 +319,31 @@ html {
       overflow-y: auto;
       border-top: 1px solid rgba(0, 0, 0, 0.2);
 
+      .frame-divider {
+        width: 100%;
+        color: white;
+        font-size: 0.7rem;
+        font-weight: 700;
+        text-align: center;
+        background: repeating-linear-gradient(
+          145deg,
+          #2daef978 0px,
+          rgba(47, 167, 237, 0.557) 10px,
+          #2daef978 20px
+        );
+
+        &:hover {
+          filter: brightness(1.1);
+        }
+        &.disabled {
+          background: repeating-linear-gradient(
+            145deg,
+            #cbcbcb78 0px,
+            rgba(211, 211, 211, 0.557) 10px,
+            #cbcbcb78 20px
+          );
+        }
+      }
       li {
         padding: 6px 0;
         border-bottom: 1px solid rgba(0, 0, 0, 0.2);

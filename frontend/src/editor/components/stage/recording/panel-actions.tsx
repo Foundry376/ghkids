@@ -1,7 +1,7 @@
 import { getCurrentStageForWorld } from "../../../utils/selectors";
 
 import classNames from "classnames";
-import { useState } from "react";
+import React, { useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Button } from "reactstrap";
 import {
@@ -223,6 +223,9 @@ export const RecordingActions = (props: { characters: Characters; recording: Rec
   };
 
   const [droppingValue, setDroppingValue] = useState(false);
+  const [showAnimationFrames, setShowAnimationFrames] = useState(() =>
+    actions?.some((a) => a.noAnimationFrame),
+  );
 
   if (!actions) {
     return <span />;
@@ -278,36 +281,78 @@ export const RecordingActions = (props: { characters: Characters; recording: Rec
       onDrop={onDropValue}
     >
       <StageAfterTools />
-      <h2>It should...</h2>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+        <h2>It should...</h2>
+        <Button
+          size="xs"
+          style={{ padding: 4 }}
+          title="Toggle visibility of animation frames"
+          className={showAnimationFrames ? "selected" : ""}
+          onClick={() => setShowAnimationFrames(!showAnimationFrames)}
+        >
+          <img
+            style={{ width: 28 }}
+            src={new URL("../../../img/animation-frames.svg", import.meta.url).href}
+          />
+        </Button>
+      </div>
+
       <ul>
         {actions.map((a, idx) => {
-          afterStage = getCurrentStageForWorld(
-            getAfterWorldForRecording(beforeWorld, characters, recording, idx),
-          );
+          const afterWorld = getAfterWorldForRecording(beforeWorld, characters, recording, idx);
+          afterStage = getCurrentStageForWorld(afterWorld);
+
+          const framesMaxActionIdx = showAnimationFrames
+            ? Math.max(
+                ...(afterWorld.evaluatedTickFrames || []).flatMap((f) =>
+                  Object.values(f.actors).map((p) => p.actionIdx ?? -1),
+                ),
+              )
+            : null;
 
           const node = _renderAction(a, (modified) => {
             dispatch(updateRecordingActions(actions.map((a, i) => (i === idx ? modified : a))));
           });
 
+          const prevAction = actions[idx - 1];
           return (
-            <li
-              key={idx}
-              className={`tool-supported`}
-              onClick={(e) => {
-                if (selectedToolId === TOOLS.TRASH) {
-                  onRemoveAction(a);
-                  if (!e.shiftKey) {
-                    dispatch(selectToolId(TOOLS.POINTER));
+            <React.Fragment key={idx}>
+              {framesMaxActionIdx === idx - 1 ? (
+                <div
+                  className={`frame-divider ${prevAction?.noAnimationFrame ? "disabled" : ""}`}
+                  onClick={() => {
+                    dispatch(
+                      updateRecordingActions(
+                        actions.map((a, i) =>
+                          i === idx - 1
+                            ? { ...prevAction, noAnimationFrame: !prevAction.noAnimationFrame }
+                            : a,
+                        ),
+                      ),
+                    );
+                  }}
+                >
+                  ANIMATION FRAME
+                </div>
+              ) : undefined}
+              <li
+                className={`tool-supported`}
+                onClick={(e) => {
+                  if (selectedToolId === TOOLS.TRASH) {
+                    onRemoveAction(a);
+                    if (!e.shiftKey) {
+                      dispatch(selectToolId(TOOLS.POINTER));
+                    }
                   }
-                }
-              }}
-            >
-              <div style={{ display: "flex", alignItems: "center", gap: 2 }}>{node}</div>
-              <div style={{ flex: 1 }} />
-              <div onClick={() => onRemoveAction(a)} className="condition-remove">
-                <div />
-              </div>
-            </li>
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: 2 }}>{node}</div>
+                <div style={{ flex: 1 }} />
+                <div onClick={() => onRemoveAction(a)} className="condition-remove">
+                  <div />
+                </div>
+              </li>
+            </React.Fragment>
           );
         })}
       </ul>

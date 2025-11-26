@@ -40,7 +40,7 @@ export type VariableComparator =
   | "starts-with"
   | "ends-with";
 
-export type RuleAction =
+export type RuleAction = (
   | {
       type: "appearance";
       actorId: string;
@@ -80,7 +80,8 @@ export type RuleAction =
       actorId: string;
       operation: MathOperation;
       value: RuleValue;
-    };
+    }
+) & { noAnimationFrame?: boolean };
 
 export type ActorTransform = "0" | "90" | "180" | "270" | "flip-x" | "flip-y" | "d1" | "d2";
 

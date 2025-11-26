@@ -272,10 +272,7 @@ function buildActionsFromStageActions(
             };
           }
 
-          if ("transform" in values) {
-            if (existing.transform === values.transform) {
-              return null;
-            }
+          if ("transform" in values && existing.transform !== values.transform) {
             return {
               type: "transform",
               actorId: actorId,
@@ -283,10 +280,7 @@ function buildActionsFromStageActions(
               value: { constant: values.transform! },
             };
           }
-          if ("appearance" in values) {
-            if (existing.appearance === values.appearance) {
-              return null;
-            }
+          if ("appearance" in values && existing.appearance !== values.appearance) {
             return {
               type: "appearance",
               actorId: actorId,

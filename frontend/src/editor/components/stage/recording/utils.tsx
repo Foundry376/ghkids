@@ -65,7 +65,9 @@ export function getAfterWorldForRecording(
       ...recordedRule,
       actions:
         actionSteps !== undefined
-          ? recordedRule.actions.slice(0, actionSteps)
+          ? recordedRule.actions
+              .slice(0, actionSteps)
+              .map((f) => ({ ...f, noAnimationFrame: false }))
           : recordedRule.actions,
       id: "T",
       name: "T",
