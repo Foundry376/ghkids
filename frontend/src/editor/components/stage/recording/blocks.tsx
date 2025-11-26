@@ -42,7 +42,7 @@ export const AppearanceBlock = ({
 }: {
   character: Character;
   appearanceId: string;
-  transform?: string;
+  transform?: ActorTransform;
 }) => {
   const name = character.spritesheet.appearanceNames[appearanceId] || "";
   return (
