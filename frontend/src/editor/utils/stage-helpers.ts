@@ -12,6 +12,7 @@ import {
   Stage,
   VariableComparator,
 } from "../../types";
+import { RELATIVE_TRANSFORMS } from "../components/inspector/transform-lookup";
 import { DEFAULT_APPEARANCE_INFO } from "../components/sprites/sprite";
 
 export function buildActorSelection(worldId: string, stageId: string, actorIds: string[]) {
@@ -175,6 +176,21 @@ export function getVariableValue(
     return character.variables[id].defaultValue ?? null;
   }
   return null;
+}
+
+export function applyTransformOperation(
+  existing: ActorTransform,
+  operation: MathOperation,
+  value: ActorTransform,
+) {
+  if (operation === "add") {
+    return RELATIVE_TRANSFORMS[existing][value];
+  }
+  if (operation === "set") {
+    return value;
+  }
+
+  throw new Error(`applyTransformOperation unknown operation ${operation}`);
 }
 
 export function applyVariableOperation(existing: string, operation: MathOperation, value: string) {

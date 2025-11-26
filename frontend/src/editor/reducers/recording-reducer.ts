@@ -279,6 +279,7 @@ function buildActionsFromStageActions(
             return {
               type: "transform",
               actorId: actorId,
+              operation: "set",
               value: { constant: values.transform! },
             };
           }

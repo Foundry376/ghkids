@@ -1,16 +1,29 @@
 import { getCurrentStageForWorld } from "../../../utils/selectors";
 
+import classNames from "classnames";
 import { useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { Characters, EditorState, RecordingState, RuleAction } from "../../../../types";
+import { Button } from "reactstrap";
+import {
+  Characters,
+  EditorState,
+  RecordingState,
+  RuleAction,
+  RuleValue,
+  UIState,
+} from "../../../../types";
 import { updateRecordingActions } from "../../../actions/recording-actions";
+import { changeActors } from "../../../actions/stage-actions";
 import { selectToolId } from "../../../actions/ui-actions";
 import { TOOLS } from "../../../constants/constants";
 import { deepClone } from "../../../utils/utils";
+import { TransformEditorModal } from "../../inspector/transform-editor";
+import { RELATIVE_TRANSFORMS } from "../../inspector/transform-lookup";
 import { ActorDeltaCanvas } from "./actor-delta-canvas";
 import { ActorOffsetCanvas } from "./actor-offset-canvas";
 import { ActorBlock, ActorVariableBlock, VariableBlock } from "./blocks";
 import { FreeformConditionValue } from "./condition-rows";
+import { TransformActionPicker } from "./transform-action-picker";
 import { getAfterWorldForRecording } from "./utils";
 import { VariableActionPicker } from "./variable-action-picker";
 
@@ -18,6 +31,7 @@ export const RecordingActions = (props: { characters: Characters; recording: Rec
   const { characters, recording } = props;
   const { beforeWorld, actions, extent } = recording;
   const selectedToolId = useSelector<EditorState, TOOLS>((state) => state.ui.selectedToolId);
+
   const dispatch = useDispatch();
 
   const beforeStage = getCurrentStageForWorld(beforeWorld);
@@ -129,7 +143,27 @@ export const RecordingActions = (props: { characters: Characters; recording: Rec
           <>
             Turn
             <ActorBlock character={character} actor={actor} />
-            to
+            <TransformActionPicker
+              operation={a.operation}
+              onChangeOperation={(operation) => {
+                if (operation === a.operation) {
+                  return;
+                }
+                let value: RuleValue = a.value;
+                if ("constant" in a.value) {
+                  const v = a.value.constant;
+                  if (operation === "add") {
+                    const table = RELATIVE_TRANSFORMS[actor.transform ?? "0"];
+                    value = { constant: Object.entries(table).find((p) => p[0] === v)![1] };
+                  }
+                  if (operation === "set") {
+                    const table = RELATIVE_TRANSFORMS[actor.transform ?? "0"];
+                    value = { constant: Object.entries(table).find((p) => p[1] === v)![0] };
+                  }
+                }
+                onChange({ ...a, operation, value });
+              }}
+            />
             <FreeformConditionValue
               value={a.value}
               world={beforeWorld}
@@ -206,15 +240,13 @@ export const RecordingActions = (props: { characters: Characters; recording: Rec
       const value = { constant };
 
       const newAction: RuleAction | null =
-        variableId === "transform"
-          ? { type: "transform", actorId, value }
-          : variableId === "appearance"
-            ? { type: "appearance", actorId, value }
-            : globalId
-              ? { type: "global", operation: "set", global: globalId, value }
-              : variableId
-                ? { type: "variable", actorId, variable: variableId, operation: "set", value }
-                : null;
+        variableId === "appearance"
+          ? { type: "appearance", actorId, value }
+          : globalId
+            ? { type: "global", operation: "set", global: globalId, value }
+            : variableId
+              ? { type: "variable", actorId, variable: variableId, operation: "set", value }
+              : null;
 
       if (newAction) {
         dispatch(updateRecordingActions([...actions, newAction]));
@@ -231,7 +263,7 @@ export const RecordingActions = (props: { characters: Characters; recording: Rec
   return (
     <div
       className={`panel-actions dropping-${droppingValue}`}
-      style={{ flex: 1, marginLeft: 3 }}
+      style={{ flex: 1, marginLeft: 3, position: "relative" }}
       tabIndex={0}
       onDragOver={(e) => {
         if (e.dataTransfer.types.includes(`variable`)) {
@@ -245,6 +277,7 @@ export const RecordingActions = (props: { characters: Characters; recording: Rec
       }}
       onDrop={onDropValue}
     >
+      <StageAfterTools />
       <h2>It should...</h2>
       <ul>
         {actions.map((a, idx) => {
@@ -278,6 +311,55 @@ export const RecordingActions = (props: { characters: Characters; recording: Rec
           );
         })}
       </ul>
+    </div>
+  );
+};
+
+const StageAfterTools = () => {
+  const [open, setOpen] = useState(false);
+  const dispatch = useDispatch();
+
+  const characters = useSelector<EditorState, Characters>((state) => state.characters);
+  const selectedActors = useSelector<EditorState, UIState["selectedActors"]>(
+    (state) => state.ui.selectedActors,
+  );
+  const recording = useSelector<EditorState, RecordingState>((state) => state.recording);
+  const afterStage = getCurrentStageForWorld(
+    getAfterWorldForRecording(recording.beforeWorld, characters, recording),
+  );
+  const actorId = selectedActors?.actorIds[0];
+  const actor = actorId && afterStage?.actors[actorId];
+
+  const enabled = actor && selectedActors.worldId === "after";
+
+  return (
+    <div
+      className="floating-controls"
+      style={{
+        left: 0,
+        zIndex: 2,
+        position: "absolute",
+        transform: "translate(0, -100%)",
+        paddingBottom: 5,
+        display: "flex",
+        gap: 4,
+      }}
+    >
+      {actor && (
+        <TransformEditorModal
+          open={open}
+          characterId={actor.characterId}
+          appearance={actor.appearance}
+          value={actor.transform ?? "0"}
+          onChange={(transform) => {
+            setOpen(false);
+            dispatch(changeActors(selectedActors!, { transform }));
+          }}
+        />
+      )}
+      <Button disabled={!enabled} className={classNames({ enabled })} onClick={() => setOpen(true)}>
+        Turn…
+      </Button>
     </div>
   );
 };

@@ -11,6 +11,7 @@ import { DeepPartial } from "redux";
 import {
   Actor,
   ActorSelection,
+  ActorTransform,
   Character,
   EditorState,
   Global,
@@ -26,17 +27,15 @@ import { TransformEditorModal } from "./transform-editor";
 import { TransformImages, TransformLabels } from "./transform-images";
 import { VariableGridItem } from "./variable-grid-item";
 
-type AppeanceDropdownProps = {
+type AppearanceGridItemProps = {
   spritesheet: Character["spritesheet"];
-  value: string;
-  onChange: (appearanceId: string) => void;
+  actor: Actor;
+  onChange: (appearanceId: string, transform: ActorTransform) => void;
 };
 
-const AppearanceGridItem = (
-  props: AppeanceDropdownProps & {
-    actorId: string;
-  },
-) => {
+const AppearanceGridItem = ({ actor, spritesheet, onChange }: AppearanceGridItemProps) => {
+  const [open, setOpen] = useState(false);
+
   const _onDragStart = (event: React.DragEvent) => {
     event.dataTransfer.dropEffect = "copy";
     event.dataTransfer.effectAllowed = "copy";
@@ -44,8 +43,8 @@ const AppearanceGridItem = (
       "variable",
       JSON.stringify({
         variableId: "appearance",
-        actorId: props.actorId,
-        value: props.value,
+        actorId: actor.id,
+        value: actor.appearance,
       }),
     );
   };
@@ -53,18 +52,49 @@ const AppearanceGridItem = (
   return (
     <div className={`variable-box variable-set-true`} draggable onDragStart={_onDragStart}>
       <div className="name">Appearance</div>
-      <AppearanceDropdown {...props} />
+      <AppearanceDropdown
+        appearance={actor.appearance}
+        transform={actor.transform}
+        spritesheet={spritesheet}
+        onChange={(appearance) => onChange(appearance, actor.transform ?? "0")}
+      />
+      <div style={{ display: "flex", marginTop: 2 }}>
+        <Button size="sm" style={{ width: 120 }} onClick={() => setOpen(true)}>
+          Turn…
+        </Button>
+        <TransformEditorModal
+          open={open}
+          appearance={actor.appearance}
+          characterId={actor.characterId}
+          value={actor.transform ?? "0"}
+          onChange={(value) => {
+            setOpen(false);
+            onChange(actor.appearance, value);
+          }}
+        />
+      </div>
     </div>
   );
 };
 
-export const AppearanceDropdown = ({ spritesheet, value, onChange }: AppeanceDropdownProps) => {
+type AppeanceDropdownProps = {
+  spritesheet: Character["spritesheet"];
+  appearance: string;
+  transform?: ActorTransform;
+  onChange: (appearanceId: string) => void;
+};
+
+export const AppearanceDropdown = ({
+  spritesheet,
+  appearance,
+  onChange,
+}: AppeanceDropdownProps) => {
   const [open, setOpen] = useState(false);
 
   return (
     <ButtonDropdown size="sm" isOpen={open} toggle={() => setOpen(!open)}>
       <DropdownToggle caret>
-        <Sprite spritesheet={spritesheet} appearance={value} fit />
+        <Sprite spritesheet={spritesheet} appearance={appearance} fit />
       </DropdownToggle>
       <DropdownMenu className="with-sprites" container="body">
         {Object.keys(spritesheet.appearances).map((id) => (
@@ -83,24 +113,6 @@ type TransformDropdownProps = {
   characterId?: string;
   appearance?: string;
   displayAsLabel?: boolean;
-};
-
-const TransformGridItem = (props: TransformDropdownProps & { actorId: string }) => {
-  const _onDragStart = (event: React.DragEvent) => {
-    event.dataTransfer.dropEffect = "copy";
-    event.dataTransfer.effectAllowed = "copy";
-    event.dataTransfer.setData(
-      "variable",
-      JSON.stringify({ variableId: "transform", actorId: props.actorId, value: props.value }),
-    );
-  };
-
-  return (
-    <div className={`variable-box variable-set-true`} draggable onDragStart={_onDragStart}>
-      <div className="name">Direction</div>
-      <TransformDropdown {...props} />
-    </div>
-  );
 };
 
 export const TransformDropdown = ({
@@ -207,22 +219,10 @@ export const ContainerPaneVariables = ({
       <div className="variables-grid">
         {actor && (
           <AppearanceGridItem
-            actorId={actor.id}
-            value={actor.appearance}
+            actor={actor}
             spritesheet={character.spritesheet}
-            onChange={(appearance) => {
-              dispatch(changeActors(selectedActors!, { appearance }));
-            }}
-          />
-        )}
-        {actor && (
-          <TransformGridItem
-            value={actor.transform}
-            actorId={actor.id}
-            characterId={actor.characterId}
-            appearance={actor.appearance}
-            onChange={(value) => {
-              dispatch(changeActors(selectedActors!, { transform: value }));
+            onChange={(appearance, transform) => {
+              dispatch(changeActors(selectedActors!, { appearance, transform }));
             }}
           />
         )}

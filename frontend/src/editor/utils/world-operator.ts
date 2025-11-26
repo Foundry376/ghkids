@@ -29,6 +29,7 @@ import { getCurrentStageForWorld } from "./selectors";
 import {
   actorFillsPoint,
   actorIntersectsExtent,
+  applyTransformOperation,
   applyVariableOperation,
   getVariableValue,
   isNever,
@@ -467,14 +468,19 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
               resolveRuleValue(action.value, globals, characters, stageActorForId, "=") ?? "";
             frameAccumulator?.push(stageActor);
           } else if (action.type === "transform") {
-            stageActor.transform = resolveRuleValue(
+            const value = resolveRuleValue(
               action.value,
               globals,
               characters,
               stageActorForId,
               "=",
             ) as ActorTransform;
-            frameAccumulator?.push(stageActor);
+            const next = applyTransformOperation(
+              stageActor.transform ?? "0",
+              action.operation ?? "set",
+              value,
+            );
+            stageActor.transform = next;
           } else if (action.type === "variable") {
             const current =
               getVariableValue(
@@ -483,11 +489,9 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
                 action.variable,
                 "=",
               ) ?? "0";
-            const next = applyVariableOperation(
-              current,
-              action.operation,
-              resolveRuleValue(action.value, globals, characters, stageActorForId, "=") ?? "",
-            );
+            const value =
+              resolveRuleValue(action.value, globals, characters, stageActorForId, "=") ?? "";
+            const next = applyVariableOperation(current, action.operation, value);
             stageActor.variableValues[action.variable] = next;
           } else {
             throw new Error(`Not sure how to apply action: ${action}`);

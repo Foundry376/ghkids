@@ -1,68 +1,11 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
 import { Button, Modal, ModalBody, ModalFooter } from "reactstrap";
 import { ActorTransform, Characters, EditorState } from "../../../types";
 import { STAGE_CELL_SIZE } from "../../constants/constants";
 import ActorSprite from "../sprites/actor-sprite";
 import { TransformLabels } from "./transform-images";
-
-const RELATIVE_TRANSFORMS: {
-  [key in ActorTransform]: {
-    "flip-x": ActorTransform;
-    "flip-y": ActorTransform;
-    "rotate 90": ActorTransform;
-    "rotate -90": ActorTransform;
-  };
-} = {
-  "0": {
-    "flip-x": "flip-x",
-    "flip-y": "flip-y",
-    "rotate 90": "90",
-    "rotate -90": "270",
-  },
-  "90": {
-    "flip-x": "d2",
-    "flip-y": "d1",
-    "rotate 90": "180",
-    "rotate -90": "0",
-  },
-  "180": {
-    "flip-x": "flip-x",
-    "flip-y": "flip-y",
-    "rotate 90": "270",
-    "rotate -90": "90",
-  },
-  "270": {
-    "flip-x": "d1",
-    "flip-y": "d2",
-    "rotate 90": "0",
-    "rotate -90": "180",
-  },
-  "flip-x": {
-    "flip-x": "0",
-    "flip-y": "180",
-    "rotate 90": "d2",
-    "rotate -90": "d1",
-  },
-  "flip-y": {
-    "flip-x": "180",
-    "flip-y": "0",
-    "rotate 90": "d1",
-    "rotate -90": "d2",
-  },
-  d1: {
-    "flip-x": "270",
-    "flip-y": "90",
-    "rotate -90": "flip-y",
-    "rotate 90": "flip-x",
-  },
-  d2: {
-    "flip-x": "90",
-    "flip-y": "270",
-    "rotate -90": "flip-x",
-    "rotate 90": "flip-y",
-  },
-};
+import { RELATIVE_TRANSFORMS } from "./transform-lookup";
 
 export const TransformEditorModal = ({
   open,
@@ -79,6 +22,11 @@ export const TransformEditorModal = ({
 }) => {
   const characters = useSelector<EditorState, Characters>((e) => e.characters);
   const [transform, setTransform] = useState<ActorTransform>(value);
+
+  useEffect(() => {
+    setTransform(value);
+  }, [open, value]);
+
   return (
     <Modal
       isOpen={open}
@@ -100,10 +48,10 @@ export const TransformEditorModal = ({
           }}
         >
           <Button onClick={() => setTransform("0")}>Reset</Button>
-          <Button onClick={() => setTransform(RELATIVE_TRANSFORMS[transform]["rotate -90"])}>
+          <Button onClick={() => setTransform(RELATIVE_TRANSFORMS[transform]["270"])}>
             Rotate -90º
           </Button>
-          <Button onClick={() => setTransform(RELATIVE_TRANSFORMS[transform]["rotate 90"])}>
+          <Button onClick={() => setTransform(RELATIVE_TRANSFORMS[transform]["90"])}>
             Rotate 90º
           </Button>
           <Button onClick={() => setTransform(RELATIVE_TRANSFORMS[transform]["flip-x"])}>

@@ -216,7 +216,7 @@ export const FreeformConditionValue = ({
           if (onChange) {
             return (
               <AppearanceDropdown
-                value={value.constant}
+                appearance={value.constant}
                 spritesheet={impliedDatatype.character.spritesheet}
                 onChange={(e) => onChange?.({ constant: e ?? "" })}
               />

@@ -78,6 +78,7 @@ export type RuleAction =
   | {
       type: "transform";
       actorId: string;
+      operation: MathOperation;
       value: RuleValue;
     };
 
