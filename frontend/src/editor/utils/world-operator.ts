@@ -459,19 +459,32 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
               throw new Error(`Action cannot create at this position`);
             }
             stageActor.position = nextPos;
-            if (!action.noAnimationFrame) {
-              frameAccumulator?.push({ ...stageActor, actionIdx });
+            if (action.animationStyle !== "skip") {
+              frameAccumulator?.push({
+                ...stageActor,
+                actionIdx,
+                animationStyle: action.animationStyle,
+              });
             }
           } else if (action.type === "delete") {
             delete actors[stageActor.id];
-            if (!action.noAnimationFrame) {
-              frameAccumulator?.push({ ...stageActor, actionIdx, deleted: true });
+            if (action.animationStyle !== "skip") {
+              frameAccumulator?.push({
+                ...stageActor,
+                actionIdx,
+                deleted: true,
+                animationStyle: action.animationStyle,
+              });
             }
           } else if (action.type === "appearance") {
             stageActor.appearance =
               resolveRuleValue(action.value, globals, characters, stageActorForId, "=") ?? "";
-            if (!action.noAnimationFrame) {
-              frameAccumulator?.push({ ...stageActor, actionIdx });
+            if (action.animationStyle !== "skip") {
+              frameAccumulator?.push({
+                ...stageActor,
+                actionIdx,
+                animationStyle: action.animationStyle,
+              });
             }
           } else if (action.type === "transform") {
             const value = resolveRuleValue(
@@ -487,8 +500,12 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
               value,
             );
             stageActor.transform = next;
-            if (!action.noAnimationFrame) {
-              frameAccumulator?.push({ ...stageActor, actionIdx });
+            if (action.animationStyle !== "skip") {
+              frameAccumulator?.push({
+                ...stageActor,
+                actionIdx,
+                animationStyle: action.animationStyle,
+              });
             }
           } else if (action.type === "variable") {
             const current =

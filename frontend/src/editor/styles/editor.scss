@@ -326,16 +326,25 @@ html {
         font-weight: 700;
         text-align: center;
         background: repeating-linear-gradient(
-          145deg,
+          100deg,
           #2daef978 0px,
-          rgba(47, 167, 237, 0.557) 10px,
+          rgba(2, 115, 181, 0.557) 10px,
           #2daef978 20px
         );
 
         &:hover {
           filter: brightness(1.1);
         }
-        &.disabled {
+        &.none {
+          background: repeating-linear-gradient(
+            90deg,
+            #2daef978 0%,
+            #2daef978 50%,
+            rgba(2, 115, 181, 0.557) 51%,
+            rgba(2, 115, 181, 0.557) 100%
+          );
+        }
+        &.skip {
           background: repeating-linear-gradient(
             145deg,
             #cbcbcb78 0px,

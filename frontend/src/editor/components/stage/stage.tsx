@@ -683,14 +683,17 @@ export const Stage = ({
     lastActorPositions.current[actor.id] = Object.assign({}, actor.position);
 
     const draggable = !readonly && !DRAGGABLE_TOOLS.includes(selectedToolId);
-
+    const animationStyle = actor.animationStyle || "linear";
+    console.log(actor.frameCount, animationStyle);
     return (
       <ActorSprite
         key={`${actor.id}-${didWrap}`}
         selected={selected.includes(actor)}
         onMouseUp={(event) => onMouseUpActor(actor, event)}
         onDoubleClick={() => onSelectActor(actor)}
-        transitionDuration={playback.speed / (actor.frameCount || 1)}
+        transitionDuration={
+          animationStyle === "linear" ? playback.speed / (actor.frameCount || 1) : 0
+        }
         character={character}
         actor={actor}
         dragActorIds={

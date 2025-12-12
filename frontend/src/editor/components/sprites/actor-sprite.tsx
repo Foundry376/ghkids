@@ -147,6 +147,8 @@ const ActorSprite = (props: {
         style={{
           transform: SPRITE_TRANSFORM_CSS[actor.transform ?? "0"],
           transformOrigin: `${((info.anchor.x + 0.5) / info.width) * 100}% ${((info.anchor.y + 0.5) / info.height) * 100}%`,
+          transitionProperty: "transform",
+          transitionDuration: `${transitionDuration}ms`,
           pointerEvents: "auto",
         }}
       />

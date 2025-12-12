@@ -1,7 +1,11 @@
-import { Actor } from "../../types";
+import { Actor, RuleActionAnimationStyle } from "../../types";
 import { deepClone } from "./utils";
 
-export type FrameActor = Actor & { deleted?: boolean; actionIdx?: number };
+export type FrameActor = Actor & {
+  deleted?: boolean;
+  actionIdx?: number;
+  animationStyle?: RuleActionAnimationStyle;
+};
 export type Frame = { actors: { [actorId: string]: FrameActor }; id: number };
 
 export class FrameAccumulator {

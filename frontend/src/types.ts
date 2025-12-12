@@ -81,7 +81,9 @@ export type RuleAction = (
       operation: MathOperation;
       value: RuleValue;
     }
-) & { noAnimationFrame?: boolean };
+) & { animationStyle?: RuleActionAnimationStyle };
+
+export type RuleActionAnimationStyle = "linear" | "none" | "skip";
 
 export type ActorTransform = "0" | "90" | "180" | "270" | "flip-x" | "flip-y" | "d1" | "d2";
 
@@ -185,7 +187,10 @@ export type Actor = {
   appearance: string;
   position: PositionRelativeToWorld;
   transform?: ActorTransform;
+
+  // Available in the context of the world operator
   frameCount?: number; // used to sync subdivided animation frames to CSS durations
+  animationStyle?: RuleActionAnimationStyle;
 };
 
 export type Stage = {
