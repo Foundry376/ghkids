@@ -29,9 +29,11 @@ const APIAdapter = {
       return Promise.resolve(world);
     });
   },
-  save: function (_me: User, worldId: string, json: any) {
+  save: function (_me: User, worldId: string, json: any, action?: string) {
+    const query = action ? { action } : {};
     return makeRequest(`/worlds/${worldId}`, {
       method: "PUT",
+      query,
       json,
     });
   },
@@ -53,11 +55,31 @@ const LocalStorageAdapter = {
       window.location.href = `/editor/${_value.uploadedAsId}`;
       return Promise.reject(new Error("Redirecting to the new path for this world."));
     }
+    // Prefer unsavedData if available
+    if (_value.unsavedData) {
+      _value.data = _value.unsavedData;
+    }
     return Promise.resolve(_value);
   },
-  save: function (_me: User, worldId: string, json: any) {
+  save: function (_me: User, worldId: string, json: any, action?: string) {
     const _value = JSON.parse(window.localStorage.getItem(worldId)!);
-    _value.data = json.data;
+    if (action === "save") {
+      // Copy unsavedData to data, clear unsavedData
+      if (_value.unsavedData) {
+        _value.data = _value.unsavedData;
+        delete _value.unsavedData;
+      } else if (json.data) {
+        _value.data = json.data;
+      }
+    } else if (action === "discard") {
+      // Clear unsavedData
+      delete _value.unsavedData;
+    } else {
+      // Default: saveDraft - save to unsavedData
+      _value.unsavedData = json.data;
+      if (json.name) _value.name = json.name;
+      if (json.thumbnail) _value.thumbnail = json.thumbnail;
+    }
     window.localStorage.setItem(worldId, JSON.stringify(_value));
     return Promise.resolve(_value);
   },
@@ -83,25 +105,22 @@ const EditorPage = () => {
   const worldId = useParams().worldId!;
 
   const _mounted = useRef(true);
-  const _saveTimeout = useRef<number | null>(null);
   const _savePromise = useRef<Promise<any> | null>(null);
-  const _pendingSave = useRef(false);
   const storeProvider = useRef<StoreProvider | null>(null);
 
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState(null);
   const [world, setWorld] = useState<Game | null>(null);
   const [retry, setRetry] = useState(0);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
   const Adapter = window.location.href.includes("localstorage") ? LocalStorageAdapter : APIAdapter;
 
   useEffect(() => {
-    const _onBeforeUnload = () => {
-      if (_saveTimeout.current) {
-        saveWorld();
-
-        const msg = "Your changes are still saving. Are you sure you want to close the editor?";
-        (event as any).returnValue = msg; // Gecko, Trident, Chrome 34+
+    const _onBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (hasUnsavedChanges) {
+        const msg = "You have unsaved changes. Are you sure you want to leave?";
+        event.returnValue = msg; // Gecko, Trident, Chrome 34+
         return msg; // Gecko, WebKit, Chrome <34
       }
       return undefined;
@@ -112,7 +131,7 @@ const EditorPage = () => {
       window.removeEventListener("beforeunload", _onBeforeUnload);
       _mounted.current = false;
     };
-  });
+  }, [hasUnsavedChanges]);
 
   usePageTitle(world?.name);
 
@@ -120,6 +139,13 @@ const EditorPage = () => {
     const load = async () => {
       try {
         const loaded = applyDataMigrations(await Adapter.load(me, worldId));
+        // Prefer unsavedData if available, otherwise use data
+        if ((loaded as any).unsavedData) {
+          loaded.data = (loaded as any).unsavedData;
+          setHasUnsavedChanges(true);
+        } else {
+          setHasUnsavedChanges(false);
+        }
         try {
           setWorld(loaded);
           setLoaded(true);
@@ -149,27 +175,21 @@ const EditorPage = () => {
     load();
   }, [me, Adapter, worldId]);
 
-  const saveWorld = () => {
+  const saveDraft = () => {
     if (!storeProvider.current) {
-      // Store provider not initialized yet, mark as pending and skip save
-      _pendingSave.current = true;
       return Promise.resolve();
     }
     const json = storeProvider.current.getWorldSaveData();
-    if (_saveTimeout.current) {
-      clearTimeout(_saveTimeout.current);
-      _saveTimeout.current = null;
-    }
     if (_savePromise.current) {
-      saveWorldSoon();
       return _savePromise.current;
     }
 
-    _savePromise.current = Adapter.save(me, worldId, json)
+    _savePromise.current = Adapter.save(me, worldId, json, "saveDraft")
       .then(() => {
         if (!_mounted.current) {
           return;
         }
+        setHasUnsavedChanges(true);
         _savePromise.current = null;
       })
       .catch((e) => {
@@ -186,17 +206,39 @@ const EditorPage = () => {
     return _savePromise.current;
   };
 
-  const saveWorldSoon = () => {
-    if (_saveTimeout.current) {
-      clearTimeout(_saveTimeout.current);
+  const save = () => {
+    if (!storeProvider.current) {
+      return Promise.resolve();
     }
-    _saveTimeout.current = setTimeout(() => {
-      saveWorld();
-    }, 5000);
+    const json = storeProvider.current.getWorldSaveData();
+    if (_savePromise.current) {
+      return _savePromise.current;
+    }
+
+    _savePromise.current = Adapter.save(me, worldId, json, "save")
+      .then(() => {
+        if (!_mounted.current) {
+          return;
+        }
+        setHasUnsavedChanges(false);
+        _savePromise.current = null;
+      })
+      .catch((e) => {
+        if (!_mounted.current) {
+          return;
+        }
+        _savePromise.current = null;
+        alert(
+          `Codako was unable to save changes to your world. Your internet connection may be offline. \n(Detail: ${e.message})`,
+        );
+        throw new Error(e);
+      });
+
+    return _savePromise.current;
   };
 
-  const saveWorldAnd = (dest: string) => {
-    saveWorld().then(() => {
+  const saveAndExit = (dest: string) => {
+    save().then(() => {
       if (dest === "tutorial") {
         dispatch(createWorld({ from: "tutorial" }));
       } else {
@@ -205,12 +247,31 @@ const EditorPage = () => {
     });
   };
 
+  const exitWithoutSaving = (dest: string) => {
+    if (hasUnsavedChanges) {
+      Adapter.save(me, worldId, {}, "discard").catch(() => {
+        // Ignore errors when discarding
+      });
+    }
+    setHasUnsavedChanges(false);
+    if (dest === "tutorial") {
+      dispatch(createWorld({ from: "tutorial" }));
+    } else {
+      window.location.href = dest;
+    }
+  };
+
   return (
     <EditorContext.Provider
       value={{
         usingLocalStorage: Adapter === LocalStorageAdapter,
-        saveWorldAnd: saveWorldAnd,
-        saveWorld: saveWorld,
+        saveWorldAnd: saveAndExit,
+        saveWorld: save,
+        save: save,
+        saveDraft: saveDraft,
+        saveAndExit: saveAndExit,
+        exitWithoutSaving: exitWithoutSaving,
+        hasUnsavedChanges: hasUnsavedChanges,
       }}
     >
       {error || !loaded ? (
@@ -219,14 +280,12 @@ const EditorPage = () => {
         <StoreProvider
           key={`${world!.id}${retry}`}
           world={world}
-          onWorldChanged={saveWorldSoon}
+          onWorldChanged={() => {
+            // No auto-save - just mark that there are unsaved changes
+            setHasUnsavedChanges(true);
+          }}
           ref={(r) => {
             storeProvider.current = r;
-            // If we had a pending save, trigger it now that store is ready
-            if (_pendingSave.current && r) {
-              _pendingSave.current = false;
-              saveWorld();
-            }
           }}
         >
           <RootEditor />

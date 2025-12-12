@@ -34,9 +34,11 @@ router.get("/worlds/:objectId", async (req, res) => {
   world.playCount = Number(world.playCount) + 1;
   await AppDataSource.getRepository(World).save(world);
 
+  // Return both data and unsavedData - let frontend decide which to use
   res.json(
     Object.assign({}, world.serialize(), {
       data: world.data,
+      unsavedData: world.unsavedData ? JSON.parse(world.unsavedData) : null,
     }),
   );
 });
@@ -128,6 +130,7 @@ router.put("/worlds/:objectId", userFromBasicAuth, async (req, res) => {
   }
 
   const { objectId } = req.params;
+  const action = req.query.action as string | undefined; // 'save', 'saveDraft', or 'discard'
   const world = await AppDataSource.getRepository(World).findOneBy({
     userId: req.user.id,
     id: Number(objectId),
@@ -136,16 +139,47 @@ router.put("/worlds/:objectId", userFromBasicAuth, async (req, res) => {
     res.status(404).json({ message: "No world with that ID exists for that user." });
     return;
   }
-  world.name = req.body.name || world.name;
-  world.thumbnail = req.body.thumbnail || world.thumbnail;
-  world.data = req.body.data ?? world.data;
-  world.description = req.body.description ?? world.description;
-  world.published = req.body.published ?? world.published;
+
+  // Handle different save actions
+  if (action === "save") {
+    // Save: copy unsavedData to data, clear unsavedData and timestamp
+    if (world.unsavedData) {
+      world.data = JSON.parse(world.unsavedData) as Record<string, unknown>;
+      world.unsavedData = null;
+      world.unsavedDataUpdatedAt = null;
+    } else if (req.body.data) {
+      // If no unsavedData but data provided, save directly to data
+      world.data = req.body.data;
+    }
+    // Also update name and thumbnail if provided
+    world.name = req.body.name || world.name;
+    world.thumbnail = req.body.thumbnail || world.thumbnail;
+    // Allow updating published/description on save
+    world.description = req.body.description ?? world.description;
+    world.published = req.body.published ?? world.published;
+  } else if (action === "discard") {
+    // Discard: clear unsavedData and timestamp
+    world.unsavedData = null;
+    world.unsavedDataUpdatedAt = null;
+  } else {
+    // Default: saveDraft - save to unsavedData and update timestamp
+    world.name = req.body.name || world.name;
+    world.thumbnail = req.body.thumbnail || world.thumbnail;
+    if (req.body.data) {
+      world.unsavedData = JSON.stringify(req.body.data);
+      world.unsavedDataUpdatedAt = new Date();
+    }
+    // Allow updating published/description during draft save too
+    world.description = req.body.description ?? world.description;
+    world.published = req.body.published ?? world.published;
+  }
 
   await AppDataSource.getRepository(World).save(world);
+
   res.json(
     Object.assign({}, world.serialize(), {
       data: world.data,
+      unsavedData: world.unsavedData ? JSON.parse(world.unsavedData) : null,
     }),
   );
 });

@@ -19,6 +19,12 @@ export class World {
   @Column({ type: "jsonb", nullable: true })
   data: Record<string, unknown> | null;
 
+  @Column({ type: "text", nullable: true })
+  unsavedData: string | null;
+
+  @Column({ type: "timestamptz", nullable: true })
+  unsavedDataUpdatedAt: Date | null;
+
   @Column({ type: "text" })
   thumbnail: string;
 
@@ -66,6 +72,8 @@ export class World {
       updatedAt: this.updatedAt,
       published: this.published,
       description: this.description,
+      unsavedDataUpdatedAt: this.unsavedDataUpdatedAt,
+      hasUnsavedData: !!this.unsavedData,
     };
   }
 }
