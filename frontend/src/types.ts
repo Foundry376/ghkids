@@ -1,9 +1,9 @@
 import { RECORDING_PHASE, TOOLS, WORLDS } from "./editor/constants/constants";
-import { Frame } from "./editor/utils/world-operator";
+import { Frame } from "./editor/utils/frame-accumulator";
 
 export type ImageData = string;
 
-export type ActorPath = { worldId: string | null; stageId: string | null; actorId: string | null };
+export type ActorSelection = { worldId: string; stageId: string; actorIds: string[] };
 
 export type Position = {
   x: number;
@@ -25,7 +25,7 @@ export type PositionRelativeToMainActor = {
   y: number;
 };
 
-export type FrameInput = { keys: { [keyCode: string]: true }; clicks: { [actorId: string]: true } };
+export type FrameInput = { keys: { [key: string]: true }; clicks: { [actorId: string]: true } };
 
 export type MathOperation = "add" | "set" | "subtract";
 
@@ -34,52 +34,56 @@ export type VariableComparator =
   | "!="
   | ">="
   | "<="
+  | ">"
+  | "<"
   | "contains"
   | "starts-with"
   | "ends-with";
 
-export type RuleAction =
+export type RuleAction = (
   | {
-    type: "appearance";
-    actorId: string;
-    value: RuleValue;
-  }
+      type: "appearance";
+      actorId: string;
+      value: RuleValue;
+    }
   | {
-    type: "variable";
-    actorId: string;
-    variable: string; // ID
-    operation: MathOperation;
-    value: RuleValue;
-  }
+      type: "variable";
+      actorId: string;
+      variable: string; // ID
+      operation: MathOperation;
+      value: RuleValue;
+    }
   | {
-    type: "global";
-    global: string; // ID
-    operation: MathOperation;
-    value: RuleValue;
-  }
+      type: "global";
+      global: string; // ID
+      operation: MathOperation;
+      value: RuleValue;
+    }
   | {
-    type: "delete";
-    actorId: string;
-  }
+      type: "delete";
+      actorId: string;
+    }
   | {
-    type: "create";
-    actor: Actor;
-    actorId: string;
-    offset: PositionRelativeToMainActor;
-  }
+      type: "create";
+      actor: Actor;
+      actorId: string;
+      offset: PositionRelativeToMainActor;
+    }
   | {
-    type: "move";
-    actorId: string;
-    delta?: { x: number; y: number };
-    offset?: PositionRelativeToMainActor;
-  }
+      type: "move";
+      actorId: string;
+      delta?: { x: number; y: number };
+      offset?: PositionRelativeToMainActor;
+    }
   | {
-    type: "transform";
-    actorId: string;
-    value: RuleValue;
-  };
+      type: "transform";
+      actorId: string;
+      operation: MathOperation;
+      value: RuleValue;
+    }
+) & { noAnimationFrame?: boolean };
 
-export type ActorTransform = "0" | "flip-x" | "flip-y" | "90" | "180" | "270";
+export type ActorTransform = "0" | "90" | "180" | "270" | "flip-x" | "flip-y" | "d1" | "d2";
 
 export type RuleExtent = {
   xmin: number;
@@ -97,11 +101,21 @@ export type RuleTreeEventItem = {
   id: string;
 };
 
+export type RuleTreeFlowItemCheck = {
+  id: string;
+  mainActorId: string;
+  conditions: RuleCondition[];
+  actors: { [actorIdInRule: string]: Actor };
+  extent: RuleExtent;
+};
+
 export type RuleTreeFlowItemBase = {
   type: "group-flow";
   name: string;
   rules: RuleTreeItem[];
   id: string;
+
+  check?: RuleTreeFlowItemCheck;
 };
 
 export type RuleTreeFlowItemFirst = RuleTreeFlowItemBase & {
@@ -233,18 +247,32 @@ export type EvaluatedRuleIds = {
 
 export type Global =
   | {
-    id: string;
-    name: string;
-    value: string;
-  }
+      id: string;
+      name: string;
+      value: string;
+    }
   | {
-    id: "selectedStageId";
-    name: "Current Stage";
-    value: string;
-    type: "stage";
-  };
+      id: "selectedStageId";
+      name: "Current Stage";
+      value: string;
+      type: "stage";
+    }
+  | {
+      id: "click";
+      name: "Clicked Actor";
+      value: string;
+      type: "actor";
+    }
+  | {
+      id: "keypress";
+      name: "Key Pressed";
+      value: string;
+      type: "key";
+    };
 
 export type Globals = {
+  click: Global;
+  keypress: Global;
   selectedStageId: Global;
   [globalId: string]: Global;
 };
@@ -276,9 +304,9 @@ export type World = WorldMinimal & {
 export type UIState = {
   selectedToolId: TOOLS;
   selectedCharacterId: string | null;
-  selectedActorPath: ActorPath;
+  selectedActors: ActorSelection | null;
   stampToolItem:
-    | ActorPath
+    | ActorSelection
     | { characterId: string }
     | { characterId: string; appearanceId: string }
     | { ruleId: string }
@@ -291,9 +319,9 @@ export type UIState = {
     running: boolean;
   };
   keypicker: {
-    characterId: string | null;
-    initialKeyCode: string | null;
-    ruleId: string | null;
+    open: boolean | null;
+    replaceConditionKey: string | null;
+    initialKey: string | null;
   };
   paint: {
     characterId: string | null;
@@ -336,7 +364,7 @@ export type RecordingState = {
   characterId: string | null;
   actorId: string | null;
   ruleId: string | null;
-  actions: RuleAction[];
+  actions: RuleAction[] | null; // null for flow checks
   conditions: RuleCondition[];
   extent: RuleExtent;
   beforeWorld: WorldMinimal & { id: WORLDS.BEFORE };

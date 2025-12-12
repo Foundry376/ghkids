@@ -1,5 +1,5 @@
 import { CSSProperties } from "react";
-import { AppearanceInfo, Character } from "../../../types";
+import { ActorTransform, AppearanceInfo, Character } from "../../../types";
 
 export const DEFAULT_APPEARANCE_INFO: AppearanceInfo = {
   anchor: { x: 0, y: 0 },
@@ -15,6 +15,8 @@ export const SPRITE_TRANSFORM_CSS: { [key: string]: string } = {
   "270": `rotate(270deg)`,
   "flip-x": `scale(-1, 1)`,
   "flip-y": `scale(1, -1)`,
+  d1: `rotate(90deg) scale(1, -1)`, // reflect over y = x
+  d2: `rotate(-90deg) scale(1, -1)`, // reflect over y = -x
 };
 
 const Sprite = ({
@@ -29,7 +31,7 @@ const Sprite = ({
   spritesheet: Character["spritesheet"];
   appearance: string;
   className?: string;
-  transform?: string;
+  transform?: ActorTransform;
   style?: CSSProperties;
   frame?: number;
   fit?: boolean;

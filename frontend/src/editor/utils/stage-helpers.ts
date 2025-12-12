@@ -10,15 +10,13 @@ import {
   RuleTreeItem,
   RuleValue,
   Stage,
+  VariableComparator,
 } from "../../types";
+import { RELATIVE_TRANSFORMS } from "../components/inspector/transform-lookup";
 import { DEFAULT_APPEARANCE_INFO } from "../components/sprites/sprite";
 
-export function buildActorPath(worldId: string, stageId: string, actorId: string) {
-  return { worldId, stageId, actorId };
-}
-
-export function nullActorPath() {
-  return { worldId: null, stageId: null, actorId: null };
+export function buildActorSelection(worldId: string, stageId: string, actorIds: string[]) {
+  return { worldId, stageId, actorIds };
 }
 
 export function applyAnchorAdjustment(
@@ -89,7 +87,7 @@ export function pointApplyingTransform(
     return [height - 1 - y, x];
   }
   if (transform === "270") {
-    return [width - 1 - x, y];
+    return [y, width - 1 - x];
   }
   if (transform === "180") {
     return [width - 1 - x, height - 1 - y];
@@ -99,6 +97,12 @@ export function pointApplyingTransform(
   }
   if (transform === "flip-y") {
     return [x, height - 1 - y];
+  }
+  if (transform === "d1") {
+    return [y, x];
+  }
+  if (transform === "d2") {
+    return [height - 1 - y, width - 1 - x];
   }
   return [x, y];
 }
@@ -118,6 +122,7 @@ export function resolveRuleValue(
   globals: Globals,
   characters: Characters,
   actors: Stage["actors"],
+  comparator: VariableComparator,
 ): string | null {
   if (!val) {
     console.warn(`A rule value is missing?`);
@@ -131,6 +136,7 @@ export function resolveRuleValue(
       actors[val.actorId],
       characters[actors[val.actorId].characterId],
       val.variableId,
+      comparator,
     );
   }
   if ("globalId" in val) {
@@ -140,9 +146,25 @@ export function resolveRuleValue(
   return "";
 }
 
-export function getVariableValue(actor: Actor, character: Character, id: string) {
+/** Why does the value of a variable depend on `comparator`? It's gross, but we
+ * want to allow an appearances to be compared-by-identity against an appearance ID,
+ * or compared-by-name against a string. They can be renamed, and renaming one shouldn't
+ * break rules saying "appearance = foo".
+ *
+ * Alternatively we could make "= foo" a dynamic lookup of the appearance name, but the
+ * game doesn't currently enforce that appearances need to have unique names.
+ */
+export function getVariableValue(
+  actor: Actor,
+  character: Character,
+  id: string,
+  comparator: VariableComparator,
+) {
   if (id === "appearance") {
-    return actor.appearance ?? null;
+    if (["=", "!="].includes(comparator)) {
+      return actor.appearance ?? null;
+    }
+    return character.spritesheet.appearanceNames[actor.appearance];
   }
   if (id === "transform") {
     return actor.transform ?? null;
@@ -154,6 +176,21 @@ export function getVariableValue(actor: Actor, character: Character, id: string)
     return character.variables[id].defaultValue ?? null;
   }
   return null;
+}
+
+export function applyTransformOperation(
+  existing: ActorTransform,
+  operation: MathOperation,
+  value: ActorTransform,
+) {
+  if (operation === "add") {
+    return RELATIVE_TRANSFORMS[existing][value];
+  }
+  if (operation === "set") {
+    return value;
+  }
+
+  throw new Error(`applyTransformOperation unknown operation ${operation}`);
 }
 
 export function applyVariableOperation(existing: string, operation: MathOperation, value: string) {
@@ -190,8 +227,9 @@ export function findRule(
   }
   return [null, { rules: [] }, 0] as const;
 }
+type HTMLImageElementLoaded = HTMLImageElement & { _codakoloaded?: boolean };
 
-let bgImages: { [url: string]: HTMLImageElement } = {};
+let bgImages: { [url: string]: HTMLImageElementLoaded } = {};
 
 function cssURLToURL(cssUrl: string) {
   if (cssUrl.includes("/Layer0_2.png")) {
@@ -204,7 +242,7 @@ function cssURLToURL(cssUrl: string) {
 }
 
 export function prepareCrossoriginImages(stages: Stage[]) {
-  const next: { [url: string]: HTMLImageElement } = {};
+  const next: { [url: string]: HTMLImageElementLoaded } = {};
 
   for (const stage of stages) {
     const url = cssURLToURL(stage.background);
@@ -212,8 +250,15 @@ export function prepareCrossoriginImages(stages: Stage[]) {
 
     next[url] = bgImages[url];
     if (!next[url]) {
-      const background = new Image();
+      const background = new Image() as HTMLImageElementLoaded;
       background.crossOrigin = "anonymous";
+      background._codakoloaded = false;
+      background.onload = () => {
+        background._codakoloaded = true;
+      };
+      background.onerror = (e) => {
+        console.error(`Failed to load image: ${background.src}: ${e}`);
+      };
       background.src = url;
       next[url] = background;
     }
@@ -241,6 +286,14 @@ export function applyActorTransformToContext(
     case "flip-y":
       context.scale(1, -1);
       break;
+    case "d1":
+      context.rotate((90 * Math.PI) / 180);
+      context.scale(1, -1);
+      break;
+    case "d2":
+      context.rotate((-90 * Math.PI) / 180);
+      context.scale(1, -1);
+      break;
     case "0":
       break;
     default:
@@ -264,7 +317,7 @@ export function getStageScreenshot(stage: Stage, { size }: { size: number }) {
   const backgroundUrl = cssURLToURL(stage.background);
   if (backgroundUrl) {
     const backgroundImage = bgImages[backgroundUrl];
-    if (backgroundImage) {
+    if (backgroundImage && backgroundImage._codakoloaded) {
       context.drawImage(backgroundImage, 0, 0, canvas.width, canvas.height);
     }
   } else {

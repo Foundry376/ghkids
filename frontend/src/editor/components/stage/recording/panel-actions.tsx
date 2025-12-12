@@ -1,23 +1,37 @@
 import { getCurrentStageForWorld } from "../../../utils/selectors";
 
-import { useState } from "react";
+import classNames from "classnames";
+import React, { useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { Characters, EditorState, RecordingState, RuleAction } from "../../../../types";
+import { Button } from "reactstrap";
+import {
+  Characters,
+  EditorState,
+  RecordingState,
+  RuleAction,
+  RuleValue,
+  UIState,
+} from "../../../../types";
 import { updateRecordingActions } from "../../../actions/recording-actions";
+import { changeActors } from "../../../actions/stage-actions";
 import { selectToolId } from "../../../actions/ui-actions";
 import { TOOLS } from "../../../constants/constants";
 import { deepClone } from "../../../utils/utils";
+import { TransformEditorModal } from "../../inspector/transform-editor";
+import { RELATIVE_TRANSFORMS } from "../../inspector/transform-lookup";
 import { ActorDeltaCanvas } from "./actor-delta-canvas";
 import { ActorOffsetCanvas } from "./actor-offset-canvas";
-import { ActorBlock, VariableBlock } from "./blocks";
+import { ActorBlock, ActorVariableBlock, VariableBlock } from "./blocks";
 import { FreeformConditionValue } from "./condition-rows";
+import { TransformActionPicker } from "./transform-action-picker";
 import { getAfterWorldForRecording } from "./utils";
 import { VariableActionPicker } from "./variable-action-picker";
 
 export const RecordingActions = (props: { characters: Characters; recording: RecordingState }) => {
   const { characters, recording } = props;
   const { beforeWorld, actions, extent } = recording;
-  const selectedToolId = useSelector<EditorState>((state) => state.ui.selectedToolId);
+  const selectedToolId = useSelector<EditorState, TOOLS>((state) => state.ui.selectedToolId);
+
   const dispatch = useDispatch();
 
   const beforeStage = getCurrentStageForWorld(beforeWorld);
@@ -85,9 +99,6 @@ export const RecordingActions = (props: { characters: Characters; recording: Rec
         );
       }
 
-      const leftActor = "actorId" in a.value ? afterStage.actors[a.value.actorId] : null;
-      const leftCharacter = leftActor && characters[leftActor.characterId];
-
       if (a.type === "variable") {
         return (
           <>
@@ -97,17 +108,15 @@ export const RecordingActions = (props: { characters: Characters; recording: Rec
             />
             <FreeformConditionValue
               value={a.value}
-              actor={leftActor}
               world={beforeWorld}
-              character={leftCharacter}
+              actors={afterStage.actors}
+              characters={characters}
               onChange={(value) => onChange({ ...a, value })}
               impliedDatatype={null}
-              disambiguate={false}
+              comparator="="
             />
             {{ set: "into", add: "to", subtract: "from" }[a.operation]}
-            <VariableBlock name={character.variables[a.variable].name} />
-            of
-            <ActorBlock character={character} actor={actor} />
+            <ActorVariableBlock character={character} actor={actor} variableId={a.variable} />
           </>
         );
       }
@@ -119,12 +128,12 @@ export const RecordingActions = (props: { characters: Characters; recording: Rec
             to
             <FreeformConditionValue
               value={a.value}
-              actor={leftActor}
               world={beforeWorld}
-              character={leftCharacter}
+              actors={afterStage.actors}
+              characters={characters}
               onChange={(value) => onChange({ ...a, value })}
               impliedDatatype={{ type: "appearance", character }}
-              disambiguate={false}
+              comparator="="
             />
           </>
         );
@@ -134,15 +143,39 @@ export const RecordingActions = (props: { characters: Characters; recording: Rec
           <>
             Turn
             <ActorBlock character={character} actor={actor} />
-            to
+            <TransformActionPicker
+              operation={a.operation}
+              onChangeOperation={(operation) => {
+                if (operation === a.operation) {
+                  return;
+                }
+                let value: RuleValue = a.value;
+                if ("constant" in a.value) {
+                  const v = a.value.constant;
+                  if (operation === "add") {
+                    const table = RELATIVE_TRANSFORMS[actor.transform ?? "0"];
+                    value = { constant: Object.entries(table).find((p) => p[0] === v)![1] };
+                  }
+                  if (operation === "set") {
+                    const table = RELATIVE_TRANSFORMS[actor.transform ?? "0"];
+                    value = { constant: Object.entries(table).find((p) => p[1] === v)![0] };
+                  }
+                }
+                onChange({ ...a, operation, value });
+              }}
+            />
             <FreeformConditionValue
               value={a.value}
-              actor={leftActor}
               world={beforeWorld}
-              character={leftCharacter}
+              actors={afterStage.actors}
+              characters={characters}
               onChange={(value) => onChange({ ...a, value })}
-              impliedDatatype={{ type: "transform" }}
-              disambiguate={false}
+              comparator="="
+              impliedDatatype={{
+                type: "transform",
+                characterId: actor.characterId,
+                appearance: actor.appearance,
+              }}
             />
           </>
         );
@@ -150,8 +183,6 @@ export const RecordingActions = (props: { characters: Characters; recording: Rec
     }
 
     if (a.type === "global") {
-      const leftActor = "actorId" in a.value ? afterStage.actors[a.value.actorId] : null;
-      const leftCharacter = leftActor && characters[leftActor.characterId];
       const declaration = beforeWorld.globals[a.global];
 
       if ("type" in declaration && declaration.type === "stage" && "constant" in a.value) {
@@ -174,12 +205,12 @@ export const RecordingActions = (props: { characters: Characters; recording: Rec
           />
           <FreeformConditionValue
             value={a.value}
-            actor={leftActor}
             world={beforeWorld}
-            character={leftCharacter}
+            actors={afterStage.actors}
+            characters={characters}
             onChange={(value) => onChange({ ...a, value })}
             impliedDatatype={null}
-            disambiguate={false}
+            comparator="="
           />
           {{ set: "into", add: "to", subtract: "from" }[a.operation]}
 
@@ -192,6 +223,13 @@ export const RecordingActions = (props: { characters: Characters; recording: Rec
   };
 
   const [droppingValue, setDroppingValue] = useState(false);
+  const [showAnimationFrames, setShowAnimationFrames] = useState(() =>
+    actions?.some((a) => a.noAnimationFrame),
+  );
+
+  if (!actions) {
+    return <span />;
+  }
 
   const onDropValue = (e: React.DragEvent) => {
     if (e.dataTransfer.types.includes("variable")) {
@@ -205,15 +243,13 @@ export const RecordingActions = (props: { characters: Characters; recording: Rec
       const value = { constant };
 
       const newAction: RuleAction | null =
-        variableId === "transform"
-          ? { type: "transform", actorId, value }
-          : variableId === "appearance"
-            ? { type: "appearance", actorId, value }
-            : globalId
-              ? { type: "global", operation: "set", global: globalId, value }
-              : variableId
-                ? { type: "variable", actorId, variable: variableId, operation: "set", value }
-                : null;
+        variableId === "appearance"
+          ? { type: "appearance", actorId, value }
+          : globalId
+            ? { type: "global", operation: "set", global: globalId, value }
+            : variableId
+              ? { type: "variable", actorId, variable: variableId, operation: "set", value }
+              : null;
 
       if (newAction) {
         dispatch(updateRecordingActions([...actions, newAction]));
@@ -230,7 +266,7 @@ export const RecordingActions = (props: { characters: Characters; recording: Rec
   return (
     <div
       className={`panel-actions dropping-${droppingValue}`}
-      style={{ flex: 1, marginLeft: 3 }}
+      style={{ flex: 1, marginLeft: 3, position: "relative" }}
       tabIndex={0}
       onDragOver={(e) => {
         if (e.dataTransfer.types.includes(`variable`)) {
@@ -244,39 +280,131 @@ export const RecordingActions = (props: { characters: Characters; recording: Rec
       }}
       onDrop={onDropValue}
     >
-      <h2>It should...</h2>
+      <StageAfterTools />
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+        <h2>It should...</h2>
+        <Button
+          size="xs"
+          style={{ padding: 4 }}
+          title="Toggle visibility of animation frames"
+          className={showAnimationFrames ? "selected" : ""}
+          onClick={() => setShowAnimationFrames(!showAnimationFrames)}
+        >
+          <img
+            style={{ width: 28 }}
+            src={new URL("../../../img/animation-frames.svg", import.meta.url).href}
+          />
+        </Button>
+      </div>
+
       <ul>
         {actions.map((a, idx) => {
-          afterStage = getCurrentStageForWorld(
-            getAfterWorldForRecording(beforeWorld, characters, recording, idx),
-          );
+          const afterWorld = getAfterWorldForRecording(beforeWorld, characters, recording, idx);
+          afterStage = getCurrentStageForWorld(afterWorld);
+
+          const framesMaxActionIdx = showAnimationFrames
+            ? Math.max(
+                ...(afterWorld.evaluatedTickFrames || []).flatMap((f) =>
+                  Object.values(f.actors).map((p) => p.actionIdx ?? -1),
+                ),
+              )
+            : null;
 
           const node = _renderAction(a, (modified) => {
             dispatch(updateRecordingActions(actions.map((a, i) => (i === idx ? modified : a))));
           });
 
+          const prevAction = actions[idx - 1];
           return (
-            <li
-              key={idx}
-              className={`tool-${selectedToolId}`}
-              onClick={(e) => {
-                if (selectedToolId === TOOLS.TRASH) {
-                  onRemoveAction(a);
-                  if (!e.shiftKey) {
-                    dispatch(selectToolId(TOOLS.POINTER));
+            <React.Fragment key={idx}>
+              {framesMaxActionIdx === idx - 1 ? (
+                <div
+                  className={`frame-divider ${prevAction?.noAnimationFrame ? "disabled" : ""}`}
+                  onClick={() => {
+                    dispatch(
+                      updateRecordingActions(
+                        actions.map((a, i) =>
+                          i === idx - 1
+                            ? { ...prevAction, noAnimationFrame: !prevAction.noAnimationFrame }
+                            : a,
+                        ),
+                      ),
+                    );
+                  }}
+                >
+                  ANIMATION FRAME
+                </div>
+              ) : undefined}
+              <li
+                className={`tool-supported`}
+                onClick={(e) => {
+                  if (selectedToolId === TOOLS.TRASH) {
+                    onRemoveAction(a);
+                    if (!e.shiftKey) {
+                      dispatch(selectToolId(TOOLS.POINTER));
+                    }
                   }
-                }
-              }}
-            >
-              <div style={{ display: "flex", alignItems: "center", gap: 2 }}>{node}</div>
-              <div style={{ flex: 1 }} />
-              <div onClick={() => onRemoveAction(a)} className="condition-remove">
-                <div />
-              </div>
-            </li>
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: 2 }}>{node}</div>
+                <div style={{ flex: 1 }} />
+                <div onClick={() => onRemoveAction(a)} className="condition-remove">
+                  <div />
+                </div>
+              </li>
+            </React.Fragment>
           );
         })}
       </ul>
+    </div>
+  );
+};
+
+const StageAfterTools = () => {
+  const [open, setOpen] = useState(false);
+  const dispatch = useDispatch();
+
+  const characters = useSelector<EditorState, Characters>((state) => state.characters);
+  const selectedActors = useSelector<EditorState, UIState["selectedActors"]>(
+    (state) => state.ui.selectedActors,
+  );
+  const recording = useSelector<EditorState, RecordingState>((state) => state.recording);
+  const afterStage = getCurrentStageForWorld(
+    getAfterWorldForRecording(recording.beforeWorld, characters, recording),
+  );
+  const actorId = selectedActors?.actorIds[0];
+  const actor = actorId && afterStage?.actors[actorId];
+
+  const enabled = actor && selectedActors.worldId === "after";
+
+  return (
+    <div
+      className="floating-controls"
+      style={{
+        left: 0,
+        zIndex: 2,
+        position: "absolute",
+        transform: "translate(0, -100%)",
+        paddingBottom: 5,
+        display: "flex",
+        gap: 4,
+      }}
+    >
+      {actor && (
+        <TransformEditorModal
+          open={open}
+          characterId={actor.characterId}
+          appearance={actor.appearance}
+          value={actor.transform ?? "0"}
+          onChange={(transform) => {
+            setOpen(false);
+            dispatch(changeActors(selectedActors!, { transform }));
+          }}
+        />
+      )}
+      <Button disabled={!enabled} className={classNames({ enabled })} onClick={() => setOpen(true)}>
+        Turn…
+      </Button>
     </div>
   );
 };

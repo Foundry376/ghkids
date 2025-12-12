@@ -1,6 +1,6 @@
 import Toolbar from "./components/toolbar";
 
-import InspectorContainer from "./components/inspector/container";
+import { InspectorContainer } from "./components/inspector/container";
 import StageContainer from "./components/stage/container";
 import TutorialContainer from "./components/tutorial/container";
 
@@ -11,12 +11,16 @@ import { StagesContainer } from "./components/modal-stages/container";
 import VideosContainer from "./components/modal-videos/container";
 import { StageImagesLoader } from "./components/stage/stage-images-loader";
 
-import { StampCursorSupport } from "./components/stamp-cursor-support";
+import { useSelector } from "react-redux";
+import { EditorState } from "../types";
+import { StampCursorSupport } from "./components/cursor-support";
 import "./styles/editor.scss";
 
 const RootEditor = () => {
+  const selectedToolId = useSelector<EditorState>((state) => state.ui.selectedToolId);
+
   return (
-    <div className="editor">
+    <div className={`editor tool-${selectedToolId}`}>
       <div className="editor-wrap">
         <div className="editor-horizontal-flex">
           <Toolbar />

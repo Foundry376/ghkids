@@ -1,6 +1,5 @@
 import { EditorState, World } from "../../types";
 import { RECORDING_PHASE, TOOLS, WORLDS } from "../constants/constants";
-import { nullActorPath } from "../utils/stage-helpers";
 import stage from "./initial-state-stage";
 
 const InitialWorld: World = {
@@ -9,6 +8,18 @@ const InitialWorld: World = {
     [stage.id]: stage,
   },
   globals: {
+    click: {
+      id: "click",
+      name: "Clicked Actor",
+      value: "",
+      type: "actor",
+    },
+    keypress: {
+      id: "keypress",
+      name: "Key Pressed",
+      value: "",
+      type: "key",
+    },
     selectedStageId: {
       id: "selectedStageId",
       name: "Current Stage",
@@ -38,7 +49,7 @@ const InitialState: EditorState = {
     selectedToolId: TOOLS.POINTER,
     stampToolItem: null,
     selectedCharacterId: null,
-    selectedActorPath: nullActorPath(),
+    selectedActors: null,
     tutorial: {
       stepIndex: 0,
     },
@@ -47,9 +58,9 @@ const InitialState: EditorState = {
       running: false,
     },
     keypicker: {
-      characterId: null,
-      initialKeyCode: null,
-      ruleId: null,
+      open: false,
+      initialKey: null,
+      replaceConditionKey: null,
     },
     paint: {
       characterId: null,

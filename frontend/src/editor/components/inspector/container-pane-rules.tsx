@@ -1,20 +1,26 @@
 import React, { useEffect, useRef } from "react";
 
 import { useDispatch, useSelector } from "react-redux";
-import { Character, EditorState, Rule, RuleTreeItem, UIState } from "../../../types";
+import {
+  Character,
+  EditorState,
+  Rule,
+  RuleTreeFlowItemCheck,
+  RuleTreeItem,
+  UIState,
+} from "../../../types";
 import { upsertCharacter } from "../../actions/characters-actions";
 import { editRuleRecording } from "../../actions/recording-actions";
-import { pickCharacterRuleEventKey, selectToolId } from "../../actions/ui-actions";
+import { selectToolId } from "../../actions/ui-actions";
 import { TOOLS } from "../../constants/constants";
 import { findRule } from "../../utils/stage-helpers";
-import { deepClone } from "../../utils/utils";
+import { deepClone, makeId } from "../../utils/utils";
 import { RuleList } from "./rule-list";
 
 export const RuleActionsContext = React.createContext<{
   onRuleMoved: (movingRuleId: string, newParentId: string | null, newParentIdx: number) => void;
   onRuleStamped: (movingRuleId: string, newParentId: string | null, newParentIdx: number) => void;
-  onRuleReRecord: (rule: Rule) => void;
-  onRulePickKey: (ruleId: string) => void;
+  onRuleReRecord: (rule: Rule | RuleTreeFlowItemCheck) => void;
   onRuleChanged: (ruleId: string, changes: Partial<RuleTreeItem>) => void;
   onRuleDeleted: (ruleId: string, event: React.MouseEvent<unknown>) => void;
 }>(new Error() as never);
@@ -84,13 +90,8 @@ export const ContainerPaneRules = ({ character }: { character: Character | null 
     step();
   };
 
-  const _onRuleReRecord = (rule: Rule) => {
-    dispatch(
-      editRuleRecording({
-        characterId: character.id,
-        rule: rule,
-      }),
-    );
+  const _onRuleReRecord = (rule: Rule | RuleTreeFlowItemCheck) => {
+    dispatch(editRuleRecording({ characterId: character.id, rule: rule }));
   };
 
   const _onRuleMoved = (movingRuleId: string, newParentId: string | null, newParentIdx: number) => {
@@ -166,18 +167,12 @@ export const ContainerPaneRules = ({ character }: { character: Character | null 
       throw new Error(`Parent rules are not rule containers`);
     }
 
-    const copyOfRule = { ...sourceRule, id: `${Date.now()}` };
+    const copyOfRule = { ...sourceRule, id: makeId("rule") };
     if ("name" in copyOfRule) {
       copyOfRule.name = `${copyOfRule.name} Copy`;
     }
     newParentRule.rules.splice(newParentIdx, 0, copyOfRule);
     dispatch(upsertCharacter(character.id, root));
-  };
-
-  const _onRulePickKey = (ruleId: string) => {
-    const [rule] = findRule(character, ruleId);
-    if (!rule || !("code" in rule)) return;
-    dispatch(pickCharacterRuleEventKey(character.id, ruleId, rule.code ?? null));
   };
 
   if (!character.rules || character.rules.length === 0) {
@@ -204,7 +199,6 @@ export const ContainerPaneRules = ({ character }: { character: Character | null 
         onRuleReRecord: _onRuleReRecord,
         onRuleChanged: _onRuleChanged,
         onRuleMoved: _onRuleMoved,
-        onRulePickKey: _onRulePickKey,
         onRuleDeleted: _onRuleDeleted,
         onRuleStamped: _onRuleStamped,
       }}

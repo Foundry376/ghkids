@@ -1,15 +1,16 @@
 import { DeepPartial, Dispatch } from "redux";
-import { Actor, ActorPath, Character, Stage } from "../../types";
+import { Actor, ActorSelection, Character, Stage } from "../../types";
 import * as types from "../constants/action-types";
 
 import { Actions } from ".";
 import { defaultAppearanceId } from "../utils/character-helpers";
+import { makeId } from "../utils/utils";
 import { selectStageId } from "./ui-actions";
 
 // stage collection actions
 
 export function createStage(worldId: string, stageName: string) {
-  const stageId = `${Date.now()}`;
+  const stageId = makeId("stage");
   return (dispatch: Dispatch<Actions>) => {
     dispatch({
       type: types.CREATE_STAGE,
@@ -152,68 +153,81 @@ export type ActionInputForGameState = {
   clicks: { [actorId: string]: true };
 };
 
-export function createActor(
-  { worldId, stageId }: { worldId: string; stageId: string },
-  character: Character,
-  initialValues: DeepPartial<Actor>,
+export function createActors(
+  worldId: string,
+  stageId: string,
+  created: { character: Character; initialValues: DeepPartial<Actor> }[],
 ) {
-  const newID = `${Date.now()}`;
-
-  const newActor: DeepPartial<Actor> = Object.assign(
-    {
-      variableValues: {},
-      appearance: defaultAppearanceId(character.spritesheet),
-    },
-    initialValues,
-    {
-      characterId: character.id,
-      id: newID,
-    },
-  );
-
   return {
-    type: types.UPSERT_ACTOR,
+    type: types.UPSERT_ACTORS,
     worldId,
     stageId,
-    actorId: newID,
-    values: newActor,
+    upserts: created.map(({ character, initialValues }) => {
+      const newID = makeId("actor");
+
+      const newActor: DeepPartial<Actor> = Object.assign(
+        {
+          variableValues: {},
+          appearance: defaultAppearanceId(character.spritesheet),
+        },
+        initialValues,
+        {
+          characterId: character.id,
+          id: newID,
+        },
+      );
+
+      return {
+        id: newID,
+        values: newActor,
+      };
+    }),
   };
 }
-export function changeActor(
-  { worldId, stageId, actorId }: ActorPath,
+
+export function changeActors(
+  selection: ActorSelection,
   values: DeepPartial<Actor>,
 ): ActionUpsertActor {
   return {
-    type: types.UPSERT_ACTOR,
-    worldId: worldId!,
-    stageId: stageId!,
-    actorId: actorId!,
-    values,
+    type: types.UPSERT_ACTORS,
+    ...selection,
+    upserts: selection.actorIds.map((id) => ({ id, values })),
+  };
+}
+
+export function changeActorsIndividually(
+  worldId: string,
+  stageId: string,
+  upserts: ActionUpsertActor["upserts"],
+): ActionUpsertActor {
+  return {
+    type: types.UPSERT_ACTORS,
+    worldId,
+    stageId,
+    upserts,
   };
 }
 
 export type ActionUpsertActor = {
-  type: "UPSERT_ACTOR";
+  type: "UPSERT_ACTORS";
   worldId: string;
   stageId: string;
-  actorId: string;
-  values: DeepPartial<Actor>;
+  upserts: { id: string; values: DeepPartial<Actor> }[];
 };
 
-export function deleteActor({ worldId, stageId, actorId }: ActorPath): ActionDeleteActor {
+export function deleteActors(selection: ActorSelection): ActionDeleteActor {
   return {
-    type: types.DELETE_ACTOR,
-    worldId: worldId!,
-    stageId: stageId!,
-    actorId: actorId!,
+    type: types.DELETE_ACTORS,
+    ...selection,
   };
 }
 
 export type ActionDeleteActor = {
-  type: "DELETE_ACTOR";
+  type: "DELETE_ACTORS";
   worldId: string;
   stageId: string;
-  actorId: string;
+  actorIds: string[];
 };
 
 export type StageActions =

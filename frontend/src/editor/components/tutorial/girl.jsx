@@ -1,8 +1,8 @@
-import React from "react";
 import PropTypes from "prop-types";
+import React from "react";
 
-import "../../styles/girl.scss";
 import { poseFrames } from "../../constants/tutorial";
+import "../../styles/girl.scss";
 
 export default class Girl extends React.Component {
   static propTypes = {
@@ -44,7 +44,7 @@ export default class Girl extends React.Component {
     if (this.props.pose instanceof Array) {
       return [].concat(...this.props.pose.map((key) => poseFrames[key]));
     }
-    return poseFrames[this.props.pose];
+    return poseFrames[this.props.pose] ?? [];
   }
 
   startTimer() {

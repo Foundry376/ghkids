@@ -2,10 +2,32 @@ import PropTypes from "prop-types";
 import React from "react";
 import { nameForKey } from "../../utils/event-helpers";
 
+export function keyToCodakoKey(key) {
+  if (key === " ") {
+    return "Space";
+  }
+  return key;
+}
+
 const forEachKeyRect = (el, cb) => {
   const map = [
-    ["`", "1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "-", "+", { length: 1.65, value: "—" }],
-    [{ length: 1.65, value: 9 }, "Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P", "[", "]", "\\"],
+    ["`", "1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "-", "=", { length: 1.65, value: "—" }],
+    [
+      { length: 1.65, value: "Tab" },
+      "Q",
+      "W",
+      "E",
+      "R",
+      "T",
+      "Y",
+      "U",
+      "I",
+      "O",
+      "P",
+      "[",
+      "]",
+      "\\",
+    ],
     [
       { length: 1.87, value: "—" },
       "A",
@@ -18,8 +40,8 @@ const forEachKeyRect = (el, cb) => {
       "K",
       "L",
       ";",
-      ",",
-      { length: 1.85, value: 13 },
+      "'",
+      { length: 1.85, value: "Enter" },
     ],
     [
       { length: 2.45, value: "—" },
@@ -30,9 +52,9 @@ const forEachKeyRect = (el, cb) => {
       "B",
       "N",
       "M",
-      "<",
-      ">",
-      "?",
+      ",",
+      ".",
+      "/",
       { length: 2.45, value: "—" },
     ],
     [
@@ -40,12 +62,12 @@ const forEachKeyRect = (el, cb) => {
       "—",
       "—",
       { length: 1.6, value: "—" },
-      { length: 5, value: 32 },
+      { length: 5, value: keyToCodakoKey(" ") },
       { length: 1.6, value: "—" },
       "—",
-      { length: 1, value: [null, 37] },
-      { length: 1, value: [38, 40] },
-      { length: 1, value: [null, 39] },
+      { length: 1, value: [null, "ArrowLeft"] },
+      { length: 1, value: ["ArrowUp", "ArrowDown"] },
+      { length: 1, value: [null, "ArrowRight"] },
     ],
   ];
 
@@ -75,7 +97,7 @@ const forEachKeyRect = (el, cb) => {
 
 export default class Keyboard extends React.Component {
   static propTypes = {
-    keyCode: PropTypes.number,
+    value: PropTypes.number,
     onKeyDown: PropTypes.func,
   };
 
@@ -100,10 +122,15 @@ export default class Keyboard extends React.Component {
     const context = this._keyboardCanvasEl.getContext("2d");
     context.clearRect(0, 0, this._keyboardCanvasEl.width, this._keyboardCanvasEl.height);
 
+    console.log(this.props);
     forEachKeyRect(this._keyboardCanvasEl, (x, y, w, h, v) => {
       if (v === "—") {
         context.fillStyle = "#eee";
-      } else if (this.props.keyCode === v || nameForKey(this.props.keyCode) === v) {
+      } else if (
+        this.props.value === v ||
+        this.props.value === `${v}`.toLowerCase() ||
+        nameForKey(this.props.value) === v
+      ) {
         context.fillStyle = "blue";
       } else {
         context.fillStyle = "#ccc";
@@ -123,7 +150,7 @@ export default class Keyboard extends React.Component {
         e.clientY - top > y &&
         e.clientY - top < y + h
       ) {
-        this.props.onKeyDown({ keyCode: v, preventDefault: () => {} });
+        this.props.onKeyDown({ key: v, preventDefault: () => {} });
       }
     });
   };

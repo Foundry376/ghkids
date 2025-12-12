@@ -41,6 +41,20 @@ export const TransformImages = {
       style={{ height: 40, width: 40 }}
     />
   ),
+  d1: (
+    <img
+      draggable={false}
+      src={new URL(`../../img/transform_d1.png`, import.meta.url).href}
+      style={{ height: 40, width: 40 }}
+    />
+  ),
+  d2: (
+    <img
+      draggable={false}
+      src={new URL(`../../img/transform_d2.png`, import.meta.url).href}
+      style={{ height: 40, width: 40 }}
+    />
+  ),
 };
 
 export const TransformLabels = {
@@ -50,4 +64,6 @@ export const TransformLabels = {
   "270": "-90º",
   "flip-x": "Flipped horizontally",
   "flip-y": "Flipped vertically",
+  d1: "Diagonal 1",
+  d2: "Diagonal 2",
 };

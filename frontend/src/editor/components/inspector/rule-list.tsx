@@ -10,7 +10,6 @@ import { selectToolId, selectToolItem } from "../../actions/ui-actions";
 import { TOOLS } from "../../constants/constants";
 import { CONTAINER_TYPES } from "../../utils/world-constants";
 import { RuleActionsContext } from "./container-pane-rules";
-import { InspectorContext } from "./inspector-context";
 
 const DROP_INDEX_NA = 1000;
 const DROP_INDEX_INSIDE_BUT_INDETERMINATE = -1;
@@ -34,7 +33,7 @@ export const RuleList = ({
 }) => {
   const { onRuleMoved, onRuleReRecord, onRuleDeleted, onRuleStamped } =
     useContext(RuleActionsContext);
-  const { selectedToolId } = useContext(InspectorContext);
+  const selectedToolId = useSelector<EditorState, TOOLS>((state) => state.ui.selectedToolId);
   const stampToolItem = useSelector<EditorState, UIState["stampToolItem"]>(
     (s) => s.ui.stampToolItem,
   );
@@ -108,10 +107,13 @@ export const RuleList = ({
 
   const _onRuleDoubleClick = (event: React.MouseEvent<unknown>, rule: RuleTreeItem) => {
     event.stopPropagation();
-    if (rule.type === CONTAINER_TYPES.EVENT || rule.type === CONTAINER_TYPES.FLOW) {
-      return;
+
+    if (rule.type === CONTAINER_TYPES.FLOW && rule.check) {
+      onRuleReRecord(rule.check);
     }
-    onRuleReRecord(rule);
+    if (rule.type === "rule") {
+      onRuleReRecord(rule);
+    }
   };
 
   const _onDragStart = (event: React.DragEvent<unknown>, rule: RuleTreeItem) => {
@@ -202,7 +204,7 @@ export const RuleList = ({
         draggable
         key={r.id}
         data-rule-id={r.id}
-        className={`rule-container tool-${selectedToolId} ${r.type} ${dragState.hovering === r.id && "hovering"}`}
+        className={`rule-container tool-supported ${r.type} ${dragState.hovering === r.id && "hovering"}`}
         onClick={(event) => _onRuleClicked(event, r)}
         onDoubleClick={(event) => _onRuleDoubleClick(event, r)}
         onDragStart={(event) => _onDragStart(event, r)}

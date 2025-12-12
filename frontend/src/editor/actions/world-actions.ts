@@ -1,6 +1,7 @@
 import { DeepPartial } from "redux";
 import { Global, World } from "../../types";
 import * as types from "../constants/action-types";
+import { makeId } from "../utils/utils";
 
 export function upsertGlobal(
   worldId: string,
@@ -23,7 +24,7 @@ export type ActionUpsertGlobal = {
 };
 
 export function createGlobal(worldId?: string): ActionUpsertGlobal {
-  const globalId = `${Date.now()}`;
+  const globalId = makeId("global");
   return {
     type: types.UPSERT_GLOBAL,
     worldId,

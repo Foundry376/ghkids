@@ -1,12 +1,15 @@
 import { DeepPartial, Dispatch } from "redux";
 import { Actions } from ".";
-import { ActorPath, EditorState } from "../../types";
+import { ActorSelection, EditorState } from "../../types";
 import * as types from "../constants/action-types";
 
-export function selectToolId(toolId: string): ActionSelectToolId {
-  return {
-    type: types.SELECT_TOOL_ID,
-    toolId,
+export function selectToolId(toolId: string) {
+  return (dispatch: Dispatch<Actions>) => {
+    dispatch(stopPlayback());
+    dispatch({
+      type: types.SELECT_TOOL_ID,
+      toolId,
+    });
   };
 }
 export function selectToolItem(toolItem: EditorState["ui"]["stampToolItem"]): ActionSelectToolItem {
@@ -24,11 +27,14 @@ export function selectStageId(worldId: string, stageId: string): ActionSelectSta
   };
 }
 
-export function select(characterId: string, actorPath: ActorPath): ActionSelectDefinitionId {
+export function select(
+  characterId: string | null,
+  actors: ActorSelection | null,
+): ActionSelectDefinitionId {
   return {
     type: types.SELECT_DEFINITION_ID,
     characterId,
-    actorPath,
+    actors,
   };
 }
 
@@ -76,18 +82,18 @@ export function paintCharacterAppearance(characterId: string, appearanceId: stri
   };
 }
 
-export function pickCharacterRuleEventKey(
-  characterId: string,
-  ruleId: string,
-  initialKeyCode: number | null,
+export function pickConditionValueFromKeyboard(
+  open: boolean,
+  initialKey: string | null,
+  replaceConditionKey: string | null,
 ) {
   return (dispatch: Dispatch<Actions>) => {
     dispatch(stopPlayback());
     dispatch({
       type: types.UPDATE_KEYPICKER_STATE,
-      characterId,
-      ruleId,
-      initialKeyCode,
+      open,
+      initialKey,
+      replaceConditionKey,
     });
   };
 }
@@ -119,8 +125,8 @@ export type ActionSelectStageId = {
 
 export type ActionSelectDefinitionId = {
   type: "SELECT_DEFINITION_ID";
-  characterId: string;
-  actorPath: ActorPath;
+  characterId: string | null;
+  actors: ActorSelection | null;
 };
 
 export type ActionUpdatePlaybackState = {
@@ -146,9 +152,9 @@ export type ActionUpdatePaintingState = {
 
 export type ActionUpdateKeypickerState = {
   type: "UPDATE_KEYPICKER_STATE";
-  characterId: string;
-  ruleId: string;
-  initialKeyCode: number | null;
+  open: boolean;
+  initialKey: string | null;
+  replaceConditionKey: string | null;
 };
 
 export type ActionUpdateTutorialState = {

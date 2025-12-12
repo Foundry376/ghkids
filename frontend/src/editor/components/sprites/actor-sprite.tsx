@@ -10,7 +10,7 @@ const ActorSprite = (props: {
   character: Character;
   actor: Actor;
   selected?: boolean;
-  draggable?: boolean;
+  dragActorIds?: string[];
   onClick?: (e: React.MouseEvent) => void;
   onMouseUp?: (e: React.MouseEvent) => void;
   onDoubleClick?: (e: React.MouseEvent) => void;
@@ -20,7 +20,7 @@ const ActorSprite = (props: {
     actor,
     character,
     selected,
-    draggable,
+    dragActorIds,
     transitionDuration,
     onClick,
     onMouseUp,
@@ -68,7 +68,7 @@ const ActorSprite = (props: {
   };
 
   const onDragStart = (event: React.DragEvent) => {
-    if (!draggable) {
+    if (!dragActorIds) {
       event.preventDefault();
       return;
     }
@@ -91,7 +91,8 @@ const ActorSprite = (props: {
     event.dataTransfer.setData(
       "sprite",
       JSON.stringify({
-        actorId: actor.id,
+        dragAnchorActorId: actor.id,
+        actorIds: dragActorIds,
       }),
     );
   };
@@ -102,7 +103,9 @@ const ActorSprite = (props: {
   }
 
   const variableOverlay = info.variableOverlay || { showVariables: false, visibleVariables: {} };
-  const shouldShowVariables = Object.keys(variableOverlay.visibleVariables).some(key => variableOverlay.visibleVariables[key]);
+  const shouldShowVariables = Object.keys(variableOverlay.visibleVariables).some(
+    (key) => variableOverlay.visibleVariables[key],
+  );
 
   return (
     <div
@@ -117,7 +120,7 @@ const ActorSprite = (props: {
       }}
     >
       <img
-        draggable={draggable}
+        draggable={!!dragActorIds}
         data-stage-character-id={character.id}
         onDragStart={(event) => {
           if (isEventInFilledSquare(event)) {
@@ -142,7 +145,7 @@ const ActorSprite = (props: {
         src={data}
         className={`sprite ${selected ? "outlined" : ""}`}
         style={{
-          transform: SPRITE_TRANSFORM_CSS[actor.transform ?? "none"],
+          transform: SPRITE_TRANSFORM_CSS[actor.transform ?? "0"],
           transformOrigin: `${((info.anchor.x + 0.5) / info.width) * 100}% ${((info.anchor.y + 0.5) / info.height) * 100}%`,
           pointerEvents: "auto",
         }}

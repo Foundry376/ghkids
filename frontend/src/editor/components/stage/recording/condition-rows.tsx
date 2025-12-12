@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 
 import { useDispatch, useSelector } from "react-redux";
+import { Button } from "reactstrap";
 import {
   Actor,
   ActorTransform,
@@ -13,10 +14,10 @@ import {
   VariableComparator,
   WorldMinimal,
 } from "../../../../types";
-import { selectToolId } from "../../../actions/ui-actions";
+import { pickConditionValueFromKeyboard, selectToolId } from "../../../actions/ui-actions";
 import { TOOLS } from "../../../constants/constants";
 import { AppearanceDropdown, TransformDropdown } from "../../inspector/container-pane-variables";
-import { ActorBlock, AppearanceBlock, TransformBlock, VariableBlock } from "./blocks";
+import { ActorBlock, ActorVariableBlock, AppearanceBlock, TransformBlock } from "./blocks";
 
 interface FreeformConditionRowProps {
   actors: Stage["actors"];
@@ -26,7 +27,12 @@ interface FreeformConditionRowProps {
   onChange?: (keep: boolean, condition: RuleCondition) => void;
 }
 
-type ImpliedDatatype = { type: "transform" } | { type: "appearance"; character: Character } | null;
+type ImpliedDatatype =
+  | { type: "transform"; characterId?: string; appearance?: string }
+  | { type: "appearance"; character: Character }
+  | { type: "key" }
+  | { type: "actor" }
+  | null;
 
 export const FreeformConditionRow = ({
   condition,
@@ -36,28 +42,40 @@ export const FreeformConditionRow = ({
   onChange,
 }: FreeformConditionRowProps) => {
   const { left, right, comparator } = condition;
-  const selectedToolId = useSelector<EditorState>((state) => state.ui.selectedToolId);
+  const selectedToolId = useSelector<EditorState, TOOLS>((state) => state.ui.selectedToolId);
   const dispatch = useDispatch();
 
-  const leftActor = "actorId" in left ? actors[left.actorId] : null;
-  const leftCharacter = leftActor && characters[leftActor.characterId];
-  const rightActor = "actorId" in right ? actors[right.actorId] : null;
-  const rightCharacter = rightActor && characters[rightActor.characterId];
+  const impliedDatatype: ImpliedDatatype = (() => {
+    const variableIds = [
+      "variableId" in left && left.variableId,
+      "variableId" in right && right.variableId,
+    ];
+    const globals = [
+      "globalId" in left && world.globals[left.globalId],
+      "globalId" in right && world.globals[right.globalId],
+    ];
 
-  const disambiguate =
-    leftActor && rightActor && leftActor !== rightActor
-      ? leftActor.characterId === rightActor.characterId
-      : false;
-
-  const variableIds = [
-    "variableId" in left && left.variableId,
-    "variableId" in right && right.variableId,
-  ];
-  const impliedDatatype: ImpliedDatatype = variableIds.includes("transform")
-    ? { type: "transform" }
-    : variableIds.includes("appearance")
-      ? { type: "appearance", character: leftCharacter! || rightCharacter! }
-      : null;
+    const globalType = globals.map((g) => (g && `type` in g ? g.type : null)).filter(Boolean)[0];
+    if (globalType) {
+      return { type: globalType } as ImpliedDatatype;
+    }
+    if (variableIds.includes("transform")) {
+      const actorId = "actorId" in left ? left.actorId : "actorId" in right ? right.actorId : null;
+      return {
+        type: "transform",
+        characterId: actorId ? actors[actorId]?.characterId : undefined,
+        appearance: actorId ? actors[actorId]?.appearance : undefined,
+      };
+    }
+    if (variableIds.includes("appearance")) {
+      const actorId = "actorId" in left ? left.actorId : "actorId" in right ? right.actorId : null;
+      const character = actorId && characters[actors[actorId].characterId];
+      if (character) {
+        return { type: "appearance", character };
+      }
+    }
+    return null;
+  })();
 
   const onToolClick = (e: React.MouseEvent) => {
     if (selectedToolId === TOOLS.TRASH) {
@@ -69,15 +87,16 @@ export const FreeformConditionRow = ({
   };
 
   return (
-    <li className={`enabled-true tool-${selectedToolId}`} onClick={onToolClick}>
+    <li className={`enabled-true tool-supported`} onClick={onToolClick}>
       <FreeformConditionValue
+        conditionId={condition.key}
         value={left}
-        actor={leftActor}
+        actors={actors}
         world={world}
-        character={leftCharacter}
-        disambiguate={disambiguate}
+        characters={characters}
         onChange={onChange ? (value) => onChange(true, { ...condition, left: value }) : undefined}
         impliedDatatype={impliedDatatype}
+        comparator={comparator}
       />
 
       {onChange ? (
@@ -91,13 +110,14 @@ export const FreeformConditionRow = ({
       )}
 
       <FreeformConditionValue
+        conditionId={condition.key}
         value={right}
-        actor={rightActor}
+        actors={actors}
         world={world}
-        character={rightCharacter}
-        disambiguate={disambiguate}
+        characters={characters}
         onChange={onChange ? (value) => onChange(true, { ...condition, right: value }) : undefined}
         impliedDatatype={impliedDatatype}
+        comparator={comparator}
       />
 
       <div style={{ flex: 1 }} />
@@ -110,24 +130,32 @@ export const FreeformConditionRow = ({
   );
 };
 
+const GLOBAL_ICONS: { [id: string]: string } = {
+  click: new URL("../../../img/icon_event_click.png", import.meta.url).href,
+  keypress: new URL("../../../img/icon_event_key.png", import.meta.url).href,
+  selectedStageId: new URL("../../../img/sidebar_choose_background.png", import.meta.url).href,
+};
+
 export const FreeformConditionValue = ({
   value,
-  actor,
-  character,
   world,
-  disambiguate,
+  actors,
+  characters,
   onChange,
   impliedDatatype,
+  conditionId,
+  comparator,
 }: {
   value: RuleValue;
-  actor: Actor | null;
-  character: Character | null;
   world: WorldMinimal;
-  disambiguate: boolean;
+  characters: Characters;
+  actors: { [actorId: string]: Actor };
   onChange?: (value: RuleValue) => void;
   impliedDatatype: ImpliedDatatype;
+  conditionId?: string;
+  comparator: VariableComparator;
 }) => {
-  const selectedToolId = useSelector<EditorState>((state) => state.ui.selectedToolId);
+  const selectedToolId = useSelector<EditorState, TOOLS>((state) => state.ui.selectedToolId);
   const dispatch = useDispatch();
 
   const [droppingValue, setDroppingValue] = useState(false);
@@ -139,6 +167,10 @@ export const FreeformConditionValue = ({
       onChange?.(value);
       e.stopPropagation();
     }
+    if (e.dataTransfer.types.includes("sprite")) {
+      const { dragAnchorActorId } = JSON.parse(e.dataTransfer.getData("sprite"));
+      onChange?.({ constant: dragAnchorActorId });
+    }
     setDroppingValue(false);
   };
 
@@ -146,21 +178,22 @@ export const FreeformConditionValue = ({
     if (!value) {
       return <div>Empty</div>;
     }
-    if ("actorId" in value && actor && character) {
-      return (
-        <div>
-          <ActorBlock character={character} actor={actor} disambiguate={disambiguate} />
-          {value.variableId === "transform" ? (
-            "direction"
-          ) : value.variableId === "appearance" ? (
-            "appearance"
-          ) : (
-            <VariableBlock
-              name={(value.variableId && character.variables[value.variableId].name) || ""}
-            />
-          )}
-        </div>
-      );
+    if ("actorId" in value) {
+      const actor = actors[value.actorId];
+      const character = actor && characters[actor.characterId];
+
+      if (actor && character) {
+        const disambiguate =
+          Object.values(actors).filter((a) => a.characterId === character.id).length > 1;
+        return (
+          <ActorVariableBlock
+            character={character}
+            actor={actor}
+            disambiguate={disambiguate}
+            variableId={value.variableId}
+          />
+        );
+      }
     }
     if ("constant" in value) {
       if (impliedDatatype?.type === "transform") {
@@ -168,6 +201,8 @@ export const FreeformConditionValue = ({
           return (
             <TransformDropdown
               value={(value.constant as ActorTransform) ?? ""}
+              appearance={impliedDatatype.appearance}
+              characterId={impliedDatatype.characterId}
               onChange={(e) => onChange?.({ constant: e ?? "" })}
               displayAsLabel
             />
@@ -177,31 +212,80 @@ export const FreeformConditionValue = ({
         }
       }
       if (impliedDatatype?.type === "appearance") {
-        if (onChange) {
-          return (
-            <AppearanceDropdown
-              value={value.constant}
-              spritesheet={impliedDatatype.character.spritesheet}
-              onChange={(e) => onChange?.({ constant: e ?? "" })}
-            />
-          );
-        } else {
-          return (
-            <AppearanceBlock character={impliedDatatype.character} appearanceId={value.constant} />
-          );
+        if (["!=", "="].includes(comparator)) {
+          if (onChange) {
+            return (
+              <AppearanceDropdown
+                appearance={value.constant}
+                spritesheet={impliedDatatype.character.spritesheet}
+                onChange={(e) => onChange?.({ constant: e ?? "" })}
+              />
+            );
+          } else {
+            return (
+              <AppearanceBlock
+                character={impliedDatatype.character}
+                appearanceId={value.constant}
+              />
+            );
+          }
         }
       }
-      return (
-        <input
-          type="text"
-          value={value.constant}
-          style={{ width: 80 }}
-          onChange={(e) => onChange?.({ constant: e.target.value })}
-        />
-      );
+      if (impliedDatatype?.type === "actor") {
+        const actor = actors[value.constant];
+        const character = actor && characters[actor.characterId];
+        if (actor && character) {
+          const disambiguate =
+            Object.values(actors).filter((a) => a.characterId === character.id).length > 1;
+          return <ActorBlock actor={actor} character={character} disambiguate={disambiguate} />;
+        }
+      }
+      if (impliedDatatype?.type === "key" && conditionId && onChange) {
+        return (
+          <Button
+            size="sm"
+            onClick={() => {
+              dispatch(pickConditionValueFromKeyboard(true, value.constant, conditionId));
+            }}
+          >
+            {value.constant || "Choose…"}
+          </Button>
+        );
+      }
+
+      if (onChange) {
+        return (
+          <input
+            type="text"
+            value={value.constant}
+            style={{ width: 80 }}
+            onChange={(e) => onChange?.({ constant: e.target.value })}
+          />
+        );
+      }
+      return <code>"{value.constant}"</code>;
     }
+
     if ("globalId" in value) {
-      return world.globals[value.globalId]?.name ?? "Unknown global";
+      const icon = GLOBAL_ICONS[value.globalId] ? (
+        <img
+          style={{ width: 40, height: 40, zoom: 0.6, verticalAlign: "middle", marginRight: 8 }}
+          src={GLOBAL_ICONS[value.globalId]}
+        />
+      ) : (
+        <span
+          style={{ fontSize: "20px", lineHeight: "24px", marginRight: 6, verticalAlign: "middle" }}
+        >
+          🌐
+        </span>
+      );
+
+      return (
+        <code>
+          {icon}
+          {world.globals[value.globalId]?.name ?? value.globalId}
+        </code>
+      );
     }
 
     return <span />;
@@ -240,7 +324,7 @@ export const FreeformConditionValue = ({
       tabIndex={0}
       onKeyDown={onKeyDown}
       onClick={onToolClick}
-      className={`right tool-${selectedToolId} dropping-${droppingValue}`}
+      className={`right tool-supported dropping-${droppingValue}`}
       title="Drop a variable or appearance here to create an expression linking two variables."
       onDragOver={(e) => {
         if (e.dataTransfer.types.includes(`variable`)) {
@@ -262,12 +346,27 @@ export const FreeformConditionValue = ({
 const ComparatorLabels = {
   "=": "is",
   "!=": "is not",
+  "<": "<",
   "<=": "<=",
+  ">": ">",
   ">=": ">=",
   contains: "contains",
   "starts-with": "starts with",
   "ends-with": "ends with",
 };
+
+function comparatorsForImpliedDatatype(inferred: ImpliedDatatype) {
+  if (inferred?.type === "key") {
+    return ["=", "contains"];
+  }
+  if (inferred?.type === "actor") {
+    return ["=", "!="];
+  }
+  if (inferred?.type === "appearance") {
+    return ["=", "!=", "contains", "starts-with", "ends-with"];
+  }
+  return ["=", "!="];
+}
 
 const ComparatorSelect = ({
   value,
@@ -281,7 +380,9 @@ const ComparatorSelect = ({
 }) => (
   <select {...rest} value={value} onChange={(e) => onChange(e.target.value as VariableComparator)}>
     {Object.entries(ComparatorLabels)
-      .filter((t) => (impliedDatatype ? ["=", "!="].includes(t[0]) : true))
+      .filter((t) =>
+        impliedDatatype ? comparatorsForImpliedDatatype(impliedDatatype).includes(t[0]) : true,
+      )
       .map(([key, value]) => (
         <option key={key} value={key}>
           {value}

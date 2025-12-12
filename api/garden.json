@@ -3061,11 +3061,7 @@
     "ui": {
       "selectedToolId": "pointer",
       "selectedCharacterId": "1489715966944",
-      "selectedActorPath": {
-        "worldId": null,
-        "stageId": null,
-        "actorId": null
-      },
+      "selectedActors": null,
       "tutorial": {
         "stepIndex": 3,
         "stepSet": "base"
@@ -3075,9 +3071,8 @@
         "running": false
       },
       "keypicker": {
-        "characterId": null,
-        "initialKeyCode": null,
-        "ruleId": null
+        "initialKey": null,
+        "replaceConditionKey": null
       },
       "paint": {
         "characterId": null,

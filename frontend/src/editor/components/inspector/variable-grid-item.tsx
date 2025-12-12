@@ -1,4 +1,5 @@
 import { Character, Global } from "../../../types";
+import { ConnectedActorBlock } from "../stage/recording/blocks";
 import { TapToEditLabel } from "../tap-to-edit-label";
 import ConnectedStagePicker from "./connected-stage-picker";
 
@@ -43,13 +44,28 @@ export const VariableGridItem = ({
 
   let content = null;
 
-  if ("type" in definition && definition.type === "stage") {
+  const type =
+    "type" in definition
+      ? definition.type
+      : displayValue?.startsWith("stage:")
+        ? "stage"
+        : displayValue?.startsWith("actor")
+          ? "actor"
+          : null;
+
+  if (type === "stage") {
     content = (
       <ConnectedStagePicker
         value={`${displayValue}`}
         disabled={disabled}
         onChange={(e) => onChangeValue(definition.id, e.target.value)}
       />
+    );
+  } else if (type === "actor") {
+    content = (
+      <div className="value sprite">
+        {displayValue && <ConnectedActorBlock actorId={displayValue} />}
+      </div>
     );
   } else {
     if (disabled) {

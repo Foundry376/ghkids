@@ -1,4 +1,13 @@
-import { Actor, ActorTransform, Character } from "../../../../types";
+import { useSelector } from "react-redux";
+import {
+  Actor,
+  ActorTransform,
+  Character,
+  Characters,
+  EditorState,
+  WorldMinimal,
+} from "../../../../types";
+import { getCurrentStageForWorld } from "../../../utils/selectors";
 import { TransformLabels } from "../../inspector/transform-images";
 import Sprite from "../../sprites/sprite";
 
@@ -33,7 +42,7 @@ export const AppearanceBlock = ({
 }: {
   character: Character;
   appearanceId: string;
-  transform?: string;
+  transform?: ActorTransform;
 }) => {
   const name = character.spritesheet.appearanceNames[appearanceId] || "";
   return (
@@ -46,6 +55,31 @@ export const AppearanceBlock = ({
       />
       {name.trim()}
     </code>
+  );
+};
+
+export const ActorVariableBlock = ({
+  character,
+  actor,
+  disambiguate,
+  variableId,
+}: {
+  character: Character;
+  actor: Actor;
+  disambiguate?: boolean;
+  variableId: string;
+}) => {
+  return (
+    <div>
+      <ActorBlock character={character} actor={actor} disambiguate={disambiguate} />
+      {variableId === "transform" ? (
+        "direction"
+      ) : variableId === "appearance" ? (
+        "appearance"
+      ) : (
+        <VariableBlock name={(variableId && character.variables[variableId].name) || ""} />
+      )}
+    </div>
   );
 };
 
@@ -75,4 +109,21 @@ export const TransformBlock = ({
 
 export const VariableBlock = ({ name }: { name: string }) => {
   return <code>{(name || "").trim()}</code>;
+};
+
+export const ConnectedActorBlock = ({
+  actorId,
+  recordingWorld,
+}: {
+  actorId: string;
+  recordingWorld?: WorldMinimal;
+}) => {
+  const world = useSelector<EditorState, WorldMinimal>((state) => state.world);
+  const characters = useSelector<EditorState, Characters>((state) => state.characters);
+  const actor = getCurrentStageForWorld(recordingWorld || world)?.actors[actorId];
+  const character = actor && characters[actor.characterId];
+  if (actor && character) {
+    return <ActorBlock actor={actor} character={character} disambiguate />;
+  }
+  return <span>{actorId}</span>;
 };

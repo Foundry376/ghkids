@@ -7,6 +7,7 @@ import { Characters, RecordingState } from "../../../../types";
 import { upsertRecordingCondition } from "../../../actions/recording-actions";
 import { getCurrentStageForWorld } from "../../../utils/selectors";
 import { actorIntersectsExtent } from "../../../utils/stage-helpers";
+import { makeId } from "../../../utils/utils";
 
 export const RecordingConditions = ({
   recording,
@@ -67,20 +68,22 @@ export const RecordingConditions = ({
         setDropping(false);
       }}
       onDrop={(e) => {
-        const { value, actorId, variableId, globalId } = JSON.parse(
-          e.dataTransfer.getData("variable"),
-        );
-        setDropping(false);
+        if (e.dataTransfer.types.includes("variable")) {
+          const { value, actorId, variableId, globalId } = JSON.parse(
+            e.dataTransfer.getData("variable"),
+          );
+          setDropping(false);
 
-        dispatch(
-          upsertRecordingCondition({
-            enabled: true,
-            key: `v3-${Date.now()}`,
-            comparator: "=",
-            left: globalId ? { globalId } : { actorId, variableId },
-            right: { constant: value },
-          }),
-        );
+          dispatch(
+            upsertRecordingCondition({
+              enabled: true,
+              key: makeId("condition"),
+              comparator: "=",
+              left: globalId ? { globalId } : { actorId, variableId },
+              right: { constant: value },
+            }),
+          );
+        }
       }}
     >
       <h2>When the picture matches and:</h2>

@@ -9,7 +9,6 @@ import DropdownMenu from "reactstrap/lib/DropdownMenu";
 import DropdownToggle from "reactstrap/lib/DropdownToggle";
 
 import { MODALS, TOOLS } from "../constants/constants";
-import { nullActorPath } from "../utils/stage-helpers";
 
 import {
   changeCharacterAppearanceName,
@@ -32,6 +31,7 @@ import {
 
 import { Character, Characters, EditorState, UIState } from "../../types";
 import { defaultAppearanceId } from "../utils/character-helpers";
+import { makeId } from "../utils/utils";
 import Sprite from "./sprites/sprite";
 import { TapToEditLabel } from "./tap-to-edit-label";
 
@@ -117,17 +117,27 @@ const LibraryItem: React.FC<LibraryItemProps> = ({
   );
 };
 
+const RECORDING_DELETE_CHARACTER = `Please exit the recording before deleting characters.`;
+const CONFIRM_DELETE_CHARACTER = `Are you sure you want to delete this character? If this character appears in other rules, they'll be removed.`;
+
 export const Library: React.FC = () => {
   const dispatch = useDispatch();
   const characters = useSelector<EditorState, Characters>((s) => s.characters);
   const ui = useSelector<EditorState, UIState>((s) => s.ui);
+  const recordingActorId = useSelector<EditorState, string | null>((s) => s.recording.actorId);
 
   const [characterDropdownOpen, setCharacterDropdownOpen] = useState(false);
 
   const onClickCharacter = useCallback(
     (event: React.MouseEvent<HTMLDivElement>, characterId: string) => {
       if (ui.selectedToolId === TOOLS.TRASH) {
-        dispatch(deleteCharacter(characterId));
+        if (recordingActorId) {
+          window.alert(RECORDING_DELETE_CHARACTER);
+          return;
+        }
+        if (window.confirm(CONFIRM_DELETE_CHARACTER)) {
+          dispatch(deleteCharacter(characterId));
+        }
         if (!event.shiftKey) {
           dispatch(selectToolId(TOOLS.POINTER));
         }
@@ -141,10 +151,10 @@ export const Library: React.FC = () => {
         dispatch(setupRecordingForCharacter({ characterId }));
         dispatch(selectToolId(TOOLS.POINTER));
       } else {
-        dispatch(select(characterId, nullActorPath()));
+        dispatch(select(characterId, null));
       }
     },
-    [ui.selectedToolId, characters, dispatch],
+    [ui.selectedToolId, recordingActorId, dispatch, characters],
   );
 
   const onClickAppearance = useCallback(
@@ -171,7 +181,7 @@ export const Library: React.FC = () => {
       "characterId" in ui.stampToolItem
     ) {
       const existing = characters[ui.stampToolItem.characterId];
-      const newCharacterId = `${Date.now()}`;
+      const newCharacterId = makeId("character");
       dispatch(upsertCharacter(newCharacterId, { ...existing, name: `${existing.name} Copy` }));
       if (!event.shiftKey) {
         dispatch(selectToolId(TOOLS.POINTER));
@@ -188,7 +198,7 @@ export const Library: React.FC = () => {
       const character = ui.selectedCharacterId ? characters[ui.selectedCharacterId] : null;
       if (!character) return;
 
-      const newAppearanceId = `${Date.now()}`;
+      const newAppearanceId = makeId("appearance");
       const newAppearanceData = character.spritesheet.appearances[ui.stampToolItem.appearanceId][0];
       dispatch(createCharacterAppearance(character.id, newAppearanceId, newAppearanceData));
       if (!event.shiftKey) {
@@ -210,7 +220,7 @@ export const Library: React.FC = () => {
             onChangeLabel={(name) => dispatch(upsertCharacter(id, { name }))}
             onClick={(event) => onClickCharacter(event, id)}
             selected={id === ui.selectedCharacterId}
-            outlined={id === ui.selectedCharacterId && !ui.selectedActorPath.actorId}
+            outlined={id === ui.selectedCharacterId && !ui.selectedActors}
           />
         ))}
       </div>
@@ -246,7 +256,7 @@ export const Library: React.FC = () => {
   };
 
   const onCreateCharacter = useCallback(() => {
-    const newCharacterId = `${Date.now()}`;
+    const newCharacterId = makeId("character");
     dispatch(createCharacter(newCharacterId));
     dispatch(paintCharacterAppearance(newCharacterId, "idle"));
   }, [dispatch]);
@@ -261,7 +271,7 @@ export const Library: React.FC = () => {
     const { spritesheet } = characters[ui.selectedCharacterId];
     const appearance = spritesheet.appearances[defaultAppearanceId(spritesheet)];
 
-    const newAppearanceId = `${Date.now()}`;
+    const newAppearanceId = makeId("appearance");
     const newAppearanceData = appearance ? appearance[0] : null;
     dispatch(createCharacterAppearance(ui.selectedCharacterId, newAppearanceId, newAppearanceData));
     dispatch(paintCharacterAppearance(ui.selectedCharacterId, newAppearanceId));
@@ -272,7 +282,7 @@ export const Library: React.FC = () => {
   }, [characterDropdownOpen]);
 
   return (
-    <div className={`library-container tool-${ui.selectedToolId}`}>
+    <div className={`library-container tool-supported`}>
       <div className="panel library" data-tutorial-id="characters">
         <div className="header">
           <h2>Library</h2>

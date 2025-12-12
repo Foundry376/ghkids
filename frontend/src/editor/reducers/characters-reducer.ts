@@ -1,12 +1,20 @@
 import u from "updeep";
 
-import { Character, EditorState, RuleTreeEventItem, RuleTreeItem } from "../../types";
+import {
+  Character,
+  Characters,
+  EditorState,
+  Rule,
+  RuleTreeEventItem,
+  RuleTreeFlowItemCheck,
+  RuleTreeItem,
+} from "../../types";
 import { Actions } from "../actions";
 import { ruleFromRecordingState } from "../components/stage/recording/utils";
 import * as Types from "../constants/action-types";
 import { getCurrentStageForWorld } from "../utils/selectors";
 import { findRule } from "../utils/stage-helpers";
-import { deepClone } from "../utils/utils";
+import { deepClone, makeId } from "../utils/utils";
 import { CONTAINER_TYPES, FLOW_BEHAVIORS } from "../utils/world-constants";
 import initialState from "./initial-state";
 
@@ -21,7 +29,7 @@ export default function charactersReducer(
     }
 
     case Types.DELETE_CHARACTER: {
-      return u.omit(action.characterId, state);
+      return scrubCharacterFromCharacters(state, action.characterId);
     }
 
     case Types.CREATE_CHARACTER_VARIABLE: {
@@ -133,9 +141,24 @@ export default function charactersReducer(
       }
 
       if (recording.ruleId) {
-        const [existingRule, parentRule, parentIdx] = findRule({ rules }, recording.ruleId);
-        if (!existingRule) return state;
-        parentRule.rules[parentIdx] = Object.assign({}, existingRule, recordedRule);
+        if (recording.ruleId.endsWith("-check")) {
+          const ruleId = recording.ruleId.replace("-check", "");
+          const [existingRule, parentRule, parentIdx] = findRule({ rules }, ruleId);
+          if (!existingRule || !("check" in existingRule)) {
+            return state;
+          }
+          const check: RuleTreeFlowItemCheck = Object.assign({}, existingRule.check, {
+            conditions: recordedRule.conditions,
+            actors: recordedRule.actors,
+            extent: recordedRule.extent,
+          });
+          parentRule.rules[parentIdx] = Object.assign({}, existingRule, { check });
+        } else {
+          const [existingRule, parentRule, parentIdx] = findRule({ rules }, recording.ruleId);
+          if (!existingRule) return state;
+          parentRule.rules[parentIdx] = Object.assign({}, existingRule, recordedRule);
+        }
+
         return u.updateIn(recording.characterId, { rules }, state);
       }
 
@@ -144,10 +167,57 @@ export default function charactersReducer(
       ) as RuleTreeEventItem;
       const rulesWithinIdle: RuleTreeItem[] = idleContainer ? idleContainer.rules : rules;
 
-      rulesWithinIdle.unshift({ ...recordedRule, id: `${Date.now()}`, name: "Untitled Rule" });
+      rulesWithinIdle.unshift({ ...recordedRule, id: makeId("rule"), name: "Untitled Rule" });
       return u.updateIn(recording.characterId, { rules }, state);
     }
     default:
       return state;
   }
+}
+
+function scrubCharacterFromCharacters(state: Characters, characterId: string): Characters {
+  const next = deepClone(state);
+  delete next[characterId];
+
+  const scrubRule = (item: RuleTreeItem) => {
+    const container: Rule | RuleTreeFlowItemCheck | undefined =
+      item.type === "rule" ? item : item.type === "group-flow" ? item.check : undefined;
+    if (!container) {
+      return;
+    }
+    const removedIds = Object.values(container.actors)
+      .filter((a) => a.characterId === characterId)
+      .map((a) => a.id);
+
+    for (const id of removedIds) {
+      delete container.actors[id];
+    }
+    container.conditions = container.conditions.filter(
+      (r) =>
+        !(
+          ("actorId" in r.left && removedIds.includes(r.left.actorId)) ||
+          ("actorId" in r.right && removedIds.includes(r.right.actorId))
+        ),
+    );
+    if ("actions" in container) {
+      (container as Rule).actions = (container as Rule).actions.filter(
+        (r) =>
+          !("actorId" in r && removedIds.includes(r.actorId)) &&
+          !("actor" in r && r.actor.characterId === characterId),
+      );
+    }
+    console.log(container);
+    if ("rules" in item) {
+      for (const rule of item.rules) {
+        scrubRule(rule);
+      }
+    }
+  };
+
+  for (const id of Object.keys(next)) {
+    for (const rule of next[id].rules) {
+      scrubRule(rule);
+    }
+  }
+  return next;
 }

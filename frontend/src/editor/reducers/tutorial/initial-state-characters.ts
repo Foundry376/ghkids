@@ -130,6 +130,7 @@ const InitialCharacters: Characters = {
               {
                 type: "transform",
                 actorId: "1483668698770",
+                operation: "set",
                 value: {
                   constant: "0",
                 },
@@ -194,6 +195,7 @@ const InitialCharacters: Characters = {
               {
                 type: "transform",
                 actorId: "1483668698770",
+                operation: "set",
                 value: {
                   constant: "flip-x",
                 },
@@ -329,6 +331,7 @@ const InitialCharacters: Characters = {
               {
                 type: "transform",
                 actorId: "1483668698770",
+                operation: "set",
                 value: {
                   constant: "0",
                 },
@@ -462,6 +465,7 @@ const InitialCharacters: Characters = {
           {
             type: "transform",
             actorId: "1483668698770",
+            operation: "set",
             value: {
               constant: "180",
             },

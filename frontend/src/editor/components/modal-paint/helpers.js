@@ -169,6 +169,10 @@ export function getFlattenedImageData({ imageData, selectionImageData, selection
 export function getFilledSquares(imageData) {
   const filled = {};
 
+  if (!imageData) {
+    return filled;
+  }
+
   for (let x = 0; x < imageData.width; x += 40) {
     for (let y = 0; y < imageData.height; y += 40) {
       forEachInRect({ x, y }, { x: x + 40, y: y + 40 }, (x, y) => {

@@ -11,16 +11,6 @@ $create-account-notice-color: #e6dac1;
 
 @use "sass:color";
 
-@mixin cursor($name) {
-  cursor:
-    url(../img/cursor_#{$name}.cur) 0 0,
-    auto;
-  // cursor:
-  //   -webkit-image-set(url(../img/cursor_#{$name}.cur) 2x) 0 0,
-  //   url(../img/cursor_#{$name}.cur) 0 0,
-  //   auto;
-}
-
 /*
 ::-webkit-scrollbar {
   width: 10px;
@@ -46,29 +36,18 @@ html {
   -webkit-touch-callout: none; // prevent tap-to-enlarge sprite image
 }
 
-.tool-trash {
-  @include cursor("trashcan");
-}
-.tool-paint {
-  @include cursor("paint");
-}
-.tool-record {
-  @include cursor("camera");
-}
-.tool-ignore-square {
-  @include cursor("ignored_square");
-}
-.tool-stamp {
-  @include cursor("stamp");
-}
-.tool-pointer {
-  cursor: default;
+.editor:not(.tool-pointer) .tool-supported {
+  // These cursors are rendered manually so we can center them and draw them large.
+  // The code is in cursor-support.ts
+  cursor: none;
 }
 
 .sprite {
   &.outlined {
-    filter: drop-shadow(2px 0 0.5px $outline-color) drop-shadow(-2px 0 0.5px $outline-color)
-      drop-shadow(0 -2px 0.5px $outline-color) drop-shadow(0 2px 0.5px $outline-color);
+    filter: drop-shadow(var(--outline-width) 0 0.5px $outline-color)
+      drop-shadow(calc(-1 * var(--outline-width)) 0 0.5px $outline-color)
+      drop-shadow(0 calc(-1 * var(--outline-width)) 0.5px $outline-color)
+      drop-shadow(0 var(--outline-width) 0.5px $outline-color);
   }
 }
 
@@ -286,6 +265,11 @@ html {
           top 400ms ease-out,
           left 400ms ease-out;
       }
+      .stage-selection-box {
+        background: rgba(0, 0, 0, 0.1);
+        border: 2px dashed rgba(0, 0, 0, 0.3);
+        outline: 2px solid rgba(255, 255, 255, 0.3);
+      }
     }
 
     .actions {
@@ -307,10 +291,12 @@ html {
     z-index: 2;
   }
 
+  .tool-click,
+  .tool-keypress,
   .tool-ignored-square {
     img {
-      width: 20px;
-      height: 20px;
+      width: 30px;
+      height: 30px;
     }
     padding: 4px;
   }
@@ -319,7 +305,8 @@ html {
     height: 200px;
     display: flex;
 
-    & > div {
+    & > div,
+    .floating-controls {
       background-color: #eee;
       padding: 3px 6px;
       margin-bottom: 4px;
@@ -332,6 +319,31 @@ html {
       overflow-y: auto;
       border-top: 1px solid rgba(0, 0, 0, 0.2);
 
+      .frame-divider {
+        width: 100%;
+        color: white;
+        font-size: 0.7rem;
+        font-weight: 700;
+        text-align: center;
+        background: repeating-linear-gradient(
+          145deg,
+          #2daef978 0px,
+          rgba(47, 167, 237, 0.557) 10px,
+          #2daef978 20px
+        );
+
+        &:hover {
+          filter: brightness(1.1);
+        }
+        &.disabled {
+          background: repeating-linear-gradient(
+            145deg,
+            #cbcbcb78 0px,
+            rgba(211, 211, 211, 0.557) 10px,
+            #cbcbcb78 20px
+          );
+        }
+      }
       li {
         padding: 6px 0;
         border-bottom: 1px solid rgba(0, 0, 0, 0.2);
@@ -718,6 +730,16 @@ html {
       padding: 5px 0;
       font-size: 1.2em;
       font-weight: bold;
+      overflow: hidden;
+      white-space: nowrap;
+    }
+    .value.sprite code {
+      color: black;
+      padding-left: 0.5;
+      font-size: 0.7rem;
+    }
+    .value.sprite img {
+      zoom: 0.6;
     }
     input.value {
       cursor: text;
@@ -762,7 +784,6 @@ html {
       }
     }
     .variable-box input:hover {
-      @include cursor("trashcan");
     }
   }
 }
@@ -772,11 +793,8 @@ html {
 
   .name {
     display: inline-block;
-    font-size: 0.9em;
-    line-height: 1.2em;
     font-weight: bold;
     padding: 0px 4px 0px 4px;
-    margin-bottom: 2px;
     color: #222;
     text-shadow: 0px 1px rgba(255, 255, 255, 0.4);
     background-color: transparent;
@@ -784,6 +802,9 @@ html {
     vertical-align: middle;
     width: 185px;
     min-height: 18px;
+    padding-left: 0;
+    font-size: 1.1em;
+    line-height: 1.4em;
   }
 
   input.name {
@@ -801,35 +822,9 @@ html {
     -webkit-box-shadow: inset 0 0 2px 1px rgba(255, 255, 255, 0.4);
     box-shadow: inset 0 0 2px 1px rgba(255, 255, 255, 0.4);
 
-    &.group-event {
-      background-color: $rule-event-color;
-      .header {
-        user-select: none;
-        height: 36px;
-      }
-    }
-
     &.group-flow {
       background-color: $rule-flow-color;
-      .header {
-        user-select: none;
-        height: 50px;
-        .name {
-          padding-left: 0;
-        }
-      }
-      .header.loop {
-        height: 70px;
-        select:nth-of-type(1) {
-          margin-bottom: 0;
-        }
-        select:nth-of-type(2) {
-          margin-top: 0;
-        }
-        .name {
-          margin-left: 20px;
-        }
-      }
+      user-select: none;
     }
 
     .keycode {
@@ -847,7 +842,6 @@ html {
       display: inline-block;
       width: 12px;
       height: 12px;
-      margin-top: 3px;
       border-radius: 12px;
       background-color: transparent;
       border: 1px solid rgba(0, 0, 0, 0.2);
@@ -905,7 +899,7 @@ html {
       border-color: rgba(0, 0, 0, 0.4) transparent transparent transparent;
       opacity: 0;
       &.disclosed {
-        border-width: 6px 0 6px 10.4px;
+        border-width: 6px 0 6px 12.4px;
         border-color: transparent transparent transparent rgba(0, 0, 0, 0.4);
       }
       &.enabled {
@@ -922,7 +916,11 @@ html {
     -moz-box-shadow: inset 0 0 2px 0px rgba(255, 255, 255, 0.4);
     -webkit-box-shadow: inset 0 0 2px 0px rgba(255, 255, 255, 0.4);
     box-shadow: inset 0 0 2px 0px rgba(255, 255, 255, 0.4);
-
+    .name {
+      padding-left: 4px;
+      font-size: 0.9em;
+      line-height: 1.2em;
+    }
     .action {
       margin-left: 3px;
       margin-right: 3px;
@@ -948,33 +946,34 @@ html {
         display: inline-block;
       }
     }
-    .scenario {
-      display: flex;
-      text-align: center;
-      margin-bottom: 3px;
-      pointer-events: none;
+  }
 
-      .scenario-stage {
-        user-select: none;
-        position: relative;
-        display: inline-block;
-        background:
-          url(../img/board-grid.png) top left,
-          url(../img/checker.png);
-        background-size: 40px, 8px;
-        border: 1px solid #bbb;
-        box-sizing: content-box;
-        vertical-align: middle;
-        overflow: hidden;
-        * {
-          pointer-events: none !important;
-        }
-      }
+  .scenario {
+    display: flex;
+    text-align: center;
+    margin-bottom: 3px;
+    pointer-events: none;
 
-      i {
-        margin: 5px;
-        align-self: center;
+    .scenario-stage {
+      user-select: none;
+      position: relative;
+      display: inline-block;
+      background:
+        url(../img/board-grid.png) top left,
+        url(../img/checker.png);
+      background-size: 40px, 8px;
+      border: 1px solid #bbb;
+      box-sizing: content-box;
+      vertical-align: middle;
+      overflow: hidden;
+      * {
+        pointer-events: none !important;
       }
+    }
+
+    i {
+      margin: 5px;
+      align-self: center;
     }
   }
 }

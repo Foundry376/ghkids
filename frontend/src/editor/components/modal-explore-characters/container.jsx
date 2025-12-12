@@ -5,6 +5,7 @@ import Button from "reactstrap/lib/Button";
 import Modal from "reactstrap/lib/Modal";
 import ModalBody from "reactstrap/lib/ModalBody";
 import ModalFooter from "reactstrap/lib/ModalFooter";
+import { makeId } from "../../utils/utils";
 
 import { makeRequest } from "../../../helpers/api";
 import { upsertCharacter } from "../../actions/characters-actions";
@@ -90,7 +91,7 @@ class Container extends React.Component {
   }
 
   _onAddCharacter = (character) => {
-    const id = `${Date.now()}`;
+    const id = makeId("character");
     this.props.dispatch(upsertCharacter(id, Object.assign({}, character, { id })));
   };
 
