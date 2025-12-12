@@ -32,9 +32,13 @@ router.get("/worlds/:objectId", async (req, res) => {
   world.playCount += 1;
   await AppDataSource.getRepository(World).save(world);
 
+  // Prefer unsavedData if available, otherwise use data
+  const dataToReturn = world.unsavedData || world.data;
+
   res.json(
     Object.assign({}, world.serialize(), {
-      data: world.data ? JSON.parse(world.data) : null,
+      data: dataToReturn ? JSON.parse(dataToReturn) : null,
+      unsavedData: world.unsavedData ? JSON.parse(world.unsavedData) : null,
     }),
   );
 });
@@ -112,6 +116,7 @@ router.put("/worlds/:objectId", userFromBasicAuth, async (req, res) => {
   }
 
   const { objectId } = req.params;
+  const action = req.query.action as string | undefined; // 'save', 'saveDraft', or 'discard'
   const world = await AppDataSource.getRepository(World).findOneBy({
     userId: req.user.id,
     id: Number(objectId),
@@ -120,14 +125,34 @@ router.put("/worlds/:objectId", userFromBasicAuth, async (req, res) => {
     res.status(404).json({ message: "No world with that ID exists for that user." });
     return;
   }
-  world.name = req.body.name || world.name;
-  world.thumbnail = req.body.thumbnail || world.thumbnail;
-  world.data = req.body.data ? JSON.stringify(req.body.data) : world.data;
+
+  // Handle different save actions
+  if (action === "save") {
+    // Save: copy unsavedData to data, clear unsavedData
+    if (world.unsavedData) {
+      world.data = world.unsavedData;
+      world.unsavedData = null;
+    }
+    // Also update name and thumbnail if provided
+    world.name = req.body.name || world.name;
+    world.thumbnail = req.body.thumbnail || world.thumbnail;
+  } else if (action === "discard") {
+    // Discard: clear unsavedData only
+    world.unsavedData = null;
+  } else {
+    // Default: saveDraft - save to unsavedData
+    world.name = req.body.name || world.name;
+    world.thumbnail = req.body.thumbnail || world.thumbnail;
+    world.unsavedData = req.body.data ? JSON.stringify(req.body.data) : world.unsavedData;
+  }
 
   await AppDataSource.getRepository(World).save(world);
+  
+  const dataToReturn = world.unsavedData || world.data;
   res.json(
     Object.assign({}, world.serialize(), {
-      data: world.data ? JSON.parse(world.data) : null,
+      data: dataToReturn ? JSON.parse(dataToReturn) : null,
+      unsavedData: world.unsavedData ? JSON.parse(world.unsavedData) : null,
     }),
   );
 });
