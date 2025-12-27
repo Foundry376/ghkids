@@ -126,24 +126,44 @@ export function getImageDataWithNewFrame(imageData, { width, height, offsetX, of
   return tempContext.getImageData(0, 0, width, height);
 }
 
-export function getImageDataFromDataURL(dataURL, { maxWidth, maxHeight } = {}, callback) {
+export function getImageDataFromDataURL(dataURL, { maxWidth, maxHeight, fill } = {}, callback) {
   const img = new Image();
   img.onload = () => {
-    const scale = maxWidth ? Math.min(1, maxHeight / img.height, maxWidth / img.width) : 1;
-    const width = (tempCanvas.width = img.width * scale);
-    const height = (tempCanvas.height = img.height * scale);
+    let width, height;
 
-    const tempContext = tempCanvas.getContext("2d");
-    tempContext.imageSmoothingEnabled = false;
-    tempContext.clearRect(0, 0, width, height);
-    tempContext.drawImage(
-      img,
-      (width - img.width * scale) / 2,
-      (height - img.height * scale) / 2,
-      img.width * scale,
-      img.height * scale,
-    );
-    callback(tempContext.getImageData(0, 0, width, height));
+    if (fill && maxWidth && maxHeight) {
+      // Scale to fill the target dimensions exactly, cropping if needed
+      const scale = Math.max(maxHeight / img.height, maxWidth / img.width);
+      const scaledWidth = img.width * scale;
+      const scaledHeight = img.height * scale;
+
+      width = tempCanvas.width = maxWidth;
+      height = tempCanvas.height = maxHeight;
+
+      const tempContext = tempCanvas.getContext("2d");
+      tempContext.imageSmoothingEnabled = false;
+      tempContext.clearRect(0, 0, width, height);
+      // Center the scaled image (may crop edges)
+      tempContext.drawImage(
+        img,
+        (width - scaledWidth) / 2,
+        (height - scaledHeight) / 2,
+        scaledWidth,
+        scaledHeight,
+      );
+      callback(tempContext.getImageData(0, 0, width, height));
+    } else {
+      // Original behavior: scale to fit within bounds, preserving aspect ratio
+      const scale = maxWidth ? Math.min(1, maxHeight / img.height, maxWidth / img.width) : 1;
+      width = tempCanvas.width = img.width * scale;
+      height = tempCanvas.height = img.height * scale;
+
+      const tempContext = tempCanvas.getContext("2d");
+      tempContext.imageSmoothingEnabled = false;
+      tempContext.clearRect(0, 0, width, height);
+      tempContext.drawImage(img, 0, 0, width, height);
+      callback(tempContext.getImageData(0, 0, width, height));
+    }
   };
   img.src = dataURL;
 }
