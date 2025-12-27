@@ -1,6 +1,7 @@
 import { expect } from "chai";
 import { applyValueChanges, applyDataMigrations } from "./data-migrations";
 import { Game } from "../types";
+import { WORLDS } from "./constants/constants";
 
 describe("data-migrations", () => {
   describe("applyValueChanges", () => {
@@ -52,7 +53,7 @@ describe("data-migrations", () => {
         version: 1,
         characters: {},
         world: {
-          id: "MAIN",
+          id: WORLDS.ROOT,
           stages: {},
           globals: {
             click: { id: "click", name: "Clicked Actor", value: "", type: "actor" },
@@ -60,7 +61,7 @@ describe("data-migrations", () => {
             selectedStageId: { id: "selectedStageId", name: "Current Stage", value: "", type: "stage" },
           },
           input: { keys: {}, clicks: {} },
-          evaluatedRuleIds: {},
+          evaluatedRuleDetails: {},
           history: [],
           metadata: { name: "Test", id: 1 },
         },
@@ -74,7 +75,7 @@ describe("data-migrations", () => {
       it("should migrate actor transforms from 'none' to '0'", () => {
         const game = makeMinimalGame({
           world: {
-            id: "MAIN",
+            id: WORLDS.ROOT,
             stages: {
               stage1: {
                 id: "stage1",
@@ -105,7 +106,7 @@ describe("data-migrations", () => {
               selectedStageId: { id: "selectedStageId", name: "Current Stage", value: "", type: "stage" },
             },
             input: { keys: {}, clicks: {} },
-            evaluatedRuleIds: {},
+            evaluatedRuleDetails: {},
             history: [],
             metadata: { name: "Test", id: 1 },
           },
@@ -118,7 +119,7 @@ describe("data-migrations", () => {
       it("should migrate actor transforms from '90deg' to '90'", () => {
         const game = makeMinimalGame({
           world: {
-            id: "MAIN",
+            id: WORLDS.ROOT,
             stages: {
               stage1: {
                 id: "stage1",
@@ -149,7 +150,7 @@ describe("data-migrations", () => {
               selectedStageId: { id: "selectedStageId", name: "Current Stage", value: "", type: "stage" },
             },
             input: { keys: {}, clicks: {} },
-            evaluatedRuleIds: {},
+            evaluatedRuleDetails: {},
             history: [],
             metadata: { name: "Test", id: 1 },
           },
@@ -466,7 +467,7 @@ describe("data-migrations", () => {
       it("should not mutate original game object", () => {
         const game = makeMinimalGame({
           world: {
-            id: "MAIN",
+            id: WORLDS.ROOT,
             stages: {
               stage1: {
                 id: "stage1",
@@ -497,7 +498,7 @@ describe("data-migrations", () => {
               selectedStageId: { id: "selectedStageId", name: "Current Stage", value: "", type: "stage" },
             },
             input: { keys: {}, clicks: {} },
-            evaluatedRuleIds: {},
+            evaluatedRuleDetails: {},
             history: [],
             metadata: { name: "Test", id: 1 },
           },
