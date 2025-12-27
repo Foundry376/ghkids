@@ -49,9 +49,11 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
   let frameAccumulator: FrameAccumulator;
 
   function wrappedPosition({ x, y }: PositionRelativeToWorld) {
+    // Use ((n % d) + d) % d to handle negative numbers correctly in JavaScript
+    // Simple (n + d) % d only works when n >= -d
     const o = {
-      x: stage.wrapX ? (x + stage.width) % stage.width : x,
-      y: stage.wrapY ? (y + stage.height) % stage.height : y,
+      x: stage.wrapX ? ((x % stage.width) + stage.width) % stage.width : x,
+      y: stage.wrapY ? ((y % stage.height) + stage.height) % stage.height : y,
     };
     if (o.x < 0 || o.y < 0 || o.x >= stage.width || o.y >= stage.height) {
       return null;
