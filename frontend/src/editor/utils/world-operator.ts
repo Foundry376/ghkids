@@ -76,8 +76,9 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
     const character = characters[stageActor.characterId];
     const rconditions = conditions.filter(
       (a) =>
-        (a.enabled && "actorId" in a.left && a.left.actorId === ruleActor.id) ||
-        ("actorId" in a.right && a.right.actorId === ruleActor.id),
+        a.enabled &&
+        (("actorId" in a.left && a.left.actorId === ruleActor.id) ||
+          ("actorId" in a.right && a.right.actorId === ruleActor.id)),
     );
 
     for (const { left, right, comparator } of rconditions) {
