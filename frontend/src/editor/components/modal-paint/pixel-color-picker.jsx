@@ -41,15 +41,14 @@ export default class PixelColorPicker extends React.Component {
   static propTypes = {
     color: PropTypes.string,
     onColorChange: PropTypes.func,
+    supported: PropTypes.bool,
   };
 
   render() {
-    const { tool, color, onColorChange } = this.props;
-
-    const disabled = !tool.supportsColor();
+    const { color, onColorChange, supported } = this.props;
 
     return (
-      <div className={classNames("pixel-color-picker", disabled && "disabled")}>
+      <div className={classNames("pixel-color-picker", !supported && "disabled")}>
         {color === "rgba(0,0,0,0)" ? (
           <div
             className="active-swatch transparent"
@@ -63,8 +62,7 @@ export default class PixelColorPicker extends React.Component {
           <input
             className={"active-swatch"}
             type="color"
-            disabled={disabled}
-            value={disabled ? "#cccccc" : rgbaToHex(color)}
+            value={rgbaToHex(color)}
             onChange={(e) => {
               if (e.target.value) {
                 const newColor = hexToRgba(e.target.value);
@@ -80,8 +78,7 @@ export default class PixelColorPicker extends React.Component {
               background: option === "rgba(0,0,0,0)" ? TRANSPARENT_CROSS : option,
               backgroundSize: "contain",
             }}
-            disabled={disabled}
-            className={classNames({ color: true, selected: !disabled && color === option })}
+            className={classNames({ color: true, selected: color === option })}
             onClick={() => onColorChange(option)}
           />
         ))}
