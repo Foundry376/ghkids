@@ -8,6 +8,7 @@ const router = express.Router();
 
 router.get("/worlds/explore", async (req, res) => {
   const worlds = await AppDataSource.getRepository(World).find({
+    where: { published: true },
     relations: ["user", "forkParent"],
     order: { playCount: "DESC" },
     take: 50,
@@ -123,6 +124,8 @@ router.put("/worlds/:objectId", userFromBasicAuth, async (req, res) => {
   world.name = req.body.name || world.name;
   world.thumbnail = req.body.thumbnail || world.thumbnail;
   world.data = req.body.data ?? world.data;
+  world.description = req.body.description ?? world.description;
+  world.published = req.body.published ?? world.published;
 
   await AppDataSource.getRepository(World).save(world);
   res.json(

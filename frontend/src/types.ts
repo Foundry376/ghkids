@@ -303,6 +303,8 @@ export type World = WorldMinimal & {
   metadata: {
     name: string;
     id: number;
+    published: boolean;
+    description: string | null;
   };
 };
 
@@ -361,6 +363,8 @@ export type Game = {
   thumbnail: string;
   createdAt: string;
   updatedAt: string;
+  published: boolean;
+  description: string | null;
   data: Partial<EditorState> & Omit<EditorState, "ui" | "recording">;
 };
 

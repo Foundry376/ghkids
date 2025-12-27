@@ -27,7 +27,7 @@ const Toolbar = ({ selectedToolId, dispatch, metadata, stageName, isInTutorial }
   //   isInTutorial: PropTypes.bool,
   // };
 
-  const { usingLocalStorage, saveWorldAnd } = useContext(EditorContext);
+  const { usingLocalStorage, saveWorldAnd, saveWorld } = useContext(EditorContext);
   const [open, setOpen] = useState(false);
 
   const _renderTool = (toolId) => {
@@ -50,7 +50,12 @@ const Toolbar = ({ selectedToolId, dispatch, metadata, stageName, isInTutorial }
   };
 
   const _onNameChange = (name) => {
-    dispatch(updateWorldMetadata("root", { name }));
+    dispatch(updateWorldMetadata("root", { ...metadata, name }));
+  };
+
+  const _onUnpublish = () => {
+    dispatch(updateWorldMetadata("root", { ...metadata, published: false }));
+    saveWorld();
   };
 
   const _renderLeft = () => {
@@ -95,6 +100,18 @@ const Toolbar = ({ selectedToolId, dispatch, metadata, stageName, isInTutorial }
                 }}
               >
                 Start Tutorial...
+              </DropdownItem>
+            )}
+            <DropdownItem divider />
+            {metadata.published ? (
+              <DropdownItem onClick={_onUnpublish}>
+                <i className="fa fa-eye-slash" style={{ marginRight: 8 }} />
+                Unpublish Game
+              </DropdownItem>
+            ) : (
+              <DropdownItem onClick={() => dispatch(actions.showModal(MODALS.PUBLISH))}>
+                <i className="fa fa-globe" style={{ marginRight: 8 }} />
+                Publish Game...
               </DropdownItem>
             )}
             <DropdownItem divider />

@@ -46,6 +46,12 @@ export class World {
   @Column({ default: null })
   forkParentId: number | null;
 
+  @Column({ type: "boolean", default: false })
+  published: boolean;
+
+  @Column({ type: "text", nullable: true })
+  description: string | null;
+
   serialize(): any {
     return {
       name: this.name,
@@ -58,6 +64,8 @@ export class World {
       thumbnail: this.thumbnail ? this.thumbnail.toString() : null,
       createdAt: this.createdAt,
       updatedAt: this.updatedAt,
+      published: this.published,
+      description: this.description,
     };
   }
 }

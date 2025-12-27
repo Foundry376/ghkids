@@ -7,6 +7,7 @@ import TutorialContainer from "./components/tutorial/container";
 import ExploreCharactersContainer from "./components/modal-explore-characters/container";
 import KeypickerContainer from "./components/modal-keypicker/container";
 import PaintContainer from "./components/modal-paint/container";
+import { PublishContainer } from "./components/modal-publish/container";
 import { StagesContainer } from "./components/modal-stages/container";
 import VideosContainer from "./components/modal-videos/container";
 import { StageImagesLoader } from "./components/stage/stage-images-loader";
@@ -36,6 +37,7 @@ const RootEditor = () => {
         <StagesContainer />
         <VideosContainer />
         <ExploreCharactersContainer />
+        <PublishContainer />
 
         {/**behaviors / hooks / weird stuff */}
         <StageImagesLoader />
