@@ -5,6 +5,7 @@ import ActorSprite from "../sprites/actor-sprite";
 import RecordingHandle from "../sprites/recording-handle";
 import RecordingIgnoredSprite from "../sprites/recording-ignored-sprite";
 import RecordingMaskSprite from "../sprites/recording-mask-sprite";
+import { RecordingSquareStatus } from "../sprites/recording-square-status";
 
 import {
   setRecordingExtent,
@@ -41,10 +42,12 @@ import {
   Actor,
   Characters,
   EditorState,
+  EvaluatedSquare,
   Position,
   RuleExtent,
   Stage as StageType,
   UIState,
+  World,
   WorldMinimal,
 } from "../../../types";
 import { defaultAppearanceId } from "../../utils/character-helpers";
@@ -128,6 +131,12 @@ export const Stage = ({
     stampToolItem: state.ui.stampToolItem,
     playback: state.ui.playback,
   }));
+
+  // Get main world and recording state for square status overlay
+  const mainWorld = useSelector<EditorState, World>((state) => state.world);
+  const recordingRuleId = useSelector<EditorState, string | null>(
+    (state) => state.recording.ruleId,
+  );
 
   // Helpers
 
@@ -617,7 +626,7 @@ export const Stage = ({
       return [];
     }
 
-    const components = [];
+    const components: React.ReactNode[] = [];
     const { xmin, xmax, ymin, ymax } = recordingExtent;
 
     // add the dark squares
@@ -646,6 +655,43 @@ export const Stage = ({
       .forEach(({ x, y }) => {
         components.push(<RecordingIgnoredSprite x={x} y={y} key={`ignored-${x}-${y}`} />);
       });
+
+    // add square status overlay (for the "before" world only)
+    if (recordingRuleId && world.id === "before") {
+      // Find actor with evaluation data for this rule
+      let squares: EvaluatedSquare[] = [];
+
+      // Try selected actor on main stage first
+      if (selectedActors?.worldId === "root" && selectedActors.actorIds[0]) {
+        const ruleDetails =
+          mainWorld.evaluatedRuleDetails[selectedActors.actorIds[0]]?.[recordingRuleId];
+        if (ruleDetails?.squares) {
+          squares = ruleDetails.squares;
+        }
+      }
+
+      // Fall back to finding any actor with data for this rule
+      if (squares.length === 0) {
+        for (const actorId of Object.keys(mainWorld.evaluatedRuleDetails || {})) {
+          const ruleDetails = mainWorld.evaluatedRuleDetails[actorId]?.[recordingRuleId];
+          if (ruleDetails?.squares?.length) {
+            squares = ruleDetails.squares;
+            break;
+          }
+        }
+      }
+
+      if (squares.length > 0) {
+        components.push(
+          <RecordingSquareStatus
+            key="square-status"
+            squares={squares}
+            extentXMin={xmin}
+            extentYMin={ymin}
+          />,
+        );
+      }
+    }
 
     // add the handles
     const handles = {
