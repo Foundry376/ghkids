@@ -1,12 +1,16 @@
 import { MathOperation, Position, RuleExtent } from "../../types";
 
+function isNumeric(value: number | string): boolean {
+  return !isNaN(Number(value));
+}
+
 export function defaultOperationForValueChange(
   before: number | string,
   after: number | string,
 ): MathOperation {
-  if (Number(after) && Number(before) && Number(after) === Number(before) + 1) {
+  if (isNumeric(after) && isNumeric(before) && Number(after) === Number(before) + 1) {
     return "add";
-  } else if (Number(after) && Number(before) && Number(after) === Number(before) - 1) {
+  } else if (isNumeric(after) && isNumeric(before) && Number(after) === Number(before) - 1) {
     return "subtract";
   }
   return "set";
@@ -17,9 +21,9 @@ export function operandForValueChange(
   after: number | string,
   op: MathOperation,
 ) {
-  if (Number(after) && Number(before) && op === "add") {
+  if (isNumeric(after) && isNumeric(before) && op === "add") {
     return Number(after) - Number(before);
-  } else if (Number(after) && Number(before) && op === "subtract") {
+  } else if (isNumeric(after) && isNumeric(before) && op === "subtract") {
     return Number(before) - Number(after);
   } else if (op === "set") {
     return after;
