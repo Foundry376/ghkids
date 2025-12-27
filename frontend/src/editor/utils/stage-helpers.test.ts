@@ -613,6 +613,28 @@ describe("stage-helpers", () => {
         expect(applyTransformOperation("d2", "add", "d2")).to.equal("0");
       });
     });
+
+    describe("subtract operation (composition with inverse)", () => {
+      it("should subtract 90 from 180 to get 90", () => {
+        // 180 - 90 = 180 * inverse(90) = 180 * 270 = 90
+        expect(applyTransformOperation("180", "subtract", "90")).to.equal("90");
+      });
+
+      it("should subtract 90 from 90 to get 0", () => {
+        // 90 - 90 = 90 * inverse(90) = 90 * 270 = 0
+        expect(applyTransformOperation("90", "subtract", "90")).to.equal("0");
+      });
+
+      it("should subtract flip-x from flip-x to get 0", () => {
+        // flip-x is self-inverse
+        expect(applyTransformOperation("flip-x", "subtract", "flip-x")).to.equal("0");
+      });
+
+      it("should subtract 0 to leave unchanged", () => {
+        expect(applyTransformOperation("90", "subtract", "0")).to.equal("90");
+        expect(applyTransformOperation("flip-x", "subtract", "0")).to.equal("flip-x");
+      });
+    });
   });
 
   describe("resolveRuleValue", () => {

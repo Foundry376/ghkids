@@ -46,9 +46,14 @@ export function actorIntersectsExtent(actor: Actor, characters: Characters, exte
 
 export function actorFilledPoints(actor: Actor, characters: Characters) {
   const character = characters[actor.characterId];
-  const info = character?.spritesheet.appearanceInfo?.[actor.appearance];
+  if (!character) {
+    console.warn(`actorFilledPoints: character ${actor.characterId} not found for actor ${actor.id}`);
+    return [actor.position];
+  }
+  const info = character.spritesheet.appearanceInfo?.[actor.appearance];
   const { x, y } = actor.position;
   if (!info) {
+    // No appearance info is normal for simple 1x1 sprites
     return [{ x, y }];
   }
   const results: Position[] = [];
@@ -107,7 +112,8 @@ export function pointApplyingTransform(
   return [x, y];
 }
 
-export function shuffleArray<T>(d: Array<T>): Array<T> {
+export function shuffleArray<T>(input: Array<T>): Array<T> {
+  const d = [...input]; // Create a copy to avoid mutating input
   for (let c = d.length - 1; c > 0; c--) {
     const b = Math.floor(Math.random() * (c + 1));
     const a = d[c];
@@ -132,12 +138,17 @@ export function resolveRuleValue(
     return val.constant;
   }
   if ("actorId" in val) {
-    return getVariableValue(
-      actors[val.actorId],
-      characters[actors[val.actorId].characterId],
-      val.variableId,
-      comparator,
-    );
+    const actor = actors[val.actorId];
+    if (!actor) {
+      console.warn(`resolveRuleValue: actor ${val.actorId} not found`);
+      return null;
+    }
+    const character = characters[actor.characterId];
+    if (!character) {
+      console.warn(`resolveRuleValue: character ${actor.characterId} not found`);
+      return null;
+    }
+    return getVariableValue(actor, character, val.variableId, comparator);
   }
   if ("globalId" in val) {
     return globals[val.globalId]?.value;
@@ -178,6 +189,18 @@ export function getVariableValue(
   return null;
 }
 
+// Inverse transforms in D4 symmetry group
+const INVERSE_TRANSFORMS: { [key in ActorTransform]: ActorTransform } = {
+  "0": "0",
+  "90": "270",
+  "180": "180",
+  "270": "90",
+  "flip-x": "flip-x",
+  "flip-y": "flip-y",
+  d1: "d1",
+  d2: "d2",
+};
+
 export function applyTransformOperation(
   existing: ActorTransform,
   operation: MathOperation,
@@ -185,6 +208,10 @@ export function applyTransformOperation(
 ) {
   if (operation === "add") {
     return RELATIVE_TRANSFORMS[existing][value];
+  }
+  if (operation === "subtract") {
+    // Subtract is composition with the inverse: existing * inverse(value)
+    return RELATIVE_TRANSFORMS[existing][INVERSE_TRANSFORMS[value]];
   }
   if (operation === "set") {
     return value;

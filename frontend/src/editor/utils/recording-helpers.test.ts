@@ -54,13 +54,12 @@ describe("recording-helpers", () => {
         expect(defaultOperationForValueChange("hello", 5)).to.equal("set");
       });
 
-      it("should default to set when before is 0", () => {
-        // Number(0) is falsy, so this falls through to set
-        expect(defaultOperationForValueChange(0, 1)).to.equal("set");
+      it("should detect add when before is 0", () => {
+        expect(defaultOperationForValueChange(0, 1)).to.equal("add");
       });
 
-      it("should default to set when after is 0", () => {
-        expect(defaultOperationForValueChange(1, 0)).to.equal("set");
+      it("should detect subtract when after is 0", () => {
+        expect(defaultOperationForValueChange(1, 0)).to.equal("subtract");
       });
 
       it("should default to set for same value", () => {
@@ -113,20 +112,23 @@ describe("recording-helpers", () => {
     });
 
     describe("edge cases with zero", () => {
-      it("should throw for zero before value with add (known limitation)", () => {
-        // Number(0) is falsy, so the condition fails and throws
-        // This is arguably a bug in the original code
-        expect(() => operandForValueChange(0, 5, "add")).to.throw("Unknown op");
+      it("should handle zero before value with add", () => {
+        expect(operandForValueChange(0, 5, "add")).to.equal(5);
       });
 
-      it("should throw for zero after value with subtract (known limitation)", () => {
-        // Number(0) is falsy, so the condition fails and throws
-        // This is arguably a bug in the original code
-        expect(() => operandForValueChange(5, 0, "subtract")).to.throw("Unknown op");
+      it("should handle zero after value with add", () => {
+        expect(operandForValueChange(5, 0, "add")).to.equal(-5);
+      });
+
+      it("should handle zero before value with subtract", () => {
+        expect(operandForValueChange(0, 5, "subtract")).to.equal(-5);
+      });
+
+      it("should handle zero after value with subtract", () => {
+        expect(operandForValueChange(5, 0, "subtract")).to.equal(5);
       });
 
       it("should handle zero values with set operation", () => {
-        // set operation doesn't check Number(before) or Number(after)
         expect(operandForValueChange(0, 0, "set")).to.equal(0);
         expect(operandForValueChange(5, 0, "set")).to.equal(0);
         expect(operandForValueChange(0, 5, "set")).to.equal(5);

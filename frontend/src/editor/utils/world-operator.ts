@@ -49,9 +49,11 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
   let frameAccumulator: FrameAccumulator;
 
   function wrappedPosition({ x, y }: PositionRelativeToWorld) {
+    // Use ((n % d) + d) % d to handle negative numbers correctly in JavaScript
+    // Simple (n + d) % d only works when n >= -d
     const o = {
-      x: stage.wrapX ? (x + stage.width) % stage.width : x,
-      y: stage.wrapY ? (y + stage.height) % stage.height : y,
+      x: stage.wrapX ? ((x % stage.width) + stage.width) % stage.width : x,
+      y: stage.wrapY ? ((y % stage.height) + stage.height) % stage.height : y,
     };
     if (o.x < 0 || o.y < 0 || o.x >= stage.width || o.y >= stage.height) {
       return null;
@@ -74,8 +76,9 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
     const character = characters[stageActor.characterId];
     const rconditions = conditions.filter(
       (a) =>
-        (a.enabled && "actorId" in a.left && a.left.actorId === ruleActor.id) ||
-        ("actorId" in a.right && a.right.actorId === ruleActor.id),
+        a.enabled &&
+        (("actorId" in a.left && a.left.actorId === ruleActor.id) ||
+          ("actorId" in a.right && a.right.actorId === ruleActor.id)),
     );
 
     for (const { left, right, comparator } of rconditions) {
@@ -203,7 +206,7 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
       if (trigger.event === "idle") {
         return true;
       }
-      throw new Error(`Unknown trigger event: ${trigger}`);
+      throw new Error(`Unknown trigger event: ${trigger.event}`);
     }
 
     function checkRuleScenario(
@@ -427,7 +430,9 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
                 : pointByAdding(origin, action.offset!),
             );
             if (!nextPos) {
-              throw new Error(`Action cannot create at this position`);
+              // Move would go offscreen on a non-wrapping stage - skip this action
+              // This can happen with delta-based moves that can't be validated upfront
+              return;
             }
             stageActor.position = nextPos;
             if (action.animationStyle !== "skip") {
@@ -511,7 +516,12 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
     { offset, applyActions }: { offset: Position; applyActions: boolean },
   ) {
     // read-only things
-    stage = getCurrentStageForWorld(previousWorld)!;
+    const currentStage = getCurrentStageForWorld(previousWorld);
+    if (!currentStage) {
+      // No stages exist - return world unchanged
+      return previousWorld;
+    }
+    stage = currentStage;
 
     // mutable things
     globals = deepClone(previousWorld.globals);
@@ -558,7 +568,12 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
 
   function tick() {
     // read-only things
-    stage = getCurrentStageForWorld(previousWorld)!;
+    const currentStage = getCurrentStageForWorld(previousWorld);
+    if (!currentStage) {
+      // No stages exist - return world unchanged
+      return previousWorld;
+    }
+    stage = currentStage;
     input = previousWorld.input;
 
     const historyItem: HistoryItem = {
