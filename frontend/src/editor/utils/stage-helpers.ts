@@ -107,7 +107,8 @@ export function pointApplyingTransform(
   return [x, y];
 }
 
-export function shuffleArray<T>(d: Array<T>): Array<T> {
+export function shuffleArray<T>(input: Array<T>): Array<T> {
+  const d = [...input]; // Create a copy to avoid mutating input
   for (let c = d.length - 1; c > 0; c--) {
     const b = Math.floor(Math.random() * (c + 1));
     const a = d[c];
