@@ -7,10 +7,11 @@ process.env.NODE_ENV = "test";
 /**
  * Resets the database by truncating all tables.
  * Call this in beforeEach() to ensure a clean state for each test.
+ * Note: Database must be initialized via initializeDatabase() before calling this.
  */
 export async function resetDatabase(): Promise<void> {
   if (!AppDataSource.isInitialized) {
-    await AppDataSource.initialize();
+    throw new Error("Database not initialized. Ensure initializeDatabase() is called in beforeAll.");
   }
 
   const entities = AppDataSource.entityMetadatas;

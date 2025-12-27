@@ -1,5 +1,5 @@
 {
-  "require": ["ts-node/register", "tsconfig-paths/register"],
+  "require": ["ts-node/register", "tsconfig-paths/register", "./test/hooks.ts"],
   "extension": ["ts"],
   "spec": "test/**/*.test.ts",
   "timeout": 10000,
