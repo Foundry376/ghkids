@@ -84,6 +84,12 @@ const PlayPage = (props) => {
           <RootPlayer world={world} />
         </Col>
         <Col xl={3} style={{ marginTop: 30 }}>
+          {world.description && (
+            <div style={{ marginBottom: 20 }}>
+              <h5 style={{ marginBottom: 8 }}>About this Game</h5>
+              <p style={{ color: "#666", whiteSpace: "pre-wrap" }}>{world.description}</p>
+            </div>
+          )}
           {/*<h4>
               {'Published by '}
               <Link to={`/u/${world.user.username}`}>
