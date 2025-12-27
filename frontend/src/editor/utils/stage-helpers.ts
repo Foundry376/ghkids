@@ -355,6 +355,39 @@ export function getStageScreenshot(stage: Stage, { size }: { size: number }) {
   return null;
 }
 
-export function isNever(val: never) {
+export function isNever(val: never): never {
   throw new Error(`Expected var to be never but it is ${JSON.stringify(val)}.`);
+}
+
+export function comparatorMatches(
+  comparator: VariableComparator,
+  a: string | null,
+  b: string | null,
+): boolean {
+  switch (comparator) {
+    case "=":
+      return `${a}` === `${b}`;
+    case "!=":
+      return `${a}` != `${b}`;
+    case ">=":
+      return Number(a) >= Number(b);
+    case "<=":
+      return Number(a) <= Number(b);
+    case ">":
+      return Number(a) > Number(b);
+    case "<":
+      return Number(a) < Number(b);
+    case "contains":
+      if (`${a}`.includes(",")) {
+        // This is a special hack for keypress so "ArrowLeft,Space" doesn't match "A"
+        return a?.split(",").some((v) => v === b) ?? false;
+      }
+      return `${a}`.includes(`${b}`);
+    case "ends-with":
+      return `${a}`.endsWith(`${b}`);
+    case "starts-with":
+      return `${a}`.startsWith(`${b}`);
+    default:
+      isNever(comparator);
+  }
 }

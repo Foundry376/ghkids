@@ -31,8 +31,8 @@ import {
   actorIntersectsExtent,
   applyTransformOperation,
   applyVariableOperation,
+  comparatorMatches,
   getVariableValue,
-  isNever,
   pointByAdding,
   resolveRuleValue,
   shuffleArray,
@@ -112,35 +112,6 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
       }
     }
     return true;
-  }
-
-  function comparatorMatches(comparator: VariableComparator, a: string | null, b: string | null) {
-    switch (comparator) {
-      case "=":
-        return `${a}` === `${b}`;
-      case "!=":
-        return `${a}` != `${b}`;
-      case ">=":
-        return Number(a) >= Number(b);
-      case "<=":
-        return Number(a) <= Number(b);
-      case ">":
-        return Number(a) > Number(b);
-      case "<":
-        return Number(a) < Number(b);
-      case "contains":
-        if (`${a}`.includes(",")) {
-          // This is a special hack for keypress so "ArrowLeft,Space" doesn't match "A"
-          return a?.split(",").some((v) => v === b);
-        }
-        return `${a}`.includes(`${b}`);
-      case "ends-with":
-        return `${a}`.endsWith(`${b}`);
-      case "starts-with":
-        return `${a}`.startsWith(`${b}`);
-      default:
-        isNever(comparator);
-    }
   }
 
   function actorsAtPosition(position: Position | null) {
