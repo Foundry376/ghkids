@@ -36,7 +36,7 @@ const InitialWorld: World = {
     id: 0,
   },
   history: [],
-  evaluatedRuleIds: {},
+  evaluatedRuleDetails: {},
 };
 
 const InitialState: EditorState = {

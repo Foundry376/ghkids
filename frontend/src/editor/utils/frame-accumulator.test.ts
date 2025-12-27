@@ -1,5 +1,5 @@
 import { expect } from "chai";
-import { FrameAccumulator, FrameActor } from "./frame-accumulator";
+import { FrameAccumulator } from "./frame-accumulator";
 import { Actor } from "../../types";
 
 describe("FrameAccumulator", () => {

@@ -244,9 +244,51 @@ export type Character = {
   >;
 };
 
-export type EvaluatedRuleIds = {
+/** Detailed evaluation result for a single condition */
+export type EvaluatedCondition = {
+  conditionKey: string;
+  passed: boolean;
+  leftValue?: string | null;
+  rightValue?: string | null;
+};
+
+/** Detailed evaluation result for a single extent square */
+export type EvaluatedSquare = {
+  x: number;
+  y: number;
+  passed: boolean;
+  reason?:
+    | "offscreen" // Position is offscreen on non-wrapping stage
+    | "actor-count-mismatch" // Different number of actors than expected
+    | "actor-match-failed" // Actor exists but doesn't match rule actor
+    | "ok"; // Square passed
+  expectedActorCount?: number;
+  actualActorCount?: number;
+};
+
+/** Detailed evaluation result for a rule */
+export type EvaluatedRuleDetails = {
+  passed: boolean;
+
+  // Which stage of checking caused failure (for quick diagnosis)
+  failedAt?:
+    | "extent-square" // A square in the extent didn't match
+    | "missing-required-actor" // A required actor wasn't found
+    | "action-offset-invalid" // An action would go offscreen
+    | "condition-failed"; // A condition check failed
+
+  // Detailed breakdown
+  conditions: EvaluatedCondition[];
+  squares: EvaluatedSquare[];
+
+  // Which actors were successfully matched (ruleActorId -> stageActorId)
+  matchedActors: { [ruleActorId: string]: string };
+};
+
+/** Granular evaluation data per actor per rule */
+export type EvaluatedRuleDetailsMap = {
   [actorId: string]: {
-    [ruleTreeItemId: string]: boolean;
+    [ruleId: string]: EvaluatedRuleDetails;
   };
 };
 
@@ -285,7 +327,7 @@ export type Globals = {
 export type HistoryItem = {
   input: FrameInput;
   globals: Globals;
-  evaluatedRuleIds: EvaluatedRuleIds;
+  evaluatedRuleDetails: EvaluatedRuleDetailsMap;
   stages: { [stageId: string]: Pick<Stage, "actors"> };
 };
 
@@ -294,7 +336,7 @@ export type WorldMinimal = {
   stages: { [stageId: string]: Stage };
   globals: Globals;
   input: FrameInput;
-  evaluatedRuleIds: EvaluatedRuleIds;
+  evaluatedRuleDetails: EvaluatedRuleDetailsMap;
   evaluatedTickFrames?: Frame[];
 };
 
