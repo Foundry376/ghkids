@@ -14,6 +14,7 @@ const ActorSprite = (props: {
   onClick?: (e: React.MouseEvent) => void;
   onMouseUp?: (e: React.MouseEvent) => void;
   onDoubleClick?: (e: React.MouseEvent) => void;
+  onDragStart?: (e: React.DragEvent) => void;
   transitionDuration?: number;
 }) => {
   const {
@@ -25,6 +26,7 @@ const ActorSprite = (props: {
     onClick,
     onMouseUp,
     onDoubleClick,
+    onDragStart: onDragStartProp,
   } = props;
 
   if (!character) {
@@ -95,6 +97,8 @@ const ActorSprite = (props: {
         actorIds: dragActorIds,
       }),
     );
+
+    onDragStartProp?.(event);
   };
 
   let data = new URL("../../img/splat.png", import.meta.url).href;
