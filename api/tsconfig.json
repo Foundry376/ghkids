@@ -22,5 +22,8 @@
     },
     "skipLibCheck": true //<--GraphQL libs
   },
-  "include": ["src/**/*"]
+  "include": ["src/**/*", "test/**/*"],
+  "ts-node": {
+    "files": true
+  }
 }
