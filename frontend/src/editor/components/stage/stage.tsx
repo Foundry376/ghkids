@@ -587,7 +587,12 @@ export const Stage = ({
       setSelectionRect(null);
     }
     if (!event.shiftKey && !event.defaultPrevented) {
-      if (TOOLS.TRASH === selectedToolId || TOOLS.STAMP === selectedToolId) {
+      if (
+        TOOLS.TRASH === selectedToolId ||
+        TOOLS.STAMP === selectedToolId ||
+        TOOLS.RECORD === selectedToolId ||
+        TOOLS.PAINT === selectedToolId
+      ) {
         dispatch(selectToolId(TOOLS.POINTER));
       }
     }
