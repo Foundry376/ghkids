@@ -8,6 +8,7 @@ import {
   Character,
   Characters,
   EditorState,
+  EvaluatedCondition,
   RuleCondition,
   RuleValue,
   Stage,
@@ -24,6 +25,7 @@ interface FreeformConditionRowProps {
   world: WorldMinimal;
   characters: Characters;
   condition: RuleCondition;
+  conditionStatus?: EvaluatedCondition;
   onChange?: (keep: boolean, condition: RuleCondition) => void;
 }
 
@@ -34,11 +36,20 @@ type ImpliedDatatype =
   | { type: "actor" }
   | null;
 
+/** Status circle for condition evaluation */
+const ConditionStatusCircle = ({ status }: { status?: EvaluatedCondition }) => {
+  if (status === undefined) {
+    return <div className="circle" />;
+  }
+  return <div className={`circle ${status.passed}`} />;
+};
+
 export const FreeformConditionRow = ({
   condition,
   actors,
   world,
   characters,
+  conditionStatus,
   onChange,
 }: FreeformConditionRowProps) => {
   const { left, right, comparator } = condition;
@@ -88,6 +99,7 @@ export const FreeformConditionRow = ({
 
   return (
     <li className={`enabled-true tool-supported`} onClick={onToolClick}>
+      <ConditionStatusCircle status={conditionStatus} />
       <FreeformConditionValue
         conditionId={condition.key}
         value={left}
