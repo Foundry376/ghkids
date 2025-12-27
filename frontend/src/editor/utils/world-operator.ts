@@ -206,7 +206,7 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
       if (trigger.event === "idle") {
         return true;
       }
-      throw new Error(`Unknown trigger event: ${trigger}`);
+      throw new Error(`Unknown trigger event: ${trigger.event}`);
     }
 
     function checkRuleScenario(
