@@ -1,6 +1,10 @@
 import { Actor, Character } from "../../../types";
 import { STAGE_CELL_SIZE } from "../../constants/constants";
-import { applyActorTransformToContext, pointApplyingTransform } from "../../utils/stage-helpers";
+import {
+  pointApplyingTransform,
+  renderTransformedImage,
+  transformSwapsDimensions,
+} from "../../utils/stage-helpers";
 import VariableOverlay from "../modal-paint/variable-overlay";
 import { DEFAULT_APPEARANCE_INFO, SPRITE_TRANSFORM_CSS } from "./sprite";
 
@@ -101,57 +105,40 @@ const ActorSprite = (props: {
 
     // Create a properly transformed drag image using canvas
     // This fixes garbled appearance when dragging rotated/flipped actors
-    const imgEl = event.target.tagName === "IMG"
-      ? (event.target as HTMLImageElement)
-      : event.target.querySelector("img");
+    const imgEl =
+      event.target.tagName === "IMG"
+        ? (event.target as HTMLImageElement)
+        : event.target.querySelector("img");
 
     if (imgEl) {
       const transform = actor.transform ?? "0";
       const imgWidth = imgEl.naturalWidth || imgEl.width;
       const imgHeight = imgEl.naturalHeight || imgEl.height;
 
-      // For rotations by 90 or 270 degrees, the canvas dimensions need to be swapped
-      const needsSwap = transform === "90" || transform === "270" || transform === "d1" || transform === "d2";
-      const canvasWidth = needsSwap ? imgHeight : imgWidth;
-      const canvasHeight = needsSwap ? imgWidth : imgHeight;
+      const canvas = renderTransformedImage(imgEl, imgWidth, imgHeight, transform);
+      const dragImage = new Image();
+      dragImage.src = canvas.toDataURL();
 
-      const canvas = document.createElement("canvas");
-      canvas.width = canvasWidth;
-      canvas.height = canvasHeight;
-      const ctx = canvas.getContext("2d");
-
-      if (ctx) {
-        ctx.save();
-        ctx.translate(canvasWidth / 2, canvasHeight / 2);
-        applyActorTransformToContext(ctx, transform);
-        ctx.drawImage(imgEl, -imgWidth / 2, -imgHeight / 2);
-        ctx.restore();
-
-        const dragImage = new Image();
-        dragImage.src = canvas.toDataURL();
-
-        // Adjust drag offset for rotated images
-        let adjustedDragLeft = dragLeft;
-        let adjustedDragTop = dragTop;
-        if (needsSwap) {
-          // When rotated 90/270 degrees, swap and adjust the drag offset
-          if (transform === "90") {
-            adjustedDragLeft = dragTop;
-            adjustedDragTop = imgWidth - dragLeft;
-          } else if (transform === "270") {
-            adjustedDragLeft = imgHeight - dragTop;
-            adjustedDragTop = dragLeft;
-          } else if (transform === "d1") {
-            adjustedDragLeft = dragTop;
-            adjustedDragTop = dragLeft;
-          } else if (transform === "d2") {
-            adjustedDragLeft = imgHeight - dragTop;
-            adjustedDragTop = imgWidth - dragLeft;
-          }
+      // Adjust drag offset for rotated images where dimensions are swapped
+      let adjustedDragLeft = dragLeft;
+      let adjustedDragTop = dragTop;
+      if (transformSwapsDimensions(transform)) {
+        if (transform === "90") {
+          adjustedDragLeft = dragTop;
+          adjustedDragTop = imgWidth - dragLeft;
+        } else if (transform === "270") {
+          adjustedDragLeft = imgHeight - dragTop;
+          adjustedDragTop = dragLeft;
+        } else if (transform === "d1") {
+          adjustedDragLeft = dragTop;
+          adjustedDragTop = dragLeft;
+        } else if (transform === "d2") {
+          adjustedDragLeft = imgHeight - dragTop;
+          adjustedDragTop = imgWidth - dragLeft;
         }
-
-        event.dataTransfer.setDragImage(dragImage, adjustedDragLeft, adjustedDragTop);
       }
+
+      event.dataTransfer.setDragImage(dragImage, adjustedDragLeft, adjustedDragTop);
     }
   };
 
