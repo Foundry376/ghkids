@@ -516,7 +516,12 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
     { offset, applyActions }: { offset: Position; applyActions: boolean },
   ) {
     // read-only things
-    stage = getCurrentStageForWorld(previousWorld)!;
+    const currentStage = getCurrentStageForWorld(previousWorld);
+    if (!currentStage) {
+      // No stages exist - return world unchanged
+      return previousWorld;
+    }
+    stage = currentStage;
 
     // mutable things
     globals = deepClone(previousWorld.globals);
@@ -563,7 +568,12 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
 
   function tick() {
     // read-only things
-    stage = getCurrentStageForWorld(previousWorld)!;
+    const currentStage = getCurrentStageForWorld(previousWorld);
+    if (!currentStage) {
+      // No stages exist - return world unchanged
+      return previousWorld;
+    }
+    stage = currentStage;
     input = previousWorld.input;
 
     const historyItem: HistoryItem = {
