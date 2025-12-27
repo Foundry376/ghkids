@@ -12,10 +12,294 @@ import {
   actorFillsPoint,
   actorIntersectsExtent,
   findRule,
-} from "../stage-helpers";
-import { Actor, ActorTransform, Character, Characters, Globals, RuleExtent } from "../../../types";
+  comparatorMatches,
+} from "./stage-helpers";
+import { Actor, ActorTransform, Character, Characters, Globals, RuleExtent } from "../../types";
 
 describe("stage-helpers", () => {
+  describe("comparatorMatches", () => {
+    describe("equality (=)", () => {
+      it("should match equal strings", () => {
+        expect(comparatorMatches("=", "hello", "hello")).to.be.true;
+      });
+
+      it("should not match different strings", () => {
+        expect(comparatorMatches("=", "hello", "world")).to.be.false;
+      });
+
+      it("should match numbers as strings", () => {
+        expect(comparatorMatches("=", "42", "42")).to.be.true;
+      });
+
+      it("should handle type coercion via string conversion", () => {
+        expect(comparatorMatches("=", "1", "1")).to.be.true;
+      });
+
+      it("should match null to null", () => {
+        expect(comparatorMatches("=", null, null)).to.be.true;
+      });
+
+      it("should match null to string 'null'", () => {
+        expect(comparatorMatches("=", null, "null")).to.be.true;
+      });
+
+      it("should match empty strings", () => {
+        expect(comparatorMatches("=", "", "")).to.be.true;
+      });
+
+      it("should not match empty string to null", () => {
+        expect(comparatorMatches("=", "", null)).to.be.false;
+      });
+    });
+
+    describe("inequality (!=)", () => {
+      it("should not match equal strings", () => {
+        expect(comparatorMatches("!=", "hello", "hello")).to.be.false;
+      });
+
+      it("should match different strings", () => {
+        expect(comparatorMatches("!=", "hello", "world")).to.be.true;
+      });
+
+      it("should not match null to null", () => {
+        expect(comparatorMatches("!=", null, null)).to.be.false;
+      });
+
+      it("should match empty string to non-empty", () => {
+        expect(comparatorMatches("!=", "", "hello")).to.be.true;
+      });
+    });
+
+    describe("greater than or equal (>=)", () => {
+      it("should match when a > b", () => {
+        expect(comparatorMatches(">=", "10", "5")).to.be.true;
+      });
+
+      it("should match when a === b", () => {
+        expect(comparatorMatches(">=", "5", "5")).to.be.true;
+      });
+
+      it("should not match when a < b", () => {
+        expect(comparatorMatches(">=", "3", "5")).to.be.false;
+      });
+
+      it("should handle negative numbers", () => {
+        expect(comparatorMatches(">=", "-1", "-5")).to.be.true;
+        expect(comparatorMatches(">=", "-5", "-1")).to.be.false;
+      });
+
+      it("should handle floats", () => {
+        expect(comparatorMatches(">=", "5.5", "5.4")).to.be.true;
+        expect(comparatorMatches(">=", "5.5", "5.5")).to.be.true;
+      });
+
+      it("should treat non-numeric strings as NaN", () => {
+        expect(comparatorMatches(">=", "hello", "world")).to.be.false;
+      });
+
+      it("should treat empty string as 0", () => {
+        expect(comparatorMatches(">=", "", "0")).to.be.true;
+        expect(comparatorMatches(">=", "0", "")).to.be.true;
+      });
+
+      it("should treat null as 0", () => {
+        expect(comparatorMatches(">=", null, "0")).to.be.true;
+      });
+    });
+
+    describe("less than or equal (<=)", () => {
+      it("should match when a < b", () => {
+        expect(comparatorMatches("<=", "3", "5")).to.be.true;
+      });
+
+      it("should match when a === b", () => {
+        expect(comparatorMatches("<=", "5", "5")).to.be.true;
+      });
+
+      it("should not match when a > b", () => {
+        expect(comparatorMatches("<=", "10", "5")).to.be.false;
+      });
+
+      it("should handle negative numbers", () => {
+        expect(comparatorMatches("<=", "-5", "-1")).to.be.true;
+      });
+    });
+
+    describe("greater than (>)", () => {
+      it("should match when a > b", () => {
+        expect(comparatorMatches(">", "10", "5")).to.be.true;
+      });
+
+      it("should not match when a === b", () => {
+        expect(comparatorMatches(">", "5", "5")).to.be.false;
+      });
+
+      it("should not match when a < b", () => {
+        expect(comparatorMatches(">", "3", "5")).to.be.false;
+      });
+
+      it("should handle floats with small differences", () => {
+        expect(comparatorMatches(">", "5.01", "5.00")).to.be.true;
+      });
+    });
+
+    describe("less than (<)", () => {
+      it("should match when a < b", () => {
+        expect(comparatorMatches("<", "3", "5")).to.be.true;
+      });
+
+      it("should not match when a === b", () => {
+        expect(comparatorMatches("<", "5", "5")).to.be.false;
+      });
+
+      it("should not match when a > b", () => {
+        expect(comparatorMatches("<", "10", "5")).to.be.false;
+      });
+    });
+
+    describe("contains", () => {
+      describe("simple substring matching", () => {
+        it("should match when b is substring of a", () => {
+          expect(comparatorMatches("contains", "hello world", "world")).to.be.true;
+        });
+
+        it("should match when b is at start of a", () => {
+          expect(comparatorMatches("contains", "hello world", "hello")).to.be.true;
+        });
+
+        it("should not match when b is not in a", () => {
+          expect(comparatorMatches("contains", "hello world", "foo")).to.be.false;
+        });
+
+        it("should match empty string in any string", () => {
+          expect(comparatorMatches("contains", "hello", "")).to.be.true;
+        });
+
+        it("should match string containing itself", () => {
+          expect(comparatorMatches("contains", "hello", "hello")).to.be.true;
+        });
+
+        it("should be case sensitive", () => {
+          expect(comparatorMatches("contains", "Hello", "hello")).to.be.false;
+        });
+      });
+
+      describe("comma-separated list matching (keypress special case)", () => {
+        it("should match exact item in comma-separated list", () => {
+          expect(comparatorMatches("contains", "ArrowLeft,Space,ArrowRight", "Space")).to.be.true;
+        });
+
+        it("should match first item in comma-separated list", () => {
+          expect(comparatorMatches("contains", "ArrowLeft,Space", "ArrowLeft")).to.be.true;
+        });
+
+        it("should match last item in comma-separated list", () => {
+          expect(comparatorMatches("contains", "ArrowLeft,Space", "Space")).to.be.true;
+        });
+
+        it("should NOT match partial substring in comma-separated list", () => {
+          expect(comparatorMatches("contains", "ArrowLeft,Space", "A")).to.be.false;
+        });
+
+        it("should NOT match partial key name", () => {
+          expect(comparatorMatches("contains", "ArrowLeft,Space", "Arrow")).to.be.false;
+        });
+
+        it("should not match item not in list", () => {
+          expect(comparatorMatches("contains", "ArrowLeft,Space", "ArrowDown")).to.be.false;
+        });
+
+        it("should handle single item with no comma as substring match", () => {
+          expect(comparatorMatches("contains", "ArrowLeft", "Arrow")).to.be.true;
+        });
+      });
+
+      describe("null handling", () => {
+        it("should handle null a value", () => {
+          expect(comparatorMatches("contains", null, "null")).to.be.true;
+        });
+
+        it("should handle null b value", () => {
+          expect(comparatorMatches("contains", "hello", null)).to.be.false;
+        });
+      });
+    });
+
+    describe("ends-with", () => {
+      it("should match when a ends with b", () => {
+        expect(comparatorMatches("ends-with", "hello world", "world")).to.be.true;
+      });
+
+      it("should not match when a does not end with b", () => {
+        expect(comparatorMatches("ends-with", "hello world", "hello")).to.be.false;
+      });
+
+      it("should match exact string", () => {
+        expect(comparatorMatches("ends-with", "hello", "hello")).to.be.true;
+      });
+
+      it("should match empty suffix", () => {
+        expect(comparatorMatches("ends-with", "hello", "")).to.be.true;
+      });
+
+      it("should not match when suffix is longer than string", () => {
+        expect(comparatorMatches("ends-with", "hi", "hello")).to.be.false;
+      });
+
+      it("should be case sensitive", () => {
+        expect(comparatorMatches("ends-with", "Hello", "hello")).to.be.false;
+      });
+
+      it("should handle null converting to 'null' string", () => {
+        expect(comparatorMatches("ends-with", null, "null")).to.be.true;
+      });
+    });
+
+    describe("starts-with", () => {
+      it("should match when a starts with b", () => {
+        expect(comparatorMatches("starts-with", "hello world", "hello")).to.be.true;
+      });
+
+      it("should not match when a does not start with b", () => {
+        expect(comparatorMatches("starts-with", "hello world", "world")).to.be.false;
+      });
+
+      it("should match exact string", () => {
+        expect(comparatorMatches("starts-with", "hello", "hello")).to.be.true;
+      });
+
+      it("should match empty prefix", () => {
+        expect(comparatorMatches("starts-with", "hello", "")).to.be.true;
+      });
+
+      it("should not match when prefix is longer than string", () => {
+        expect(comparatorMatches("starts-with", "hi", "hello")).to.be.false;
+      });
+
+      it("should be case sensitive", () => {
+        expect(comparatorMatches("starts-with", "Hello", "hello")).to.be.false;
+      });
+    });
+
+    describe("edge cases across all comparators", () => {
+      it("should handle numeric strings consistently", () => {
+        expect(comparatorMatches("=", "007", "7")).to.be.false;
+        expect(comparatorMatches(">=", "007", "7")).to.be.true;
+      });
+
+      it("should handle whitespace", () => {
+        expect(comparatorMatches("=", " hello ", "hello")).to.be.false;
+        expect(comparatorMatches("contains", " hello ", "hello")).to.be.true;
+        expect(comparatorMatches("starts-with", " hello", " ")).to.be.true;
+      });
+
+      it("should handle special characters", () => {
+        expect(comparatorMatches("=", "hello!", "hello!")).to.be.true;
+        expect(comparatorMatches("contains", "a.b.c", ".")).to.be.true;
+      });
+    });
+  });
+
   describe("pointApplyingTransform", () => {
     const dimensions = { width: 3, height: 4 };
 
@@ -39,7 +323,6 @@ describe("stage-helpers", () => {
 
     describe("90 degree rotation", () => {
       it("should rotate point 90 degrees clockwise", () => {
-        // For 90: [height - 1 - y, x]
         expect(pointApplyingTransform(0, 0, dimensions, "90")).to.deep.equal([3, 0]);
       });
 
@@ -54,7 +337,6 @@ describe("stage-helpers", () => {
 
     describe("180 degree rotation", () => {
       it("should rotate point 180 degrees", () => {
-        // For 180: [width - 1 - x, height - 1 - y]
         expect(pointApplyingTransform(0, 0, dimensions, "180")).to.deep.equal([2, 3]);
       });
 
@@ -69,7 +351,6 @@ describe("stage-helpers", () => {
 
     describe("270 degree rotation", () => {
       it("should rotate point 270 degrees clockwise", () => {
-        // For 270: [y, width - 1 - x]
         expect(pointApplyingTransform(0, 0, dimensions, "270")).to.deep.equal([0, 2]);
       });
 
@@ -80,7 +361,6 @@ describe("stage-helpers", () => {
 
     describe("flip-x (horizontal flip)", () => {
       it("should flip horizontally", () => {
-        // For flip-x: [width - 1 - x, y]
         expect(pointApplyingTransform(0, 0, dimensions, "flip-x")).to.deep.equal([2, 0]);
       });
 
@@ -95,7 +375,6 @@ describe("stage-helpers", () => {
 
     describe("flip-y (vertical flip)", () => {
       it("should flip vertically", () => {
-        // For flip-y: [x, height - 1 - y]
         expect(pointApplyingTransform(0, 0, dimensions, "flip-y")).to.deep.equal([0, 3]);
       });
 
@@ -106,7 +385,6 @@ describe("stage-helpers", () => {
 
     describe("diagonal d1 (transpose)", () => {
       it("should transpose coordinates", () => {
-        // For d1: [y, x]
         expect(pointApplyingTransform(0, 0, dimensions, "d1")).to.deep.equal([0, 0]);
       });
 
@@ -117,7 +395,6 @@ describe("stage-helpers", () => {
 
     describe("diagonal d2 (anti-transpose)", () => {
       it("should anti-transpose coordinates", () => {
-        // For d2: [height - 1 - y, width - 1 - x]
         expect(pointApplyingTransform(0, 0, dimensions, "d2")).to.deep.equal([3, 2]);
       });
 

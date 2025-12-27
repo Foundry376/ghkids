@@ -1,6 +1,6 @@
 import { expect } from "chai";
-import { applyValueChanges, applyDataMigrations } from "../data-migrations";
-import { Game } from "../../types";
+import { applyValueChanges, applyDataMigrations } from "./data-migrations";
+import { Game } from "../types";
 
 describe("data-migrations", () => {
   describe("applyValueChanges", () => {

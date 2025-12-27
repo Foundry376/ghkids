@@ -4,8 +4,8 @@ import {
   operandForValueChange,
   extentIgnoredPositions,
   extentByShiftingExtent,
-} from "../recording-helpers";
-import { RuleExtent } from "../../../types";
+} from "./recording-helpers";
+import { RuleExtent } from "../../types";
 
 describe("recording-helpers", () => {
   describe("defaultOperationForValueChange", () => {

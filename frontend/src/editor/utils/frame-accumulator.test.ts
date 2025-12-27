@@ -1,6 +1,6 @@
 import { expect } from "chai";
-import { FrameAccumulator, FrameActor } from "../frame-accumulator";
-import { Actor } from "../../../types";
+import { FrameAccumulator, FrameActor } from "./frame-accumulator";
+import { Actor } from "../../types";
 
 describe("FrameAccumulator", () => {
   const makeActor = (id: string, x: number, y: number): Actor => ({
