@@ -2,6 +2,7 @@ import React, { CSSProperties, useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 
 import ActorSprite from "../sprites/actor-sprite";
+import ActorSelectionPopover from "./actor-selection-popover";
 import RecordingHandle from "../sprites/recording-handle";
 import RecordingIgnoredSprite from "../sprites/recording-ignored-sprite";
 import RecordingMaskSprite from "../sprites/recording-mask-sprite";
@@ -33,6 +34,7 @@ import { extentIgnoredPositions } from "../../utils/recording-helpers";
 import {
   actorFilledPoints,
   actorFillsPoint,
+  actorsAtPoint,
   applyAnchorAdjustment,
   buildActorSelection,
   pointIsOutside,
@@ -86,6 +88,10 @@ export const Stage = ({
   );
 
   const [selectionRect, setSelectionRect] = useState<SelectionRect | null>(null);
+  const [actorSelectionPopover, setActorSelectionPopover] = useState<{
+    actors: Actor[];
+    position: { x: number; y: number };
+  } | null>(null);
 
   const lastFiredExtent = useRef<string | null>(null);
   const lastActorPositions = useRef<{ [actorId: string]: Position }>({});
@@ -465,7 +471,17 @@ export const Stage = ({
             ),
           );
         } else {
-          dispatch(select(actor.characterId, selFor([actor.id])));
+          // Check for overlapping actors at this position
+          const overlapping = actorsAtPoint(stage.actors, characters, actor.position);
+          if (overlapping.length > 1) {
+            // Show popover to let user choose which actor to select
+            setActorSelectionPopover({
+              actors: overlapping,
+              position: { x: event.clientX, y: event.clientY },
+            });
+          } else {
+            dispatch(select(actor.characterId, selFor([actor.id])));
+          }
         }
         handled = true;
         break;
@@ -615,6 +631,20 @@ export const Stage = ({
     }
   };
 
+  const onPopoverSelectActor = (actor: Actor) => {
+    dispatch(select(actor.characterId, selFor([actor.id])));
+    setActorSelectionPopover(null);
+  };
+
+  const onPopoverDragStart = () => {
+    // Close the popover when drag starts - the drag will continue to the stage
+    setActorSelectionPopover(null);
+  };
+
+  const onPopoverClose = () => {
+    setActorSelectionPopover(null);
+  };
+
   const renderRecordingExtent = () => {
     const { width, height } = stage;
     if (!recordingExtent) {
@@ -711,7 +741,6 @@ export const Stage = ({
 
     const draggable = !readonly && !DRAGGABLE_TOOLS.includes(selectedToolId);
     const animationStyle = actor.animationStyle || "linear";
-    console.log(actor.frameCount, animationStyle);
     return (
       <ActorSprite
         key={`${actor.id}-${didWrap}`}
@@ -796,6 +825,16 @@ export const Stage = ({
           }}
         />
       ) : null}
+      {actorSelectionPopover && (
+        <ActorSelectionPopover
+          actors={actorSelectionPopover.actors}
+          characters={characters}
+          position={actorSelectionPopover.position}
+          onSelect={onPopoverSelectActor}
+          onDragStart={onPopoverDragStart}
+          onClose={onPopoverClose}
+        />
+      )}
     </div>
   );
 };

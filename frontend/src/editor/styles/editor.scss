@@ -799,6 +799,36 @@ html {
   }
 }
 
+.actor-selection-popover {
+  background: white;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  padding: 6px;
+
+  .actor-selection-popover-content {
+    display: flex;
+    gap: 4px;
+  }
+
+  .actor-option {
+    cursor: pointer;
+    border: 2px solid transparent;
+    border-radius: 4px;
+    background: #f5f5f5;
+    transition: border-color 0.1s, background-color 0.1s;
+
+    &:hover {
+      border-color: #007bff;
+      background: rgba(0, 123, 255, 0.1);
+    }
+
+    img {
+      pointer-events: auto;
+    }
+  }
+}
+
 .tool-trash {
   .variables-grid {
     .variable-box:hover {

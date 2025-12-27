@@ -34,6 +34,14 @@ export function actorFillsPoint(actor: Actor, characters: Characters, point: Pos
   return actorFilledPoints(actor, characters).some((p) => p.x === point.x && p.y === point.y);
 }
 
+export function actorsAtPoint(
+  actors: { [id: string]: Actor },
+  characters: Characters,
+  point: Position,
+): Actor[] {
+  return Object.values(actors).filter((actor) => actorFillsPoint(actor, characters, point));
+}
+
 export function actorIntersectsExtent(actor: Actor, characters: Characters, extent: RuleExtent) {
   const points = new Set(actorFilledPoints(actor, characters).map((p) => `${p.x},${p.y}`));
   for (let x = extent.xmin; x <= extent.xmax; x++) {
