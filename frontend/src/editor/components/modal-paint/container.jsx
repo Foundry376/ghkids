@@ -467,9 +467,14 @@ class Container extends React.Component {
     const description = this.state.spriteDescription;
     const prompt = `Generate a pixel art sprite with a solid background based on the following description: ${description}`;
 
+    // Pass canvas dimensions so the API can request an appropriately-shaped image
+    const { imageData } = this.state;
+    const canvasWidth = imageData.width;
+    const canvasHeight = imageData.height;
+
     this.setState({ isGeneratingSprite: true });
     try {
-      const data = await makeRequest(`/generate-sprite?prompt=${encodeURIComponent(prompt)}`);
+      const data = await makeRequest(`/generate-sprite?prompt=${encodeURIComponent(prompt)}&width=${canvasWidth}&height=${canvasHeight}`);
       if (data.imageUrl) {
         console.log("data.imageUrl", data.imageUrl);
         this._onApplyExternalDataURL(data.imageUrl);
