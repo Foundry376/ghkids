@@ -132,12 +132,17 @@ export function resolveRuleValue(
     return val.constant;
   }
   if ("actorId" in val) {
-    return getVariableValue(
-      actors[val.actorId],
-      characters[actors[val.actorId].characterId],
-      val.variableId,
-      comparator,
-    );
+    const actor = actors[val.actorId];
+    if (!actor) {
+      console.warn(`resolveRuleValue: actor ${val.actorId} not found`);
+      return null;
+    }
+    const character = characters[actor.characterId];
+    if (!character) {
+      console.warn(`resolveRuleValue: character ${actor.characterId} not found`);
+      return null;
+    }
+    return getVariableValue(actor, character, val.variableId, comparator);
   }
   if ("globalId" in val) {
     return globals[val.globalId]?.value;
