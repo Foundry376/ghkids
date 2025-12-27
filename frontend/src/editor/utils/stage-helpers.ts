@@ -183,6 +183,18 @@ export function getVariableValue(
   return null;
 }
 
+// Inverse transforms in D4 symmetry group
+const INVERSE_TRANSFORMS: { [key in ActorTransform]: ActorTransform } = {
+  "0": "0",
+  "90": "270",
+  "180": "180",
+  "270": "90",
+  "flip-x": "flip-x",
+  "flip-y": "flip-y",
+  d1: "d1",
+  d2: "d2",
+};
+
 export function applyTransformOperation(
   existing: ActorTransform,
   operation: MathOperation,
@@ -190,6 +202,10 @@ export function applyTransformOperation(
 ) {
   if (operation === "add") {
     return RELATIVE_TRANSFORMS[existing][value];
+  }
+  if (operation === "subtract") {
+    // Subtract is composition with the inverse: existing * inverse(value)
+    return RELATIVE_TRANSFORMS[existing][INVERSE_TRANSFORMS[value]];
   }
   if (operation === "set") {
     return value;
