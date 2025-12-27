@@ -1,4 +1,11 @@
-import { Column, CreateDateColumn, Entity, ManyToOne, PrimaryGeneratedColumn } from "typeorm";
+import {
+  Column,
+  CreateDateColumn,
+  Entity,
+  ManyToOne,
+  PrimaryGeneratedColumn,
+  UpdateDateColumn,
+} from "typeorm";
 import { User } from "./user";
 
 @Entity({ name: "worlds" })
@@ -9,8 +16,8 @@ export class World {
   @Column({ type: "text" })
   name: string;
 
-  @Column({ type: "text", nullable: true })
-  data: string | null;
+  @Column({ type: "jsonb", nullable: true })
+  data: Record<string, unknown> | null;
 
   @Column({ type: "text" })
   thumbnail: string;
@@ -24,14 +31,14 @@ export class World {
   @CreateDateColumn({ type: "timestamptz", default: () => "NOW()" })
   createdAt: Date;
 
-  @CreateDateColumn({ type: "timestamptz", default: () => "NOW()" })
+  @UpdateDateColumn({ type: "timestamptz", default: () => "NOW()" })
   updatedAt: Date;
 
   @ManyToOne(() => User, { persistence: false })
   user: User;
 
   @Column()
-  userId: number;
+  userId: string;
 
   @ManyToOne(() => World, { persistence: false, nullable: true })
   forkParent: World | null;

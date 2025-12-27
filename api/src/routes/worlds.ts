@@ -34,7 +34,7 @@ router.get("/worlds/:objectId", async (req, res) => {
 
   res.json(
     Object.assign({}, world.serialize(), {
-      data: world.data ? JSON.parse(world.data) : null,
+      data: world.data,
     }),
   );
 });
@@ -122,12 +122,12 @@ router.put("/worlds/:objectId", userFromBasicAuth, async (req, res) => {
   }
   world.name = req.body.name || world.name;
   world.thumbnail = req.body.thumbnail || world.thumbnail;
-  world.data = req.body.data ? JSON.stringify(req.body.data) : world.data;
+  world.data = req.body.data ?? world.data;
 
   await AppDataSource.getRepository(World).save(world);
   res.json(
     Object.assign({}, world.serialize(), {
-      data: world.data ? JSON.parse(world.data) : null,
+      data: world.data,
     }),
   );
 });

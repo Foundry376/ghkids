@@ -39,7 +39,7 @@
     "swagger-ui-express": "^4.1.6",
     "temp": "^0.9.4",
     "throng": "^5.0.0",
-    "typeorm": "0.3.6",
+    "typeorm": "^0.3.28",
     "winston": "^3.10.0"
   },
   "_moduleAliases": {
