@@ -534,7 +534,13 @@ export const Stage = ({
         .reverse()
         .find((a) => actorFillsPoint(a, characters, { x, y }));
       if (actor) {
-        dispatch(deleteActors(selFor([actor.id])));
+        // If the clicked actor is part of the selection, delete all selected actors
+        const selectedIds = selected.map((a) => a.id);
+        if (selectedIds.includes(actor.id)) {
+          dispatch(deleteActors(selFor(selectedIds)));
+        } else {
+          dispatch(deleteActors(selFor([actor.id])));
+        }
       }
     }
   };
