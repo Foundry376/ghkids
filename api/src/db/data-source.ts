@@ -19,6 +19,7 @@ export const AppDataSource = new DataSource({
   subscribers: [],
   ssl: process.env.NODE_ENV === "production" ? { rejectUnauthorized: false } : false,
   migrations: process.env.NODE_ENV === "test" ? [] : ["dist/db/migrations/*.js"],
+  migrationsRun: process.env.NODE_ENV === "production",
   extra: {
     poolSize: process.env.DATABASE_POOL_SIZE || 40,
   },
