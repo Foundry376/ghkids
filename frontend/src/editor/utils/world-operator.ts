@@ -429,7 +429,9 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
                 : pointByAdding(origin, action.offset!),
             );
             if (!nextPos) {
-              throw new Error(`Action cannot create at this position`);
+              // Move would go offscreen on a non-wrapping stage - skip this action
+              // This can happen with delta-based moves that can't be validated upfront
+              return;
             }
             stageActor.position = nextPos;
             if (action.animationStyle !== "skip") {
