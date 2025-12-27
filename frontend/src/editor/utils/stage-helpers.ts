@@ -301,6 +301,44 @@ export function applyActorTransformToContext(
   }
 }
 
+/**
+ * Returns whether the given transform swaps width and height dimensions.
+ * This is true for 90°, 270°, and diagonal reflections.
+ */
+export function transformSwapsDimensions(transform: ActorTransform): boolean {
+  return transform === "90" || transform === "270" || transform === "d1" || transform === "d2";
+}
+
+/**
+ * Renders an image with the given transform applied to a new canvas.
+ * Returns the canvas element with the transformed image drawn on it.
+ */
+export function renderTransformedImage(
+  img: CanvasImageSource,
+  imgWidth: number,
+  imgHeight: number,
+  transform: ActorTransform,
+): HTMLCanvasElement {
+  const needsSwap = transformSwapsDimensions(transform);
+  const canvasWidth = needsSwap ? imgHeight : imgWidth;
+  const canvasHeight = needsSwap ? imgWidth : imgHeight;
+
+  const canvas = document.createElement("canvas");
+  canvas.width = canvasWidth;
+  canvas.height = canvasHeight;
+  const ctx = canvas.getContext("2d");
+
+  if (ctx) {
+    ctx.save();
+    ctx.translate(canvasWidth / 2, canvasHeight / 2);
+    applyActorTransformToContext(ctx, transform);
+    ctx.drawImage(img, -imgWidth / 2, -imgHeight / 2);
+    ctx.restore();
+  }
+
+  return canvas;
+}
+
 export function getStageScreenshot(stage: Stage, { size }: { size: number }) {
   const { characters } = window.editorStore.getState();
 

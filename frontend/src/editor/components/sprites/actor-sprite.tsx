@@ -1,6 +1,10 @@
 import { Actor, Character } from "../../../types";
 import { STAGE_CELL_SIZE } from "../../constants/constants";
-import { pointApplyingTransform } from "../../utils/stage-helpers";
+import {
+  pointApplyingTransform,
+  renderTransformedImage,
+  transformSwapsDimensions,
+} from "../../utils/stage-helpers";
 import VariableOverlay from "../modal-paint/variable-overlay";
 import { DEFAULT_APPEARANCE_INFO, SPRITE_TRANSFORM_CSS } from "./sprite";
 
@@ -80,12 +84,15 @@ const ActorSprite = (props: {
     }
 
     const { top, left } = event.target.getBoundingClientRect();
+    const dragLeft = event.clientX - left;
+    const dragTop = event.clientY - top;
+
     event.dataTransfer.effectAllowed = "copyMove";
     event.dataTransfer.setData(
       "drag-offset",
       JSON.stringify({
-        dragLeft: event.clientX - left,
-        dragTop: event.clientY - top,
+        dragLeft,
+        dragTop,
       }),
     );
     event.dataTransfer.setData(
@@ -95,6 +102,44 @@ const ActorSprite = (props: {
         actorIds: dragActorIds,
       }),
     );
+
+    // Create a properly transformed drag image using canvas
+    // This fixes garbled appearance when dragging rotated/flipped actors
+    const imgEl =
+      event.target.tagName === "IMG"
+        ? (event.target as HTMLImageElement)
+        : event.target.querySelector("img");
+
+    if (imgEl) {
+      const transform = actor.transform ?? "0";
+      const imgWidth = imgEl.naturalWidth || imgEl.width;
+      const imgHeight = imgEl.naturalHeight || imgEl.height;
+
+      const canvas = renderTransformedImage(imgEl, imgWidth, imgHeight, transform);
+      const dragImage = new Image();
+      dragImage.src = canvas.toDataURL();
+
+      // Adjust drag offset for rotated images where dimensions are swapped
+      let adjustedDragLeft = dragLeft;
+      let adjustedDragTop = dragTop;
+      if (transformSwapsDimensions(transform)) {
+        if (transform === "90") {
+          adjustedDragLeft = dragTop;
+          adjustedDragTop = imgWidth - dragLeft;
+        } else if (transform === "270") {
+          adjustedDragLeft = imgHeight - dragTop;
+          adjustedDragTop = dragLeft;
+        } else if (transform === "d1") {
+          adjustedDragLeft = dragTop;
+          adjustedDragTop = dragLeft;
+        } else if (transform === "d2") {
+          adjustedDragLeft = imgHeight - dragTop;
+          adjustedDragTop = imgWidth - dragLeft;
+        }
+      }
+
+      event.dataTransfer.setDragImage(dragImage, adjustedDragLeft, adjustedDragTop);
+    }
   };
 
   let data = new URL("../../img/splat.png", import.meta.url).href;
