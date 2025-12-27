@@ -46,9 +46,14 @@ export function actorIntersectsExtent(actor: Actor, characters: Characters, exte
 
 export function actorFilledPoints(actor: Actor, characters: Characters) {
   const character = characters[actor.characterId];
-  const info = character?.spritesheet.appearanceInfo?.[actor.appearance];
+  if (!character) {
+    console.warn(`actorFilledPoints: character ${actor.characterId} not found for actor ${actor.id}`);
+    return [actor.position];
+  }
+  const info = character.spritesheet.appearanceInfo?.[actor.appearance];
   const { x, y } = actor.position;
   if (!info) {
+    // No appearance info is normal for simple 1x1 sprites
     return [{ x, y }];
   }
   const results: Position[] = [];
