@@ -723,9 +723,9 @@ class Container extends React.Component {
             <div className="flex-horizontal" style={{ gap: 8 }}>
               <div className="paint-sidebar">
                 <PixelColorPicker
-                  tool={tool}
                   color={color}
                   onColorChange={(c) => this.setState({ color: c })}
+                  supported={tool.supportsColor()}
                 />
                 <PixelToolbar tools={TOOLS} tool={tool} onToolChange={this._onChooseTool} />
                 <PixelToolSize
