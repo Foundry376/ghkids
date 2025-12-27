@@ -22,5 +22,6 @@ export function getCurrentStageForWorld(world: Pick<World, "stages" | "globals">
   }
 
   const currentId = world.globals.selectedStageId?.value ?? stageIds[0];
-  return world.stages[currentId] || null;
+  // Fall back to first stage if selected stage was deleted
+  return world.stages[currentId] ?? world.stages[stageIds[0]] ?? null;
 }
