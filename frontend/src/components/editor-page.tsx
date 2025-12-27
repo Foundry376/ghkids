@@ -207,6 +207,7 @@ const EditorPage = () => {
       value={{
         usingLocalStorage: Adapter === LocalStorageAdapter,
         saveWorldAnd: saveWorldAnd,
+        saveWorld: saveWorld,
       }}
     >
       {error || !loaded ? (
