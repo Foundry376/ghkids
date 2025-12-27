@@ -376,13 +376,14 @@ class Container extends React.Component {
     }
   };
 
-  _onApplyExternalDataURL = (dataURL, offset) => {
+  _onApplyExternalDataURL = (dataURL, offset, { fill } = {}) => {
     const { imageData } = this.state;
     getImageDataFromDataURL(
       dataURL,
       {
         maxWidth: imageData.width,
         maxHeight: imageData.height,
+        fill,
       },
       (nextSelectionImageData) => {
         CreatePixelImageData.call(nextSelectionImageData);
@@ -467,12 +468,18 @@ class Container extends React.Component {
     const description = this.state.spriteDescription;
     const prompt = `Generate a pixel art sprite with a solid background based on the following description: ${description}`;
 
+    // Pass canvas dimensions so the API can request an appropriately-shaped image
+    const { imageData } = this.state;
+    const canvasWidth = imageData.width;
+    const canvasHeight = imageData.height;
+
     this.setState({ isGeneratingSprite: true });
     try {
-      const data = await makeRequest(`/generate-sprite?prompt=${encodeURIComponent(prompt)}`);
+      const data = await makeRequest(`/generate-sprite?prompt=${encodeURIComponent(prompt)}&width=${canvasWidth}&height=${canvasHeight}`);
       if (data.imageUrl) {
         console.log("data.imageUrl", data.imageUrl);
-        this._onApplyExternalDataURL(data.imageUrl);
+        // Use fill:true to ensure the AI image fills the entire canvas
+        this._onApplyExternalDataURL(data.imageUrl, null, { fill: true });
       } else {
         console.error("Failed to generate sprite:", data.error);
       }
