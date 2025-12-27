@@ -29,6 +29,7 @@ export class FrameAccumulator {
     );
 
     let current: Frame = deepClone(this.initial);
+    let frameIndex = 1;
 
     while (true) {
       const changeActorIds = Object.keys(remaining);
@@ -49,7 +50,9 @@ export class FrameAccumulator {
       }
       frames.push(current);
       current = deepClone(current);
-      current.id += 0.1;
+      // Use integer increment to avoid floating point precision issues
+      current.id = this.initial.id + frameIndex;
+      frameIndex++;
     }
     return frames;
   }
