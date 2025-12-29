@@ -53,7 +53,7 @@ describe("Worlds API", () => {
         name: "Test World",
         thumbnail: "#",
         userId: user.id,
-        data: JSON.stringify({ test: "data" }),
+        data: { test: "data" },
         playCount: 0,
       });
 

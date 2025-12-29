@@ -15,7 +15,8 @@ const app = express();
 // Heroku's router is unwrapping SSL for us.
 if (process.env.NODE_ENV && ["production"].includes(process.env.NODE_ENV)) {
   app.set("trust proxy", 1);
-  app.use(enforce.HTTPS({ trustProtoHeader: true }));
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  app.use(enforce.HTTPS({ trustProtoHeader: true }) as any);
 }
 
 if (process.env.NODE_ENV && ["production"].includes(process.env.NODE_ENV)) {
@@ -42,7 +43,8 @@ if (process.env.NODE_ENV !== "test") {
 }
 
 app.set("json spaces", 2);
-app.use(compression());
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+app.use(compression() as any);
 app.use(cors({ origin: true, credentials: true }));
 
 app.use("/", require("./routes/users").default);
