@@ -43,7 +43,7 @@ router.get("/generate-sprite", userFromBasicAuth, async (req, res) => {
       size: imageSize,
     })
     .then((response) => {
-      const imageUrl = response.data[0].url;
+      const imageUrl = response.data?.[0]?.url;
       if (!imageUrl) {
         res.status(500).json({ error: "Failed to retrieve image URL" });
         return;
@@ -358,7 +358,7 @@ router.get("/generate-background", userFromBasicAuth, async (req, res) => {
       size: "1792x1024",
     });
 
-    const imageUrl = response.data[0].url;
+    const imageUrl = response.data?.[0]?.url;
     if (!imageUrl) {
       res.status(500).json({ error: "Failed to retrieve image URL" });
       return;
@@ -420,7 +420,8 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
-router.post("/upload-image", upload.single("image"), async (req, res) => {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+router.post("/upload-image", upload.single("image") as any, async (req, res) => {
   try {
     const file = req.file;
     if (!file) return res.status(400).json({ error: "No file uploaded" });
