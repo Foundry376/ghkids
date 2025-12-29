@@ -8,7 +8,6 @@
  * - Multiple actions in a single rule
  */
 
-import { expect } from "chai";
 import { Characters } from "../../../../types";
 import {
   makeActor,
@@ -18,7 +17,8 @@ import {
   makeRule,
   makeStage,
   makeWorld,
-  getActor,
+  expectGlobalVariable,
+  expectActorVariable,
   TestScenario,
 } from "../test-fixtures";
 
@@ -63,10 +63,9 @@ export function scoreAccumulationScenario(): TestScenario {
     frames: 5,
     assertions: (result) => {
       // Score should be 50 (5 frames * 10 points)
-      expect(result.globals[globalScoreId].value).to.equal("50");
+      expectGlobalVariable(result, globalScoreId, "50");
       // Collected should be 5
-      const actor = getActor(result, actorId);
-      expect(actor?.variableValues[varCollectedId]).to.equal("5");
+      expectActorVariable(result, actorId, varCollectedId, "5");
     },
   };
 }

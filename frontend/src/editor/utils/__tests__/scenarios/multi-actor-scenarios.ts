@@ -2,7 +2,6 @@
  * Multi-actor interaction scenarios including collisions and interactions between different actors.
  */
 
-import { expect } from "chai";
 import { Characters } from "../../../../types";
 import {
   makeActor,
@@ -11,8 +10,9 @@ import {
   makeRule,
   makeStage,
   makeWorld,
-  getActorPositions,
-  getActor,
+  expectActorPosition,
+  expectActorExists,
+  expectActorDeleted,
   TestScenario,
 } from "../test-fixtures";
 
@@ -60,9 +60,8 @@ export function collisionScenario(): TestScenario {
     world,
     frames: 3,
     assertions: (result) => {
-      const positions = getActorPositions(result);
-      expect(positions[playerActorId]).to.deep.equal({ x: 3, y: 0 });
-      expect(positions[coinActorId]).to.deep.equal({ x: 3, y: 0 });
+      expectActorPosition(result, playerActorId, { x: 3, y: 0 });
+      expectActorPosition(result, coinActorId, { x: 3, y: 0 });
     },
   };
 }
@@ -111,9 +110,9 @@ export function coinCollectionScenario(): TestScenario {
     frames: 1,
     assertions: (result) => {
       // Coin should be deleted
-      expect(getActor(result, coinActorId)).to.be.undefined;
+      expectActorDeleted(result, coinActorId);
       // Player should still exist
-      expect(getActor(result, playerActorId)).to.exist;
+      expectActorExists(result, playerActorId);
     },
   };
 }

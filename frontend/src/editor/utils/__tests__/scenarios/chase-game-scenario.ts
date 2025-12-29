@@ -8,7 +8,6 @@
  * - Multi-frame simulation with changing input
  */
 
-import { expect } from "chai";
 import { Characters } from "../../../../types";
 import {
   makeActor,
@@ -18,7 +17,7 @@ import {
   makeRule,
   makeStage,
   makeWorld,
-  getActorPositions,
+  expectActorPosition,
   TestScenario,
 } from "../test-fixtures";
 
@@ -78,11 +77,10 @@ export function chaseGameScenario(): TestScenario {
     frames: 3,
     inputPerFrame,
     assertions: (result) => {
-      const positions = getActorPositions(result);
       // Player moved 3 right (5+3=8)
-      expect(positions[playerActorId]).to.deep.equal({ x: 8, y: 0 });
+      expectActorPosition(result, playerActorId, { x: 8, y: 0 });
       // Enemy moved 3 right (0+3=3)
-      expect(positions[enemyActorId]).to.deep.equal({ x: 3, y: 0 });
+      expectActorPosition(result, enemyActorId, { x: 3, y: 0 });
     },
   };
 }

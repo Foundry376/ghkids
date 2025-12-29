@@ -179,6 +179,194 @@ export function getActorsByCharacter(world: World, characterId: string): Actor[]
 }
 
 // ============================================================================
+// Custom Assertion Helpers
+// ============================================================================
+
+/**
+ * Custom assertion error with descriptive message
+ */
+class WorldAssertionError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "WorldAssertionError";
+  }
+}
+
+/**
+ * Assert that an actor exists in the world
+ */
+export function expectActorExists(world: World, actorId: string): void {
+  const actor = getActor(world, actorId);
+  if (!actor) {
+    const stage = Object.values(world.stages)[0];
+    const existingActors = Object.keys(stage.actors);
+    throw new WorldAssertionError(
+      `Expected actor "${actorId}" to exist, but it was not found.\n` +
+        `  Existing actors: [${existingActors.join(", ") || "none"}]`,
+    );
+  }
+}
+
+/**
+ * Assert that an actor does not exist in the world (was deleted)
+ */
+export function expectActorDeleted(world: World, actorId: string): void {
+  const actor = getActor(world, actorId);
+  if (actor) {
+    throw new WorldAssertionError(
+      `Expected actor "${actorId}" to be deleted, but it still exists.\n` +
+        `  Position: (${actor.position.x}, ${actor.position.y})\n` +
+        `  Appearance: ${actor.appearance}`,
+    );
+  }
+}
+
+/**
+ * Assert an actor's position
+ */
+export function expectActorPosition(
+  world: World,
+  actorId: string,
+  expected: { x: number; y: number },
+): void {
+  const actor = getActor(world, actorId);
+  if (!actor) {
+    const stage = Object.values(world.stages)[0];
+    const existingActors = Object.keys(stage.actors);
+    throw new WorldAssertionError(
+      `Expected actor "${actorId}" at position (${expected.x}, ${expected.y}), ` +
+        `but the actor does not exist.\n` +
+        `  Existing actors: [${existingActors.join(", ") || "none"}]`,
+    );
+  }
+  if (actor.position.x !== expected.x || actor.position.y !== expected.y) {
+    throw new WorldAssertionError(
+      `Expected actor "${actorId}" at position (${expected.x}, ${expected.y}), ` +
+        `but it was at (${actor.position.x}, ${actor.position.y}).`,
+    );
+  }
+}
+
+/**
+ * Assert an actor's appearance
+ */
+export function expectActorAppearance(world: World, actorId: string, expected: string): void {
+  const actor = getActor(world, actorId);
+  if (!actor) {
+    throw new WorldAssertionError(
+      `Expected actor "${actorId}" with appearance "${expected}", ` + `but the actor does not exist.`,
+    );
+  }
+  if (actor.appearance !== expected) {
+    throw new WorldAssertionError(
+      `Expected actor "${actorId}" appearance to be "${expected}", ` + `but it was "${actor.appearance}".`,
+    );
+  }
+}
+
+/**
+ * Assert an actor's transform
+ */
+export function expectActorTransform(world: World, actorId: string, expected: string): void {
+  const actor = getActor(world, actorId);
+  if (!actor) {
+    throw new WorldAssertionError(
+      `Expected actor "${actorId}" with transform "${expected}", ` + `but the actor does not exist.`,
+    );
+  }
+  const actual = actor.transform ?? "0";
+  if (actual !== expected) {
+    throw new WorldAssertionError(
+      `Expected actor "${actorId}" transform to be "${expected}", ` + `but it was "${actual}".`,
+    );
+  }
+}
+
+/**
+ * Assert an actor's variable value
+ */
+export function expectActorVariable(
+  world: World,
+  actorId: string,
+  variableId: string,
+  expected: string,
+): void {
+  const actor = getActor(world, actorId);
+  if (!actor) {
+    throw new WorldAssertionError(
+      `Expected actor "${actorId}" variable "${variableId}" to be "${expected}", ` +
+        `but the actor does not exist.`,
+    );
+  }
+  const actual = actor.variableValues[variableId];
+  if (actual !== expected) {
+    throw new WorldAssertionError(
+      `Expected actor "${actorId}" variable "${variableId}" to be "${expected}", ` +
+        `but it was "${actual ?? "(not set)"}".`,
+    );
+  }
+}
+
+/**
+ * Assert a global variable value
+ */
+export function expectGlobalVariable(world: World, globalId: string, expected: string): void {
+  const global = world.globals[globalId];
+  if (!global) {
+    const existingGlobals = Object.keys(world.globals);
+    throw new WorldAssertionError(
+      `Expected global "${globalId}" to be "${expected}", but the global does not exist.\n` +
+        `  Existing globals: [${existingGlobals.join(", ")}]`,
+    );
+  }
+  if (global.value !== expected) {
+    throw new WorldAssertionError(
+      `Expected global "${globalId}" to be "${expected}", but it was "${global.value}".`,
+    );
+  }
+}
+
+/**
+ * Assert the count of actors with a specific character type
+ */
+export function expectActorCount(world: World, characterId: string, expected: number): void {
+  const actors = getActorsByCharacter(world, characterId);
+  if (actors.length !== expected) {
+    const actorInfo = actors.map((a) => `${a.id} at (${a.position.x}, ${a.position.y})`).join(", ");
+    throw new WorldAssertionError(
+      `Expected ${expected} actor(s) of character "${characterId}", but found ${actors.length}.\n` +
+        `  Found: [${actorInfo || "none"}]`,
+    );
+  }
+}
+
+/**
+ * Assert that a newly created actor exists at a specific position
+ * (for actors whose ID is generated at runtime)
+ */
+export function expectNewActorAtPosition(
+  world: World,
+  characterId: string,
+  position: { x: number; y: number },
+  excludeActorIds: string[] = [],
+): Actor {
+  const actors = getActorsByCharacter(world, characterId).filter((a) => !excludeActorIds.includes(a.id));
+
+  const actorAtPos = actors.find((a) => a.position.x === position.x && a.position.y === position.y);
+
+  if (!actorAtPos) {
+    const actorInfo = actors.map((a) => `${a.id} at (${a.position.x}, ${a.position.y})`).join(", ");
+    throw new WorldAssertionError(
+      `Expected a new actor of character "${characterId}" at position (${position.x}, ${position.y}), ` +
+        `but none was found.\n` +
+        `  Found actors: [${actorInfo || "none"}]`,
+    );
+  }
+
+  return actorAtPos;
+}
+
+// ============================================================================
 // Scenario Types
 // ============================================================================
 

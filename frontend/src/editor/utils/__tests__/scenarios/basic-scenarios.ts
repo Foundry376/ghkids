@@ -2,7 +2,6 @@
  * Basic game scenarios covering movement, variables, conditions, and simple transformations.
  */
 
-import { expect } from "chai";
 import { Characters, RuleCondition } from "../../../../types";
 import {
   makeActor,
@@ -13,9 +12,14 @@ import {
   makeRule,
   makeStage,
   makeWorld,
-  getActorPositions,
-  getActor,
-  getActorsByCharacter,
+  expectActorPosition,
+  expectActorDeleted,
+  expectActorCount,
+  expectNewActorAtPosition,
+  expectActorAppearance,
+  expectActorTransform,
+  expectActorVariable,
+  expectGlobalVariable,
   TestScenario,
 } from "../test-fixtures";
 
@@ -48,8 +52,7 @@ export function movementOnIdleScenario(): TestScenario {
     world,
     frames: 1,
     assertions: (result) => {
-      const positions = getActorPositions(result);
-      expect(positions[actorId]).to.deep.equal({ x: 3, y: 3 });
+      expectActorPosition(result, actorId, { x: 3, y: 3 });
     },
   };
 }
@@ -79,8 +82,7 @@ export function movementOnKeyPressScenario(): TestScenario {
     world,
     frames: 1,
     assertions: (result) => {
-      const positions = getActorPositions(result);
-      expect(positions[actorId]).to.deep.equal({ x: 5, y: 4 });
+      expectActorPosition(result, actorId, { x: 5, y: 4 });
     },
   };
 }
@@ -110,8 +112,7 @@ export function movementMultipleFramesScenario(): TestScenario {
     world,
     frames: 5,
     assertions: (result) => {
-      const positions = getActorPositions(result);
-      expect(positions[actorId]).to.deep.equal({ x: 5, y: 0 });
+      expectActorPosition(result, actorId, { x: 5, y: 0 });
     },
   };
 }
@@ -141,8 +142,7 @@ export function stageBoundaryScenario(): TestScenario {
     world,
     frames: 5,
     assertions: (result) => {
-      const positions = getActorPositions(result);
-      expect(positions[actorId]).to.deep.equal({ x: 9, y: 0 });
+      expectActorPosition(result, actorId, { x: 9, y: 0 });
     },
   };
 }
@@ -172,8 +172,7 @@ export function stageWrappingScenario(): TestScenario {
     world,
     frames: 1,
     assertions: (result) => {
-      const positions = getActorPositions(result);
-      expect(positions[actorId]).to.deep.equal({ x: 0, y: 0 });
+      expectActorPosition(result, actorId, { x: 0, y: 0 });
     },
   };
 }
@@ -207,7 +206,7 @@ export function actorDeletionScenario(): TestScenario {
     world,
     frames: 1,
     assertions: (result) => {
-      expect(getActor(result, actorId)).to.be.undefined;
+      expectActorDeleted(result, actorId);
     },
   };
 }
@@ -238,12 +237,8 @@ export function actorCreationScenario(): TestScenario {
     world,
     frames: 1,
     assertions: (result) => {
-      const actorsByChar = getActorsByCharacter(result, charId);
-      expect(actorsByChar).to.have.length(2);
-
-      const newActorInWorld = actorsByChar.find((a) => a.id !== actorId);
-      expect(newActorInWorld).to.exist;
-      expect(newActorInWorld!.position).to.deep.equal({ x: 4, y: 3 });
+      expectActorCount(result, charId, 2);
+      expectNewActorAtPosition(result, charId, { x: 4, y: 3 }, [actorId]);
     },
   };
 }
@@ -278,8 +273,7 @@ export function appearanceChangeScenario(): TestScenario {
     world,
     frames: 1,
     assertions: (result) => {
-      const actor = getActor(result, actorId);
-      expect(actor?.appearance).to.equal("state-b");
+      expectActorAppearance(result, actorId, "state-b");
     },
   };
 }
@@ -309,8 +303,7 @@ export function transformRotationScenario(): TestScenario {
     world,
     frames: 1,
     assertions: (result) => {
-      const actor = getActor(result, actorId);
-      expect(actor?.transform).to.equal("90");
+      expectActorTransform(result, actorId, "90");
     },
   };
 }
@@ -350,8 +343,7 @@ export function variableSetScenario(): TestScenario {
     world,
     frames: 1,
     assertions: (result) => {
-      const actor = getActor(result, actorId);
-      expect(actor?.variableValues[varId]).to.equal("100");
+      expectActorVariable(result, actorId, varId, "100");
     },
   };
 }
@@ -387,8 +379,7 @@ export function variableAddScenario(): TestScenario {
     world,
     frames: 1,
     assertions: (result) => {
-      const actor = getActor(result, actorId);
-      expect(actor?.variableValues[varId]).to.equal("60");
+      expectActorVariable(result, actorId, varId, "60");
     },
   };
 }
@@ -424,8 +415,7 @@ export function variableAccumulateScenario(): TestScenario {
     world,
     frames: 10,
     assertions: (result) => {
-      const actor = getActor(result, actorId);
-      expect(actor?.variableValues[varId]).to.equal("10");
+      expectActorVariable(result, actorId, varId, "10");
     },
   };
 }
@@ -473,8 +463,7 @@ export function conditionNotMetScenario(): TestScenario {
     world,
     frames: 3,
     assertions: (result) => {
-      const positions = getActorPositions(result);
-      expect(positions[actorId]).to.deep.equal({ x: 0, y: 0 });
+      expectActorPosition(result, actorId, { x: 0, y: 0 });
     },
   };
 }
@@ -518,8 +507,7 @@ export function conditionMetScenario(): TestScenario {
     world,
     frames: 3,
     assertions: (result) => {
-      const positions = getActorPositions(result);
-      expect(positions[actorId]).to.deep.equal({ x: 3, y: 0 });
+      expectActorPosition(result, actorId, { x: 3, y: 0 });
     },
   };
 }
@@ -563,8 +551,7 @@ export function conditionGreaterThanScenario(): TestScenario {
     world,
     frames: 1,
     assertions: (result) => {
-      const positions = getActorPositions(result);
-      expect(positions[actorId]).to.deep.equal({ x: 1, y: 0 });
+      expectActorPosition(result, actorId, { x: 1, y: 0 });
     },
   };
 }
@@ -602,7 +589,7 @@ export function globalModifyScenario(): TestScenario {
     world,
     frames: 1,
     assertions: (result) => {
-      expect(result.globals[globalId].value).to.equal("100");
+      expectGlobalVariable(result, globalId, "100");
     },
   };
 }
