@@ -7,13 +7,60 @@ import {
   Characters,
   EditorState,
   EvaluatedCondition,
+  EvaluatedRuleDetailsMap,
   RecordingState,
+  UIState,
   World,
 } from "../../../../types";
 import { upsertRecordingCondition } from "../../../actions/recording-actions";
 import { getCurrentStageForWorld } from "../../../utils/selectors";
 import { actorIntersectsExtent } from "../../../utils/stage-helpers";
 import { makeId } from "../../../utils/utils";
+
+/**
+ * Builds a map of condition key -> evaluation status by looking up the rule's
+ * evaluation data from the main world. Tries the selected actor on the main
+ * stage first, then falls back to finding any actor with data for this rule.
+ */
+function buildConditionStatusMap(
+  ruleId: string | null,
+  evaluatedRuleDetails: EvaluatedRuleDetailsMap,
+  selectedActors: UIState["selectedActors"],
+): { [conditionKey: string]: EvaluatedCondition } {
+  if (!ruleId) {
+    return {};
+  }
+
+  // Try to get evaluation data from the selected actor on the main stage
+  let evalActorId: string | null = null;
+
+  if (selectedActors?.worldId === "root" && selectedActors.actorIds[0]) {
+    evalActorId = selectedActors.actorIds[0];
+  } else {
+    // Fall back: find any actor that has evaluation data for this rule
+    for (const actorId of Object.keys(evaluatedRuleDetails || {})) {
+      if (evaluatedRuleDetails[actorId]?.[ruleId]) {
+        evalActorId = actorId;
+        break;
+      }
+    }
+  }
+
+  if (!evalActorId) {
+    return {};
+  }
+
+  const ruleDetails = evaluatedRuleDetails[evalActorId]?.[ruleId];
+  if (!ruleDetails?.conditions) {
+    return {};
+  }
+
+  const map: { [conditionKey: string]: EvaluatedCondition } = {};
+  for (const cond of ruleDetails.conditions) {
+    map[cond.conditionKey] = cond;
+  }
+  return map;
+}
 
 export const RecordingConditions = ({
   recording,
@@ -37,34 +84,11 @@ export const RecordingConditions = ({
     return <span />;
   }
 
-  // Find condition evaluation status from the main world
-  // When an actor on the main stage is selected, use their evaluation data
-  let conditionStatusMap: { [conditionKey: string]: EvaluatedCondition } = {};
-  if (recording.ruleId) {
-    // Try to get evaluation data from the selected actor on the main stage
-    let evalActorId: string | null = null;
-
-    if (selectedActors?.worldId === "root" && selectedActors.actorIds[0]) {
-      evalActorId = selectedActors.actorIds[0];
-    } else {
-      // Fall back: find any actor that has evaluation data for this rule
-      for (const actorId of Object.keys(world.evaluatedRuleDetails || {})) {
-        if (world.evaluatedRuleDetails[actorId]?.[recording.ruleId]) {
-          evalActorId = actorId;
-          break;
-        }
-      }
-    }
-
-    if (evalActorId) {
-      const ruleDetails = world.evaluatedRuleDetails[evalActorId]?.[recording.ruleId];
-      if (ruleDetails?.conditions) {
-        for (const cond of ruleDetails.conditions) {
-          conditionStatusMap[cond.conditionKey] = cond;
-        }
-      }
-    }
-  }
+  const conditionStatusMap = buildConditionStatusMap(
+    recording.ruleId,
+    world.evaluatedRuleDetails,
+    selectedActors,
+  );
 
   const rows: React.ReactNode[] = [];
 
