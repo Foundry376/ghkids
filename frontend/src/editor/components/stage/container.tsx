@@ -8,10 +8,53 @@ import StageRecordingTools from "./stage-recording-tools";
 
 import { useEffect, useRef, useState } from "react";
 import * as Types from "../../../types";
-import { Characters, EditorState, World } from "../../../types";
+import {
+  Characters,
+  EditorState,
+  EvaluatedRuleDetailsMap,
+  EvaluatedSquare,
+  UIState,
+  World,
+} from "../../../types";
 import { RECORDING_PHASE } from "../../constants/constants";
 import { getCurrentStageForWorld } from "../../utils/selectors";
 import { Library } from "../library";
+
+/**
+ * Gets the evaluated squares for a rule by looking up evaluation data from the
+ * main world. Tries the selected actor on the main stage first, then falls back
+ * to finding any actor with data for this rule.
+ */
+function getEvaluatedSquares(
+  ruleId: string | null,
+  evaluatedRuleDetails: EvaluatedRuleDetailsMap,
+  selectedActors: UIState["selectedActors"],
+): EvaluatedSquare[] {
+  if (!ruleId) {
+    return [];
+  }
+
+  // Try to get evaluation data from the selected actor on the main stage
+  let evalActorId: string | null = null;
+
+  if (selectedActors?.worldId === "root" && selectedActors.actorIds[0]) {
+    evalActorId = selectedActors.actorIds[0];
+  } else {
+    // Fall back: find any actor that has evaluation data for this rule
+    for (const actorId of Object.keys(evaluatedRuleDetails || {})) {
+      if (evaluatedRuleDetails[actorId]?.[ruleId]) {
+        evalActorId = actorId;
+        break;
+      }
+    }
+  }
+
+  if (!evalActorId) {
+    return [];
+  }
+
+  return evaluatedRuleDetails[evalActorId]?.[ruleId]?.squares || [];
+}
 
 const StageContainer = ({ readonly }: { readonly?: boolean }) => {
   const dispatch = useDispatch();
@@ -20,6 +63,9 @@ const StageContainer = ({ readonly }: { readonly?: boolean }) => {
   const world = useSelector<EditorState, World>((state) => state.world);
   const playback = useSelector<EditorState, EditorState["ui"]["playback"]>(
     (state) => state.ui.playback,
+  );
+  const selectedActors = useSelector<EditorState, UIState["selectedActors"]>(
+    (state) => state.ui.selectedActors,
   );
 
   let stageA: React.ReactNode | null = null;
@@ -32,6 +78,12 @@ const StageContainer = ({ readonly }: { readonly?: boolean }) => {
       <StageRecordingControls characters={characters} dispatch={dispatch} recording={recording} />
     );
     if (recording.phase === RECORDING_PHASE.RECORD) {
+      const evaluatedSquares = getEvaluatedSquares(
+        recording.ruleId,
+        world.evaluatedRuleDetails,
+        selectedActors,
+      );
+
       stageA = (
         <Stage
           style={{ marginRight: 2 }}
@@ -39,6 +91,7 @@ const StageContainer = ({ readonly }: { readonly?: boolean }) => {
           stage={getCurrentStageForWorld(recording.beforeWorld)!}
           recordingExtent={recording.extent}
           recordingCentered
+          evaluatedSquares={evaluatedSquares}
         />
       );
       if (recording.actions !== null) {
