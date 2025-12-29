@@ -173,11 +173,9 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
         for (const rule of rules) {
           const details = tickRule(rule);
 
-          // Store details for this rule
+          // Store details for this rule - always update to avoid stale data
           evaluatedRuleDetails[me.id] = evaluatedRuleDetails[me.id] || {};
-          if (!evaluatedRuleDetails[me.id][rule.id] || details.passed) {
-            evaluatedRuleDetails[me.id][rule.id] = details;
-          }
+          evaluatedRuleDetails[me.id][rule.id] = details;
 
           if (details.passed) {
             anyApplied = true;
@@ -360,13 +358,26 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
             continue; // Continue to collect all square results
           }
 
-          // make sure the stage actors match the rule actors, and the
-          // additional conditions also match.
+          // Match stage actors to rule actors. First try with conditions (full match),
+          // then fall back to character-only matching for square status display.
+          // The square status shows "is the right character present" - conditions are
+          // evaluated separately and shown with their own status indicators.
           let squarePassed = true;
           for (const s of stageActorsAtPos) {
-            const match = ruleActorsAtPos.find((r) =>
+            // First, try to find a full match (character + conditions)
+            let match = ruleActorsAtPos.find((r) =>
               actorsMatch(s, r, rule.conditions, stageActorsForReferencedActorId),
             );
+
+            // If no full match, try character-only match for square status
+            // This allows the square to show as "passed" even if conditions fail
+            if (!match) {
+              match = ruleActorsAtPos.find(
+                (r) =>
+                  r.characterId === s.characterId &&
+                  !ruleActorsUsed.has(`${r.id}-${wrappedStagePos.x}-${wrappedStagePos.y}`),
+              );
+            }
 
             if (match) {
               stageActorsForRuleActorIds[match.id] = s;
@@ -392,67 +403,68 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
         }
       }
 
-      // If we already failed at extent-square level, return early with all collected data
-      if (failedAt === "extent-square") {
-        return makeFailResult("extent-square");
-      }
-
-      // If we didn't find all the actors required for conditions + actions, we failed
-      for (const ruleActorId of getActionAndConditionActorIds(rule)) {
-        if (!stageActorsForRuleActorIds[ruleActorId]) {
-          return makeFailResult("missing-required-actor");
+      // Check if we found all the actors required for conditions + actions
+      let hasMissingRequiredActor = false;
+      if (failedAt !== "extent-square") {
+        for (const ruleActorId of getActionAndConditionActorIds(rule)) {
+          if (!stageActorsForRuleActorIds[ruleActorId]) {
+            hasMissingRequiredActor = true;
+            if (!failedAt) failedAt = "missing-required-actor";
+            break;
+          }
         }
       }
 
-      // If any actions call for offsets that are not valid positions on the stage
-      // (offscreen and stage doesn't wrap), return false.
-      if ("actions" in rule && rule.actions) {
+      // Check if any actions call for offsets that are not valid positions on the stage
+      if (!failedAt && "actions" in rule && rule.actions) {
         for (const action of rule.actions) {
           if ("offset" in action && action.offset) {
             const stagePos = wrappedPosition(pointByAdding(me.position, action.offset));
             if (stagePos === null) {
-              return makeFailResult("action-offset-invalid");
+              failedAt = "action-offset-invalid";
+              break;
             }
           }
         }
       }
 
-      // Re-check conditions - We check the conditions that involve actorIds when
-      // matching the rule actors to the stage actors, but we haven't checked
-      // global-to-global or global-to-variable style rules yet.
-      // Now we track all condition results for detailed feedback.
-      let allConditionsPassed = true;
-      for (const condition of rule.conditions) {
-        if (!condition.enabled) continue;
+      // Evaluate all conditions for detailed feedback.
+      // This allows us to show which specific conditions passed/failed.
+      // We need matched actors to resolve condition values, so skip if we couldn't match actors.
+      if (!hasMissingRequiredActor) {
+        for (const condition of rule.conditions) {
+          if (!condition.enabled) continue;
 
-        const left = resolveRuleValue(
-          condition.left,
-          globals,
-          characters,
-          stageActorsForRuleActorIds,
-          condition.comparator,
-        );
-        const right = resolveRuleValue(
-          condition.right,
-          globals,
-          characters,
-          stageActorsForRuleActorIds,
-          condition.comparator,
-        );
-        const passed = comparatorMatches(condition.comparator, left, right);
-        conditions.push({
-          conditionKey: condition.key,
-          passed,
-          leftValue: left,
-          rightValue: right,
-        });
-        if (!passed) {
-          allConditionsPassed = false;
+          const left = resolveRuleValue(
+            condition.left,
+            globals,
+            characters,
+            stageActorsForRuleActorIds,
+            condition.comparator,
+          );
+          const right = resolveRuleValue(
+            condition.right,
+            globals,
+            characters,
+            stageActorsForRuleActorIds,
+            condition.comparator,
+          );
+          const passed = comparatorMatches(condition.comparator, left, right);
+          conditions.push({
+            conditionKey: condition.key,
+            passed,
+            leftValue: left,
+            rightValue: right,
+          });
+          if (!passed && !failedAt) {
+            failedAt = "condition-failed";
+          }
         }
       }
 
-      if (!allConditionsPassed) {
-        return makeFailResult("condition-failed");
+      // Return failure if anything failed
+      if (failedAt) {
+        return makeFailResult(failedAt);
       }
 
       return {
