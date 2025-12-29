@@ -63,9 +63,9 @@ describe("Worlds API", () => {
       expect(res.body.data).to.deep.equal({ test: "data" });
       expect(res.body.playCount).to.equal(1);
 
-      // Verify play count was persisted
+      // Verify play count was persisted (int8 returns string from PostgreSQL)
       const updatedWorld = await worldRepo.findOneBy({ id: world.id });
-      expect(updatedWorld!.playCount).to.equal(1);
+      expect(Number(updatedWorld!.playCount)).to.equal(1);
     });
   });
 
