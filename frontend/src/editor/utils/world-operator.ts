@@ -171,18 +171,18 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
       let anyApplied = false;
       for (let ii = 0; ii < iterations; ii++) {
         for (const rule of rules) {
-          const { applied, details } = tickRule(rule);
+          const details = tickRule(rule);
 
           // Store details for this rule
           evaluatedRuleDetails[me.id] = evaluatedRuleDetails[me.id] || {};
-          if (!evaluatedRuleDetails[me.id][rule.id] || applied) {
+          if (!evaluatedRuleDetails[me.id][rule.id] || details.passed) {
             evaluatedRuleDetails[me.id][rule.id] = details;
           }
 
-          if (applied) {
+          if (details.passed) {
             anyApplied = true;
           }
-          if (applied && !("behavior" in struct && struct.behavior === FLOW_BEHAVIORS.ALL)) {
+          if (details.passed && !("behavior" in struct && struct.behavior === FLOW_BEHAVIORS.ALL)) {
             break;
           }
         }
@@ -202,7 +202,7 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
       return anyApplied;
     }
 
-    function tickRule(rule: RuleTreeItem): { applied: boolean; details: EvaluatedRuleDetails } {
+    function tickRule(rule: RuleTreeItem): EvaluatedRuleDetails {
       const emptyDetails: EvaluatedRuleDetails = {
         passed: false,
         conditions: [],
@@ -213,34 +213,27 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
       if (rule.type === CONTAINER_TYPES.EVENT) {
         const eventPassed = checkEvent(rule);
         if (!eventPassed) {
-          return { applied: false, details: emptyDetails };
+          return emptyDetails;
         }
         const childrenApplied = tickRulesTree(rule);
-        return {
-          applied: childrenApplied,
-          details: { ...emptyDetails, passed: childrenApplied },
-        };
+        return { ...emptyDetails, passed: childrenApplied };
       } else if (rule.type === CONTAINER_TYPES.FLOW) {
         if (rule.check) {
           const checkResult = checkRuleScenario(rule.check);
           if (!checkResult.passed) {
-            return { applied: false, details: checkResult.details };
+            return checkResult.details;
           }
         }
         const childrenApplied = tickRulesTree(rule);
-        return {
-          applied: childrenApplied,
-          details: { ...emptyDetails, passed: childrenApplied },
-        };
+        return { ...emptyDetails, passed: childrenApplied };
       }
 
       // Actual rule evaluation
       const result = checkRuleScenario(rule);
       if (result.passed && result.stageActorForId) {
         applyRule(rule, { stageActorForId: result.stageActorForId, createActorIds: true });
-        return { applied: true, details: result.details };
       }
-      return { applied: false, details: result.details };
+      return result.details;
     }
 
     function checkEvent(trigger: RuleTreeEventItem) {
