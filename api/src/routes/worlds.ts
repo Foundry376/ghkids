@@ -29,7 +29,7 @@ router.get("/worlds/:objectId", async (req, res) => {
     return;
   }
 
-  world.playCount += 1;
+  world.playCount = Number(world.playCount) + 1;
   await AppDataSource.getRepository(World).save(world);
 
   res.json(
@@ -69,7 +69,7 @@ router.get("/worlds", userFromBasicAuth, async (req, res) => {
 
 router.post("/worlds", userFromBasicAuth, async (req, res) => {
   if (!req.user) {
-    return res.status(401);
+    return res.status(401).json({ message: "Authentication required." });
   }
   const { fork } = req.query;
   let { from } = req.query;
@@ -132,7 +132,7 @@ router.put("/worlds/:objectId", userFromBasicAuth, async (req, res) => {
   );
 });
 
-router.delete("/worlds/:objectId", async (req, res) => {
+router.delete("/worlds/:objectId", userFromBasicAuth, async (req, res) => {
   const { objectId } = req.params;
 
   const world = await AppDataSource.getRepository(World).findOneBy({
