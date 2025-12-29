@@ -7,6 +7,9 @@ import { userFromBasicAuth } from "src/middleware";
 const router = express.Router();
 
 router.get("/users/me", userFromBasicAuth, async (req, res) => {
+  if (!req.user) {
+    return res.status(401).json({ message: "Authentication required." });
+  }
   res.json(req.user.serialize());
 });
 
