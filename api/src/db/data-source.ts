@@ -24,4 +24,7 @@ export const AppDataSource = new DataSource({
   },
 });
 
-export const initialize = !process.env.SEED ? AppDataSource.initialize().catch(logger.error) : null;
+export const initialize =
+  !process.env.SEED && process.env.NODE_ENV !== "test"
+    ? AppDataSource.initialize().catch(logger.error)
+    : null;
