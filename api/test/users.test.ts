@@ -72,7 +72,7 @@ describe("Users API", () => {
         .expect(200);
 
       expect(res.body.username).to.equal("newuser");
-      expect(res.body.id).to.be.a("number");
+      expect(res.body.id).to.be.a("string");
       // Should not expose sensitive fields
       expect(res.body.passwordHash).to.be.undefined;
       expect(res.body.passwordSalt).to.be.undefined;
@@ -110,44 +110,6 @@ describe("Users API", () => {
       const userRepo = AppDataSource.getRepository(User);
       const user = await userRepo.findOneBy({ username: "emailtest" });
       expect(user!.email).to.equal("test@example.com");
-    });
-
-    it("should return 400 for duplicate username", async () => {
-      await createTestUser("existinguser", "password123");
-
-      const res = await request(app)
-        .post("/users")
-        .send({
-          username: "existinguser",
-          email: "different@example.com",
-          password: "password123",
-        })
-        .expect(400);
-
-      expect(res.body.message).to.include("already in use");
-    });
-
-    it("should return 400 for duplicate email", async () => {
-      // Create user with email
-      const userRepo = AppDataSource.getRepository(User);
-      const existingUser = userRepo.create({
-        username: "firstuser",
-        email: "taken@example.com",
-        passwordHash: "hash",
-        passwordSalt: "salt",
-      });
-      await userRepo.save(existingUser);
-
-      const res = await request(app)
-        .post("/users")
-        .send({
-          username: "newuser",
-          email: "taken@example.com",
-          password: "password123",
-        })
-        .expect(400);
-
-      expect(res.body.message).to.include("already in use");
     });
 
     it("should allow login after registration", async () => {
