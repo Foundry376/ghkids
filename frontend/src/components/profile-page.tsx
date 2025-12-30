@@ -12,6 +12,7 @@ import {
 } from "../actions/main-actions";
 
 import { useParams } from "react-router";
+import { usePageTitle } from "../hooks/usePageTitle";
 import { MainState } from "../reducers/initial-state";
 import { Game } from "../types";
 import WorldList from "./common/world-list";
@@ -49,6 +50,8 @@ const ProfilePage = () => {
     dispatch(fetchUser(username));
     dispatch(fetchWorldsForUser(username));
   }, [dispatch, username]);
+
+  usePageTitle(profile.username !== "loading" ? profile.username : null);
 
   return (
     <Container style={{ marginTop: 30 }} className="dashboard">

@@ -7,6 +7,7 @@ import Container from "reactstrap/lib/Container";
 import Row from "reactstrap/lib/Row";
 
 import { createWorld, fetchWorld } from "../actions/main-actions";
+import { usePageTitle } from "../hooks/usePageTitle";
 import { RootPlayer } from "../editor/root-player";
 import PageMessage from "./common/page-message";
 // class PlayPage extends React.Component {
@@ -27,6 +28,8 @@ const PlayPage = (props) => {
   useEffect(() => {
     dispatch(fetchWorld(worldId));
   }, [worldId]);
+
+  usePageTitle(world?.name);
 
   const _onFork = () => {
     // ben todo

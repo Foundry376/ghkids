@@ -7,6 +7,7 @@ import RootEditor from "../editor/root-editor";
 import StoreProvider from "../editor/store-provider";
 import { deepClone } from "../editor/utils/utils";
 import { makeRequest } from "../helpers/api";
+import { usePageTitle } from "../hooks/usePageTitle";
 
 import { useParams } from "react-router";
 import { applyDataMigrations } from "../editor/data-migrations";
@@ -112,6 +113,8 @@ const EditorPage = () => {
       _mounted.current = false;
     };
   });
+
+  usePageTitle(world?.name);
 
   useEffect(() => {
     const load = async () => {
