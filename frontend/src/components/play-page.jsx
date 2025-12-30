@@ -7,6 +7,7 @@ import Container from "reactstrap/lib/Container";
 import Row from "reactstrap/lib/Row";
 
 import { createWorld, fetchWorld } from "../actions/main-actions";
+import { usePageTitle } from "../hooks/usePageTitle";
 import { RootPlayer } from "../editor/root-player";
 import PageMessage from "./common/page-message";
 // class PlayPage extends React.Component {
@@ -28,14 +29,7 @@ const PlayPage = (props) => {
     dispatch(fetchWorld(worldId));
   }, [worldId]);
 
-  useEffect(() => {
-    if (world?.name) {
-      document.title = `Codako - ${world.name}`;
-    }
-    return () => {
-      document.title = "Codako - Create your own games!";
-    };
-  }, [world?.name]);
+  usePageTitle(world?.name);
 
   const _onFork = () => {
     // ben todo

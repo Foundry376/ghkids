@@ -7,6 +7,7 @@ import RootEditor from "../editor/root-editor";
 import StoreProvider from "../editor/store-provider";
 import { deepClone } from "../editor/utils/utils";
 import { makeRequest } from "../helpers/api";
+import { usePageTitle } from "../hooks/usePageTitle";
 
 import { useParams } from "react-router";
 import { applyDataMigrations } from "../editor/data-migrations";
@@ -113,14 +114,7 @@ const EditorPage = () => {
     };
   });
 
-  useEffect(() => {
-    if (world?.name) {
-      document.title = `Codako - ${world.name}`;
-    }
-    return () => {
-      document.title = "Codako - Create your own games!";
-    };
-  }, [world?.name]);
+  usePageTitle(world?.name);
 
   useEffect(() => {
     const load = async () => {
