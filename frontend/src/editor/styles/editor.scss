@@ -87,6 +87,21 @@ html {
   touch-action: pan-x pan-y;
   position: relative;
 
+  .circle {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border-radius: 12px;
+    background-color: transparent;
+    border: 1px solid rgba(0, 0, 0, 0.2);
+    &.true {
+      background-color: #74e535;
+    }
+    &.false {
+      background-color: red;
+    }
+  }
+
   .loading {
     margin: auto;
     margin-top: 200px;
@@ -847,20 +862,6 @@ html {
       border: 1px solid rgba(255, 255, 25, 0.6);
     }
 
-    .circle {
-      display: inline-block;
-      width: 12px;
-      height: 12px;
-      border-radius: 12px;
-      background-color: transparent;
-      border: 1px solid rgba(0, 0, 0, 0.2);
-      &.true {
-        background-color: #74e535;
-      }
-      &.false {
-        background-color: red;
-      }
-    }
     .icon {
       width: 32px;
       height: 32px;
