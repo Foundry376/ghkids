@@ -358,19 +358,24 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
             continue; // Continue to collect all square results
           }
 
-          // Match stage actors to rule actors. First try with conditions (full match),
-          // then fall back to character-only matching for square status display.
-          // The square status shows "is the right character present" - conditions are
-          // evaluated separately and shown with their own status indicators.
+          // Match stage actors to rule actors using two-phase matching:
+          //
+          // Phase 1 (full match): Use actorsMatch which checks character AND conditions.
+          // This is needed to disambiguate when multiple actors of the same character
+          // exist in a rule (e.g., two zombies with different appearances). Conditions
+          // help determine which stage actor corresponds to which rule actor.
+          //
+          // Phase 2 (character-only fallback): If no full match, try matching by
+          // character only. This provides better UI feedback - squares show green when
+          // the right character is present, even if conditions fail. Conditions are
+          // then evaluated separately and shown with their own status indicators.
+          // For actual rule execution, the full match is still required.
           let squarePassed = true;
           for (const s of stageActorsAtPos) {
-            // First, try to find a full match (character + conditions)
             let match = ruleActorsAtPos.find((r) =>
               actorsMatch(s, r, rule.conditions, stageActorsForReferencedActorId),
             );
 
-            // If no full match, try character-only match for square status
-            // This allows the square to show as "passed" even if conditions fail
             if (!match) {
               match = ruleActorsAtPos.find(
                 (r) =>
