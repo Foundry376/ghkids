@@ -53,7 +53,7 @@ World (complete state)
   ├── stages: {[id]: Stage}
   ├── globals                    # Global variables
   ├── input: {keys, clicks}      # Current frame input
-  ├── evaluatedRuleIds           # Debug: which rules fired
+  ├── evaluatedRuleDetails       # Debug: detailed rule evaluation results
   ├── evaluatedTickFrames        # Debug: animation frames
   └── history: HistoryItem[]     # Undo stack (max 20)
 ```
@@ -140,11 +140,17 @@ Returns `{ruleActorId → stageActor}` mapping, or `false`.
 
 ## Debug Data
 
-### evaluatedRuleIds
+### evaluatedRuleDetails
 ```typescript
-{ [actorId]: { [ruleId]: boolean } }
+{ [actorId]: { [ruleId]: EvaluatedRuleDetails } }
 ```
-Tracks which rules fired for each actor. Used by inspector to show rule state circles.
+Tracks detailed evaluation results for each rule per actor. Includes:
+- Overall pass/fail status
+- Per-square matching results (with failure reasons)
+- Per-condition evaluation results (with resolved values)
+- Actor mappings (which stage actor matched which rule actor)
+
+Used by inspector to show rule state circles and condition status dots. See `granular-rule-tracking.md` for full details.
 
 ### evaluatedTickFrames
 ```typescript
@@ -163,4 +169,5 @@ Animation frames within a tick. Stage container animates through these.
 
 ## See Also
 
-For detailed architecture diagrams, data flow, and code examples, see `architecture-reference.md` in this skill folder.
+- `architecture-reference.md` - Detailed architecture diagrams, data flow, and code examples
+- `granular-rule-tracking.md` - Documentation for the granular rule evaluation tracking system (square/condition-level feedback)

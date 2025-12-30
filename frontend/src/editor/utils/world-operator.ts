@@ -4,7 +4,10 @@ import {
   ActorTransform,
   Character,
   Characters,
-  EvaluatedRuleIds,
+  EvaluatedCondition,
+  EvaluatedRuleDetails,
+  EvaluatedRuleDetailsMap,
+  EvaluatedSquare,
   FrameInput,
   Globals,
   HistoryItem,
@@ -21,7 +24,6 @@ import {
   RuleTreeFlowLoopItem,
   RuleTreeItem,
   Stage,
-  VariableComparator,
   WorldMinimal,
 } from "../../types";
 import { FrameAccumulator } from "./frame-accumulator";
@@ -45,7 +47,7 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
   let globals: Globals;
   let actors: { [actorId: string]: Actor };
   let input: FrameInput;
-  let evaluatedRuleIds: EvaluatedRuleIds = {};
+  let evaluatedRuleDetails: EvaluatedRuleDetailsMap = {};
   let frameAccumulator: FrameAccumulator;
 
   function wrappedPosition({ x, y }: PositionRelativeToWorld) {
@@ -151,7 +153,7 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
         rules = shuffleArray(rules);
       }
 
-      // perf note: avoid creating empty evaluatedRuleIds entries if no rules are evaluated
+      // perf note: avoid creating empty evaluatedRuleDetails entries if no rules are evaluated
       let iterations = 1;
       if ("behavior" in struct && struct.behavior === FLOW_BEHAVIORS.LOOP) {
         if ("constant" in struct.loopCount && struct.loopCount.constant) {
@@ -166,34 +168,70 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
         }
       }
 
+      let anyApplied = false;
       for (let ii = 0; ii < iterations; ii++) {
         for (const rule of rules) {
-          const applied = tickRule(rule);
-          evaluatedRuleIds[me.id] = evaluatedRuleIds[me.id] || {};
-          evaluatedRuleIds[me.id][rule.id] ||= applied;
-          evaluatedRuleIds[me.id][struct.id] ||= applied;
-          if (applied && !("behavior" in struct && struct.behavior === FLOW_BEHAVIORS.ALL)) {
+          const details = tickRule(rule);
+
+          // Store details for this rule - always update to avoid stale data
+          evaluatedRuleDetails[me.id] = evaluatedRuleDetails[me.id] || {};
+          evaluatedRuleDetails[me.id][rule.id] = details;
+
+          if (details.passed) {
+            anyApplied = true;
+          }
+          if (details.passed && !("behavior" in struct && struct.behavior === FLOW_BEHAVIORS.ALL)) {
             break;
           }
         }
       }
 
-      return evaluatedRuleIds[me.id] && evaluatedRuleIds[me.id][struct.id];
+      // Store container-level details (simplified - just tracks if any child passed)
+      if ("id" in struct) {
+        evaluatedRuleDetails[me.id] = evaluatedRuleDetails[me.id] || {};
+        evaluatedRuleDetails[me.id][struct.id] = {
+          passed: anyApplied,
+          conditions: [],
+          squares: [],
+          matchedActors: {},
+        };
+      }
+
+      return anyApplied;
     }
 
-    function tickRule(rule: RuleTreeItem) {
+    function tickRule(rule: RuleTreeItem): EvaluatedRuleDetails {
+      const emptyDetails: EvaluatedRuleDetails = {
+        passed: false,
+        conditions: [],
+        squares: [],
+        matchedActors: {},
+      };
+
       if (rule.type === CONTAINER_TYPES.EVENT) {
-        return checkEvent(rule) && tickRulesTree(rule);
+        const eventPassed = checkEvent(rule);
+        if (!eventPassed) {
+          return emptyDetails;
+        }
+        const childrenApplied = tickRulesTree(rule);
+        return { ...emptyDetails, passed: childrenApplied };
       } else if (rule.type === CONTAINER_TYPES.FLOW) {
-        const checkMet = !rule.check || !!checkRuleScenario(rule.check);
-        return checkMet && tickRulesTree(rule);
+        if (rule.check) {
+          const checkResult = checkRuleScenario(rule.check);
+          if (!checkResult.passed) {
+            return checkResult.details;
+          }
+        }
+        const childrenApplied = tickRulesTree(rule);
+        return { ...emptyDetails, passed: childrenApplied };
       }
-      const stageActorForId = checkRuleScenario(rule);
-      if (stageActorForId) {
-        applyRule(rule, { stageActorForId, createActorIds: true });
-        return true;
+
+      // Actual rule evaluation
+      const result = checkRuleScenario(rule);
+      if (result.passed && result.stageActorForId) {
+        applyRule(rule, { stageActorForId: result.stageActorForId, createActorIds: true });
       }
-      return false;
+      return result.details;
     }
 
     function checkEvent(trigger: RuleTreeEventItem) {
@@ -209,11 +247,38 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
       throw new Error(`Unknown trigger event: ${trigger.event}`);
     }
 
+    type CheckRuleScenarioResult = {
+      passed: boolean;
+      stageActorForId: { [ruleActorId: string]: Actor } | null;
+      details: EvaluatedRuleDetails;
+    };
+
     function checkRuleScenario(
       rule: Rule | NonNullable<RuleTreeFlowItem["check"]>,
-    ): { [ruleActorId: string]: Actor } | false {
+    ): CheckRuleScenarioResult {
       const ruleActorsUsed = new Set<string>(); // x-y-ruleactorId
       const stageActorsForRuleActorIds: { [ruleActorId: string]: Actor } = {};
+
+      // Initialize details tracking
+      const squares: EvaluatedSquare[] = [];
+      const conditions: EvaluatedCondition[] = [];
+      let failedAt: EvaluatedRuleDetails["failedAt"] | undefined;
+
+      const makeFailResult = (
+        reason: EvaluatedRuleDetails["failedAt"],
+      ): CheckRuleScenarioResult => ({
+        passed: false,
+        stageActorForId: null,
+        details: {
+          passed: false,
+          failedAt: reason,
+          squares,
+          conditions,
+          matchedActors: Object.fromEntries(
+            Object.entries(stageActorsForRuleActorIds).map(([k, v]) => [k, v.id]),
+          ),
+        },
+      });
 
       /** Ben Note: We now allow conditions to specify other actors on the RHS
        * of the equation. This, combined with the fact that you can `ignoreExtraActors`,
@@ -266,7 +331,9 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
           const unwrappedStagePos = pointByAdding(me.position, { x, y });
           const wrappedStagePos = wrappedPosition(unwrappedStagePos);
           if (wrappedStagePos === null) {
-            return false; // offscreen?
+            squares.push({ x, y, passed: false, reason: "offscreen" });
+            if (!failedAt) failedAt = "extent-square";
+            continue; // Continue to collect all square results
           }
           const stageActorsAtPos = Object.values(actors).filter(
             (actor) =>
@@ -279,70 +346,144 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
               !ruleActorsUsed.has(`${actor.id}-${x}-${y}`),
           );
           if (stageActorsAtPos.length !== ruleActorsAtPos.length && !ignoreExtraActors) {
-            return false;
+            squares.push({
+              x,
+              y,
+              passed: false,
+              reason: "actor-count-mismatch",
+              expectedActorCount: ruleActorsAtPos.length,
+              actualActorCount: stageActorsAtPos.length,
+            });
+            if (!failedAt) failedAt = "extent-square";
+            continue; // Continue to collect all square results
           }
 
-          // make sure the stage actors match the rule actors, and the
-          // additional conditions also match.
+          // Match stage actors to rule actors using two-phase matching:
+          //
+          // Phase 1 (full match): Use actorsMatch which checks character AND conditions.
+          // This is needed to disambiguate when multiple actors of the same character
+          // exist in a rule (e.g., two zombies with different appearances). Conditions
+          // help determine which stage actor corresponds to which rule actor.
+          //
+          // Phase 2 (character-only fallback): If no full match, try matching by
+          // character only. This provides better UI feedback - squares show green when
+          // the right character is present, even if conditions fail. Conditions are
+          // then evaluated separately and shown with their own status indicators.
+          // For actual rule execution, the full match is still required.
+          let squarePassed = true;
           for (const s of stageActorsAtPos) {
-            const match = ruleActorsAtPos.find((r) =>
+            let match = ruleActorsAtPos.find((r) =>
               actorsMatch(s, r, rule.conditions, stageActorsForReferencedActorId),
             );
+
+            if (!match) {
+              match = ruleActorsAtPos.find(
+                (r) =>
+                  r.characterId === s.characterId &&
+                  !ruleActorsUsed.has(`${r.id}-${wrappedStagePos.x}-${wrappedStagePos.y}`),
+              );
+            }
 
             if (match) {
               stageActorsForRuleActorIds[match.id] = s;
               ruleActorsUsed.add(`${match.id}-${wrappedStagePos.x}-${wrappedStagePos.y}`);
             } else if (!ignoreExtraActors) {
-              return false;
+              squarePassed = false;
             }
+          }
+
+          if (squarePassed) {
+            squares.push({ x, y, passed: true, reason: "ok" });
+          } else {
+            squares.push({
+              x,
+              y,
+              passed: false,
+              reason: "actor-match-failed",
+              expectedActorCount: ruleActorsAtPos.length,
+              actualActorCount: stageActorsAtPos.length,
+            });
+            if (!failedAt) failedAt = "extent-square";
           }
         }
       }
 
-      // If we didn't find all the actors required for conditions + actions, we failed
-      for (const ruleActorId of getActionAndConditionActorIds(rule)) {
-        if (!stageActorsForRuleActorIds[ruleActorId]) {
-          return false;
+      // Check if we found all the actors required for conditions + actions
+      let hasMissingRequiredActor = false;
+      if (failedAt !== "extent-square") {
+        for (const ruleActorId of getActionAndConditionActorIds(rule)) {
+          if (!stageActorsForRuleActorIds[ruleActorId]) {
+            hasMissingRequiredActor = true;
+            if (!failedAt) failedAt = "missing-required-actor";
+            break;
+          }
         }
       }
 
-      // If any actions call for offsets that are not valid positions on the stage
-      // (offscreen and stage doesn't wrap), return false.
-      if ("actions" in rule && rule.actions) {
+      // Check if any actions call for offsets that are not valid positions on the stage
+      if (!failedAt && "actions" in rule && rule.actions) {
         for (const action of rule.actions) {
           if ("offset" in action && action.offset) {
             const stagePos = wrappedPosition(pointByAdding(me.position, action.offset));
             if (stagePos === null) {
-              return false;
+              failedAt = "action-offset-invalid";
+              break;
             }
           }
         }
       }
 
-      // Re-check conditions - We check the conditions that involve actorIds when
-      // matching the rule actors to the stage actors, but we haven't checked
-      // global-to-global or global-to-variable style rules yet.
-      for (const condition of rule.conditions) {
-        const left = resolveRuleValue(
-          condition.left,
-          globals,
-          characters,
-          stageActorsForRuleActorIds,
-          condition.comparator,
-        );
-        const right = resolveRuleValue(
-          condition.right,
-          globals,
-          characters,
-          stageActorsForRuleActorIds,
-          condition.comparator,
-        );
-        if (!comparatorMatches(condition.comparator, left, right)) {
-          return false;
+      // Evaluate all conditions for detailed feedback.
+      // This allows us to show which specific conditions passed/failed.
+      // We need matched actors to resolve condition values, so skip if we couldn't match actors.
+      if (!hasMissingRequiredActor) {
+        for (const condition of rule.conditions) {
+          if (!condition.enabled) continue;
+
+          const left = resolveRuleValue(
+            condition.left,
+            globals,
+            characters,
+            stageActorsForRuleActorIds,
+            condition.comparator,
+          );
+          const right = resolveRuleValue(
+            condition.right,
+            globals,
+            characters,
+            stageActorsForRuleActorIds,
+            condition.comparator,
+          );
+          const passed = comparatorMatches(condition.comparator, left, right);
+          conditions.push({
+            conditionKey: condition.key,
+            passed,
+            leftValue: left,
+            rightValue: right,
+          });
+          if (!passed && !failedAt) {
+            failedAt = "condition-failed";
+          }
         }
       }
 
-      return stageActorsForRuleActorIds;
+      // Return failure if anything failed
+      if (failedAt) {
+        return makeFailResult(failedAt);
+      }
+
+      return {
+        passed: true,
+        stageActorForId: stageActorsForRuleActorIds,
+        details: {
+          passed: true,
+          squares,
+          conditions,
+          matchedActors: Object.fromEntries(
+            Object.entries(stageActorsForRuleActorIds).map(([k, v]) => [k, v.id]),
+          ),
+        },
+      };
     }
 
     function getActionAndConditionActorIds(rule: Rule | NonNullable<RuleTreeFlowItem["check"]>) {
@@ -579,7 +720,7 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
     const historyItem: HistoryItem = {
       input: previousWorld.input,
       globals: previousWorld.globals,
-      evaluatedRuleIds: previousWorld.evaluatedRuleIds,
+      evaluatedRuleDetails: previousWorld.evaluatedRuleDetails,
       stages: {
         [stage.id]: {
           actors: stage.actors,
@@ -594,11 +735,11 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
 
     actors = deepClone(stage.actors);
     frameAccumulator = new FrameAccumulator(stage.actors);
-    evaluatedRuleIds = {};
+    evaluatedRuleDetails = {};
 
     Object.values(actors).forEach((actor) => ActorOperator(actor).tickAllRules());
-    const evaluatedSomeRule = Object.values(evaluatedRuleIds).some((actorRuleIds) =>
-      Object.values(actorRuleIds).includes(true),
+    const evaluatedSomeRule = Object.values(evaluatedRuleDetails).some((actorRuleDetails) =>
+      Object.values(actorRuleDetails).some((details) => details.passed),
     );
 
     return u(
@@ -613,7 +754,7 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
           },
         },
         globals: u.constant(globals),
-        evaluatedRuleIds: u.constant(evaluatedRuleIds),
+        evaluatedRuleDetails: u.constant(evaluatedRuleDetails),
         evaluatedTickFrames: frameAccumulator.getFrames(),
         history: (values: HistoryItem[]) =>
           evaluatedSomeRule ? [...values.slice(values.length - 20), historyItem] : values,
@@ -643,7 +784,7 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
             actors: u.constant(historyItem.stages[historyStageKey].actors),
           },
         },
-        evaluatedRuleIds: u.constant(historyItem.evaluatedRuleIds),
+        evaluatedRuleDetails: u.constant(historyItem.evaluatedRuleDetails),
         evaluatedTickFrames: [],
         history: history.slice(0, history.length - 1),
       },

@@ -53,8 +53,8 @@ export const InspectorContainer = () => {
       value={{
         world: focusedWorld,
         characters: characters,
-        evaluatedRuleIdsForActor: focusedActor
-          ? focusedWorld.evaluatedRuleIds[focusedActor.id]
+        evaluatedRuleDetailsForActor: focusedActor
+          ? focusedWorld.evaluatedRuleDetails[focusedActor.id]
           : {},
       }}
     >

@@ -5,6 +5,7 @@ import ActorSprite from "../sprites/actor-sprite";
 import RecordingHandle from "../sprites/recording-handle";
 import RecordingIgnoredSprite from "../sprites/recording-ignored-sprite";
 import RecordingMaskSprite from "../sprites/recording-mask-sprite";
+import { RecordingSquareStatus } from "../sprites/recording-square-status";
 
 import {
   setRecordingExtent,
@@ -41,6 +42,7 @@ import {
   Actor,
   Characters,
   EditorState,
+  EvaluatedSquare,
   Position,
   RuleExtent,
   Stage as StageType,
@@ -56,6 +58,7 @@ interface StageProps {
   world: WorldMinimal;
   recordingExtent?: RuleExtent;
   recordingCentered?: boolean;
+  evaluatedSquares?: EvaluatedSquare[];
   readonly?: boolean;
   style?: CSSProperties;
 }
@@ -71,6 +74,7 @@ export const STAGE_ZOOM_STEPS = [1, 0.88, 0.75, 0.63, 0.5, 0.42, 0.38];
 export const Stage = ({
   recordingExtent,
   recordingCentered,
+  evaluatedSquares,
   stage,
   world,
   readonly,
@@ -617,7 +621,7 @@ export const Stage = ({
       return [];
     }
 
-    const components = [];
+    const components: React.ReactNode[] = [];
     const { xmin, xmax, ymin, ymax } = recordingExtent;
 
     // add the dark squares
@@ -646,6 +650,18 @@ export const Stage = ({
       .forEach(({ x, y }) => {
         components.push(<RecordingIgnoredSprite x={x} y={y} key={`ignored-${x}-${y}`} />);
       });
+
+    // add square status overlay if provided
+    if (evaluatedSquares && evaluatedSquares.length > 0) {
+      components.push(
+        <RecordingSquareStatus
+          key="square-status"
+          squares={evaluatedSquares}
+          extentXMin={xmin}
+          extentYMin={ymin}
+        />,
+      );
+    }
 
     // add the handles
     const handles = {

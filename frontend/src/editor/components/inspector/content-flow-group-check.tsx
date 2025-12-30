@@ -2,12 +2,21 @@ import React, { useContext } from "react";
 
 import { ScenarioStage } from "./scenario-stage";
 
-import { RuleTreeFlowItemCheck } from "../../../types";
+import { EvaluatedCondition, RuleTreeFlowItemCheck } from "../../../types";
 import { FreeformConditionRow } from "../stage/recording/condition-rows";
 import { InspectorContext } from "./inspector-context";
 
 export const ContentFlowGroupCheck = ({ check }: { check: RuleTreeFlowItemCheck }) => {
-  const { characters, world } = useContext(InspectorContext);
+  const { characters, world, evaluatedRuleDetailsForActor } = useContext(InspectorContext);
+
+  // Build condition status map from evaluation details
+  const conditionStatusMap: { [conditionKey: string]: EvaluatedCondition } = {};
+  const checkDetails = evaluatedRuleDetailsForActor?.[check.id];
+  if (checkDetails?.conditions) {
+    for (const cond of checkDetails.conditions) {
+      conditionStatusMap[cond.conditionKey] = cond;
+    }
+  }
 
   const conditions: React.ReactNode[] = [];
   check.conditions.forEach((condition) => {
@@ -19,6 +28,7 @@ export const ContentFlowGroupCheck = ({ check }: { check: RuleTreeFlowItemCheck 
           world={world}
           condition={condition}
           characters={characters}
+          conditionStatus={conditionStatusMap[condition.key]}
         />,
       );
     }
