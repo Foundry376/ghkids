@@ -53,9 +53,10 @@ export const InspectorContainer = () => {
       value={{
         world: focusedWorld,
         characters: characters,
-        evaluatedRuleDetailsForActor: focusedActor
-          ? focusedWorld.evaluatedRuleDetails[focusedActor.id]
-          : {},
+        evaluatedRuleDetailsForActor:
+          focusedActor && focusedWorld.evaluatedRuleDetails
+            ? focusedWorld.evaluatedRuleDetails[focusedActor.id]
+            : {},
       }}
     >
       <div className={`panel inspector-panel-container tool-supported`}>
