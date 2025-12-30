@@ -1,7 +1,8 @@
 import React, { useEffect, useRef } from "react";
 import { Actor, Characters } from "../../../types";
-import ActorSprite from "../sprites/actor-sprite";
 import { STAGE_CELL_SIZE } from "../../constants/constants";
+import ActorSprite from "../sprites/actor-sprite";
+import { DEFAULT_APPEARANCE_INFO } from "../sprites/sprite";
 
 interface ActorSelectionPopoverProps {
   actors: Actor[];
@@ -61,6 +62,9 @@ const ActorSelectionPopover: React.FC<ActorSelectionPopoverProps> = ({
       <div className="actor-selection-popover-content">
         {actors.map((actor) => {
           const character = characters[actor.characterId];
+          const { appearances, appearanceInfo } = character.spritesheet;
+          const info = appearanceInfo?.[actor.appearance] || DEFAULT_APPEARANCE_INFO;
+
           if (!character) return null;
 
           return (
@@ -68,20 +72,12 @@ const ActorSelectionPopover: React.FC<ActorSelectionPopoverProps> = ({
               key={actor.id}
               className="actor-option"
               style={{
-                width: STAGE_CELL_SIZE + 8,
-                height: STAGE_CELL_SIZE + 8,
-                position: "relative",
+                width: info.width * STAGE_CELL_SIZE + 8,
+                height: info.height * STAGE_CELL_SIZE + 8,
+                padding: 2,
               }}
             >
-              <div
-                style={{
-                  position: "absolute",
-                  left: 4,
-                  top: 4,
-                  width: STAGE_CELL_SIZE,
-                  height: STAGE_CELL_SIZE,
-                }}
-              >
+              <div style={{ position: "relative" }}>
                 <ActorSprite
                   character={character}
                   actor={{ ...actor, position: { x: 0, y: 0 } }}
