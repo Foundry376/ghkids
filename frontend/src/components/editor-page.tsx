@@ -114,6 +114,15 @@ const EditorPage = () => {
   });
 
   useEffect(() => {
+    if (world?.name) {
+      document.title = `Codako - ${world.name}`;
+    }
+    return () => {
+      document.title = "Codako - Create your own games!";
+    };
+  }, [world?.name]);
+
+  useEffect(() => {
     const load = async () => {
       try {
         const loaded = applyDataMigrations(await Adapter.load(me, worldId));

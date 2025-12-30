@@ -28,6 +28,15 @@ const PlayPage = (props) => {
     dispatch(fetchWorld(worldId));
   }, [worldId]);
 
+  useEffect(() => {
+    if (world?.name) {
+      document.title = `Codako - ${world.name}`;
+    }
+    return () => {
+      document.title = "Codako - Create your own games!";
+    };
+  }, [world?.name]);
+
   const _onFork = () => {
     // ben todo
   };
