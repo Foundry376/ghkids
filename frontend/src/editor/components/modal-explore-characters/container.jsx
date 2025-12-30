@@ -106,16 +106,16 @@ class Container extends React.Component {
         <div className="modal-header" style={{ display: "flex" }}>
           <h4 style={{ flex: 1 }}>Explore Characters</h4>
         </div>
-        <ModalBody>
-          {this.state.characters ? (
-            <CharacterBrowser
-              characters={this.state.characters}
-              onAddCharacter={this._onAddCharacter}
-            />
-          ) : (
+        {this.state.characters ? (
+          <CharacterBrowser
+            characters={this.state.characters}
+            onAddCharacter={this._onAddCharacter}
+          />
+        ) : (
+          <ModalBody>
             <div>Loading...</div>
-          )}
-        </ModalBody>
+          </ModalBody>
+        )}
         <ModalFooter>
           <Button onClick={() => this.props.dispatch(dismissModal())}>Done</Button>
         </ModalFooter>

@@ -622,8 +622,8 @@ html {
 
 .modal-dialog.paint {
   user-select: none;
-  min-width: 660px;
-  max-width: 660px;
+  min-width: 720px;
+  max-width: 720px;
   canvas {
     cursor: crosshair;
   }
@@ -816,7 +816,9 @@ html {
     border: 2px solid transparent;
     border-radius: 4px;
     background: #f5f5f5;
-    transition: border-color 0.1s, background-color 0.1s;
+    transition:
+      border-color 0.1s,
+      background-color 0.1s;
 
     &:hover {
       border-color: #007bff;
@@ -1241,6 +1243,7 @@ button.btn.selected:active {
 
 .character-cards {
   max-height: 500px;
+  padding-left: 8px;
   overflow-y: scroll;
   display: flex;
   flex-direction: row;
