@@ -34,6 +34,8 @@ const InitialWorld: World = {
   metadata: {
     name: "",
     id: 0,
+    published: false,
+    description: null,
   },
   history: [],
   evaluatedRuleDetails: {},

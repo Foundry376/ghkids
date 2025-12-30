@@ -31,13 +31,13 @@ export default class StoreProvider extends React.Component {
   }
 
   getStateForStore = (world) => {
-    const { data, name, id } = world;
+    const { data, name, id, published, description } = world;
 
     const fullState = u(
       {
         world: {
           globals: InitialState["world"]["globals"],
-          metadata: { name, id },
+          metadata: { name, id, published: published || false, description: description || null },
         },
       },
       data || initialData,
@@ -65,6 +65,8 @@ export default class StoreProvider extends React.Component {
     return {
       thumbnail: getStageScreenshot(getCurrentStage(savedState), { size: 400 }),
       name: savedState.world.metadata.name,
+      description: savedState.world.metadata.description,
+      published: savedState.world.metadata.published,
       data: savedState,
     };
   };
