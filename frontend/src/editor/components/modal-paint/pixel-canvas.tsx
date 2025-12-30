@@ -3,7 +3,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import CreatePixelContext from "./create-pixel-context";
 import { getFilledSquares, Point } from "./helpers";
 import { PixelTool } from "./tools";
-import { PixelContext, PixelImageData } from "./types";
+import { PixelContext, PixelImageData, PixelInteraction } from "./types";
 
 const SELECTION_ANTS_INTERVAL = 200;
 
@@ -27,11 +27,13 @@ function getEdgePixels(
 export interface PixelCanvasProps {
   tool: PixelTool | null;
   color: string;
+  toolSize: number;
   pixelSize: number;
   anchorSquare: Point;
   imageData: PixelImageData | null;
   selectionImageData: PixelImageData | null;
   selectionOffset: Point;
+  interaction: PixelInteraction;
   interactionPixels: Record<string, boolean> | null;
   onMouseDown: (event: React.MouseEvent, pixel: Point) => void;
   onMouseMove: (event: MouseEvent | React.MouseEvent, pixel: Point) => void;
@@ -40,11 +42,14 @@ export interface PixelCanvasProps {
 
 const PixelCanvas: React.FC<PixelCanvasProps> = ({
   tool,
+  color,
+  toolSize,
   pixelSize,
   anchorSquare,
   imageData,
   selectionImageData,
   selectionOffset,
+  interaction,
   interactionPixels,
   onMouseDown,
   onMouseMove,
@@ -139,14 +144,14 @@ const PixelCanvas: React.FC<PixelCanvasProps> = ({
     }
     if (tool && tool.render) {
       tool.render(c, {
-        color: "",
-        toolSize: 1,
+        color,
+        toolSize,
         pixelSize,
         anchorSquare,
         imageData,
         selectionImageData,
         selectionOffset,
-        interaction: { s: null, e: null, points: [] },
+        interaction,
         interactionPixels,
       }, true);
     }
@@ -196,12 +201,15 @@ const PixelCanvas: React.FC<PixelCanvasProps> = ({
       c.drawGrid();
     }
   }, [
+    color,
+    toolSize,
     pixelSize,
     imageData,
     selectionImageData,
     selectionOffset,
     anchorSquare,
     tool,
+    interaction,
     interactionPixels,
     getSelectionPixels,
   ]);

@@ -497,7 +497,11 @@ const PaintContainer: React.FC = () => {
       } else if (event.key === "Delete" || event.key === "Backspace") {
         dispatch({
           type: "SET_STATE_WITH_CHECKPOINT",
-          payload: { selectionImageData: null },
+          payload: {
+            selectionImageData: null,
+            interactionPixels: null,
+            interaction: { s: null, e: null, points: [] },
+          },
         });
       } else if (event.key.startsWith("Arrow")) {
         const delta = event.shiftKey ? 5 : 1;
@@ -962,11 +966,13 @@ const PaintContainer: React.FC = () => {
                     onMouseUp={handleCanvasMouseUp}
                     tool={tool}
                     color={color}
+                    toolSize={toolSize}
                     pixelSize={state.pixelSize}
                     anchorSquare={state.anchorSquare}
                     imageData={state.imageData}
                     selectionImageData={state.selectionImageData}
                     selectionOffset={state.selectionOffset}
+                    interaction={state.interaction}
                     interactionPixels={state.interactionPixels}
                   />
                   <VariableOverlay
