@@ -778,6 +778,7 @@ class Container extends React.Component {
                 <Button
                   className="canvas-arrow"
                   size="sm"
+                  disabled={imageData.height <= 40}
                   onClick={() => this._onCanvasShrink(0, -1, 0, -1)}
                 >
                   −
@@ -793,6 +794,7 @@ class Container extends React.Component {
                   <Button
                     className="canvas-arrow"
                     size="sm"
+                    disabled={imageData.width <= 40}
                     onClick={() => this._onCanvasShrink(-1, 0, -1, 0)}
                   >
                     −
@@ -826,6 +828,7 @@ class Container extends React.Component {
                       <Button
                         size="sm"
                         className="canvas-arrow"
+                        disabled={imageData.width <= 40}
                         onClick={() => this._onCanvasShrink(-1, 0, 0, 0)}
                       >
                         −
@@ -855,6 +858,7 @@ class Container extends React.Component {
                 <Button
                   className="canvas-arrow"
                   size="sm"
+                  disabled={imageData.height <= 40}
                   onClick={() => this._onCanvasShrink(0, -1, 0, 0)}
                 >
                   −
