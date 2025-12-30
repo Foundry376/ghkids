@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useReducer, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import Button from "reactstrap/lib/Button";
 import ButtonDropdown from "reactstrap/lib/ButtonDropdown";
@@ -33,7 +33,7 @@ import PixelColorPicker, { ColorOptions } from "./pixel-color-picker";
 import { PixelToolSize } from "./pixel-tool-size";
 import PixelToolbar from "./pixel-toolbar";
 import SpriteVariablesPanel from "./sprite-variables-panel";
-import { PaintCheckpoint, PixelImageData, PixelInteraction } from "./types";
+import { createCheckpoint, getToolState, PaintCheckpoint, PaintState, PixelImageData } from "./types";
 import VariableOverlay from "./variable-overlay";
 
 const MAX_UNDO_STEPS = 30;
@@ -42,40 +42,19 @@ const TOOLS_LIST: Tools.PixelTool[] = [
   new Tools.PixelPenTool(),
   new Tools.PixelLineTool(),
   new Tools.PixelEraserTool(),
-
   new Tools.PixelFillRectTool(),
   new Tools.PixelFillEllipseTool(),
   new Tools.PixelPaintbucketTool(),
-
   new Tools.PixelRectSelectionTool(),
   new Tools.PixelMagicSelectionTool(),
   new Tools.EyedropperTool(),
 ];
 
-interface PaintState {
-  color: string;
-  tool: Tools.PixelTool;
-  toolSize: number;
-  pixelSize: number;
-  anchorSquare: Point;
-  imageData: PixelImageData | null;
-  selectionImageData: PixelImageData | null;
-  selectionOffset: Point;
-  undoStack: PaintCheckpoint[];
-  redoStack: PaintCheckpoint[];
-  interaction: PixelInteraction;
-  interactionPixels: Record<string, boolean> | null;
-  showVariables: boolean;
-  visibleVariables: Record<string, boolean>;
-  isGeneratingSprite: boolean;
-  spriteDescription: string;
-  dropdownOpen: boolean;
-  spriteName: string;
-}
+const DEFAULT_TOOL = TOOLS_LIST.find((t) => t.name === "pen") ?? TOOLS_LIST[0];
 
 const INITIAL_STATE: PaintState = {
   color: ColorOptions[3],
-  tool: TOOLS_LIST.find((t) => t.name === "pen")!,
+  tool: DEFAULT_TOOL,
   toolSize: 1,
   pixelSize: 11,
   anchorSquare: { x: 0, y: 0 },
@@ -94,6 +73,81 @@ const INITIAL_STATE: PaintState = {
   spriteName: "",
 };
 
+// Action types for the reducer
+type PaintAction =
+  | { type: "RESET"; payload: Partial<PaintState> }
+  | { type: "SET_STATE"; payload: Partial<PaintState> }
+  | { type: "SET_STATE_WITH_CHECKPOINT"; payload: Partial<PaintState> }
+  | { type: "UNDO" }
+  | { type: "REDO" }
+  | { type: "APPLY_TOOL_RESULT"; payload: Partial<PaintState>; withCheckpoint: boolean };
+
+function paintReducer(state: PaintState, action: PaintAction): PaintState {
+  switch (action.type) {
+    case "RESET":
+      return { ...INITIAL_STATE, ...action.payload };
+
+    case "SET_STATE":
+      return { ...state, ...action.payload };
+
+    case "SET_STATE_WITH_CHECKPOINT": {
+      const checkpoint = createCheckpoint(state);
+      return {
+        ...state,
+        ...action.payload,
+        redoStack: [],
+        undoStack: state.undoStack
+          .slice(Math.max(0, state.undoStack.length - MAX_UNDO_STEPS))
+          .concat([checkpoint]),
+      };
+    }
+
+    case "UNDO": {
+      const undoStack = [...state.undoStack];
+      const changes = undoStack.pop();
+      if (!changes) return state;
+      const checkpoint = createCheckpoint(state);
+      return {
+        ...state,
+        ...changes,
+        undoStack,
+        redoStack: [...state.redoStack, checkpoint],
+      };
+    }
+
+    case "REDO": {
+      const redoStack = [...state.redoStack];
+      const changes = redoStack.pop();
+      if (!changes) return state;
+      const checkpoint = createCheckpoint(state);
+      return {
+        ...state,
+        ...changes,
+        redoStack,
+        undoStack: [...state.undoStack, checkpoint],
+      };
+    }
+
+    case "APPLY_TOOL_RESULT": {
+      if (action.withCheckpoint) {
+        const checkpoint = createCheckpoint(state);
+        return {
+          ...state,
+          ...action.payload,
+          redoStack: [],
+          undoStack: state.undoStack
+            .slice(Math.max(0, state.undoStack.length - MAX_UNDO_STEPS))
+            .concat([checkpoint]),
+        };
+      }
+      return { ...state, ...action.payload };
+    }
+
+    default:
+      return state;
+  }
+}
+
 function pixelSizeToFit(imageData: ImageData): number {
   return Math.max(
     1,
@@ -102,20 +156,27 @@ function pixelSizeToFit(imageData: ImageData): number {
 }
 
 const PaintContainer: React.FC = () => {
-  const dispatch = useDispatch();
+  const reduxDispatch = useDispatch();
 
   // Redux selectors
-  const { characterId, appearanceId } = useSelector<EditorState, { characterId: string | null; appearanceId: string | null }>(
-    (state) => state.ui.paint
-  );
-  const characters = useSelector<EditorState, Characters>((state) => state.characters);
+  const { characterId, appearanceId } = useSelector<
+    EditorState,
+    { characterId: string | null; appearanceId: string | null }
+  >((s) => s.ui.paint);
+  const characters = useSelector<EditorState, Characters>((s) => s.characters);
   const selectedActors = useSelector<EditorState, EditorState["ui"]["selectedActors"]>(
-    (state) => state.ui.selectedActors
+    (s) => s.ui.selectedActors
   );
-  const world = useSelector<EditorState, EditorState["world"]>((state) => state.world);
+  const world = useSelector<EditorState, EditorState["world"]>((s) => s.world);
+
+  // Memoize the current character to avoid unnecessary effect triggers
+  const character = useMemo(
+    () => (characterId ? characters[characterId] : null),
+    [characterId, characters]
+  );
 
   // Compute current actor from selection
-  const currentActor: Actor | null = (() => {
+  const currentActor: Actor | null = useMemo(() => {
     if (
       selectedActors &&
       selectedActors.worldId &&
@@ -128,76 +189,60 @@ const PaintContainer: React.FC = () => {
       }
     }
     return null;
-  })();
+  }, [selectedActors, world.stages]);
 
-  const [state, setState] = useState<PaintState>(INITIAL_STATE);
+  const [state, dispatch] = useReducer(paintReducer, INITIAL_STATE);
 
-  const getCheckpoint = useCallback(
-    (s: PaintState = state): PaintCheckpoint => ({
-      imageData: s.imageData,
-      selectionImageData: s.selectionImageData,
-      selectionOffset: s.selectionOffset,
-    }),
-    [state]
-  );
-
-  const setStateWithCheckpoint = useCallback(
-    (nextState: Partial<PaintState>) => {
-      setState((prev) => ({
-        ...prev,
-        ...nextState,
-        redoStack: [],
-        undoStack: prev.undoStack
-          .slice(Math.max(0, prev.undoStack.length - MAX_UNDO_STEPS))
-          .concat([getCheckpoint(prev)]),
-      }));
-    },
-    [getCheckpoint]
-  );
+  // Use ref to access current state in callbacks without recreating them
+  const stateRef = useRef<PaintState>(state);
+  useEffect(() => {
+    stateRef.current = state;
+  }, [state]);
 
   // Load image data when character/appearance changes
   useEffect(() => {
-    if (characterId && characters[characterId]) {
-      const { appearances, appearanceInfo } = characters[characterId].spritesheet;
-      const anchorSquare = appearanceInfo?.[appearanceId!]?.anchor || { x: 0, y: 0 };
-      const frameDataURL = appearances[appearanceId!]?.[0];
+    if (character && appearanceId) {
+      const { appearances, appearanceInfo } = character.spritesheet;
+      const anchorSquare = appearanceInfo?.[appearanceId]?.anchor || { x: 0, y: 0 };
+      const frameDataURL = appearances[appearanceId]?.[0];
 
       if (!frameDataURL) return;
 
-      const variableOverlay = appearanceInfo?.[appearanceId!]?.variableOverlay || {
+      const variableOverlay = appearanceInfo?.[appearanceId]?.variableOverlay || {
         showVariables: false,
         visibleVariables: {},
       };
 
       getImageDataFromDataURL(frameDataURL, {}, (imageData) => {
         CreatePixelImageData.call(imageData as PixelImageData);
-        setState({
-          ...INITIAL_STATE,
-          imageData: imageData as PixelImageData,
-          anchorSquare,
-          pixelSize: pixelSizeToFit(imageData),
-          showVariables: variableOverlay.showVariables,
-          visibleVariables: variableOverlay.visibleVariables,
+        dispatch({
+          type: "RESET",
+          payload: {
+            imageData: imageData as PixelImageData,
+            anchorSquare,
+            pixelSize: pixelSizeToFit(imageData),
+            showVariables: variableOverlay.showVariables,
+            visibleVariables: variableOverlay.visibleVariables,
+          },
         });
       });
     } else {
-      setState(INITIAL_STATE);
+      dispatch({ type: "RESET", payload: {} });
     }
-  }, [characterId, appearanceId, characters]);
+  }, [character, appearanceId]);
 
-  // Clipboard event handlers
-  const handleGlobalCopy = useCallback(
-    async (event: ClipboardEvent) => {
-      if (state.imageData === null) {
-        return; // modal closed
-      }
+  // Stable clipboard event handlers using refs
+  const clipboardHandlersRef = useRef({
+    copy: async (event: ClipboardEvent) => {
+      const currentState = stateRef.current;
+      if (currentState.imageData === null) return;
       event.preventDefault();
 
       const data: Record<string, Blob | string> = {
-        "text/plain": JSON.stringify(state.selectionOffset),
+        "text/plain": JSON.stringify(currentState.selectionOffset),
       };
 
-      const blob = await getBlobFromImageData(state.selectionImageData);
+      const blob = await getBlobFromImageData(currentState.selectionImageData);
       if (blob) {
         data["image/png"] = blob;
       }
@@ -209,52 +254,16 @@ const PaintContainer: React.FC = () => {
         console.error(err);
       }
     },
-    [state.imageData, state.selectionImageData, state.selectionOffset]
-  );
-
-  const handleGlobalCut = useCallback(
-    (event: ClipboardEvent) => {
-      if (state.imageData === null) {
-        return; // modal closed
-      }
-      handleGlobalCopy(event);
-      setStateWithCheckpoint({ selectionImageData: null });
+    cut: (event: ClipboardEvent) => {
+      const currentState = stateRef.current;
+      if (currentState.imageData === null) return;
+      clipboardHandlersRef.current.copy(event);
+      dispatch({ type: "SET_STATE_WITH_CHECKPOINT", payload: { selectionImageData: null } });
     },
-    [state.imageData, handleGlobalCopy, setStateWithCheckpoint]
-  );
+    paste: async (_event: ClipboardEvent) => {
+      const currentState = stateRef.current;
+      if (currentState.imageData === null) return;
 
-  const applyExternalDataURL = useCallback(
-    (dataURL: string, offset?: Point | null, options?: { fill?: boolean }) => {
-      const { imageData } = state;
-      if (!imageData) return;
-
-      getImageDataFromDataURL(
-        dataURL,
-        {
-          maxWidth: imageData.width,
-          maxHeight: imageData.height,
-          fill: options?.fill,
-        },
-        (nextSelectionImageData) => {
-          CreatePixelImageData.call(nextSelectionImageData as PixelImageData);
-
-          setStateWithCheckpoint({
-            imageData: getFlattenedImageData(state),
-            selectionOffset: offset || { x: 0, y: 0 },
-            selectionImageData: nextSelectionImageData as PixelImageData,
-            tool: TOOLS_LIST.find((t) => t.name === "select"),
-          });
-        }
-      );
-    },
-    [state, setStateWithCheckpoint]
-  );
-
-  const handleGlobalPaste = useCallback(
-    async (event: ClipboardEvent) => {
-      if (state.imageData === null) {
-        return; // modal closed
-      }
       let items: ClipboardItems;
       try {
         items = await navigator.clipboard.read();
@@ -265,6 +274,7 @@ const PaintContainer: React.FC = () => {
         );
         return;
       }
+
       const imageItem = items.find((i) => i.types.some((t) => t.includes("image")));
       const offsetItem = items.find((d) => d.types.includes("text/plain"));
 
@@ -275,7 +285,7 @@ const PaintContainer: React.FC = () => {
           const text = await blob.text();
           offset = JSON.parse(text);
         }
-      } catch (err) {
+      } catch {
         // not our data
       }
 
@@ -288,50 +298,72 @@ const PaintContainer: React.FC = () => {
         applyExternalDataURL(URL.createObjectURL(image), offset);
       }
     },
-    [state.imageData, applyExternalDataURL]
+  });
+
+  const applyExternalDataURL = useCallback(
+    (dataURL: string, offset?: Point | null, options?: { fill?: boolean }) => {
+      const currentState = stateRef.current;
+      const { imageData } = currentState;
+      if (!imageData) return;
+
+      getImageDataFromDataURL(
+        dataURL,
+        {
+          maxWidth: imageData.width,
+          maxHeight: imageData.height,
+          fill: options?.fill,
+        },
+        (nextSelectionImageData) => {
+          CreatePixelImageData.call(nextSelectionImageData as PixelImageData);
+          dispatch({
+            type: "SET_STATE_WITH_CHECKPOINT",
+            payload: {
+              imageData: getFlattenedImageData(stateRef.current),
+              selectionOffset: offset || { x: 0, y: 0 },
+              selectionImageData: nextSelectionImageData as PixelImageData,
+              tool: TOOLS_LIST.find((t) => t.name === "select"),
+            },
+          });
+        }
+      );
+    },
+    []
   );
 
-  // Attach clipboard event listeners
+  // Attach clipboard event listeners (stable, no dependencies)
   useEffect(() => {
-    document.body.addEventListener("cut", handleGlobalCut as EventListener);
-    document.body.addEventListener("copy", handleGlobalCopy as EventListener);
-    document.body.addEventListener("paste", handleGlobalPaste as EventListener);
+    const handleCopy = (e: Event) => clipboardHandlersRef.current.copy(e as ClipboardEvent);
+    const handleCut = (e: Event) => clipboardHandlersRef.current.cut(e as ClipboardEvent);
+    const handlePaste = (e: Event) => clipboardHandlersRef.current.paste(e as ClipboardEvent);
+
+    document.body.addEventListener("copy", handleCopy);
+    document.body.addEventListener("cut", handleCut);
+    document.body.addEventListener("paste", handlePaste);
 
     return () => {
-      document.body.removeEventListener("cut", handleGlobalCut as EventListener);
-      document.body.removeEventListener("copy", handleGlobalCopy as EventListener);
-      document.body.removeEventListener("paste", handleGlobalPaste as EventListener);
+      document.body.removeEventListener("copy", handleCopy);
+      document.body.removeEventListener("cut", handleCut);
+      document.body.removeEventListener("paste", handlePaste);
     };
-  }, [handleGlobalCut, handleGlobalCopy, handleGlobalPaste]);
+  }, []);
 
   const handleUndo = useCallback(() => {
-    const undoStack = [...state.undoStack];
-    const changes = undoStack.pop();
-    if (!changes) {
-      return;
-    }
-    const redoStack = [...state.redoStack, getCheckpoint()];
-    setState((prev) => ({ ...prev, ...changes, redoStack, undoStack }));
-  }, [state.undoStack, state.redoStack, getCheckpoint]);
+    dispatch({ type: "UNDO" });
+  }, []);
 
   const handleRedo = useCallback(() => {
-    const redoStack = [...state.redoStack];
-    const changes = redoStack.pop();
-    if (!changes) {
-      return;
-    }
-    const undoStack = [...state.undoStack, getCheckpoint()];
-    setState((prev) => ({ ...prev, ...changes, redoStack, undoStack }));
-  }, [state.undoStack, state.redoStack, getCheckpoint]);
+    dispatch({ type: "REDO" });
+  }, []);
 
   const handleClose = useCallback(() => {
-    dispatch(paintCharacterAppearance(null));
-  }, [dispatch]);
+    reduxDispatch(paintCharacterAppearance(null));
+  }, [reduxDispatch]);
 
   const handleCloseAndSave = useCallback(async () => {
-    if (!characterId || !appearanceId) return;
+    if (!characterId || !appearanceId || !character) return;
 
-    const flattened = getFlattenedImageData(state);
+    const currentState = stateRef.current;
+    const flattened = getFlattenedImageData(currentState);
     if (!flattened) {
       alert(
         `Sorry, an error occurred and we're unable to save your image. Did you copy/paste,` +
@@ -356,7 +388,6 @@ const PaintContainer: React.FC = () => {
     });
 
     const imageDataURL = getDataURLFromImageData(trimmed);
-    const character = characters[characterId];
 
     // If character name is "Untitled", generate a name from the backend
     let generatedSpriteName = "";
@@ -376,11 +407,11 @@ const PaintContainer: React.FC = () => {
     }
 
     // Close modal first
-    dispatch(paintCharacterAppearance(null));
+    reduxDispatch(paintCharacterAppearance(null));
 
     // Then update character data after a small delay to prevent modal reopening
     setTimeout(() => {
-      dispatch(
+      reduxDispatch(
         upsertCharacter(characterId, {
           name: generatedSpriteName || character.name,
           spritesheet: {
@@ -393,13 +424,13 @@ const PaintContainer: React.FC = () => {
             },
             appearanceInfo: {
               [appearanceId]: {
-                anchor: state.anchorSquare,
+                anchor: currentState.anchorSquare,
                 filled: getFilledSquares(flattened),
                 width: flattened.width / 40,
                 height: flattened.height / 40,
                 variableOverlay: {
-                  showVariables: state.showVariables,
-                  visibleVariables: state.visibleVariables,
+                  showVariables: currentState.showVariables,
+                  visibleVariables: currentState.visibleVariables,
                 },
               },
             },
@@ -407,33 +438,42 @@ const PaintContainer: React.FC = () => {
         })
       );
     }, 10);
-  }, [characterId, appearanceId, characters, state, dispatch]);
+  }, [characterId, appearanceId, character, reduxDispatch]);
 
   const handleClearAll = useCallback(() => {
-    if (!state.imageData) return;
-    const empty = state.imageData.clone();
+    const currentState = stateRef.current;
+    if (!currentState.imageData) return;
+    const empty = currentState.imageData.clone();
     empty.clearPixelsInRect(0, 0, empty.width, empty.height);
-    setStateWithCheckpoint({
-      spriteName: "",
-      imageData: empty,
-      selectionOffset: { x: 0, y: 0 },
-      selectionImageData: null,
+    dispatch({
+      type: "SET_STATE_WITH_CHECKPOINT",
+      payload: {
+        spriteName: "",
+        imageData: empty,
+        selectionOffset: { x: 0, y: 0 },
+        selectionImageData: null,
+      },
     });
-  }, [state.imageData, setStateWithCheckpoint]);
+  }, []);
 
   const handleSelectAll = useCallback(() => {
-    if (!state.imageData) return;
-    const empty = state.imageData.clone();
+    const currentState = stateRef.current;
+    if (!currentState.imageData) return;
+    const empty = currentState.imageData.clone();
     empty.clearPixelsInRect(0, 0, empty.width, empty.height);
-    setStateWithCheckpoint({
-      imageData: empty,
-      selectionOffset: { x: 0, y: 0 },
-      selectionImageData: getFlattenedImageData(state),
+    dispatch({
+      type: "SET_STATE_WITH_CHECKPOINT",
+      payload: {
+        imageData: empty,
+        selectionOffset: { x: 0, y: 0 },
+        selectionImageData: getFlattenedImageData(currentState),
+      },
     });
-  }, [state, setStateWithCheckpoint]);
+  }, []);
 
   const handleKeyDown = useCallback(
     (event: React.KeyboardEvent) => {
+      const currentState = stateRef.current;
       if ((event.key === "y" || event.key === "Z") && (event.ctrlKey || event.metaKey)) {
         handleRedo();
         event.preventDefault();
@@ -447,111 +487,102 @@ const PaintContainer: React.FC = () => {
         event.preventDefault();
         event.stopPropagation();
       } else if (event.key === "Escape" || event.key === "Enter") {
-        setStateWithCheckpoint({
-          imageData: getFlattenedImageData(state),
-          selectionImageData: null,
+        dispatch({
+          type: "SET_STATE_WITH_CHECKPOINT",
+          payload: {
+            imageData: getFlattenedImageData(currentState),
+            selectionImageData: null,
+          },
         });
       } else if (event.key === "Delete" || event.key === "Backspace") {
-        setStateWithCheckpoint({
-          selectionImageData: null,
+        dispatch({
+          type: "SET_STATE_WITH_CHECKPOINT",
+          payload: { selectionImageData: null },
         });
       } else if (event.key.startsWith("Arrow")) {
         const delta = event.shiftKey ? 5 : 1;
-        setStateWithCheckpoint({
-          selectionOffset: {
-            x:
-              state.selectionOffset.x +
-              ({ ArrowLeft: -delta, ArrowRight: delta }[event.key] || 0),
-            y:
-              state.selectionOffset.y +
-              ({ ArrowUp: -delta, ArrowDown: delta }[event.key] || 0),
+        dispatch({
+          type: "SET_STATE_WITH_CHECKPOINT",
+          payload: {
+            selectionOffset: {
+              x:
+                currentState.selectionOffset.x +
+                ({ ArrowLeft: -delta, ArrowRight: delta }[event.key] || 0),
+              y:
+                currentState.selectionOffset.y +
+                ({ ArrowUp: -delta, ArrowDown: delta }[event.key] || 0),
+            },
           },
         });
       }
     },
-    [handleRedo, handleUndo, handleSelectAll, setStateWithCheckpoint, state]
+    [handleRedo, handleUndo, handleSelectAll]
   );
 
-  const handleChooseTool = useCallback(
-    (tool: Tools.PixelTool) => {
-      console.log(`[PixelToolbar] Tool clicked: ${tool.name}`);
-      setState((prev) => ({
-        ...prev,
-        tool: tool,
-        imageData: getFlattenedImageData(prev),
+  const handleChooseTool = useCallback((tool: Tools.PixelTool) => {
+    const currentState = stateRef.current;
+    dispatch({
+      type: "SET_STATE",
+      payload: {
+        tool,
+        imageData: getFlattenedImageData(currentState),
         selectionImageData: null,
-      }));
-    },
-    []
-  );
+      },
+    });
+  }, []);
 
-  const handleCanvasMouseDown = useCallback(
-    (event: React.MouseEvent, pixel: Point) => {
-      const tool = state.tool;
-      if (tool) {
-        console.log(`[Canvas] MouseDown with tool: ${tool.name}, pixel:`, pixel, "event:", event);
-        const result = tool.mousedown(pixel, state as any, event);
-        setState((prev) => ({
-          ...prev,
-          ...result,
-          redoStack: [],
-          undoStack: prev.undoStack
-            .slice(Math.max(0, prev.undoStack.length - MAX_UNDO_STEPS))
-            .concat([getCheckpoint(prev)]),
-        } as PaintState));
+  // Canvas event handlers using refs for stable callbacks
+  const handleCanvasMouseDown = useCallback((event: React.MouseEvent, pixel: Point) => {
+    const currentState = stateRef.current;
+    const { tool } = currentState;
+    if (!tool) return;
+
+    const toolState = getToolState(currentState);
+    const result = tool.mousedown(pixel, toolState, event);
+    dispatch({ type: "APPLY_TOOL_RESULT", payload: result, withCheckpoint: true });
+  }, []);
+
+  const handleCanvasMouseMove = useCallback((_event: MouseEvent | React.MouseEvent, pixel: Point) => {
+    const currentState = stateRef.current;
+    const { tool } = currentState;
+    if (!tool) return;
+
+    const toolState = getToolState(currentState);
+    const result = tool.mousemove(pixel, toolState);
+    dispatch({ type: "APPLY_TOOL_RESULT", payload: result, withCheckpoint: false });
+  }, []);
+
+  const handleCanvasMouseUp = useCallback((_event: MouseEvent | React.MouseEvent, pixel: Point) => {
+    const currentState = stateRef.current;
+    const { tool } = currentState;
+    if (!tool) return;
+
+    const toolState = getToolState(currentState);
+    const moved = tool.mousemove(pixel, toolState);
+    const result = tool.mouseup({ ...toolState, ...moved });
+    dispatch({ type: "APPLY_TOOL_RESULT", payload: result, withCheckpoint: false });
+  }, []);
+
+  const handleApplyCoordinateTransform = useCallback((coordTransformCallback: (p: Point) => Point) => {
+    const currentState = stateRef.current;
+    const key = currentState.selectionImageData ? "selectionImageData" : "imageData";
+    const source = currentState[key];
+    if (!source) return;
+
+    const clone = source.clone();
+    for (let x = 0; x < clone.width; x++) {
+      for (let y = 0; y < clone.height; y++) {
+        const { x: nx, y: ny } = coordTransformCallback({ x, y });
+        clone.fillPixelRGBA(x, y, ...source.getPixel(nx, ny));
       }
-    },
-    [state, getCheckpoint]
-  );
-
-  const handleCanvasMouseMove = useCallback(
-    (event: MouseEvent | React.MouseEvent, pixel: Point) => {
-      const tool = state.tool;
-      if (tool) {
-        const result = tool.mousemove(pixel, state as any);
-        setState((prev) => ({ ...prev, ...result } as PaintState));
-      }
-    },
-    [state]
-  );
-
-  const handleCanvasMouseUp = useCallback(
-    (event: MouseEvent | React.MouseEvent, pixel: Point) => {
-      const tool = state.tool;
-      if (tool) {
-        console.log(`[Canvas] MouseUp with tool: ${tool.name}, pixel:`, pixel, "event:", event);
-        const moved = tool.mousemove(pixel, state as any);
-        const result = tool.mouseup({ ...state, ...moved } as any);
-        setState((prev) => ({ ...prev, ...result } as PaintState));
-      }
-    },
-    [state]
-  );
-
-  const handleApplyCoordinateTransform = useCallback(
-    (coordTransformCallback: (p: Point) => Point) => {
-      const key = state.selectionImageData ? "selectionImageData" : "imageData";
-      const source = state[key];
-      if (!source) return;
-
-      const clone = source.clone();
-
-      for (let x = 0; x < clone.width; x++) {
-        for (let y = 0; y < clone.height; y++) {
-          const { x: nx, y: ny } = coordTransformCallback({ x, y });
-          clone.fillPixelRGBA(x, y, ...source.getPixel(nx, ny));
-        }
-      }
-      setStateWithCheckpoint({
-        [key]: clone,
-      });
-    },
-    [state, setStateWithCheckpoint]
-  );
+    }
+    dispatch({ type: "SET_STATE_WITH_CHECKPOINT", payload: { [key]: clone } });
+  }, []);
 
   const handleChooseAnchorSquare = useCallback(() => {
-    handleChooseTool(new Tools.ChooseAnchorSquareTool(state.tool));
-  }, [state.tool, handleChooseTool]);
+    const currentState = stateRef.current;
+    handleChooseTool(new Tools.ChooseAnchorSquareTool(currentState.tool));
+  }, [handleChooseTool]);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -573,94 +604,93 @@ const PaintContainer: React.FC = () => {
     [applyExternalDataURL]
   );
 
+  // Track if magic wand operation is still valid
+  const magicWandOperationIdRef = useRef(0);
+
   const handleGenerateSprite = useCallback(async () => {
-    const description = state.spriteDescription;
+    const currentState = stateRef.current;
+    const description = currentState.spriteDescription;
     const prompt = `Generate a pixel art sprite with a solid background based on the following description: ${description}`;
 
-    const { imageData } = state;
+    const { imageData } = currentState;
     if (!imageData) return;
 
     const canvasWidth = imageData.width;
     const canvasHeight = imageData.height;
 
-    setState((prev) => ({ ...prev, isGeneratingSprite: true }));
+    dispatch({ type: "SET_STATE", payload: { isGeneratingSprite: true } });
+
+    // Track this specific operation
+    const operationId = ++magicWandOperationIdRef.current;
+
     try {
       const data = await makeRequest(
         `/generate-sprite?prompt=${encodeURIComponent(prompt)}&width=${canvasWidth}&height=${canvasHeight}`
       );
       if (data.imageUrl) {
-        console.log("data.imageUrl", data.imageUrl);
         applyExternalDataURL(data.imageUrl, null, { fill: true });
       } else {
         console.error("Failed to generate sprite:", data.error);
       }
 
       if (data.name) {
-        setState((prev) => ({ ...prev, spriteName: data.name }));
-        console.log("spriteName", data.name);
-      } else {
-        console.error("Failed to generate sprite name:", data.error);
+        dispatch({ type: "SET_STATE", payload: { spriteName: data.name } });
       }
     } catch (error) {
       console.error("Error fetching sprite:", error);
     } finally {
-      setState((prev) => ({ ...prev, isGeneratingSprite: false }));
+      dispatch({ type: "SET_STATE", payload: { isGeneratingSprite: false } });
     }
 
-    // Wait for the image to be loaded and state to be updated before applying magic wand
+    // Wait for the image to be loaded before applying magic wand
+    // Use the operation ID to ensure we don't apply stale operations
     setTimeout(() => {
-      setState((prev) => {
-        if (!prev.imageData) return prev;
+      // Check if this operation is still the current one
+      if (operationId !== magicWandOperationIdRef.current) return;
 
-        const magicWandTool = TOOLS_LIST.find((t) => t.name === "magicWand")!;
-        const flattened = getFlattenedImageData(prev);
+      const latestState = stateRef.current;
+      if (!latestState.imageData) return;
 
-        // Apply magic wand at (0,0) to select background
-        const stateWithTool = {
-          ...prev,
-          tool: magicWandTool,
-          imageData: flattened,
-          selectionImageData: null,
-        };
+      const magicWandTool = TOOLS_LIST.find((t) => t.name === "magicWand");
+      if (!magicWandTool) return;
 
-        const afterMousedown = magicWandTool.mousedown(
-          { x: 0, y: 0 },
-          stateWithTool as any,
-          { altKey: false } as any
-        );
+      const flattened = getFlattenedImageData(latestState);
+      if (!flattened) return;
 
-        const afterMousemove = magicWandTool.mousemove(
-          { x: 0, y: 0 },
-          { ...stateWithTool, ...afterMousedown } as any
-        );
+      // Build a proper tool state for the magic wand
+      const toolState = {
+        ...getToolState(latestState),
+        tool: magicWandTool,
+        imageData: flattened,
+        selectionImageData: null,
+      };
 
-        const afterMouseup = magicWandTool.mouseup({
-          ...stateWithTool,
-          ...afterMousedown,
-          ...afterMousemove,
-        } as any);
+      const afterMousedown = magicWandTool.mousedown({ x: 0, y: 0 }, toolState);
+      const afterMousemove = magicWandTool.mousemove({ x: 0, y: 0 }, {
+        ...toolState,
+        ...afterMousedown,
+      });
+      const afterMouseup = magicWandTool.mouseup({
+        ...toolState,
+        ...afterMousedown,
+        ...afterMousemove,
+      });
 
-        // Clear the selection to remove background
-        return {
-          ...prev,
+      // Clear the selection to remove background
+      dispatch({
+        type: "SET_STATE_WITH_CHECKPOINT",
+        payload: {
           ...afterMouseup,
           selectionImageData: null,
-          undoStack: prev.undoStack.concat([
-            {
-              imageData: prev.imageData,
-              selectionImageData: prev.selectionImageData,
-              selectionOffset: prev.selectionOffset,
-            },
-          ]),
-          redoStack: [],
-        } as PaintState;
+        },
       });
     }, 500);
-  }, [state.spriteDescription, state.imageData, applyExternalDataURL]);
+  }, [applyExternalDataURL]);
 
   const handleDownloadImage = useCallback(() => {
-    const { imageData } = state;
-    if (!imageData || !characterId || !appearanceId) return;
+    const currentState = stateRef.current;
+    const { imageData } = currentState;
+    if (!imageData || !characterId || !appearanceId || !character) return;
 
     const canvas = document.createElement("canvas");
     canvas.width = imageData.width;
@@ -670,61 +700,69 @@ const PaintContainer: React.FC = () => {
 
     const link = document.createElement("a");
     link.href = canvas.toDataURL("image/png");
-    const fileName = `${characters[characterId].name}_${appearanceId}.png`;
+    const fileName = `${character.name}_${appearanceId}.png`;
     link.download = fileName;
     link.click();
-  }, [state.imageData, characterId, appearanceId, characters]);
+  }, [characterId, appearanceId, character]);
 
-  const handleToggleVariableVisibility = useCallback(
-    (variableId: string) => {
-      const newVisibleVariables = {
-        ...state.visibleVariables,
-        [variableId]: !state.visibleVariables[variableId],
-      };
+  const handleToggleVariableVisibility = useCallback((variableId: string) => {
+    const currentState = stateRef.current;
+    const newVisibleVariables = {
+      ...currentState.visibleVariables,
+      [variableId]: !currentState.visibleVariables[variableId],
+    };
+    const hasVisibleVariables = Object.values(newVisibleVariables).some(Boolean);
 
-      const hasVisibleVariables = Object.values(newVisibleVariables).some(Boolean);
-
-      setState((prev) => ({
-        ...prev,
+    dispatch({
+      type: "SET_STATE",
+      payload: {
         visibleVariables: newVisibleVariables,
         showVariables: hasVisibleVariables,
-      }));
-    },
-    [state.visibleVariables]
-  );
+      },
+    });
+  }, []);
 
   const handleCanvasUpdateSize = useCallback(
     (dSquaresX: number, dSquaresY: number, offsetX: number, offsetY: number) => {
-      if (!state.imageData) return;
+      const currentState = stateRef.current;
+      if (!currentState.imageData) return;
 
-      const imageData = getImageDataWithNewFrame(state.imageData, {
-        width: state.imageData.width + 40 * dSquaresX,
-        height: state.imageData.height + 40 * dSquaresY,
+      const newImageData = getImageDataWithNewFrame(currentState.imageData, {
+        width: currentState.imageData.width + 40 * dSquaresX,
+        height: currentState.imageData.height + 40 * dSquaresY,
         offsetX: 40 * offsetX,
         offsetY: 40 * offsetY,
       });
-      if (!imageData) return;
+      if (!newImageData) return;
 
-      CreatePixelImageData.call(imageData as PixelImageData);
-      setStateWithCheckpoint({
-        ...INITIAL_STATE,
-        pixelSize: pixelSizeToFit(imageData),
-        anchorSquare: {
-          x: state.anchorSquare.x + offsetX,
-          y: state.anchorSquare.y + offsetY,
+      CreatePixelImageData.call(newImageData as PixelImageData);
+      dispatch({
+        type: "SET_STATE_WITH_CHECKPOINT",
+        payload: {
+          pixelSize: pixelSizeToFit(newImageData),
+          anchorSquare: {
+            x: currentState.anchorSquare.x + offsetX,
+            y: currentState.anchorSquare.y + offsetY,
+          },
+          imageData: newImageData as PixelImageData,
+          // Reset these to avoid issues
+          selectionImageData: null,
+          selectionOffset: { x: 0, y: 0 },
+          interaction: { s: null, e: null, points: [] },
+          interactionPixels: null,
         },
-        imageData: imageData as PixelImageData,
       });
     },
-    [state.imageData, state.anchorSquare, setStateWithCheckpoint]
+    []
   );
 
   const handleCanvasShrink = useCallback(
     (dSquaresX: number, dSquaresY: number, offsetX: number, offsetY: number) => {
-      if (!state.imageData) return;
+      const currentState = stateRef.current;
+      if (!currentState.imageData) return;
 
-      const newWidth = state.imageData.width + 40 * dSquaresX;
-      const newHeight = state.imageData.height + 40 * dSquaresY;
+      const newWidth = currentState.imageData.width + 40 * dSquaresX;
+      const newHeight = currentState.imageData.height + 40 * dSquaresY;
 
       if (newWidth < 40 || newHeight < 40) {
         return;
@@ -732,11 +770,10 @@ const PaintContainer: React.FC = () => {
 
       handleCanvasUpdateSize(dSquaresX, dSquaresY, offsetX, offsetY);
     },
-    [state.imageData, handleCanvasUpdateSize]
+    [handleCanvasUpdateSize]
   );
 
   const { imageData, tool, toolSize, color, undoStack, redoStack } = state;
-  const character = characterId ? characters[characterId] : null;
 
   return (
     <Modal isOpen={imageData !== null} backdrop="static" toggle={() => {}} className="paint">
@@ -770,67 +807,73 @@ const PaintContainer: React.FC = () => {
           </Button>
           <ButtonDropdown
             isOpen={state.dropdownOpen}
-            toggle={() => setState((prev) => ({ ...prev, dropdownOpen: !prev.dropdownOpen }))}
+            toggle={() => dispatch({ type: "SET_STATE", payload: { dropdownOpen: !state.dropdownOpen } })}
           >
             <DropdownMenu right>
-              <DropdownItem onClick={() => handleSelectAll()}>Select All</DropdownItem>
+              <DropdownItem onClick={handleSelectAll}>Select All</DropdownItem>
               {state.selectionImageData ? (
                 <DropdownItem
-                  onClick={() => setStateWithCheckpoint({ selectionImageData: null })}
+                  onClick={() =>
+                    dispatch({ type: "SET_STATE_WITH_CHECKPOINT", payload: { selectionImageData: null } })
+                  }
                 >
                   Clear Selection
                 </DropdownItem>
               ) : (
-                <DropdownItem onClick={() => handleClearAll()}>Clear All</DropdownItem>
+                <DropdownItem onClick={handleClearAll}>Clear All</DropdownItem>
               )}
               <DropdownItem
                 disabled={!state.selectionImageData}
-                onClick={(e) => handleGlobalCut(e.nativeEvent as unknown as ClipboardEvent)}
+                onClick={() => clipboardHandlersRef.current.cut(new ClipboardEvent("cut"))}
               >
                 Cut Selection
               </DropdownItem>
               <DropdownItem
                 disabled={!state.selectionImageData}
-                onClick={(e) => handleGlobalCopy(e.nativeEvent as unknown as ClipboardEvent)}
+                onClick={() => clipboardHandlersRef.current.copy(new ClipboardEvent("copy"))}
               >
                 Copy Selection
               </DropdownItem>
-              <DropdownItem onClick={(e) => handleGlobalPaste(e.nativeEvent as unknown as ClipboardEvent)}>
+              <DropdownItem onClick={() => clipboardHandlersRef.current.paste(new ClipboardEvent("paste"))}>
                 Paste
               </DropdownItem>
               <DropdownItem divider />
               <DropdownItem
                 onClick={() =>
-                  handleApplyCoordinateTransform(({ x, y }) => {
-                    return { x: imageData!.width - x, y };
-                  })
+                  handleApplyCoordinateTransform(({ x, y }) => ({
+                    x: (stateRef.current.imageData?.width ?? 0) - x,
+                    y,
+                  }))
                 }
               >
                 Flip Horizontally
               </DropdownItem>
               <DropdownItem
                 onClick={() =>
-                  handleApplyCoordinateTransform(({ x, y }) => {
-                    return { x, y: imageData!.height - y };
-                  })
+                  handleApplyCoordinateTransform(({ x, y }) => ({
+                    x,
+                    y: (stateRef.current.imageData?.height ?? 0) - y,
+                  }))
                 }
               >
                 Flip Vertically
               </DropdownItem>
               <DropdownItem
                 onClick={() =>
-                  handleApplyCoordinateTransform(({ x, y }) => {
-                    return { x: y, y: imageData!.width - x };
-                  })
+                  handleApplyCoordinateTransform(({ x, y }) => ({
+                    x: y,
+                    y: (stateRef.current.imageData?.width ?? 0) - x,
+                  }))
                 }
               >
                 Rotate 90º
               </DropdownItem>
               <DropdownItem
                 onClick={() =>
-                  handleApplyCoordinateTransform(({ x, y }) => {
-                    return { x: imageData!.height - y, y: x };
-                  })
+                  handleApplyCoordinateTransform(({ x, y }) => ({
+                    x: (stateRef.current.imageData?.height ?? 0) - y,
+                    y: x,
+                  }))
                 }
               >
                 Rotate -90º
@@ -858,14 +901,14 @@ const PaintContainer: React.FC = () => {
             <div className="paint-sidebar">
               <PixelColorPicker
                 color={color}
-                onColorChange={(c) => setState((prev) => ({ ...prev, color: c }))}
+                onColorChange={(c) => dispatch({ type: "SET_STATE", payload: { color: c } })}
                 supported={tool.supportsColor()}
               />
               <PixelToolbar tools={TOOLS_LIST} tool={tool} onToolChange={handleChooseTool} />
               <PixelToolSize
                 tool={tool}
                 size={toolSize}
-                onSizeChange={(toolSize) => setState((prev) => ({ ...prev, toolSize }))}
+                onSizeChange={(size) => dispatch({ type: "SET_STATE", payload: { toolSize: size } })}
               />
 
               <Button size="sm" style={{ width: 114 }} onClick={handleClearAll}>
@@ -969,7 +1012,7 @@ const PaintContainer: React.FC = () => {
                       style={{ writingMode: "vertical-rl", marginLeft: 14 }}
                       value={state.pixelSize}
                       onChange={(e) =>
-                        setState((prev) => ({ ...prev, pixelSize: Number(e.currentTarget.value) }))
+                        dispatch({ type: "SET_STATE", payload: { pixelSize: Number(e.currentTarget.value) } })
                       }
                     />
                   </div>
@@ -1003,13 +1046,11 @@ const PaintContainer: React.FC = () => {
               style={{ flex: 1 }}
               placeholder="Describe your sprite..."
               value={state.spriteDescription || ""}
-              onChange={(e) => setState((prev) => ({ ...prev, spriteDescription: e.target.value }))}
+              onChange={(e) =>
+                dispatch({ type: "SET_STATE", payload: { spriteDescription: e.target.value } })
+              }
             />
-            <Button
-              size="sm"
-              onClick={handleGenerateSprite}
-              disabled={state.isGeneratingSprite}
-            >
+            <Button size="sm" onClick={handleGenerateSprite} disabled={state.isGeneratingSprite}>
               {state.isGeneratingSprite ? (
                 <span>
                   <i className="fa fa-spinner fa-spin" /> Drawing...
@@ -1029,9 +1070,7 @@ const PaintContainer: React.FC = () => {
             color="primary"
             key="save"
             data-tutorial-id="paint-save-and-close"
-            onClick={async () => {
-              await handleCloseAndSave();
-            }}
+            onClick={handleCloseAndSave}
           >
             Save Changes
           </Button>

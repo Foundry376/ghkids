@@ -138,7 +138,7 @@ const PixelCanvas: React.FC<PixelCanvasProps> = ({
       }
     }
     if (tool && tool.render) {
-      tool.render(c as any, {
+      tool.render(c, {
         color: "",
         toolSize: 1,
         pixelSize,
@@ -206,22 +206,12 @@ const PixelCanvas: React.FC<PixelCanvasProps> = ({
     getSelectionPixels,
   ]);
 
-  // Initialize canvas context
+  // Initialize and update canvas context
   useEffect(() => {
     if (!canvasRef.current) return;
 
-    const ctx = canvasRef.current.getContext("2d") as PixelContext;
-    CreatePixelContext.call(ctx, pixelSize);
-    pixelContextRef.current = ctx;
-
-    renderToCanvas();
-  }, []);
-
-  // Update context when pixel size changes
-  useEffect(() => {
-    if (!canvasRef.current || !pixelContextRef.current) return;
-
-    if (pixelContextRef.current.getPixelSize() !== pixelSize) {
+    // Create context if not exists, or recreate if pixelSize changed
+    if (!pixelContextRef.current || pixelContextRef.current.getPixelSize() !== pixelSize) {
       const ctx = canvasRef.current.getContext("2d") as PixelContext;
       CreatePixelContext.call(ctx, pixelSize);
       pixelContextRef.current = ctx;

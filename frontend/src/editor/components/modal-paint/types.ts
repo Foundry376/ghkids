@@ -1,4 +1,5 @@
 import { Point } from "./helpers";
+import type { PixelTool } from "./tools";
 
 /**
  * Extended ImageData with pixel manipulation methods.
@@ -68,7 +69,8 @@ export interface PixelInteraction {
 }
 
 /**
- * State shape that tools work with
+ * State shape that tools work with.
+ * This is the subset of PaintState that tools need access to.
  */
 export interface PixelToolState {
   color: string;
@@ -94,18 +96,49 @@ export interface PaintCheckpoint {
 }
 
 /**
- * Full state managed by the paint container
+ * Full state managed by the paint container.
+ * Extends PixelToolState so tools can work with this state directly.
  */
-export interface PaintEditorState extends PixelToolState {
-  tool: import("./tools").PixelTool;
+export interface PaintState extends PixelToolState {
+  tool: PixelTool;
   undoStack: PaintCheckpoint[];
   redoStack: PaintCheckpoint[];
   showVariables: boolean;
   visibleVariables: Record<string, boolean>;
   isGeneratingSprite: boolean;
-  spriteDescription?: string;
-  dropdownOpen?: boolean;
-  spriteName?: string;
+  spriteDescription: string;
+  dropdownOpen: boolean;
+  spriteName: string;
+}
+
+/**
+ * Helper function to extract tool-compatible state from PaintState
+ */
+export function getToolState(state: PaintState): PixelToolState {
+  return {
+    color: state.color,
+    toolSize: state.toolSize,
+    pixelSize: state.pixelSize,
+    anchorSquare: state.anchorSquare,
+    imageData: state.imageData,
+    selectionImageData: state.selectionImageData,
+    selectionOffset: state.selectionOffset,
+    interaction: state.interaction,
+    interactionPixels: state.interactionPixels,
+    initialSelectionOffset: state.initialSelectionOffset,
+    draggingSelection: state.draggingSelection,
+  };
+}
+
+/**
+ * Helper function to create a checkpoint from state
+ */
+export function createCheckpoint(state: PaintState): PaintCheckpoint {
+  return {
+    imageData: state.imageData,
+    selectionImageData: state.selectionImageData,
+    selectionOffset: state.selectionOffset,
+  };
 }
 
 /**
