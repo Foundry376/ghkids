@@ -609,6 +609,18 @@ class Container extends React.Component {
     );
   };
 
+  _onCanvasShrink = (dSquaresX, dSquaresY, offsetX, offsetY) => {
+    const newWidth = this.state.imageData.width + 40 * dSquaresX;
+    const newHeight = this.state.imageData.height + 40 * dSquaresY;
+
+    // Prevent shrinking below 1 square (40x40 pixels)
+    if (newWidth < 40 || newHeight < 40) {
+      return;
+    }
+
+    this._onCanvasUpdateSize(dSquaresX, dSquaresY, offsetX, offsetY);
+  };
+
   render() {
     const { imageData, tool, toolSize, color, undoStack, redoStack } = this.state;
 
@@ -761,6 +773,13 @@ class Container extends React.Component {
                 >
                   +
                 </Button>
+                <Button
+                  className="canvas-arrow"
+                  size="sm"
+                  onClick={() => this._onCanvasShrink(0, -1, 0, -1)}
+                >
+                  −
+                </Button>
                 <div className="canvas-arrows-flex" style={{ flexDirection: "row" }}>
                   <Button
                     className="canvas-arrow"
@@ -768,6 +787,13 @@ class Container extends React.Component {
                     onClick={() => this._onCanvasUpdateSize(1, 0, 1, 0)}
                   >
                     +
+                  </Button>
+                  <Button
+                    className="canvas-arrow"
+                    size="sm"
+                    onClick={() => this._onCanvasShrink(-1, 0, -1, 0)}
+                  >
+                    −
                   </Button>
                   <div style={{ position: "relative" }}>
                     <PixelCanvas
@@ -790,17 +816,26 @@ class Container extends React.Component {
                       height: "100%",
                       display: "grid",
                       gap: 20,
-                      gridTemplateRows: "1fr 22px 1fr",
+                      gridTemplateRows: "1fr auto 1fr",
                     }}
                   >
                     <span />
-                    <Button
-                      size="sm"
-                      className="canvas-arrow"
-                      onClick={() => this._onCanvasUpdateSize(1, 0, 0, 0)}
-                    >
-                      +
-                    </Button>
+                    <div className="canvas-arrows-flex" style={{ flexDirection: "row" }}>
+                      <Button
+                        size="sm"
+                        className="canvas-arrow"
+                        onClick={() => this._onCanvasShrink(-1, 0, 0, 0)}
+                      >
+                        −
+                      </Button>
+                      <Button
+                        size="sm"
+                        className="canvas-arrow"
+                        onClick={() => this._onCanvasUpdateSize(1, 0, 0, 0)}
+                      >
+                        +
+                      </Button>
+                    </div>
                     <div>
                       <input
                         type="range"
@@ -815,6 +850,13 @@ class Container extends React.Component {
                     </div>
                   </div>
                 </div>
+                <Button
+                  className="canvas-arrow"
+                  size="sm"
+                  onClick={() => this._onCanvasShrink(0, -1, 0, 0)}
+                >
+                  −
+                </Button>
                 <Button
                   className="canvas-arrow"
                   size="sm"
