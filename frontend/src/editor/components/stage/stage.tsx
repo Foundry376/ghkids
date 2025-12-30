@@ -2,6 +2,7 @@ import React, { CSSProperties, useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 
 import ActorSprite from "../sprites/actor-sprite";
+import ActorSelectionPopover from "./actor-selection-popover";
 import RecordingHandle from "../sprites/recording-handle";
 import RecordingIgnoredSprite from "../sprites/recording-ignored-sprite";
 import RecordingMaskSprite from "../sprites/recording-mask-sprite";
@@ -33,6 +34,7 @@ import { extentIgnoredPositions } from "../../utils/recording-helpers";
 import {
   actorFilledPoints,
   actorFillsPoint,
+  actorsAtPoint,
   applyAnchorAdjustment,
   buildActorSelection,
   pointIsOutside,
@@ -86,6 +88,11 @@ export const Stage = ({
   );
 
   const [selectionRect, setSelectionRect] = useState<SelectionRect | null>(null);
+  const [actorSelectionPopover, setActorSelectionPopover] = useState<{
+    actors: Actor[];
+    position: { x: number; y: number };
+    toolId: string;
+  } | null>(null);
 
   const lastFiredExtent = useRef<string | null>(null);
   const lastActorPositions = useRef<{ [actorId: string]: Position }>({});
@@ -420,33 +427,55 @@ export const Stage = ({
   const onMouseUpActor = (actor: Actor, event: React.MouseEvent) => {
     let handled = false;
 
+    // Helper to check for overlapping actors and show popover if needed
+    const showPopoverIfOverlapping = (toolId: string): boolean => {
+      const overlapping = actorsAtPoint(stage.actors, characters, actor.position);
+      if (overlapping.length > 1) {
+        setActorSelectionPopover({
+          actors: overlapping,
+          position: { x: event.clientX, y: event.clientY },
+          toolId,
+        });
+        return true;
+      }
+      return false;
+    };
+
     switch (selectedToolId) {
       case TOOLS.PAINT:
-        dispatch(paintCharacterAppearance(actor.characterId, actor.appearance));
+        if (!showPopoverIfOverlapping(TOOLS.PAINT)) {
+          dispatch(paintCharacterAppearance(actor.characterId, actor.appearance));
+        }
         handled = true;
         break;
       case TOOLS.STAMP:
         if (!stampToolItem) {
-          dispatch(selectToolItem(selFor([actor.id])));
+          if (!showPopoverIfOverlapping(TOOLS.STAMP)) {
+            dispatch(selectToolItem(selFor([actor.id])));
+          }
           handled = true;
         }
         break;
       case TOOLS.RECORD:
-        dispatch(setupRecordingForActor({ characterId: actor.characterId, actor }));
-        dispatch(selectToolId(TOOLS.POINTER));
+        if (!showPopoverIfOverlapping(TOOLS.RECORD)) {
+          dispatch(setupRecordingForActor({ characterId: actor.characterId, actor }));
+          dispatch(selectToolId(TOOLS.POINTER));
+        }
         handled = true;
         break;
       case TOOLS.ADD_CLICK_CONDITION:
-        dispatch(
-          upsertRecordingCondition({
-            key: makeId("condition"),
-            left: { globalId: "click" },
-            right: { constant: actor.id },
-            comparator: "=",
-            enabled: true,
-          }),
-        );
-        dispatch(selectToolId(TOOLS.POINTER));
+        if (!showPopoverIfOverlapping(TOOLS.ADD_CLICK_CONDITION)) {
+          dispatch(
+            upsertRecordingCondition({
+              key: makeId("condition"),
+              left: { globalId: "click" },
+              right: { constant: actor.id },
+              comparator: "=",
+              enabled: true,
+            }),
+          );
+          dispatch(selectToolId(TOOLS.POINTER));
+        }
         handled = true;
         break;
       case TOOLS.POINTER:
@@ -465,7 +494,9 @@ export const Stage = ({
             ),
           );
         } else {
-          dispatch(select(actor.characterId, selFor([actor.id])));
+          if (!showPopoverIfOverlapping(TOOLS.POINTER)) {
+            dispatch(select(actor.characterId, selFor([actor.id])));
+          }
         }
         handled = true;
         break;
@@ -534,9 +565,26 @@ export const Stage = ({
       onStampAtPosition({ x, y });
     }
     if (selectedToolId === TOOLS.TRASH) {
-      const actor = Object.values(stage.actors)
-        .reverse()
-        .find((a) => actorFillsPoint(a, characters, { x, y }));
+      // If popover is open, skip - we're waiting for user to pick from the popover
+      if (actorSelectionPopover) {
+        return;
+      }
+
+      const overlapping = actorsAtPoint(stage.actors, characters, { x, y });
+
+      // On initial click (not drag), show popover if multiple actors overlap
+      const isFirstClick = Object.keys(mouse.current.visited).length === 1;
+      if (isFirstClick && overlapping.length > 1) {
+        setActorSelectionPopover({
+          actors: overlapping,
+          position: { x: event.clientX, y: event.clientY },
+          toolId: TOOLS.TRASH,
+        });
+        return;
+      }
+
+      // For drag or single actor, delete the topmost actor
+      const actor = overlapping[overlapping.length - 1];
       if (actor) {
         // If the clicked actor is part of the selection, delete all selected actors
         const selectedIds = selected.map((a) => a.id);
@@ -613,6 +661,55 @@ export const Stage = ({
     if (selectedToolId === TOOLS.POINTER) {
       dispatch(select(actor.characterId, selFor([actor.id])));
     }
+  };
+
+  const onPopoverSelectActor = (actor: Actor) => {
+    if (!actorSelectionPopover) return;
+
+    const { toolId } = actorSelectionPopover;
+
+    switch (toolId) {
+      case TOOLS.PAINT:
+        dispatch(paintCharacterAppearance(actor.characterId, actor.appearance));
+        break;
+      case TOOLS.STAMP:
+        dispatch(selectToolItem(selFor([actor.id])));
+        break;
+      case TOOLS.RECORD:
+        dispatch(setupRecordingForActor({ characterId: actor.characterId, actor }));
+        dispatch(selectToolId(TOOLS.POINTER));
+        break;
+      case TOOLS.ADD_CLICK_CONDITION:
+        dispatch(
+          upsertRecordingCondition({
+            key: makeId("condition"),
+            left: { globalId: "click" },
+            right: { constant: actor.id },
+            comparator: "=",
+            enabled: true,
+          }),
+        );
+        dispatch(selectToolId(TOOLS.POINTER));
+        break;
+      case TOOLS.TRASH:
+        dispatch(deleteActors(selFor([actor.id])));
+        break;
+      case TOOLS.POINTER:
+      default:
+        dispatch(select(actor.characterId, selFor([actor.id])));
+        break;
+    }
+
+    setActorSelectionPopover(null);
+  };
+
+  const onPopoverDragStart = () => {
+    // Close the popover when drag starts - the drag will continue to the stage
+    setActorSelectionPopover(null);
+  };
+
+  const onPopoverClose = () => {
+    setActorSelectionPopover(null);
   };
 
   const renderRecordingExtent = () => {
@@ -711,7 +808,6 @@ export const Stage = ({
 
     const draggable = !readonly && !DRAGGABLE_TOOLS.includes(selectedToolId);
     const animationStyle = actor.animationStyle || "linear";
-    console.log(actor.frameCount, animationStyle);
     return (
       <ActorSprite
         key={`${actor.id}-${didWrap}`}
@@ -796,6 +892,16 @@ export const Stage = ({
           }}
         />
       ) : null}
+      {actorSelectionPopover && (
+        <ActorSelectionPopover
+          actors={actorSelectionPopover.actors}
+          characters={characters}
+          position={actorSelectionPopover.position}
+          onSelect={onPopoverSelectActor}
+          onDragStart={onPopoverDragStart}
+          onClose={onPopoverClose}
+        />
+      )}
     </div>
   );
 };
