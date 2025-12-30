@@ -24,9 +24,9 @@ describe("Worlds API", () => {
 
       const worldRepo = AppDataSource.getRepository(World);
       await worldRepo.save([
-        { name: "World A", thumbnail: "#", userId: user.id, playCount: 5 },
-        { name: "World B", thumbnail: "#", userId: user.id, playCount: 10 },
-        { name: "World C", thumbnail: "#", userId: user.id, playCount: 1 },
+        { name: "World A", thumbnail: "#", userId: user.id, playCount: 5, published: true },
+        { name: "World B", thumbnail: "#", userId: user.id, playCount: 10, published: true },
+        { name: "World C", thumbnail: "#", userId: user.id, playCount: 1, published: true },
       ]);
 
       const res = await request(app).get("/worlds/explore").expect(200);
