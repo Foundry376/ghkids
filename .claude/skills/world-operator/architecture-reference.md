@@ -156,7 +156,7 @@ type WorldMinimal = {
   stages: { [stageId: string]: Stage };
   globals: Globals;
   input: FrameInput;
-  evaluatedRuleIds: EvaluatedRuleIds;
+  evaluatedRuleDetails: EvaluatedRuleDetailsMap;  // Detailed per-rule evaluation data
   evaluatedTickFrames?: Frame[];
 };
 
@@ -198,7 +198,7 @@ type Globals = {
 │     globals.click.value = Object.keys(input.clicks)[0]          │
 ├─────────────────────────────────────────────────────────────────┤
 │  3. INITIALIZE DEBUG TRACKERS                                   │
-│     evaluatedRuleIds = {}                                       │
+│     evaluatedRuleDetails = {}                                   │
 │     frameAccumulator = new FrameAccumulator(stage.actors)       │
 ├─────────────────────────────────────────────────────────────────┤
 │  4. EVALUATE ALL ACTORS                                         │
@@ -211,7 +211,7 @@ type Globals = {
 │       input: { keys: {}, clicks: {} },                          │
 │       stages: { [id]: { actors: u.constant(actors) } },         │
 │       globals: u.constant(globals),                             │
-│       evaluatedRuleIds: u.constant(evaluatedRuleIds),           │
+│       evaluatedRuleDetails: u.constant(evaluatedRuleDetails),   │
 │       evaluatedTickFrames: frameAccumulator.getFrames(),        │
 │       history: evaluatedSomeRule ? [..., historyItem] : same    │
 │     }, previousWorld)                                           │
@@ -241,15 +241,14 @@ function ActorOperator(me: Actor) {
 
     for (let ii = 0; ii < iterations; ii++) {
       for (const rule of rules) {
-        const applied = tickRule(rule);
+        const details = tickRule(rule);  // Returns EvaluatedRuleDetails
 
-        // Track in evaluatedRuleIds
-        evaluatedRuleIds[me.id] ||= {};
-        evaluatedRuleIds[me.id][rule.id] ||= applied;
-        evaluatedRuleIds[me.id][struct.id] ||= applied;
+        // Track in evaluatedRuleDetails - always update to avoid stale data
+        evaluatedRuleDetails[me.id] ||= {};
+        evaluatedRuleDetails[me.id][rule.id] = details;
 
         // "first" and "random" stop after first match
-        if (applied && struct.behavior !== "all") break;
+        if (details.passed && struct.behavior !== "all") break;
       }
     }
   }
@@ -471,11 +470,13 @@ class FrameAccumulator {
 
 ```tsx
 const RuleStateCircle = ({ rule }) => {
-  const { evaluatedRuleIdsForActor } = useContext(InspectorContext);
-  const applied = evaluatedRuleIdsForActor?.[rule.id];
-  return <div className={`circle ${applied}`} />;  // CSS shows green/red/gray
+  const { evaluatedRuleDetailsForActor } = useContext(InspectorContext);
+  const details = evaluatedRuleDetailsForActor?.[rule.id];
+  return <div className={`circle ${details?.passed}`} />;  // CSS shows green/red/gray
 };
 ```
+
+See `granular-rule-tracking.md` for details on condition status dots and square overlays.
 
 ### Animation Playback (`stage/container.tsx:77-117`)
 
