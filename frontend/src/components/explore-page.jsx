@@ -1,45 +1,38 @@
-import PropTypes from "prop-types";
-import React from "react";
+import { useEffect, useState } from "react";
 import { connect } from "react-redux";
 import Col from "reactstrap/lib/Col";
 import Container from "reactstrap/lib/Container";
 import Row from "reactstrap/lib/Row";
 
 import { makeRequest } from "../helpers/api";
+import { usePageTitle } from "../hooks/usePageTitle";
 import WorldList from "./common/world-list";
 
-class ExplorePage extends React.Component {
-  static propTypes = {
-    dispatch: PropTypes.func,
-  };
+const ExplorePage = () => {
+  const [worlds, setWorlds] = useState(null);
 
-  constructor(props, context) {
-    super(props, context);
-    this.state = {};
-  }
+  usePageTitle("Explore");
 
-  componentDidMount() {
+  useEffect(() => {
     makeRequest(`/worlds/explore`).then((worlds) => {
-      this.setState({ worlds });
+      setWorlds(worlds);
     });
-  }
+  }, []);
 
-  render() {
-    return (
-      <Container style={{ marginTop: 30 }} className="explore">
-        <Row>
-          <Col md={12}>
-            <div className="card card-body">
-              <h5>Popular Games</h5>
-              <hr />
-              <WorldList worlds={this.state.worlds} />
-            </div>
-          </Col>
-        </Row>
-      </Container>
-    );
-  }
-}
+  return (
+    <Container style={{ marginTop: 30 }} className="explore">
+      <Row>
+        <Col md={12}>
+          <div className="card card-body">
+            <h5>Popular Games</h5>
+            <hr />
+            <WorldList worlds={worlds} />
+          </div>
+        </Col>
+      </Row>
+    </Container>
+  );
+};
 
 function mapStateToProps(state) {
   return {
