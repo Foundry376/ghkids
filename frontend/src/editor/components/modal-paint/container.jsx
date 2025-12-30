@@ -475,7 +475,9 @@ class Container extends React.Component {
 
     this.setState({ isGeneratingSprite: true });
     try {
-      const data = await makeRequest(`/generate-sprite?prompt=${encodeURIComponent(prompt)}&width=${canvasWidth}&height=${canvasHeight}`);
+      const data = await makeRequest(
+        `/generate-sprite?prompt=${encodeURIComponent(prompt)}&width=${canvasWidth}&height=${canvasHeight}`,
+      );
       if (data.imageUrl) {
         console.log("data.imageUrl", data.imageUrl);
         // Use fill:true to ensure the AI image fills the entire canvas
@@ -609,6 +611,18 @@ class Container extends React.Component {
     );
   };
 
+  _onCanvasShrink = (dSquaresX, dSquaresY, offsetX, offsetY) => {
+    const newWidth = this.state.imageData.width + 40 * dSquaresX;
+    const newHeight = this.state.imageData.height + 40 * dSquaresY;
+
+    // Prevent shrinking below 1 square (40x40 pixels)
+    if (newWidth < 40 || newHeight < 40) {
+      return;
+    }
+
+    this._onCanvasUpdateSize(dSquaresX, dSquaresY, offsetX, offsetY);
+  };
+
   render() {
     const { imageData, tool, toolSize, color, undoStack, redoStack } = this.state;
 
@@ -623,7 +637,7 @@ class Container extends React.Component {
             onChange={this._onChooseFile}
             onFocus={(event) => event.target.parentNode.focus()}
           />
-          <div className="modal-header" style={{ display: "flex" }}>
+          <div className="modal-header" style={{ display: "flex", alignItems: "center" }}>
             <h4 style={{ flex: 1 }}>Edit Appearance</h4>
             <Button
               title="Undo"
@@ -761,6 +775,14 @@ class Container extends React.Component {
                 >
                   +
                 </Button>
+                <Button
+                  className="canvas-arrow"
+                  size="sm"
+                  disabled={imageData && imageData.height <= 40}
+                  onClick={() => this._onCanvasShrink(0, -1, 0, -1)}
+                >
+                  −
+                </Button>
                 <div className="canvas-arrows-flex" style={{ flexDirection: "row" }}>
                   <Button
                     className="canvas-arrow"
@@ -768,6 +790,14 @@ class Container extends React.Component {
                     onClick={() => this._onCanvasUpdateSize(1, 0, 1, 0)}
                   >
                     +
+                  </Button>
+                  <Button
+                    className="canvas-arrow"
+                    size="sm"
+                    disabled={imageData && imageData.width <= 40}
+                    onClick={() => this._onCanvasShrink(-1, 0, -1, 0)}
+                  >
+                    −
                   </Button>
                   <div style={{ position: "relative" }}>
                     <PixelCanvas
@@ -790,23 +820,33 @@ class Container extends React.Component {
                       height: "100%",
                       display: "grid",
                       gap: 20,
-                      gridTemplateRows: "1fr 22px 1fr",
+                      gridTemplateRows: "1fr auto 1fr",
                     }}
                   >
                     <span />
-                    <Button
-                      size="sm"
-                      className="canvas-arrow"
-                      onClick={() => this._onCanvasUpdateSize(1, 0, 0, 0)}
-                    >
-                      +
-                    </Button>
+                    <div className="canvas-arrows-flex" style={{ flexDirection: "row" }}>
+                      <Button
+                        size="sm"
+                        className="canvas-arrow"
+                        disabled={imageData && imageData.width <= 40}
+                        onClick={() => this._onCanvasShrink(-1, 0, 0, 0)}
+                      >
+                        −
+                      </Button>
+                      <Button
+                        size="sm"
+                        className="canvas-arrow"
+                        onClick={() => this._onCanvasUpdateSize(1, 0, 0, 0)}
+                      >
+                        +
+                      </Button>
+                    </div>
                     <div>
                       <input
                         type="range"
                         min={1}
                         max={11}
-                        style={{ writingMode: "vertical-rl", marginLeft: 3 }}
+                        style={{ writingMode: "vertical-rl", marginLeft: 14 }}
                         value={this.state.pixelSize}
                         onChange={(e) =>
                           this.setState({ ...this.state, pixelSize: Number(e.currentTarget.value) })
@@ -818,41 +858,50 @@ class Container extends React.Component {
                 <Button
                   className="canvas-arrow"
                   size="sm"
+                  disabled={imageData && imageData.height <= 40}
+                  onClick={() => this._onCanvasShrink(0, -1, 0, 0)}
+                >
+                  −
+                </Button>
+                <Button
+                  className="canvas-arrow"
+                  size="sm"
                   onClick={() => this._onCanvasUpdateSize(0, 1, 0, 0)}
                 >
                   +
                 </Button>
-                <div
-                  className="ai-sprite-generator"
-                  style={{ display: "flex", alignItems: "center", gap: 8 }}
-                >
-                  <input
-                    type="text"
-                    style={{ flex: 1 }}
-                    placeholder="Describe your sprite..."
-                    value={this.state.spriteDescription || ""}
-                    onChange={(e) => this.setState({ spriteDescription: e.target.value })}
-                  />
-                  <Button
-                    size="sm"
-                    onClick={this._onGenerateSprite}
-                    disabled={this.state.isGeneratingSprite}
-                  >
-                    {this.state.isGeneratingSprite ? (
-                      <span>
-                        <i className="fa fa-spinner fa-spin" /> Drawing...
-                      </span>
-                    ) : (
-                      <span>
-                        <i className="fa fa-magic" /> Draw with AI
-                      </span>
-                    )}
-                  </Button>
-                </div>
               </div>
             </div>
           </ModalBody>
           <ModalFooter>
+            <div
+              className="ai-sprite-generator"
+              style={{ display: "flex", alignItems: "center", gap: 8 }}
+            >
+              <input
+                type="text"
+                style={{ flex: 1 }}
+                placeholder="Describe your sprite..."
+                value={this.state.spriteDescription || ""}
+                onChange={(e) => this.setState({ spriteDescription: e.target.value })}
+              />
+              <Button
+                size="sm"
+                onClick={this._onGenerateSprite}
+                disabled={this.state.isGeneratingSprite}
+              >
+                {this.state.isGeneratingSprite ? (
+                  <span>
+                    <i className="fa fa-spinner fa-spin" /> Drawing...
+                  </span>
+                ) : (
+                  <span>
+                    <i className="fa fa-magic" /> Draw with AI
+                  </span>
+                )}
+              </Button>
+            </div>
+            <div style={{ flex: 1 }} />
             <Button key="cancel" onClick={this._onClose}>
               Close without Saving
             </Button>{" "}
