@@ -1,4 +1,13 @@
-export function forEachInRect(s, e, pixelCallback) {
+import { PixelImageData } from "./types";
+
+export interface Point {
+  x: number;
+  y: number;
+}
+
+export type PixelCallback = (x: number, y: number) => void | "break";
+
+export function forEachInRect(s: Point, e: Point, pixelCallback: PixelCallback): void {
   let [sx, sy, ex, ey] = [s.x, s.y, e.x, e.y];
   if (ex < sx) {
     [ex, sx] = [sx, ex];
@@ -15,7 +24,13 @@ export function forEachInRect(s, e, pixelCallback) {
   }
 }
 
-export function forEachInLine(x0, y0, x1, y1, pixelCallback) {
+export function forEachInLine(
+  x0: number,
+  y0: number,
+  x1: number,
+  y1: number,
+  pixelCallback: (x: number, y: number) => void
+): void {
   const dx = Math.abs(x1 - x0);
   const dy = Math.abs(y1 - y0);
   const sx = x0 < x1 ? 1 : -1;
@@ -46,8 +61,8 @@ export function forEachInLine(x0, y0, x1, y1, pixelCallback) {
   }
 }
 
-export function hsvToRgb(h, s, v) {
-  let r, g, b;
+export function hsvToRgb(h: number, s: number, v: number): [number, number, number] {
+  let r: number, g: number, b: number;
   r = g = b = 0;
   const i = Math.floor(h * 6);
   const f = h * 6 - i;
@@ -90,46 +105,66 @@ export function hsvToRgb(h, s, v) {
 
 const tempCanvas = document.createElement("canvas");
 
-export async function getBlobFromImageData(imageData) {
+export async function getBlobFromImageData(imageData: ImageData | null): Promise<Blob | null> {
   if (!imageData) {
     return null;
   }
   tempCanvas.width = imageData.width;
   tempCanvas.height = imageData.height;
-  const tempContext = tempCanvas.getContext("2d");
+  const tempContext = tempCanvas.getContext("2d")!;
   tempContext.clearRect(0, 0, imageData.width, imageData.height);
   tempContext.putImageData(imageData, 0, 0);
   return new Promise((resolve) => tempCanvas.toBlob(resolve));
 }
 
-export function getDataURLFromImageData(imageData) {
+export function getDataURLFromImageData(imageData: ImageData | null): string | null {
   if (!imageData) {
     return null;
   }
   tempCanvas.width = imageData.width;
   tempCanvas.height = imageData.height;
-  const tempContext = tempCanvas.getContext("2d");
+  const tempContext = tempCanvas.getContext("2d")!;
   tempContext.clearRect(0, 0, imageData.width, imageData.height);
   tempContext.putImageData(imageData, 0, 0);
   return tempCanvas.toDataURL();
 }
 
-export function getImageDataWithNewFrame(imageData, { width, height, offsetX, offsetY }) {
+export interface NewFrameOptions {
+  width: number;
+  height: number;
+  offsetX: number;
+  offsetY: number;
+}
+
+export function getImageDataWithNewFrame(
+  imageData: ImageData | null,
+  { width, height, offsetX, offsetY }: NewFrameOptions
+): ImageData | null {
   if (!imageData) {
     return null;
   }
   tempCanvas.width = width;
   tempCanvas.height = height;
-  const tempContext = tempCanvas.getContext("2d");
+  const tempContext = tempCanvas.getContext("2d")!;
   tempContext.clearRect(0, 0, width, height);
   tempContext.putImageData(imageData, offsetX, offsetY);
   return tempContext.getImageData(0, 0, width, height);
 }
 
-export function getImageDataFromDataURL(dataURL, { maxWidth, maxHeight, fill } = {}, callback) {
+export interface ImageDataFromURLOptions {
+  maxWidth?: number;
+  maxHeight?: number;
+  fill?: boolean;
+}
+
+export function getImageDataFromDataURL(
+  dataURL: string,
+  { maxWidth, maxHeight, fill }: ImageDataFromURLOptions = {},
+  callback: (imageData: ImageData) => void
+): void {
   const img = new Image();
   img.onload = () => {
-    let width, height;
+    let width: number, height: number;
 
     if (fill && maxWidth && maxHeight) {
       // Scale to fill the target dimensions exactly, cropping if needed
@@ -140,7 +175,7 @@ export function getImageDataFromDataURL(dataURL, { maxWidth, maxHeight, fill } =
       width = tempCanvas.width = maxWidth;
       height = tempCanvas.height = maxHeight;
 
-      const tempContext = tempCanvas.getContext("2d");
+      const tempContext = tempCanvas.getContext("2d")!;
       tempContext.imageSmoothingEnabled = false;
       tempContext.clearRect(0, 0, width, height);
       // Center the scaled image (may crop edges)
@@ -149,16 +184,16 @@ export function getImageDataFromDataURL(dataURL, { maxWidth, maxHeight, fill } =
         (width - scaledWidth) / 2,
         (height - scaledHeight) / 2,
         scaledWidth,
-        scaledHeight,
+        scaledHeight
       );
       callback(tempContext.getImageData(0, 0, width, height));
     } else {
       // Original behavior: scale to fit within bounds, preserving aspect ratio
-      const scale = maxWidth ? Math.min(1, maxHeight / img.height, maxWidth / img.width) : 1;
+      const scale = maxWidth ? Math.min(1, maxHeight! / img.height, maxWidth / img.width) : 1;
       width = tempCanvas.width = img.width * scale;
       height = tempCanvas.height = img.height * scale;
 
-      const tempContext = tempCanvas.getContext("2d");
+      const tempContext = tempCanvas.getContext("2d")!;
       tempContext.imageSmoothingEnabled = false;
       tempContext.clearRect(0, 0, width, height);
       tempContext.drawImage(img, 0, 0, width, height);
@@ -168,9 +203,22 @@ export function getImageDataFromDataURL(dataURL, { maxWidth, maxHeight, fill } =
   img.src = dataURL;
 }
 
-export function getFlattenedImageData({ imageData, selectionImageData, selectionOffset }) {
+export interface FlattenedImageDataInput {
+  imageData: PixelImageData | null;
+  selectionImageData: PixelImageData | null;
+  selectionOffset: Point;
+}
+
+export function getFlattenedImageData({
+  imageData,
+  selectionImageData,
+  selectionOffset,
+}: FlattenedImageDataInput): PixelImageData | null {
   if (!selectionImageData) {
     return imageData;
+  }
+  if (!imageData) {
+    return null;
   }
   const nextImageData = imageData.clone();
   nextImageData.applyPixelsFromData(
@@ -181,13 +229,13 @@ export function getFlattenedImageData({ imageData, selectionImageData, selection
     selectionImageData.height,
     selectionOffset.x,
     selectionOffset.y,
-    { ignoreClearPixels: true },
+    { ignoreClearPixels: true }
   );
   return nextImageData;
 }
 
-export function getFilledSquares(imageData) {
-  const filled = {};
+export function getFilledSquares(imageData: ImageData | null): Record<string, boolean> {
+  const filled: Record<string, boolean> = {};
 
   if (!imageData) {
     return filled;
@@ -195,8 +243,9 @@ export function getFilledSquares(imageData) {
 
   for (let x = 0; x < imageData.width; x += 40) {
     for (let y = 0; y < imageData.height; y += 40) {
-      forEachInRect({ x, y }, { x: x + 40, y: y + 40 }, (x, y) => {
-        if (imageData.getPixel(x, y)[3] > 0) {
+      forEachInRect({ x, y }, { x: x + 40, y: y + 40 }, (px, py) => {
+        const idx = (py * imageData.width + px) * 4;
+        if (imageData.data[idx + 3] > 0) {
           filled[`${Math.floor(x / 40)},${Math.floor(y / 40)}`] = true;
           return "break";
         }

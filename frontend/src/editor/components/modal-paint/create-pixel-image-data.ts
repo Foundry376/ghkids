@@ -1,25 +1,39 @@
-import { forEachInRect, getDataURLFromImageData } from "./helpers";
+import { forEachInRect, getDataURLFromImageData, Point } from "./helpers";
+import { PixelImageData } from "./types";
 
-export default function CreatePixelImageData() {
-  this.clone = () => {
-    const clone = new ImageData(new Uint8ClampedArray(this.data), this.width, this.height);
+/**
+ * Extends an ImageData object with pixel manipulation methods.
+ * Call this function with ImageData as `this` context.
+ *
+ * @example
+ * const imageData = ctx.getImageData(0, 0, width, height);
+ * CreatePixelImageData.call(imageData);
+ * // Now imageData has clone(), fillPixel(), etc.
+ */
+export default function CreatePixelImageData(this: PixelImageData): void {
+  this.clone = (): PixelImageData => {
+    const clone = new ImageData(
+      new Uint8ClampedArray(this.data),
+      this.width,
+      this.height
+    ) as PixelImageData;
     CreatePixelImageData.call(clone);
     return clone;
   };
 
-  this.log = () => {
+  this.log = (): void => {
     const url = getDataURLFromImageData(this);
     const img = new Image();
-    img.onload = function () {
+    img.onload = () => {
       const dim = {
         string: "+",
         style:
           "font-size: 1px; padding: " +
-          Math.floor(this.height / 2) +
+          Math.floor(img.height / 2) +
           "px " +
-          Math.floor(this.width / 2) +
+          Math.floor(img.width / 2) +
           "px; line-height: " +
-          this.height +
+          img.height +
           "px;",
       };
       console.log(
@@ -31,13 +45,13 @@ export default function CreatePixelImageData() {
           this.width +
           "px " +
           this.height +
-          "px; color: transparent;",
+          "px; color: transparent;"
       );
     };
-    img.src = url;
+    img.src = url!;
   };
 
-  this.maskUsingPixels = (mask) => {
+  this.maskUsingPixels = (mask: Record<string, boolean>): void => {
     forEachInRect({ x: 0, y: 0 }, { x: this.width, y: this.height }, (x, y) => {
       if (!mask[`${x},${y}`]) {
         this.fillPixelRGBA(x, y, 0, 0, 0, 0);
@@ -46,15 +60,15 @@ export default function CreatePixelImageData() {
   };
 
   this.applyPixelsFromData = (
-    imageData,
-    startX,
-    startY,
-    endX,
-    endY,
-    offsetX,
-    offsetY,
-    options = {},
-  ) => {
+    imageData: ImageData,
+    startX: number,
+    startY: number,
+    endX: number,
+    endY: number,
+    offsetX: number,
+    offsetY: number,
+    options: { ignoreClearPixels?: boolean } = {}
+  ): void => {
     const { data, width } = imageData;
     for (let x = startX; x < endX; x++) {
       if (x + offsetX >= this.width || x + offsetX < 0) {
@@ -78,34 +92,45 @@ export default function CreatePixelImageData() {
   this._fillStyle = null;
   this._fillStyleComponents = [0, 0, 0, 0];
   Object.defineProperty(this, "fillStyle", {
-    get: () => this._fillStyle,
-    set: (color) => {
+    get: (): string | null => this._fillStyle,
+    set: (color: string): void => {
       this._fillStyle = color;
       this._fillStyleComponents = color.substr(5, color.length - 6).split(",");
     },
   });
 
-  this.fillPixel = (xx, yy) => {
+  this.fillPixel = (xx: number, yy: number): void => {
     if (!this._fillStyle) {
       throw new Error("fillPixel requires a color.");
     }
     if (xx >= this.width || xx < 0 || yy >= this.height || yy < 0) {
       return;
     }
-    this.fillPixelRGBA(xx, yy, ...this._fillStyleComponents);
+    this.fillPixelRGBA(
+      xx,
+      yy,
+      ...(this._fillStyleComponents as [number, number, number, number])
+    );
   };
 
-  this.fillToolSize = (x, y, size) => {
+  this.fillToolSize = (x: number, y: number, size: number): void => {
     const xmin = x - Math.round(size / 2);
     const ymin = y - Math.round(size / 2);
-    for (let x = xmin; x < xmin + size; x++) {
-      for (let y = ymin; y < ymin + size; y++) {
-        this.fillPixel(x, y);
+    for (let px = xmin; px < xmin + size; px++) {
+      for (let py = ymin; py < ymin + size; py++) {
+        this.fillPixel(px, py);
       }
     }
   };
 
-  this.fillPixelRGBA = (xx, yy, r, g, b, a) => {
+  this.fillPixelRGBA = (
+    xx: number,
+    yy: number,
+    r: number,
+    g: number,
+    b: number,
+    a: number
+  ): void => {
     if (xx < 0 || xx >= this.width) {
       return;
     }
@@ -118,22 +143,30 @@ export default function CreatePixelImageData() {
     this.data[(yy * this.width + xx) * 4 + 3] = a / 1;
   };
 
-  this.getPixel = (xx, yy) => {
+  this.getPixel = (xx: number, yy: number): [number, number, number, number] => {
     const oo = (yy * this.width + xx) * 4;
     return [this.data[oo], this.data[oo + 1], this.data[oo + 2], this.data[oo + 3]];
   };
 
-  this.clearPixelsInRect = (startX, startY, endX, endY) => {
+  this.clearPixelsInRect = (
+    startX: number,
+    startY: number,
+    endX: number,
+    endY: number
+  ): void => {
     forEachInRect({ x: startX, y: startY }, { x: endX, y: endY }, (x, y) =>
-      this.fillPixelRGBA(x, y, 0, 0, 0, 0),
+      this.fillPixelRGBA(x, y, 0, 0, 0, 0)
     );
   };
 
-  this.getContiguousPixels = (startPixel, callback) => {
-    const points = [startPixel];
+  this.getContiguousPixels = (
+    startPixel: Point,
+    callback?: (p: Point) => void
+  ): Record<string, boolean> => {
+    const points: Point[] = [startPixel];
     const startPixelData = this.getPixel(startPixel.x, startPixel.y);
 
-    const pointsHit = {};
+    const pointsHit: Record<string, boolean> = {};
     pointsHit[`${startPixel.x},${startPixel.y}`] = true;
     let p = points.pop();
 
@@ -173,8 +206,8 @@ export default function CreatePixelImageData() {
     return pointsHit;
   };
 
-  this.getOpaquePixels = () => {
-    const pixels = {};
+  this.getOpaquePixels = (): Record<string, boolean> => {
+    const pixels: Record<string, boolean> = {};
     forEachInRect({ x: 0, y: 0 }, { x: this.width, y: this.height }, (x, y) => {
       const [, , , a] = this.getPixel(x, y);
       if (a > 0) {

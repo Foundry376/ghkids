@@ -71,7 +71,7 @@ export function dismissModal(): ActionDismissModal {
   };
 }
 
-export function paintCharacterAppearance(characterId: string, appearanceId: string) {
+export function paintCharacterAppearance(characterId: string | null, appearanceId?: string | null) {
   return (dispatch: Dispatch<Actions>) => {
     dispatch(stopPlayback());
     dispatch({
@@ -146,8 +146,8 @@ export type ActionDismissModal = {
 
 export type ActionUpdatePaintingState = {
   type: "UPDATE_PAINTING_STATE";
-  characterId: string;
-  appearanceId: string;
+  characterId: string | null;
+  appearanceId: string | null | undefined;
 };
 
 export type ActionUpdateKeypickerState = {
