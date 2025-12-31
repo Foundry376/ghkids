@@ -635,7 +635,19 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
             const value =
               resolveRuleValue(action.value, globals, characters, stageActorForId, "=") ?? "";
             const next = applyVariableOperation(current, action.operation, value);
-            stageActor.variableValues[action.variable] = next;
+
+            if (action.variable === "x" || action.variable === "y") {
+              const numValue = Number(next);
+              if (!isNaN(numValue)) {
+                const coord = action.variable as "x" | "y";
+                const wrappedPos = wrappedPosition({ ...stageActor.position, [coord]: numValue });
+                if (wrappedPos) {
+                  stageActor.position = wrappedPos;
+                }
+              }
+            } else {
+              stageActor.variableValues[action.variable] = next;
+            }
           } else {
             throw new Error(`Not sure how to apply action: ${action}`);
           }

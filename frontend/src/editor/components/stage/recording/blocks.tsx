@@ -62,16 +62,18 @@ export const ActorVariableBlock = ({
   disambiguate?: boolean;
   variableId: string;
 }) => {
+  const getVariableLabel = () => {
+    if (variableId === "transform") return "direction";
+    if (variableId === "appearance") return "appearance";
+    if (variableId === "x") return "X";
+    if (variableId === "y") return "Y";
+    return <VariableBlock name={(variableId && character.variables[variableId]?.name) || ""} />;
+  };
+
   return (
     <div>
       <ActorBlock character={character} actor={actor} disambiguate={disambiguate} />
-      {variableId === "transform" ? (
-        "direction"
-      ) : variableId === "appearance" ? (
-        "appearance"
-      ) : (
-        <VariableBlock name={(variableId && character.variables[variableId].name) || ""} />
-      )}
+      {getVariableLabel()}
     </div>
   );
 };
