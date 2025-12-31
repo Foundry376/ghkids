@@ -60,3 +60,30 @@ export async function sendEmails(
     failed: results.filter((r) => !r).length,
   };
 }
+
+export interface ForkEmailData {
+  ownerEmail: string;
+  ownerUsername: string;
+  forkerUsername: string;
+  worldName: string;
+  worldId: number;
+}
+
+export async function sendForkEmail(data: ForkEmailData): Promise<boolean> {
+  const templateId = process.env.SENDGRID_TEMPLATE_FORK;
+  if (!templateId) {
+    console.warn("SENDGRID_TEMPLATE_FORK not set, skipping fork email");
+    return false;
+  }
+
+  return sendEmail({
+    to: data.ownerEmail,
+    templateId,
+    dynamicTemplateData: {
+      ownerUsername: data.ownerUsername,
+      forkerUsername: data.forkerUsername,
+      worldName: data.worldName,
+      worldId: data.worldId,
+    },
+  });
+}

@@ -1,7 +1,10 @@
 import { expect } from "chai";
+import sinon from "sinon";
 import request from "supertest";
 import app from "../app";
+import * as sendgrid from "../connectors/sendgrid";
 import { AppDataSource } from "../db/data-source";
+import { User } from "../db/entity/user";
 import { World } from "../db/entity/world";
 import { createTestUser } from "./helpers";
 import { resetDatabase } from "./setup";
@@ -81,6 +84,78 @@ describe("Worlds API", () => {
 
       expect(res.body.name).to.equal("Untitled");
       expect(res.body.id).to.be.a("number");
+    });
+
+    it("should send fork email when forking a world", async () => {
+      const sendForkEmailStub = sinon.stub(sendgrid, "sendForkEmail").resolves(true);
+
+      try {
+        // Create owner with email and fork notifications enabled
+        const { user: owner } = await createTestUser("owner", "password123");
+        await AppDataSource.getRepository(User).update(owner.id, {
+          email: "owner@example.com",
+          notificationSettings: { announcements: true, forks: true, playSummaries: true },
+        });
+
+        // Create a world owned by owner
+        const worldRepo = AppDataSource.getRepository(World);
+        const world = await worldRepo.save({
+          name: "Original World",
+          thumbnail: "#",
+          userId: owner.id,
+        });
+
+        // Fork the world as a different user
+        const { authHeader: forkerAuth } = await createTestUser("forker", "password123");
+        await request(app)
+          .post(`/worlds?from=${world.id}&fork=true`)
+          .set("Authorization", forkerAuth)
+          .expect(200);
+
+        // Verify sendForkEmail was called with correct data
+        expect(sendForkEmailStub.calledOnce).to.be.true;
+        const callArgs = sendForkEmailStub.firstCall.args[0];
+        expect(callArgs.ownerEmail).to.equal("owner@example.com");
+        expect(callArgs.ownerUsername).to.equal("owner");
+        expect(callArgs.forkerUsername).to.equal("forker");
+        expect(callArgs.worldName).to.equal("Original World");
+        expect(callArgs.worldId).to.equal(world.id);
+      } finally {
+        sendForkEmailStub.restore();
+      }
+    });
+
+    it("should not send fork email when owner has forks notifications disabled", async () => {
+      const sendForkEmailStub = sinon.stub(sendgrid, "sendForkEmail").resolves(true);
+
+      try {
+        // Create owner with forks notifications disabled
+        const { user: owner } = await createTestUser("owner", "password123");
+        await AppDataSource.getRepository(User).update(owner.id, {
+          email: "owner@example.com",
+          notificationSettings: { announcements: true, forks: false, playSummaries: true },
+        });
+
+        // Create a world owned by owner
+        const worldRepo = AppDataSource.getRepository(World);
+        const world = await worldRepo.save({
+          name: "Original World",
+          thumbnail: "#",
+          userId: owner.id,
+        });
+
+        // Fork the world as a different user
+        const { authHeader: forkerAuth } = await createTestUser("forker", "password123");
+        await request(app)
+          .post(`/worlds?from=${world.id}&fork=true`)
+          .set("Authorization", forkerAuth)
+          .expect(200);
+
+        // Verify sendForkEmail was NOT called
+        expect(sendForkEmailStub.called).to.be.false;
+      } finally {
+        sendForkEmailStub.restore();
+      }
     });
   });
 
