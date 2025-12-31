@@ -155,7 +155,7 @@ export type RuleCondition = {
 
 export type RuleValue =
   | { constant: string }
-  | { actorId: string; variableId: string | "apperance" | "transform" }
+  | { actorId: string; variableId: string | "appearance" | "transform" | "x" | "y" }
   | { globalId: string };
 
 /**

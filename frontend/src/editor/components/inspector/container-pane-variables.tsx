@@ -140,6 +140,42 @@ export const TransformDropdown = ({
   );
 };
 
+type PositionGridItemProps = {
+  actor: Actor;
+  coordinate: "x" | "y";
+  onChange: (value: number) => void;
+};
+
+const PositionGridItem = ({ actor, coordinate, onChange }: PositionGridItemProps) => {
+  const _onDragStart = (event: React.DragEvent) => {
+    event.dataTransfer.dropEffect = "copy";
+    event.dataTransfer.effectAllowed = "copy";
+    event.dataTransfer.setData(
+      "variable",
+      JSON.stringify({
+        variableId: coordinate,
+        actorId: actor.id,
+        value: String(actor.position[coordinate]),
+      }),
+    );
+  };
+
+  return (
+    <div className={`variable-box variable-set-true`} draggable onDragStart={_onDragStart}>
+      <div className="name">{coordinate.toUpperCase()}</div>
+      <input
+        type="number"
+        value={actor.position[coordinate]}
+        onChange={(e) => {
+          const num = Number(e.target.value);
+          if (!isNaN(num)) onChange(num);
+        }}
+        style={{ width: "100%" }}
+      />
+    </div>
+  );
+};
+
 export const ContainerPaneVariables = ({
   character,
   actor,
@@ -209,13 +245,29 @@ export const ContainerPaneVariables = ({
     return (
       <div className="variables-grid">
         {actor && (
-          <AppearanceGridItem
-            actor={actor}
-            spritesheet={character.spritesheet}
-            onChange={(appearance, transform) => {
-              dispatch(changeActors(selectedActors!, { appearance, transform }));
-            }}
-          />
+          <>
+            <AppearanceGridItem
+              actor={actor}
+              spritesheet={character.spritesheet}
+              onChange={(appearance, transform) => {
+                dispatch(changeActors(selectedActors!, { appearance, transform }));
+              }}
+            />
+            <PositionGridItem
+              actor={actor}
+              coordinate="x"
+              onChange={(x) => {
+                dispatch(changeActors(selectedActors!, { position: { ...actor.position, x } }));
+              }}
+            />
+            <PositionGridItem
+              actor={actor}
+              coordinate="y"
+              onChange={(y) => {
+                dispatch(changeActors(selectedActors!, { position: { ...actor.position, y } }));
+              }}
+            />
+          </>
         )}
         {Object.values(character.variables).map((definition) => (
           <VariableGridItem
