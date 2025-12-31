@@ -315,12 +315,19 @@ export type Global =
       name: "Key Pressed";
       value: string;
       type: "key";
+    }
+  | {
+      id: "cameraFollow";
+      name: "Camera Follow";
+      value: string;
+      type: "actor";
     };
 
 export type Globals = {
   click: Global;
   keypress: Global;
   selectedStageId: Global;
+  cameraFollow: Global;
   [globalId: string]: Global;
 };
 

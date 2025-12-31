@@ -642,6 +642,7 @@ describe("stage-helpers", () => {
       click: { id: "click", name: "Clicked Actor", value: "", type: "actor" },
       keypress: { id: "keypress", name: "Key Pressed", value: "", type: "key" },
       selectedStageId: { id: "selectedStageId", name: "Current Stage", value: "stage1", type: "stage" },
+      cameraFollow: { id: "cameraFollow", name: "Camera Follow", value: "", type: "actor" },
       score: { id: "score", name: "Score", value: "100" },
     };
 
