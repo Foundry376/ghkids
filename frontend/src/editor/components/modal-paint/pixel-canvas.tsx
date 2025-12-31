@@ -2,6 +2,7 @@ import classNames from "classnames";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import CreatePixelContext from "./create-pixel-context";
 import { getFilledSquares, Point } from "./helpers";
+import { PaintModel } from "./paint-model";
 import { PixelTool } from "./tools";
 import { PixelContext, PixelImageData, PixelInteraction } from "./types";
 
@@ -25,6 +26,7 @@ function getEdgePixels(
 }
 
 export interface PixelCanvasProps {
+  model: PaintModel;
   tool: PixelTool | null;
   color: string;
   toolSize: number;
@@ -35,12 +37,10 @@ export interface PixelCanvasProps {
   selectionOffset: Point;
   interaction: PixelInteraction;
   interactionPixels: Record<string, boolean> | null;
-  onMouseDown: (event: React.MouseEvent, pixel: Point) => void;
-  onMouseMove: (event: MouseEvent | React.MouseEvent, pixel: Point) => void;
-  onMouseUp: (event: MouseEvent | React.MouseEvent, pixel: Point) => void;
 }
 
 const PixelCanvas: React.FC<PixelCanvasProps> = ({
+  model,
   tool,
   color,
   toolSize,
@@ -51,33 +51,15 @@ const PixelCanvas: React.FC<PixelCanvasProps> = ({
   selectionOffset,
   interaction,
   interactionPixels,
-  onMouseDown,
-  onMouseMove,
-  onMouseUp,
 }) => {
-  const [mousedown, setMousedown] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
   const [mouseoverSelection, setMouseoverSelection] = useState(false);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const pixelContextRef = useRef<PixelContext | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Track mousedown state in a ref for synchronous access in event handlers
-  const mousedownRef = useRef(false);
-  mousedownRef.current = mousedown;
-
-  const getSelectionPixels = useCallback((): Record<string, boolean> => {
-    if (interactionPixels) {
-      return interactionPixels;
-    }
-
-    if (selectionImageData) {
-      return selectionImageData.getOpaquePixels();
-    }
-
-    return {};
-  }, [interactionPixels, selectionImageData]);
-
+  // Pixel coordinate calculation
   const pixelForEvent = useCallback(
     ({ clientX, clientY }: { clientX: number; clientY: number }): Point => {
       if (!canvasRef.current) {
@@ -92,6 +74,18 @@ const PixelCanvas: React.FC<PixelCanvasProps> = ({
     [pixelSize]
   );
 
+  // Get selection pixels for rendering marching ants
+  const getSelectionPixels = useCallback((): Record<string, boolean> => {
+    if (interactionPixels) {
+      return interactionPixels;
+    }
+    if (selectionImageData) {
+      return selectionImageData.getOpaquePixels();
+    }
+    return {};
+  }, [interactionPixels, selectionImageData]);
+
+  // Render canvas
   const renderToCanvas = useCallback(() => {
     const c = pixelContextRef.current;
     if (!c || !canvasRef.current) return;
@@ -146,6 +140,8 @@ const PixelCanvas: React.FC<PixelCanvasProps> = ({
         }
       }
     }
+
+    // Render tool preview
     if (tool && tool.render) {
       tool.render(c, {
         color,
@@ -160,6 +156,7 @@ const PixelCanvas: React.FC<PixelCanvasProps> = ({
       }, true);
     }
 
+    // Render selection marching ants
     const selectionPixels = getSelectionPixels();
     const edgePixels = getEdgePixels(selectionPixels);
 
@@ -249,83 +246,64 @@ const PixelCanvas: React.FC<PixelCanvasProps> = ({
     };
   }, [pixelSize, getSelectionPixels, renderToCanvas]);
 
-  // Store current props/state in refs for stable event handlers
-  const propsRef = useRef({
-    onMouseDown,
-    onMouseMove,
-    onMouseUp,
-    pixelForEvent,
-    getSelectionPixels,
-    selectionOffset,
-  });
-  propsRef.current = {
-    onMouseDown,
-    onMouseMove,
-    onMouseUp,
-    pixelForEvent,
-    getSelectionPixels,
-    selectionOffset,
-  };
-
-  // Stable mouse move handler - never changes reference
-  const stableMouseMove = useCallback((event: MouseEvent) => {
-    const { pixelForEvent, onMouseMove, getSelectionPixels, selectionOffset } = propsRef.current;
-    const p = pixelForEvent(event);
-
-    if (mousedownRef.current) {
-      onMouseMove(event, p);
-    }
-
-    const selectionPixels = getSelectionPixels();
-    const isOverSelection =
-      selectionPixels[`${p.x - selectionOffset.x},${p.y - selectionOffset.y}`];
-    setMouseoverSelection((prev) => (isOverSelection ? true : prev ? false : prev));
-  }, []);
-
-  // Stable mouse up handler - never changes reference
-  const stableMouseUp = useCallback((event: MouseEvent) => {
-    if (!canvasRef.current) return;
-
-    canvasRef.current.addEventListener("mousemove", stableMouseMove);
-    document.removeEventListener("mousemove", stableMouseMove);
-    document.removeEventListener("mouseup", stableMouseUp);
-
-    if (mousedownRef.current) {
-      const { onMouseUp, pixelForEvent } = propsRef.current;
-      onMouseUp(event, pixelForEvent(event));
-      setMousedown(false);
-    }
-  }, [stableMouseMove]);
-
-  // Handle mouse down
+  // Handle mouse down - start drag and register global listeners
   const handleMouseDown = useCallback(
     (event: React.MouseEvent) => {
-      if (!canvasRef.current) return;
-
-      canvasRef.current.removeEventListener("mousemove", stableMouseMove);
-      document.addEventListener("mousemove", stableMouseMove);
-      document.addEventListener("mouseup", stableMouseUp);
-
-      const { onMouseDown, pixelForEvent } = propsRef.current;
-      onMouseDown(event, pixelForEvent(event));
-      setMousedown(true);
+      const pixel = pixelForEvent(event);
+      model.mousedown(pixel, event.nativeEvent);
+      setIsDragging(true);
     },
-    [stableMouseMove, stableMouseUp]
+    [model, pixelForEvent]
   );
 
-  // Set up initial mousemove listener
+  // Document-level mouse tracking for drag operations
   useEffect(() => {
+    if (!isDragging) return;
+
+    const handleMouseMove = (event: MouseEvent) => {
+      const pixel = pixelForEvent(event);
+      model.mousemove(pixel);
+
+      // Update selection hover state
+      const selectionPixels = getSelectionPixels();
+      const isOverSelection =
+        selectionPixels[`${pixel.x - selectionOffset.x},${pixel.y - selectionOffset.y}`];
+      setMouseoverSelection(!!isOverSelection);
+    };
+
+    const handleMouseUp = (event: MouseEvent) => {
+      const pixel = pixelForEvent(event);
+      model.mouseup(pixel);
+      setIsDragging(false);
+    };
+
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseup", handleMouseUp);
+
+    return () => {
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, [isDragging, model, pixelForEvent, getSelectionPixels, selectionOffset]);
+
+  // Handle hover state when not dragging
+  useEffect(() => {
+    if (isDragging) return;
+
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    canvas.addEventListener("mousemove", stableMouseMove);
-
-    return () => {
-      canvas.removeEventListener("mousemove", stableMouseMove);
-      document.removeEventListener("mousemove", stableMouseMove);
-      document.removeEventListener("mouseup", stableMouseUp);
+    const handleMouseMove = (event: MouseEvent) => {
+      const pixel = pixelForEvent(event);
+      const selectionPixels = getSelectionPixels();
+      const isOverSelection =
+        selectionPixels[`${pixel.x - selectionOffset.x},${pixel.y - selectionOffset.y}`];
+      setMouseoverSelection(!!isOverSelection);
     };
-  }, [stableMouseMove, stableMouseUp]);
+
+    canvas.addEventListener("mousemove", handleMouseMove);
+    return () => canvas.removeEventListener("mousemove", handleMouseMove);
+  }, [isDragging, pixelForEvent, getSelectionPixels, selectionOffset]);
 
   const { width, height } = imageData || { width: 1, height: 1 };
 
@@ -349,7 +327,7 @@ const PixelCanvas: React.FC<PixelCanvasProps> = ({
           width={width * pixelSize}
           height={height * pixelSize}
           className={classNames({
-            mousedown: mousedown,
+            mousedown: isDragging,
             mouseoverSelection: mouseoverSelection,
           })}
           onMouseDown={handleMouseDown}
