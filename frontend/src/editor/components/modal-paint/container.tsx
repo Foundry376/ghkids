@@ -429,6 +429,7 @@ const PaintContainer: React.FC = () => {
               placeholder="Describe your sprite..."
               value={state.spriteDescription || ""}
               onChange={(e) => model.setSpriteDescription(e.target.value)}
+              disabled={state.isGeneratingSprite}
             />
             <Button size="sm" onClick={() => model.generateSprite()} disabled={state.isGeneratingSprite}>
               {state.isGeneratingSprite ? (

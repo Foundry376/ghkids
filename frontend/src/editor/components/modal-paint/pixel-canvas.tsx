@@ -67,8 +67,8 @@ const PixelCanvas: React.FC<PixelCanvasProps> = ({
       }
       const { top, left } = canvasRef.current.getBoundingClientRect();
       return {
-        x: Math.round((clientX - left + pixelSize / 2) / pixelSize),
-        y: Math.round((clientY - top + pixelSize / 2) / pixelSize),
+        x: Math.floor((clientX - left) / pixelSize),
+        y: Math.floor((clientY - top) / pixelSize),
       };
     },
     [pixelSize]
