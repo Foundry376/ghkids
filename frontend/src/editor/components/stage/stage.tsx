@@ -1,4 +1,4 @@
-import React, { CSSProperties, useEffect, useRef, useState } from "react";
+import React, { CSSProperties, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 
 import ActorSprite from "../sprites/actor-sprite";
@@ -9,15 +9,11 @@ import RecordingMaskSprite from "../sprites/recording-mask-sprite";
 import { RecordingSquareStatus } from "../sprites/recording-square-status";
 
 import {
-  setRecordingExtent,
   setupRecordingForActor,
   toggleSquareIgnored,
   upsertRecordingCondition,
 } from "../../actions/recording-actions";
 import {
-  changeActors,
-  changeActorsIndividually,
-  createActors,
   deleteActors,
   recordClickForGameState,
   recordKeyForGameState,
@@ -32,12 +28,8 @@ import {
 import { STAGE_CELL_SIZE, TOOLS } from "../../constants/constants";
 import { extentIgnoredPositions } from "../../utils/recording-helpers";
 import {
-  actorFilledPoints,
-  actorFillsPoint,
   actorsAtPoint,
-  applyAnchorAdjustment,
   buildActorSelection,
-  pointIsOutside,
 } from "../../utils/stage-helpers";
 
 import {
@@ -51,9 +43,21 @@ import {
   UIState,
   WorldMinimal,
 } from "../../../types";
-import { defaultAppearanceId } from "../../utils/character-helpers";
 import { makeId } from "../../utils/utils";
 import { keyToCodakoKey } from "../modal-keypicker/keyboard";
+
+// Import extracted hooks
+import {
+  useStageCoordinates,
+  useStageZoom,
+  useStageSelection,
+  useStagePopover,
+  useStageDragDrop,
+  STAGE_ZOOM_STEPS,
+} from "./hooks";
+
+// Import tool behaviors (ToolContext for type annotation)
+import { ToolContext } from "./tools/tool-behaviors";
 
 interface StageProps {
   stage: StageType;
@@ -67,11 +71,16 @@ interface StageProps {
 
 type Offset = { top: string | number; left: string | number };
 type MouseStatus = { isDown: boolean; visited: { [posKey: string]: true } };
-type SelectionRect = { start: { top: number; left: number }; end: { top: number; left: number } };
 
 const DRAGGABLE_TOOLS = [TOOLS.IGNORE_SQUARE, TOOLS.TRASH, TOOLS.STAMP];
 
-export const STAGE_ZOOM_STEPS = [1, 0.88, 0.75, 0.63, 0.5, 0.42, 0.38];
+// Threshold for detecting stage wrapping. When an actor's position changes by more
+// than this many cells in a single frame, we assume it wrapped around the stage edge
+// and skip the CSS transition animation (by changing the React key).
+const WRAP_DETECTION_THRESHOLD = 6;
+
+// Re-export for backwards compatibility
+export { STAGE_ZOOM_STEPS };
 
 export const Stage = ({
   recordingExtent,
@@ -83,50 +92,24 @@ export const Stage = ({
   style,
 }: StageProps) => {
   const [{ top, left }, setOffset] = useState<Offset>({ top: 0, left: 0 });
-  const [scale, setScale] = useState(
-    stage.scale && typeof stage.scale === "number" ? stage.scale : 1,
-  );
 
-  const [selectionRect, setSelectionRect] = useState<SelectionRect | null>(null);
-  const [actorSelectionPopover, setActorSelectionPopover] = useState<{
-    actors: Actor[];
-    position: { x: number; y: number };
-    toolId: string;
-  } | null>(null);
-
-  const lastFiredExtent = useRef<string | null>(null);
   const lastActorPositions = useRef<{ [actorId: string]: Position }>({});
 
   const mouse = useRef<MouseStatus>({ isDown: false, visited: {} });
-  const scrollEl = useRef<HTMLDivElement | null>();
-  const el = useRef<HTMLDivElement | null>();
+  const scrollEl = useRef<HTMLDivElement | null>(null);
+  const stageEl = useRef<HTMLDivElement | null>(null);
 
-  useEffect(() => {
-    const autofit = () => {
-      const _scrollEl = scrollEl.current;
-      const _el = el.current;
-      if (!_scrollEl || !_el) {
-        return;
-      }
-      if (recordingCentered) {
-        setScale(1);
-      } else if (stage.scale === "fit") {
-        _el.style.zoom = "1"; // this needs to be here for scaling "up" to work
-        const fit = Math.min(
-          _scrollEl.clientWidth / (stage.width * STAGE_CELL_SIZE),
-          _scrollEl.clientHeight / (stage.height * STAGE_CELL_SIZE),
-        );
-        const best = STAGE_ZOOM_STEPS.find((z) => z <= fit) || fit;
-        _el.style.zoom = `${best}`;
-        setScale(best);
-      } else {
-        setScale(stage.scale ?? 1);
-      }
-    };
-    window.addEventListener("resize", autofit);
-    autofit();
-    return () => window.removeEventListener("resize", autofit);
-  }, [stage.height, stage.scale, stage.width, recordingCentered]);
+  // Use extracted zoom hook
+  const scale = useStageZoom(scrollEl, stageEl, stage, recordingCentered);
+
+  // Use extracted coordinate hook
+  const coords = useStageCoordinates(stageEl, scale);
+
+  // Use extracted selection hook
+  const selection = useStageSelection();
+
+  // Use extracted popover hook
+  const popover = useStagePopover();
 
   const dispatch = useDispatch();
   const characters = useSelector<EditorState, Characters>((state) => state.characters);
@@ -141,17 +124,20 @@ export const Stage = ({
   }));
 
   // Helpers
+  const selFor = useCallback(
+    (actorIds: string[]) => buildActorSelection(world.id, stage.id, actorIds),
+    [world.id, stage.id]
+  );
 
-  const selFor = (actorIds: string[]) => {
-    return buildActorSelection(world.id, stage.id, actorIds);
-  };
+  const selected = useMemo(
+    () =>
+      selectedActors && selectedActors?.worldId === world.id && selectedActors?.stageId === stage.id
+        ? selectedActors.actorIds.map((a) => stage.actors[a]).filter(Boolean)
+        : [],
+    [selectedActors, world.id, stage.id, stage.actors]
+  );
 
-  const selected =
-    selectedActors && selectedActors?.worldId === world.id && selectedActors?.stageId === stage.id
-      ? selectedActors.actorIds.map((a) => stage.actors[a])
-      : [];
-
-  const centerOnExtent = () => {
+  const centerOnExtent = useCallback(() => {
     if (!recordingExtent) {
       return { left: 0, top: 0 };
     }
@@ -162,12 +148,57 @@ export const Stage = ({
       left: `calc(-${xCenter * STAGE_CELL_SIZE}px + 50%)`,
       top: `calc(-${yCenter * STAGE_CELL_SIZE}px + 50%)`,
     };
-  };
+  }, [recordingExtent]);
 
+  // Use extracted drag/drop hook
+  const dragDrop = useStageDragDrop({
+    dispatch,
+    stage,
+    worldId: world.id,
+    characters,
+    recordingExtent,
+    getPositionForEvent: coords.getPositionForEvent,
+    stageElRef: stageEl,
+  });
+
+  // Build tool context for tool behaviors
+  const toolContext: ToolContext = useMemo(
+    () => ({
+      dispatch,
+      stage,
+      world,
+      characters,
+      recordingExtent,
+      selected,
+      selFor,
+      stampToolItem,
+      playback,
+      showPopover: (actors, pos) => popover.showPopover(actors, pos, selectedToolId),
+      isPopoverOpen: popover.isOpen,
+    }),
+    [
+      dispatch,
+      stage,
+      world,
+      characters,
+      recordingExtent,
+      selected,
+      selFor,
+      stampToolItem,
+      playback,
+      popover,
+      selectedToolId,
+    ]
+  );
+
+  // This effect runs on every render to:
+  // 1. Keep focus on stage during playback (for keyboard input)
+  // 2. Recalculate offset when recording extent changes
+  // We intentionally omit dependencies to run every render, matching the original behavior.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
-    if (playback.running && el.current) {
-      el.current.focus();
+    if (playback.running && stageEl.current) {
+      stageEl.current.focus();
     }
 
     let offset: Offset = { top: 0, left: 0 };
@@ -182,7 +213,7 @@ export const Stage = ({
 
   const onBlur = () => {
     if (playback.running) {
-      el.current?.focus();
+      stageEl.current?.focus();
     }
   };
 
@@ -212,218 +243,17 @@ export const Stage = ({
     dispatch(recordKeyForGameState(world.id, keyToCodakoKey(`${event.key}`)));
   };
 
-  const onDragOver = (event: React.DragEvent) => {
-    event.preventDefault();
-    if (event.dataTransfer.types.includes("handle")) {
-      onUpdateHandle(event);
-    }
-  };
-
-  const onDrop = (event: React.DragEvent) => {
-    if (event.dataTransfer.types.includes("sprite")) {
-      onDropSprite(event);
-    }
-    if (event.dataTransfer.types.includes("appearance")) {
-      onDropAppearance(event);
-    }
-    if (event.dataTransfer.types.includes("handle")) {
-      onUpdateHandle(event);
-    }
-  };
-
-  const onUpdateHandle = (event: React.DragEvent) => {
-    const side = event.dataTransfer.types
-      .find((t) => t.startsWith("handle:"))!
-      .split(":")
-      .pop();
-    const stageOffset = el.current!.getBoundingClientRect();
-    const position = {
-      x: (event.clientX - stageOffset.left) / STAGE_CELL_SIZE,
-      y: (event.clientY - stageOffset.top) / STAGE_CELL_SIZE,
-    };
-
-    // expand the extent of the recording rule to reflect this new extent
-    const nextExtent = Object.assign({}, recordingExtent);
-    if (side === "left") {
-      nextExtent.xmin = Math.min(nextExtent.xmax, Math.max(0, Math.round(position.x + 0.25)));
-    }
-    if (side === "right") {
-      nextExtent.xmax = Math.max(
-        nextExtent.xmin,
-        Math.min(stage.width, Math.round(position.x - 1)),
-      );
-    }
-    if (side === "top") {
-      nextExtent.ymin = Math.min(nextExtent.ymax, Math.max(0, Math.round(position.y + 0.25)));
-    }
-    if (side === "bottom") {
-      nextExtent.ymax = Math.max(
-        nextExtent.ymin,
-        Math.min(stage.height, Math.round(position.y - 1)),
-      );
-    }
-
-    const str = JSON.stringify(nextExtent);
-    if (lastFiredExtent.current === str) {
-      return;
-    }
-    lastFiredExtent.current = str;
-    dispatch(setRecordingExtent(nextExtent));
-  };
-
-  const getPxOffsetForEvent = (event: MouseEvent | React.MouseEvent | React.DragEvent) => {
-    const stageOffset = el.current!.getBoundingClientRect();
-    return { left: event.clientX - stageOffset.left, top: event.clientY - stageOffset.top };
-  };
-
-  const getPositionForEvent = (event: MouseEvent | React.MouseEvent | React.DragEvent) => {
-    const dragOffset =
-      "dataTransfer" in event && event.dataTransfer && event.dataTransfer.getData("drag-offset");
-
-    // subtracting half when no offset is present is a lazy way of doing Math.floor instead of Math.round!
-    const halfOffset = { dragTop: STAGE_CELL_SIZE / 2, dragLeft: STAGE_CELL_SIZE / 2 };
-    const { dragLeft, dragTop } = dragOffset ? JSON.parse(dragOffset) : halfOffset;
-
-    const px = getPxOffsetForEvent(event);
-    return {
-      x: Math.round((px.left - dragLeft) / STAGE_CELL_SIZE / scale),
-      y: Math.round((px.top - dragTop) / STAGE_CELL_SIZE / scale),
-    };
-  };
-
-  const onDropAppearance = (event: React.DragEvent) => {
-    const { appearance, characterId } = JSON.parse(event.dataTransfer.getData("appearance"));
-    const position = getPositionForEvent(event);
-    if (recordingExtent && pointIsOutside(position, recordingExtent)) {
-      return;
-    }
-    const actor = Object.values(stage.actors).find(
-      (a) => actorFillsPoint(a, characters, position) && a.characterId === characterId,
-    );
-    if (actor) {
-      dispatch(changeActors(selFor([actor.id]), { appearance }));
-    }
-  };
-
-  const onDropActorsAtPosition = (
-    { actorIds, dragAnchorActorId }: { actorIds: string[]; dragAnchorActorId: string },
-    position: Position,
-    mode: "stamp-copy" | "move",
-  ) => {
-    if (recordingExtent && pointIsOutside(position, recordingExtent)) {
-      return;
-    }
-
-    const anchorActor = stage.actors[dragAnchorActorId];
-    const anchorCharacter = characters[anchorActor.characterId];
-
-    applyAnchorAdjustment(position, anchorCharacter, anchorActor);
-
-    const offsetX = position.x - anchorActor.position.x;
-    const offsetY = position.y - anchorActor.position.y;
-
-    if (offsetX === 0 && offsetY === 0) {
-      // attempting to drop in the same place we started the drag, don't do anything
-      return;
-    }
-
-    if (mode === "stamp-copy") {
-      const creates = actorIds
-        .map((aid) => {
-          const actor = stage.actors[aid];
-          const character = characters[actor.characterId];
-          const clonedActor = Object.assign({}, actor, {
-            position: {
-              x: actor.position.x + offsetX,
-              y: actor.position.y + offsetY,
-            },
-          });
-          const clonedActorPoints = actorFilledPoints(clonedActor, characters).map(
-            (p) => `${p.x},${p.y}`,
-          );
-
-          // If there is an exact copy of this actor that overlaps this position already, don't
-          // drop. It's probably a mistake, and you can override by dropping elsewhere and then
-          // dragging it to this square.
-          const positionContainsCloneAlready = Object.values(stage.actors).find(
-            (a) =>
-              a.characterId === actor.characterId &&
-              a.appearance === actor.appearance &&
-              actorFilledPoints(a, characters).some((p) =>
-                clonedActorPoints.includes(`${p.x},${p.y}`),
-              ),
-          );
-          if (positionContainsCloneAlready) {
-            return;
-          }
-          return { character, initialValues: clonedActor };
-        })
-        .filter((c): c is NonNullable<typeof c> => !!c);
-
-      dispatch(createActors(world.id, stage.id, creates));
-    } else if (mode === "move") {
-      const upserts = actorIds.map((aid) => ({
-        id: aid,
-        values: {
-          position: {
-            x: stage.actors[aid].position.x + offsetX,
-            y: stage.actors[aid].position.y + offsetY,
-          },
-        },
-      }));
-      dispatch(changeActorsIndividually(world.id, stage.id, upserts));
-    } else {
-      throw new Error("Invalid mode");
-    }
-  };
-
-  const onDropCharacterAtPosition = (
-    { characterId, appearanceId }: { characterId: string; appearanceId?: string },
-    position: Position,
-  ) => {
-    if (recordingExtent && pointIsOutside(position, recordingExtent)) {
-      return;
-    }
-
-    const character = characters[characterId];
-    const appearance = appearanceId ?? defaultAppearanceId(character.spritesheet);
-    const newActor = { position, appearance } as Actor;
-    applyAnchorAdjustment(position, character, newActor);
-
-    const newActorPoints = actorFilledPoints(newActor, characters).map((p) => `${p.x},${p.y}`);
-
-    const positionContainsCloneAlready = Object.values(stage.actors).find(
-      (a) =>
-        a.characterId === characterId &&
-        actorFilledPoints(a, characters).some((p) => newActorPoints.includes(`${p.x},${p.y}`)),
-    );
-    if (positionContainsCloneAlready) {
-      return;
-    }
-    dispatch(createActors(world.id, stage.id, [{ character, initialValues: newActor }]));
-  };
-
-  const onDropSprite = (event: React.DragEvent) => {
-    const ids: { actorIds: string[]; dragAnchorActorId: string } | { characterId: string } =
-      JSON.parse(event.dataTransfer.getData("sprite"));
-    const position = getPositionForEvent(event);
-    if ("actorIds" in ids) {
-      onDropActorsAtPosition(ids, position, event.altKey ? "stamp-copy" : "move");
-    } else if (ids.characterId) {
-      onDropCharacterAtPosition(ids, position);
-    }
-  };
-
-  const onStampAtPosition = (position: Position) => {
-    const item = stampToolItem;
-    if (item && "actorIds" in item && item.actorIds) {
-      const ids = { actorIds: item.actorIds, dragAnchorActorId: item.actorIds[0] };
-      onDropActorsAtPosition(ids, position, "stamp-copy");
-    } else if (item && "characterId" in item) {
-      onDropCharacterAtPosition(item, position);
-    }
-  };
-
+  /**
+   * Handles mouse up on an actor.
+   *
+   * This follows the Integration Contract from tool-behaviors.ts.
+   *
+   * Note: While tool-behaviors.ts provides declarative tool behavior definitions,
+   * we keep the logic inline here during refactoring to minimize risk of behavior
+   * changes. The tool-behaviors.ts file serves as documentation and as a reference
+   * for future refactoring that could call behaviors directly. The current inline
+   * implementation exactly matches the original stage.tsx behavior.
+   */
   const onMouseUpActor = (actor: Actor, event: React.MouseEvent) => {
     let handled = false;
 
@@ -431,16 +261,13 @@ export const Stage = ({
     const showPopoverIfOverlapping = (toolId: string): boolean => {
       const overlapping = actorsAtPoint(stage.actors, characters, actor.position);
       if (overlapping.length > 1) {
-        setActorSelectionPopover({
-          actors: overlapping,
-          position: { x: event.clientX, y: event.clientY },
-          toolId,
-        });
+        popover.showPopover(overlapping, { x: event.clientX, y: event.clientY }, toolId);
         return true;
       }
       return false;
     };
 
+    // Special handling for tools with specific popover behavior
     switch (selectedToolId) {
       case TOOLS.PAINT:
         if (!showPopoverIfOverlapping(TOOLS.PAINT)) {
@@ -528,13 +355,14 @@ export const Stage = ({
 
     const isClickOnBackground = event.target === event.currentTarget;
     if (selectedToolId === TOOLS.POINTER && isClickOnBackground) {
-      setSelectionRect({ start: getPxOffsetForEvent(event), end: getPxOffsetForEvent(event) });
+      selection.startSelection(coords.getPxOffsetForEvent(event));
     } else {
-      setSelectionRect(null);
+      selection.cancelSelection();
     }
   };
 
   // Note: In this handler, the mouse cursor may be outside the stage
+  // CRITICAL: This ref is reassigned every render to capture latest state
   const onMouseMove = useRef<(event: MouseEvent) => void>();
   onMouseMove.current = (event: MouseEvent) => {
     if (!mouse.current.isDown) {
@@ -543,12 +371,12 @@ export const Stage = ({
 
     // If we are dragging to select a region, update the region.
     // Otherwise, process this event as a tool stroke.
-    if (selectionRect) {
-      setSelectionRect({ ...selectionRect, end: getPxOffsetForEvent(event) });
+    if (selection.isSelecting) {
+      selection.updateSelection(coords.getPxOffsetForEvent(event));
       return;
     }
 
-    const { x, y } = getPositionForEvent(event);
+    const { x, y } = coords.getPositionForEvent(event);
     if (!(x >= 0 && x < stage.width && y >= 0 && y < stage.height)) {
       return;
     }
@@ -562,11 +390,11 @@ export const Stage = ({
       dispatch(toggleSquareIgnored({ x, y }));
     }
     if (selectedToolId === TOOLS.STAMP) {
-      onStampAtPosition({ x, y });
+      dragDrop.onStampAtPosition({ x, y }, stampToolItem);
     }
     if (selectedToolId === TOOLS.TRASH) {
       // If popover is open, skip - we're waiting for user to pick from the popover
-      if (actorSelectionPopover) {
+      if (popover.isOpen) {
         return;
       }
 
@@ -575,11 +403,7 @@ export const Stage = ({
       // On initial click (not drag), show popover if multiple actors overlap
       const isFirstClick = Object.keys(mouse.current.visited).length === 1;
       if (isFirstClick && overlapping.length > 1) {
-        setActorSelectionPopover({
-          actors: overlapping,
-          position: { x: event.clientX, y: event.clientY },
-          toolId: TOOLS.TRASH,
-        });
+        popover.showPopover(overlapping, { x: event.clientX, y: event.clientY }, TOOLS.TRASH);
         return;
       }
 
@@ -598,46 +422,22 @@ export const Stage = ({
   };
 
   // Note: In this handler, the mouse cursor may be outside the stage
+  // CRITICAL: This ref is reassigned every render to capture latest state
   const onMouseUp = useRef<(event: MouseEvent) => void>();
   onMouseUp.current = (event: MouseEvent) => {
+    // Process final position as a drag event (click-as-drag behavior)
     onMouseMove.current?.(event);
 
     mouse.current = { isDown: false, visited: {} };
 
-    if (selectionRect) {
-      const selectedActors: Actor[] = [];
-      const [minLeft, maxLeft] = [selectionRect.start.left, selectionRect.end.left].sort(
-        (a, b) => a - b,
-      );
-      const [minTop, maxTop] = [selectionRect.start.top, selectionRect.end.top].sort(
-        (a, b) => a - b,
-      );
-      const min = {
-        x: Math.floor(minLeft / STAGE_CELL_SIZE / scale),
-        y: Math.floor(minTop / STAGE_CELL_SIZE / scale),
-      };
-      const max = {
-        x: Math.floor(maxLeft / STAGE_CELL_SIZE / scale),
-        y: Math.floor(maxTop / STAGE_CELL_SIZE / scale),
-      };
-      for (const actor of Object.values(stage.actors)) {
-        if (
-          actor.position.x >= min.x &&
-          actor.position.x <= max.x &&
-          actor.position.y >= min.y &&
-          actor.position.y <= max.y
-        ) {
-          selectedActors.push(actor);
-        }
-      }
-      const characterId =
-        selectedActors.length &&
-        selectedActors.every((a) => a.characterId === selectedActors[0].characterId)
-          ? selectedActors[0].characterId
-          : null;
-      dispatch(select(characterId, selFor(selectedActors.map((a) => a.id))));
-      setSelectionRect(null);
+    // Handle selection rectangle completion
+    if (selection.isSelecting) {
+      selection.finishSelection(scale, stage.actors, (characterId, actorIds) => {
+        dispatch(select(characterId, selFor(actorIds)));
+      });
     }
+
+    // Reset tool after use (unless shift held)
     if (!event.shiftKey && !event.defaultPrevented) {
       if (
         TOOLS.TRASH === selectedToolId ||
@@ -664,9 +464,9 @@ export const Stage = ({
   };
 
   const onPopoverSelectActor = (actor: Actor) => {
-    if (!actorSelectionPopover) return;
+    if (!popover.popover) return;
 
-    const { toolId } = actorSelectionPopover;
+    const { toolId } = popover.popover;
 
     switch (toolId) {
       case TOOLS.PAINT:
@@ -700,16 +500,16 @@ export const Stage = ({
         break;
     }
 
-    setActorSelectionPopover(null);
+    popover.closePopover();
   };
 
   const onPopoverDragStart = () => {
     // Close the popover when drag starts - the drag will continue to the stage
-    setActorSelectionPopover(null);
+    popover.closePopover();
   };
 
   const onPopoverClose = () => {
-    setActorSelectionPopover(null);
+    popover.closePopover();
   };
 
   const renderRecordingExtent = () => {
@@ -776,7 +576,7 @@ export const Stage = ({
 
   if (!stage) {
     return (
-      <div style={style} ref={(el) => (scrollEl.current = el)} className="stage-scroll-wrap" />
+      <div style={style} ref={scrollEl} className="stage-scroll-wrap" />
     );
   }
 
@@ -802,8 +602,8 @@ export const Stage = ({
       y: Number.NaN,
     };
     const didWrap =
-      Math.abs(lastPosition.x - actor.position.x) > 6 ||
-      Math.abs(lastPosition.y - actor.position.y) > 6;
+      Math.abs(lastPosition.x - actor.position.x) > WRAP_DETECTION_THRESHOLD ||
+      Math.abs(lastPosition.y - actor.position.y) > WRAP_DETECTION_THRESHOLD;
     lastActorPositions.current[actor.id] = Object.assign({}, actor.position);
 
     const draggable = !readonly && !DRAGGABLE_TOOLS.includes(selectedToolId);
@@ -833,13 +633,13 @@ export const Stage = ({
   return (
     <div
       style={style}
-      ref={(e) => (scrollEl.current = e)}
+      ref={scrollEl}
       data-stage-wrap-id={world.id}
       data-stage-zoom={scale}
       className={`stage-scroll-wrap tool-supported running-${playback.running}`}
     >
       <div
-        ref={(e) => (el.current = e)}
+        ref={stageEl}
         style={
           {
             top,
@@ -852,8 +652,8 @@ export const Stage = ({
           } as CSSProperties
         }
         className="stage"
-        onDragOver={onDragOver}
-        onDrop={onDrop}
+        onDragOver={dragDrop.onDragOver}
+        onDrop={dragDrop.onDrop}
         onKeyDown={onKeyDown}
         onBlur={onBlur}
         onContextMenu={onRightClickStage}
@@ -876,27 +676,27 @@ export const Stage = ({
 
         {recordingExtent ? renderRecordingExtent() : []}
       </div>
-      {selectionRect ? (
+      {selection.selectionRect ? (
         <div
           className="stage-selection-box"
           style={{
             position: "absolute",
-            left: Math.min(selectionRect.start.left, selectionRect.end.left),
-            top: Math.min(selectionRect.start.top, selectionRect.end.top),
+            left: Math.min(selection.selectionRect.start.left, selection.selectionRect.end.left),
+            top: Math.min(selection.selectionRect.start.top, selection.selectionRect.end.top),
             width:
-              Math.max(selectionRect.start.left, selectionRect.end.left) -
-              Math.min(selectionRect.start.left, selectionRect.end.left),
+              Math.max(selection.selectionRect.start.left, selection.selectionRect.end.left) -
+              Math.min(selection.selectionRect.start.left, selection.selectionRect.end.left),
             height:
-              Math.max(selectionRect.start.top, selectionRect.end.top) -
-              Math.min(selectionRect.start.top, selectionRect.end.top),
+              Math.max(selection.selectionRect.start.top, selection.selectionRect.end.top) -
+              Math.min(selection.selectionRect.start.top, selection.selectionRect.end.top),
           }}
         />
       ) : null}
-      {actorSelectionPopover && (
+      {popover.popover && (
         <ActorSelectionPopover
-          actors={actorSelectionPopover.actors}
+          actors={popover.popover.actors}
           characters={characters}
-          position={actorSelectionPopover.position}
+          position={popover.popover.position}
           onSelect={onPopoverSelectActor}
           onDragStart={onPopoverDragStart}
           onClose={onPopoverClose}

@@ -144,7 +144,9 @@ export function useStageCoordinates(
       const stageRect = stageElRef.current!.getBoundingClientRect();
       return calculatePxOffset(event.clientX, event.clientY, stageRect);
     },
-    [stageElRef]
+    // Note: stageElRef is intentionally excluded - refs are stable across renders
+    // and we read from .current at call time
+    []
   );
 
   /**

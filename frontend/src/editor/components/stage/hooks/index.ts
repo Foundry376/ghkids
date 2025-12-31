@@ -30,3 +30,18 @@ export {
 } from "./useStageSelection";
 
 export { useStagePopover, type PopoverState } from "./useStagePopover";
+
+export {
+  useStageDragDrop,
+  parseSpriteDropData,
+  parseAppearanceDropData,
+  parseHandleSide,
+  calculateNewExtent,
+  calculateDropOffset,
+  cloneExistsAtPosition,
+  type ActorDropData,
+  type CharacterDropData,
+  type AppearanceDropData,
+  type DropMode,
+  type StageDragDropConfig,
+} from "./useStageDragDrop";
