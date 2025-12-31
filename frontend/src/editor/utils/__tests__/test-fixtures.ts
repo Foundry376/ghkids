@@ -9,15 +9,14 @@ import {
   Actor,
   Character,
   Characters,
+  FrameInput,
   Globals,
   Rule,
+  RuleAction,
+  RuleExtent,
   RuleTreeEventItem,
   Stage,
   World,
-  FrameInput,
-  RuleCondition,
-  RuleAction,
-  RuleExtent,
 } from "../../../types";
 import { WORLDS } from "../../constants/constants";
 import WorldOperator from "../world-operator";
@@ -30,7 +29,12 @@ export function makeGlobals(overrides: Partial<Globals> = {}): Globals {
   return {
     click: { id: "click", name: "Clicked Actor", value: "", type: "actor" },
     keypress: { id: "keypress", name: "Key Pressed", value: "", type: "key" },
-    selectedStageId: { id: "selectedStageId", name: "Current Stage", value: "stage-1", type: "stage" },
+    selectedStageId: {
+      id: "selectedStageId",
+      name: "Current Stage",
+      value: "stage-1",
+      type: "stage",
+    },
     ...overrides,
   };
 }
@@ -64,7 +68,12 @@ export function makeExtent(overrides: Partial<RuleExtent> = {}): RuleExtent {
 }
 
 export function makeRule(
-  overrides: Partial<Rule> & { id: string; mainActorId: string; actors: Record<string, Actor>; actions: RuleAction[] },
+  overrides: Partial<Rule> & {
+    id: string;
+    mainActorId: string;
+    actors: Record<string, Actor>;
+    actions: RuleAction[];
+  },
 ): Rule {
   return {
     type: "rule",
@@ -76,7 +85,11 @@ export function makeRule(
 }
 
 export function makeEventGroup(
-  overrides: Partial<RuleTreeEventItem> & { id: string; event: "idle" | "key" | "click"; rules: Rule[] },
+  overrides: Partial<RuleTreeEventItem> & {
+    id: string;
+    event: "idle" | "key" | "click";
+    rules: Rule[];
+  },
 ): RuleTreeEventItem {
   return {
     type: "group-event",
@@ -97,7 +110,9 @@ export function makeCharacter(overrides: Partial<Character> & { id: string }): C
   };
 }
 
-export function makeStage(overrides: Partial<Stage> & { id: string; actors: Record<string, Actor> }): Stage {
+export function makeStage(
+  overrides: Partial<Stage> & { id: string; actors: Record<string, Actor> },
+): Stage {
   return {
     order: 0,
     name: "Test Stage",
@@ -119,9 +134,14 @@ export function makeWorld(overrides: Partial<World> & { stage: Stage }): World {
     stages: { [stage.id]: stage },
     globals: { ...globals, selectedStageId: { ...globals.selectedStageId, value: stage.id } },
     input,
-    evaluatedRuleIds: {},
+    evaluatedRuleDetails: {},
     history: [],
-    metadata: { name: "Test World", id: 0 },
+    metadata: {
+      name: "Test World",
+      id: 0,
+      published: false,
+      description: null,
+    },
     ...rest,
   };
 }
@@ -254,12 +274,14 @@ export function expectActorAppearance(world: World, actorId: string, expected: s
   const actor = getActor(world, actorId);
   if (!actor) {
     throw new WorldAssertionError(
-      `Expected actor "${actorId}" with appearance "${expected}", ` + `but the actor does not exist.`,
+      `Expected actor "${actorId}" with appearance "${expected}", ` +
+        `but the actor does not exist.`,
     );
   }
   if (actor.appearance !== expected) {
     throw new WorldAssertionError(
-      `Expected actor "${actorId}" appearance to be "${expected}", ` + `but it was "${actor.appearance}".`,
+      `Expected actor "${actorId}" appearance to be "${expected}", ` +
+        `but it was "${actor.appearance}".`,
     );
   }
 }
@@ -271,7 +293,8 @@ export function expectActorTransform(world: World, actorId: string, expected: st
   const actor = getActor(world, actorId);
   if (!actor) {
     throw new WorldAssertionError(
-      `Expected actor "${actorId}" with transform "${expected}", ` + `but the actor does not exist.`,
+      `Expected actor "${actorId}" with transform "${expected}", ` +
+        `but the actor does not exist.`,
     );
   }
   const actual = actor.transform ?? "0";
@@ -350,7 +373,9 @@ export function expectNewActorAtPosition(
   position: { x: number; y: number },
   excludeActorIds: string[] = [],
 ): Actor {
-  const actors = getActorsByCharacter(world, characterId).filter((a) => !excludeActorIds.includes(a.id));
+  const actors = getActorsByCharacter(world, characterId).filter(
+    (a) => !excludeActorIds.includes(a.id),
+  );
 
   const actorAtPos = actors.find((a) => a.position.x === position.x && a.position.y === position.y);
 
@@ -392,6 +417,11 @@ export interface TestScenario {
  * Run a test scenario
  */
 export function runScenario(scenario: TestScenario): void {
-  const result = runSimulation(scenario.world, scenario.characters, scenario.frames, scenario.inputPerFrame);
+  const result = runSimulation(
+    scenario.world,
+    scenario.characters,
+    scenario.frames,
+    scenario.inputPerFrame,
+  );
   scenario.assertions(result);
 }

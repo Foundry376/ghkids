@@ -1,7 +1,8 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { expect } from "chai";
-import { applyValueChanges, applyDataMigrations } from "./data-migrations";
 import { Game } from "../types";
 import { WORLDS } from "./constants/constants";
+import { applyDataMigrations, applyValueChanges } from "./data-migrations";
 
 describe("data-migrations", () => {
   describe("applyValueChanges", () => {
@@ -58,7 +59,12 @@ describe("data-migrations", () => {
           globals: {
             click: { id: "click", name: "Clicked Actor", value: "", type: "actor" },
             keypress: { id: "keypress", name: "Key Pressed", value: "", type: "key" },
-            selectedStageId: { id: "selectedStageId", name: "Current Stage", value: "", type: "stage" },
+            selectedStageId: {
+              id: "selectedStageId",
+              name: "Current Stage",
+              value: "",
+              type: "stage",
+            },
           },
           input: { keys: {}, clicks: {} },
           evaluatedRuleDetails: {},
@@ -69,6 +75,8 @@ describe("data-migrations", () => {
         redoStack: [],
         ...data,
       } as Game["data"],
+      published: false,
+      description: null,
     });
 
     describe("transform migrations", () => {
@@ -103,12 +111,22 @@ describe("data-migrations", () => {
             globals: {
               click: { id: "click", name: "Clicked Actor", value: "", type: "actor" },
               keypress: { id: "keypress", name: "Key Pressed", value: "", type: "key" },
-              selectedStageId: { id: "selectedStageId", name: "Current Stage", value: "", type: "stage" },
+              selectedStageId: {
+                id: "selectedStageId",
+                name: "Current Stage",
+                value: "",
+                type: "stage",
+              },
             },
             input: { keys: {}, clicks: {} },
             evaluatedRuleDetails: {},
             history: [],
-            metadata: { name: "Test", id: 1 },
+            metadata: {
+              name: "Test",
+              id: 1,
+              published: false,
+              description: null,
+            },
           },
         });
 
@@ -147,12 +165,22 @@ describe("data-migrations", () => {
             globals: {
               click: { id: "click", name: "Clicked Actor", value: "", type: "actor" },
               keypress: { id: "keypress", name: "Key Pressed", value: "", type: "key" },
-              selectedStageId: { id: "selectedStageId", name: "Current Stage", value: "", type: "stage" },
+              selectedStageId: {
+                id: "selectedStageId",
+                name: "Current Stage",
+                value: "",
+                type: "stage",
+              },
             },
             input: { keys: {}, clicks: {} },
             evaluatedRuleDetails: {},
             history: [],
-            metadata: { name: "Test", id: 1 },
+            metadata: {
+              name: "Test",
+              id: 1,
+              published: false,
+              description: null,
+            },
           },
         });
 
@@ -495,12 +523,22 @@ describe("data-migrations", () => {
             globals: {
               click: { id: "click", name: "Clicked Actor", value: "", type: "actor" },
               keypress: { id: "keypress", name: "Key Pressed", value: "", type: "key" },
-              selectedStageId: { id: "selectedStageId", name: "Current Stage", value: "", type: "stage" },
+              selectedStageId: {
+                id: "selectedStageId",
+                name: "Current Stage",
+                value: "",
+                type: "stage",
+              },
             },
             input: { keys: {}, clicks: {} },
             evaluatedRuleDetails: {},
             history: [],
-            metadata: { name: "Test", id: 1 },
+            metadata: {
+              name: "Test",
+              id: 1,
+              published: false,
+              description: null,
+            },
           },
         });
 
@@ -508,7 +546,9 @@ describe("data-migrations", () => {
         applyDataMigrations(game);
 
         // Original should be unchanged
-        expect(game.data.world.stages["stage1"].actors["actor1"].transform).to.equal(originalTransform);
+        expect(game.data.world.stages["stage1"].actors["actor1"].transform).to.equal(
+          originalTransform,
+        );
       });
     });
   });
