@@ -32,6 +32,7 @@ interface FreeformConditionRowProps {
 type ImpliedDatatype =
   | { type: "transform"; characterId?: string; appearance?: string }
   | { type: "appearance"; character: Character }
+  | { type: "position" }
   | { type: "key" }
   | { type: "actor" }
   | null;
@@ -84,6 +85,9 @@ export const FreeformConditionRow = ({
       if (character) {
         return { type: "appearance", character };
       }
+    }
+    if (variableIds.includes("x") || variableIds.includes("y")) {
+      return { type: "position" };
     }
     return null;
   })();
@@ -307,7 +311,7 @@ export const FreeformConditionValue = ({
     if (impliedDatatype?.type === "appearance") {
       const appearanceIds = Object.keys(impliedDatatype.character.spritesheet.appearances);
       onChange?.({ constant: appearanceIds[0] });
-    } else if (impliedDatatype?.type === "transform") {
+    } else if (impliedDatatype?.type === "transform" || impliedDatatype?.type === "position") {
       onChange?.({ constant: "0" });
     } else {
       onChange?.({ constant: "" });
@@ -376,6 +380,9 @@ function comparatorsForImpliedDatatype(inferred: ImpliedDatatype) {
   }
   if (inferred?.type === "appearance") {
     return ["=", "!=", "contains", "starts-with", "ends-with"];
+  }
+  if (inferred?.type === "position") {
+    return ["=", "!=", "<", ">", "<=", ">="];
   }
   return ["=", "!="];
 }

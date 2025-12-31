@@ -166,7 +166,10 @@ const PositionGridItem = ({ actor, coordinate, onChange }: PositionGridItemProps
       <input
         type="number"
         value={actor.position[coordinate]}
-        onChange={(e) => onChange(Number(e.target.value))}
+        onChange={(e) => {
+          const num = Number(e.target.value);
+          if (!isNaN(num)) onChange(num);
+        }}
         style={{ width: "100%" }}
       />
     </div>
