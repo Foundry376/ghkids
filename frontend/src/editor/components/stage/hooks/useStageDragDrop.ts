@@ -29,10 +29,11 @@ export interface ActorDropData {
 
 /**
  * Data for dropping a new character instance.
+ * Note: Uses `appearance` (not `appearanceId`) to match the format used by library.tsx
  */
 export interface CharacterDropData {
   characterId: string;
-  appearanceId?: string;
+  appearance?: string;
 }
 
 /**
@@ -49,6 +50,92 @@ export interface AppearanceDropData {
  * - "stamp-copy": Create copies of actors at new positions
  */
 export type DropMode = "stamp-copy" | "move";
+
+/**
+ * Handle sides for recording extent handles.
+ */
+export type HandleSide = "left" | "right" | "top" | "bottom";
+
+// =============================================================================
+// Drag Data Creation Utilities
+// =============================================================================
+// These functions create drag data in the format expected by the parsing functions.
+// Use these when setting dataTransfer data to ensure consistency.
+
+/**
+ * Creates sprite drop data for existing actors being dragged.
+ *
+ * @param actorIds - IDs of actors being dragged
+ * @param dragAnchorActorId - ID of the actor used as the drag anchor point
+ * @returns JSON string to set as "sprite" dataTransfer data
+ *
+ * @example
+ * event.dataTransfer.setData("sprite", createActorSpriteData(["actor1", "actor2"], "actor1"));
+ */
+export function createActorSpriteData(
+  actorIds: string[],
+  dragAnchorActorId: string
+): string {
+  const data: ActorDropData = { actorIds, dragAnchorActorId };
+  return JSON.stringify(data);
+}
+
+/**
+ * Creates sprite drop data for a new character being dragged from the library.
+ *
+ * @param characterId - ID of the character to create
+ * @param appearance - Optional appearance ID (defaults to character's default appearance)
+ * @returns JSON string to set as "sprite" dataTransfer data
+ *
+ * @example
+ * event.dataTransfer.setData("sprite", createCharacterSpriteData("char1", "happy"));
+ */
+export function createCharacterSpriteData(
+  characterId: string,
+  appearance?: string
+): string {
+  const data: CharacterDropData = { characterId, appearance };
+  return JSON.stringify(data);
+}
+
+/**
+ * Creates appearance drop data for changing an actor's appearance.
+ *
+ * @param characterId - ID of the character whose appearance is being applied
+ * @param appearance - The appearance ID to apply
+ * @returns JSON string to set as "appearance" dataTransfer data
+ *
+ * @example
+ * event.dataTransfer.setData("appearance", createAppearanceData("char1", "happy"));
+ */
+export function createAppearanceData(
+  characterId: string,
+  appearance: string
+): string {
+  const data: AppearanceDropData = { characterId, appearance };
+  return JSON.stringify(data);
+}
+
+/**
+ * Sets handle drag data on a dataTransfer object.
+ *
+ * @param dataTransfer - The dataTransfer object to set data on
+ * @param side - Which handle is being dragged
+ *
+ * @example
+ * setHandleDragData(event.dataTransfer, "left");
+ */
+export function setHandleDragData(
+  dataTransfer: DataTransfer,
+  side: HandleSide
+): void {
+  dataTransfer.setData("handle", "true");
+  dataTransfer.setData(`handle:${side}`, "true");
+}
+
+// =============================================================================
+// Drag Data Parsing Utilities
+// =============================================================================
 
 /**
  * Parses sprite drop data from a drag event.
@@ -436,7 +523,7 @@ export function useStageDragDrop(config: StageDragDropConfig) {
       if (!character) return;
 
       const appearance =
-        data.appearanceId ?? defaultAppearanceId(character.spritesheet);
+        data.appearance ?? defaultAppearanceId(character.spritesheet);
       const newActor = { position, appearance } as Actor;
       applyAnchorAdjustment(position, character, newActor);
 

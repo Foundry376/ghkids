@@ -7,6 +7,10 @@ import {
   calculateNewExtent,
   calculateDropOffset,
   cloneExistsAtPosition,
+  createActorSpriteData,
+  createCharacterSpriteData,
+  createAppearanceData,
+  setHandleDragData,
   ActorDropData,
   CharacterDropData,
 } from "./useStageDragDrop";
@@ -15,13 +19,16 @@ import { Actor, Characters, RuleExtent } from "../../../../types";
 // Mock DataTransfer for testing
 function createMockDataTransfer(data: Record<string, string>): DataTransfer {
   const storage: Record<string, string> = { ...data };
-  return {
+  const mock = {
     getData: (key: string) => storage[key] || "",
     setData: (key: string, value: string) => {
       storage[key] = value;
+      // Update types array when data is set
+      mock.types = Object.keys(storage);
     },
     types: Object.keys(storage),
-  } as unknown as DataTransfer;
+  };
+  return mock as unknown as DataTransfer;
 }
 
 describe("useStageDragDrop", () => {
@@ -502,6 +509,121 @@ describe("useStageDragDrop", () => {
       );
 
       expect(result).to.be.false;
+    });
+  });
+
+  // ==========================================================================
+  // Creation Utilities Tests
+  // ==========================================================================
+
+  describe("createActorSpriteData", () => {
+    it("creates valid JSON with actorIds and dragAnchorActorId", () => {
+      const result = createActorSpriteData(["actor-1", "actor-2"], "actor-1");
+      const parsed = JSON.parse(result);
+
+      expect(parsed.actorIds).to.deep.equal(["actor-1", "actor-2"]);
+      expect(parsed.dragAnchorActorId).to.equal("actor-1");
+    });
+
+    it("round-trips through parseSpriteDropData", () => {
+      const actorIds = ["a1", "a2", "a3"];
+      const anchorId = "a1";
+
+      const jsonData = createActorSpriteData(actorIds, anchorId);
+      const dataTransfer = createMockDataTransfer({ sprite: jsonData });
+      const parsed = parseSpriteDropData(dataTransfer);
+
+      expect(parsed).to.not.be.undefined;
+      expect("actorIds" in parsed!).to.be.true;
+      const actorData = parsed as ActorDropData;
+      expect(actorData.actorIds).to.deep.equal(actorIds);
+      expect(actorData.dragAnchorActorId).to.equal(anchorId);
+    });
+  });
+
+  describe("createCharacterSpriteData", () => {
+    it("creates valid JSON with characterId", () => {
+      const result = createCharacterSpriteData("char-1");
+      const parsed = JSON.parse(result);
+
+      expect(parsed.characterId).to.equal("char-1");
+      expect(parsed.appearance).to.be.undefined;
+    });
+
+    it("creates valid JSON with characterId and appearance", () => {
+      const result = createCharacterSpriteData("char-1", "happy");
+      const parsed = JSON.parse(result);
+
+      expect(parsed.characterId).to.equal("char-1");
+      expect(parsed.appearance).to.equal("happy");
+    });
+
+    it("round-trips through parseSpriteDropData", () => {
+      const jsonData = createCharacterSpriteData("char-1", "angry");
+      const dataTransfer = createMockDataTransfer({ sprite: jsonData });
+      const parsed = parseSpriteDropData(dataTransfer);
+
+      expect(parsed).to.not.be.undefined;
+      expect("characterId" in parsed!).to.be.true;
+      const charData = parsed as CharacterDropData;
+      expect(charData.characterId).to.equal("char-1");
+      expect(charData.appearance).to.equal("angry");
+    });
+  });
+
+  describe("createAppearanceData", () => {
+    it("creates valid JSON with characterId and appearance", () => {
+      const result = createAppearanceData("char-1", "happy");
+      const parsed = JSON.parse(result);
+
+      expect(parsed.characterId).to.equal("char-1");
+      expect(parsed.appearance).to.equal("happy");
+    });
+
+    it("round-trips through parseAppearanceDropData", () => {
+      const jsonData = createAppearanceData("char-1", "sad");
+      const dataTransfer = createMockDataTransfer({ appearance: jsonData });
+      const parsed = parseAppearanceDropData(dataTransfer);
+
+      expect(parsed).to.not.be.undefined;
+      expect(parsed!.characterId).to.equal("char-1");
+      expect(parsed!.appearance).to.equal("sad");
+    });
+  });
+
+  describe("setHandleDragData", () => {
+    it("sets handle and handle:side data", () => {
+      const dataTransfer = createMockDataTransfer({});
+
+      setHandleDragData(dataTransfer, "left");
+
+      expect(dataTransfer.getData("handle")).to.equal("true");
+      expect(dataTransfer.getData("handle:left")).to.equal("true");
+    });
+
+    it("round-trips through parseHandleSide", () => {
+      const dataTransfer = createMockDataTransfer({});
+
+      setHandleDragData(dataTransfer, "bottom");
+      const side = parseHandleSide(dataTransfer.types);
+
+      expect(side).to.equal("bottom");
+    });
+
+    it("works for all handle sides", () => {
+      const sides: Array<"left" | "right" | "top" | "bottom"> = [
+        "left",
+        "right",
+        "top",
+        "bottom",
+      ];
+
+      for (const side of sides) {
+        const dataTransfer = createMockDataTransfer({});
+        setHandleDragData(dataTransfer, side);
+        const parsedSide = parseHandleSide(dataTransfer.types);
+        expect(parsedSide).to.equal(side);
+      }
     });
   });
 });

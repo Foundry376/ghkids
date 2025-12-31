@@ -34,6 +34,7 @@ import { defaultAppearanceId } from "../utils/character-helpers";
 import { makeId } from "../utils/utils";
 import Sprite from "./sprites/sprite";
 import { TapToEditLabel } from "./tap-to-edit-label";
+import { createCharacterSpriteData, createAppearanceData } from "./stage/hooks";
 
 interface LibraryItemProps {
   character: Character;
@@ -78,13 +79,15 @@ const LibraryItem: React.FC<LibraryItemProps> = ({
       event.dataTransfer.setDragImage(img, offset.dragLeft, offset.dragTop);
 
       event.dataTransfer.setData("drag-offset", JSON.stringify(offset));
-      if (dragType) {
+      if (dragType === "sprite") {
         event.dataTransfer.setData(
-          dragType,
-          JSON.stringify({
-            characterId: character.id,
-            appearance: appearance,
-          }),
+          "sprite",
+          createCharacterSpriteData(character.id, appearance),
+        );
+      } else if (dragType === "appearance" && appearance) {
+        event.dataTransfer.setData(
+          "appearance",
+          createAppearanceData(character.id, appearance),
         );
       }
     },

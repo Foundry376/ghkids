@@ -1,16 +1,16 @@
 import React from "react";
 import { Position } from "../../../types";
 import { STAGE_CELL_SIZE } from "../../constants/constants";
+import { setHandleDragData, HandleSide } from "../stage/hooks";
 
-const RecordingHandle = ({ side, position }: { side: string; position: Position }) => {
+const RecordingHandle = ({ side, position }: { side: HandleSide; position: Position }) => {
   const onDragStart = (event: React.DragEvent) => {
     const img = new Image();
     img.src =
       "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=";
     event.dataTransfer.setDragImage(img, 0, 0);
     event.dataTransfer.effectAllowed = "move";
-    event.dataTransfer.setData(`handle`, "true");
-    event.dataTransfer.setData(`handle:${side}`, "true");
+    setHandleDragData(event.dataTransfer, side);
   };
 
   return (

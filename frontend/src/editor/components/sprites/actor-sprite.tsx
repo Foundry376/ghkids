@@ -5,6 +5,7 @@ import {
   renderTransformedImage,
   transformSwapsDimensions,
 } from "../../utils/stage-helpers";
+import { createActorSpriteData } from "../stage/hooks";
 import VariableOverlay from "../modal-paint/variable-overlay";
 import { DEFAULT_APPEARANCE_INFO, SPRITE_TRANSFORM_CSS } from "./sprite";
 
@@ -99,10 +100,7 @@ const ActorSprite = (props: {
     );
     event.dataTransfer.setData(
       "sprite",
-      JSON.stringify({
-        dragAnchorActorId: actor.id,
-        actorIds: dragActorIds,
-      }),
+      createActorSpriteData(dragActorIds, actor.id),
     );
 
     // Create a properly transformed drag image using canvas
