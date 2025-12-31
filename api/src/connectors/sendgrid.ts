@@ -2,9 +2,8 @@ import sgMail, { MailDataRequired } from "@sendgrid/mail";
 
 export interface EmailOptions {
   to: string | string[];
-  subject: string;
-  text?: string;
-  html?: string;
+  templateId: string;
+  dynamicTemplateData?: Record<string, unknown>;
 }
 
 const FROM_EMAIL = process.env.SENDGRID_FROM_EMAIL || "noreply@codako.org";
@@ -39,9 +38,8 @@ export async function sendEmail(options: EmailOptions): Promise<boolean> {
       email: FROM_EMAIL,
       name: FROM_NAME,
     },
-    subject: options.subject,
-    text: options.text,
-    html: options.html,
+    templateId: options.templateId,
+    dynamicTemplateData: options.dynamicTemplateData,
   };
 
   try {
