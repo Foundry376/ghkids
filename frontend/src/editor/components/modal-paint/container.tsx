@@ -194,10 +194,12 @@ const PaintContainer: React.FC = () => {
   const [state, dispatch] = useReducer(paintReducer, INITIAL_STATE);
 
   // Use ref to access current state in callbacks without recreating them
+  // IMPORTANT: Update ref synchronously during render, not in useEffect,
+  // to ensure mouse event handlers always see the latest state.
+  // useEffect runs after paint, which can cause stale closures when
+  // multiple mouse events fire in quick succession.
   const stateRef = useRef<PaintState>(state);
-  useEffect(() => {
-    stateRef.current = state;
-  }, [state]);
+  stateRef.current = state;
 
   // Load image data when character/appearance changes
   useEffect(() => {
