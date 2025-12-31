@@ -188,6 +188,12 @@ export function getVariableValue(
   if (id === "transform") {
     return actor.transform ?? null;
   }
+  if (id === "x") {
+    return String(actor.position.x);
+  }
+  if (id === "y") {
+    return String(actor.position.y);
+  }
   if (actor.variableValues[id] !== undefined) {
     return actor.variableValues[id] ?? null;
   }

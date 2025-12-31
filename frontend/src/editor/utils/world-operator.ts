@@ -635,7 +635,22 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
             const value =
               resolveRuleValue(action.value, globals, characters, stageActorForId, "=") ?? "";
             const next = applyVariableOperation(current, action.operation, value);
-            stageActor.variableValues[action.variable] = next;
+
+            // Handle position magic variables
+            if (action.variable === "x" || action.variable === "y") {
+              const coord = action.variable as "x" | "y";
+              const newPosition = {
+                ...stageActor.position,
+                [coord]: Number(next),
+              };
+              const wrappedPos = wrappedPosition(newPosition);
+              if (wrappedPos) {
+                stageActor.position = wrappedPos;
+              }
+              // If wrappedPosition returns null (out of bounds), position unchanged
+            } else {
+              stageActor.variableValues[action.variable] = next;
+            }
           } else {
             throw new Error(`Not sure how to apply action: ${action}`);
           }
