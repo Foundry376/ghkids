@@ -361,6 +361,7 @@ export type UIState = {
     | { ruleId: string }
     | null;
   tutorial: {
+    stepSet?: keyof typeof import("./editor/constants/tutorial").tutorialSteps;
     stepIndex: number;
   };
   playback: {

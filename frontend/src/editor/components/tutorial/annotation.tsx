@@ -1,68 +1,100 @@
 import React from "react";
-import PropTypes from "prop-types";
 
 const MARGIN_X = 55;
 const MARGIN_Y = 40;
 
-export default class TutorialAnnotation extends React.Component {
-  static propTypes = {
-    style: PropTypes.string,
-    selectors: PropTypes.arrayOf(PropTypes.string),
-    options: PropTypes.object,
-  };
+interface AnnotationOptions {
+  offsetTop?: number;
+  offsetLeft?: number;
+  width?: number;
+  height?: number;
+}
 
-  constructor(props, context) {
-    super(props, context);
+interface TutorialAnnotationProps {
+  style?: "arrow" | "outline";
+  selectors?: string[];
+  options?: AnnotationOptions;
+}
 
-    this.targetEls = [];
-    this.targetObservers = [];
+interface TutorialAnnotationState {
+  seed: number;
+  fraction: number;
+}
+
+interface RelativeBounds {
+  top: number;
+  left: number;
+  width: number;
+  height: number;
+  right: number;
+  bottom: number;
+}
+
+interface DrawEnv {
+  width: number;
+  height: number;
+}
+
+export default class TutorialAnnotation extends React.Component<
+  TutorialAnnotationProps,
+  TutorialAnnotationState
+> {
+  private _el: HTMLCanvasElement | null = null;
+  private _timer: ReturnType<typeof setInterval> | undefined;
+  private targetEls: (Element | null)[] = [];
+  private targetObservers: MutationObserver[] = [];
+  private targetRelativeBounds: RelativeBounds[] = [];
+
+  constructor(props: TutorialAnnotationProps) {
+    super(props);
+
     this.state = {
       seed: Math.random(),
       fraction: 0,
     };
   }
 
-  componentDidMount() {
+  componentDidMount(): void {
     window.addEventListener("resize", this.reposition);
     document.addEventListener("scroll", this.onSomeElementScrolled, true);
 
     this.animateForSelectors(this.props.selectors);
-    this.reposition(null, this.props);
+    this.reposition(undefined, this.props);
     this.draw();
   }
 
-  componentWillReceiveProps(nextProps) {
+  UNSAFE_componentWillReceiveProps(nextProps: TutorialAnnotationProps): void {
     if (this.props.selectors !== nextProps.selectors) {
       this.animateForSelectors(nextProps.selectors);
-      this.reposition(null, nextProps);
+      this.reposition(undefined, nextProps);
     }
   }
 
-  componentDidUpdate() {
+  componentDidUpdate(): void {
     this.draw();
     if (this.state.fraction >= 1) {
       clearTimeout(this._timer);
     }
   }
 
-  componentWillUnmount() {
+  componentWillUnmount(): void {
     window.removeEventListener("resize", this.reposition);
     document.removeEventListener("scroll", this.onSomeElementScrolled, true);
     this.disconnectFromSelectors();
   }
 
-  onSomeElementScrolled = (event) => {
+  private onSomeElementScrolled = (event: Event): void => {
     if (event.target !== document) {
       window.requestAnimationFrame(this.reposition);
     }
   };
 
-  animateForSelectors(selectors) {
+  private animateForSelectors(selectors: string[] | undefined): void {
     this.disconnectFromSelectors();
 
     this.targetEls = (selectors || []).map((sel) => document.querySelector(sel));
     this.targetObservers = this.targetEls
-      .filter((el) => !!el)
+      .filter((el): el is Element => !!el)
       .map((el) => {
         const o = new MutationObserver(this.reposition);
         o.observe(el, {
@@ -84,22 +116,30 @@ export default class TutorialAnnotation extends React.Component {
     }
   }
 
-  disconnectFromSelectors() {
-    this.targetObservers.map((o) => o.disconnect());
+  private disconnectFromSelectors(): void {
+    this.targetObservers.forEach((o) => o.disconnect());
     this.targetObservers = [];
     clearTimeout(this._timer);
   }
 
-  allTargetsPresent() {
-    return this.targetEls.length && this.targetEls.every((el) => !!el);
+  private allTargetsPresent(): boolean {
+    return this.targetEls.length > 0 && this.targetEls.every((el) => !!el);
   }
 
-  reposition = (e, props = this.props) => {
-    if (!this.allTargetsPresent()) {
-      this._el.style.opacity = 0;
+  private reposition = (
+    _e?: Event | MutationRecord[],
+    props: TutorialAnnotationProps = this.props,
+  ): void => {
+    if (!this._el) {
       return;
     }
-    const targetRects = this.targetEls.map((el) => el.getBoundingClientRect());
+    if (!this.allTargetsPresent()) {
+      this._el.style.opacity = "0";
+      return;
+    }
+    const targetRects = this.targetEls
+      .filter((el): el is Element => !!el)
+      .map((el) => el.getBoundingClientRect());
     const res = window.devicePixelRatio || 1;
     const options = props.options || {};
 
@@ -114,7 +154,7 @@ export default class TutorialAnnotation extends React.Component {
       ? options.height + MARGIN_Y * 2
       : Math.max(...targetRects.map((rect) => rect.bottom)) - top + MARGIN_Y;
 
-    this._el.style.opacity = 1;
+    this._el.style.opacity = "1";
     this._el.style.top = `${top}px`;
     this._el.style.left = `${left}px`;
     this._el.style.width = `${width}px`;
@@ -135,8 +175,14 @@ export default class TutorialAnnotation extends React.Component {
     this.draw();
   };
 
-  draw = () => {
+  private draw = (): void => {
+    if (!this._el) {
+      return;
+    }
     const ctx = this._el.getContext("2d");
+    if (!ctx) {
+      return;
+    }
     const scale = window.devicePixelRatio || 1;
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.scale(scale, scale);
@@ -146,7 +192,7 @@ export default class TutorialAnnotation extends React.Component {
       return;
     }
 
-    const env = {
+    const env: DrawEnv = {
       width: this._el.width / scale,
       height: this._el.height / scale,
     };
@@ -154,7 +200,7 @@ export default class TutorialAnnotation extends React.Component {
       if (this.targetEls.length !== 2) {
         return;
       }
-      this.drawArrow(ctx, env);
+      this.drawArrow(ctx);
     } else if (this.props.style === "outline") {
       if (this.targetEls.length !== 1) {
         return;
@@ -163,7 +209,7 @@ export default class TutorialAnnotation extends React.Component {
     }
   };
 
-  drawArrow = (ctx) => {
+  private drawArrow = (ctx: CanvasRenderingContext2D): void => {
     const start = {
       x: this.targetRelativeBounds[0].left + this.targetRelativeBounds[0].width / 2,
       y: this.targetRelativeBounds[0].top + this.targetRelativeBounds[0].height / 2,
@@ -205,13 +251,12 @@ export default class TutorialAnnotation extends React.Component {
     ctx.stroke();
   };
 
-  drawOutline = (ctx, { width, height }) => {
+  private drawOutline = (ctx: CanvasRenderingContext2D, { width, height }: DrawEnv): void => {
     const cx = width / 2 - 5;
     const cy = height / 2;
     const lineWidth = 8;
     let rx = cx - 25;
     let ry = cy - 25;
-    let deg = 0;
 
     ctx.strokeStyle = "red";
     ctx.beginPath();
@@ -221,7 +266,7 @@ export default class TutorialAnnotation extends React.Component {
     const degStep = 1 / (Math.max(rx, ry) / 50);
     let taper = 0;
 
-    for (deg = degStart; deg < degEnd; deg += degStep) {
+    for (let deg = degStart; deg < degEnd; deg += degStep) {
       if (deg > degEnd - 15) taper += 0.05;
 
       ctx.moveTo(
@@ -244,7 +289,7 @@ export default class TutorialAnnotation extends React.Component {
     ctx.stroke();
   };
 
-  render() {
+  render(): React.ReactNode {
     return (
       <div
         style={{
