@@ -4,6 +4,8 @@ import { InspectorContext } from "./inspector-context";
 export const RuleStateCircle = ({ rule }: { rule: { id: string } }) => {
   const { evaluatedRuleDetailsForActor } = useContext(InspectorContext);
   const details = evaluatedRuleDetailsForActor?.[rule.id];
-  const applied = details?.passed;
-  return <div className={`circle ${applied}`} />;
+  if (details === undefined) {
+    return null;
+  }
+  return <div className={`circle ${details.passed}`} />;
 };
