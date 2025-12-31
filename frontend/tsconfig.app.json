@@ -21,7 +21,11 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
-    "noUncheckedSideEffectImports": true
+    "noUncheckedSideEffectImports": true,
+
+    /* Explicitly include only needed types (prevents @types/node from conflicting with browser types) */
+    "types": ["mocha"]
   },
-  "include": ["src"]
+  "include": ["src"],
+  "exclude": ["src/scripts"]
 }
