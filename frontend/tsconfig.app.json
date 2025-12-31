@@ -26,6 +26,5 @@
     /* Explicitly include only needed types (prevents @types/node from conflicting with browser types) */
     "types": ["mocha"]
   },
-  "include": ["src"],
-  "exclude": ["src/scripts"]
+  "include": ["src"]
 }

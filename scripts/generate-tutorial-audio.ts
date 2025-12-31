@@ -1,17 +1,18 @@
 /**
  * Generate tutorial audio files using ElevenLabs TTS API.
  *
- * This script parses tutorial-content.ts directly to extract text and audio
- * file mappings, so there's no need for a separate data file.
+ * This script parses tutorial-content.ts to extract text and generates audio
+ * filenames using the same hash function as the frontend. This ensures the
+ * generated files match what the app expects.
  *
  * Usage:
- *   ELEVENLABS_API_KEY=your_key yarn generate-tutorial-audio
+ *   cd scripts && yarn install && ELEVENLABS_API_KEY=your_key yarn generate-tutorial-audio
  *
  * Options:
  *   --dry-run     Show what would be generated without making API calls
  *   --voice ID    Use a specific ElevenLabs voice ID
  *   --force       Regenerate all files even if they exist
- *   --only FILE   Only generate a specific file (e.g. "base_01.mp3")
+ *   --only FILE   Only generate a specific file (e.g. "audio_abc123.mp3")
  *
  * Environment:
  *   ELEVENLABS_API_KEY  Your ElevenLabs API key (required)
@@ -25,8 +26,8 @@ import { fileURLToPath } from "url";
 // Get directory paths
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const SOUNDS_DIR = path.resolve(__dirname, "../editor/sounds/tutorial");
-const CONTENT_FILE = path.resolve(__dirname, "../editor/constants/tutorial-content.ts");
+const SOUNDS_DIR = path.resolve(__dirname, "../frontend/src/editor/sounds/tutorial");
+const CONTENT_FILE = path.resolve(__dirname, "../frontend/src/editor/constants/tutorial-content.ts");
 
 // ElevenLabs configuration
 const ELEVENLABS_API_URL = "https://api.elevenlabs.io/v1/text-to-speech";
@@ -56,6 +57,34 @@ const VOICE_SETTINGS = {
   style: 0.0,
   use_speaker_boost: true,
 };
+
+/**
+ * Hash function matching frontend/src/editor/utils/text-hash.ts
+ * Uses djb2 algorithm - must stay in sync with the frontend version.
+ */
+function hashText(text: string): string {
+  // Normalize the text: collapse whitespace, trim, lowercase
+  const normalized = text.replace(/\s+/g, " ").trim().toLowerCase();
+
+  // djb2 hash algorithm
+  let hash = 5381;
+  for (let i = 0; i < normalized.length; i++) {
+    hash = (hash * 33) ^ normalized.charCodeAt(i);
+  }
+
+  // Convert to base36 and pad for consistent length
+  // Use unsigned 32-bit to ensure positive number
+  const unsignedHash = hash >>> 0;
+  return unsignedHash.toString(36).padStart(7, "0");
+}
+
+/**
+ * Generate an audio filename from tutorial text.
+ * Must match frontend/src/editor/utils/text-hash.ts
+ */
+function getAudioFilename(text: string): string {
+  return `audio_${hashText(text)}.mp3`;
+}
 
 interface TutorialAudioStep {
   text: string;
@@ -92,6 +121,10 @@ function parseArgs(): GenerationOptions {
       console.log(`
 Generate tutorial audio files using ElevenLabs TTS API.
 
+Audio filenames are generated from a hash of the text content, matching
+the frontend's hash function. This ensures the generated files are found
+by the app automatically.
+
 Usage:
   ELEVENLABS_API_KEY=your_key yarn generate-tutorial-audio [options]
 
@@ -99,7 +132,7 @@ Options:
   --dry-run     Show what would be generated without making API calls
   --voice ID    Use a specific ElevenLabs voice ID (default: ${DEFAULT_VOICE_ID})
   --force       Regenerate all files even if they exist
-  --only FILE   Only generate a specific file (e.g. "base_01.mp3")
+  --only FILE   Only generate a specific file (e.g. "audio_abc123.mp3")
   --help, -h    Show this help message
 
 Environment:
@@ -116,7 +149,10 @@ Environment:
 /**
  * Extract the content of a template literal, handling escaped backticks.
  */
-function extractTemplateLiteral(content: string, startIndex: number): { text: string; endIndex: number } | null {
+function extractTemplateLiteral(
+  content: string,
+  startIndex: number
+): { text: string; endIndex: number } | null {
   if (content[startIndex] !== "`") {
     return null;
   }
@@ -144,8 +180,9 @@ function extractTemplateLiteral(content: string, startIndex: number): { text: st
 }
 
 /**
- * Parse tutorial-content.ts to extract text and audioFile mappings.
- * This avoids needing a separate data file - the content file is the source of truth.
+ * Parse tutorial-content.ts to extract text from all tutorial steps.
+ * Skips steps with skipAudio: true.
+ * Generates audio filenames using the hash function.
  */
 function parseTutorialContent(): TutorialAudioStep[] {
   const content = fs.readFileSync(CONTENT_FILE, "utf-8");
@@ -163,26 +200,27 @@ function parseTutorialContent(): TutorialAudioStep[] {
       continue;
     }
 
-    // Look for audioFile in the same object (within reasonable distance after the text)
-    // Search forward from the end of the text for audioFile
-    const searchRegion = content.slice(extracted.endIndex, extracted.endIndex + 500);
-    const audioFileMatch = searchRegion.match(/\baudioFile:\s*"([^"]+)"/);
+    // Check if this step has skipAudio: true (within reasonable distance after the text)
+    const searchRegion = content.slice(extracted.endIndex, extracted.endIndex + 200);
+    const hasSkipAudio = /\bskipAudio:\s*true/.test(searchRegion);
 
-    if (audioFileMatch) {
-      // Clean up the text: normalize whitespace
-      const cleanedText = extracted.text.replace(/\s+/g, " ").trim();
-      steps.push({ text: cleanedText, audioFile: audioFileMatch[1]! });
+    if (hasSkipAudio) {
+      continue; // Skip this step
     }
+
+    // Clean up the text: normalize whitespace
+    const cleanedText = extracted.text.replace(/\s+/g, " ").trim();
+
+    // Generate filename from text hash
+    const audioFile = getAudioFilename(cleanedText);
+
+    steps.push({ text: cleanedText, audioFile });
   }
 
   return steps;
 }
 
-async function generateAudio(
-  text: string,
-  voiceId: string,
-  apiKey: string
-): Promise<Buffer> {
+async function generateAudio(text: string, voiceId: string, apiKey: string): Promise<Buffer> {
   const url = `${ELEVENLABS_API_URL}/${voiceId}`;
 
   const response = await fetch(url, {
@@ -242,9 +280,7 @@ async function main() {
 
   if (!apiKey && !options.dryRun) {
     console.error("Error: ELEVENLABS_API_KEY environment variable is required");
-    console.error(
-      "Set it with: ELEVENLABS_API_KEY=your_key yarn generate-tutorial-audio"
-    );
+    console.error("Set it with: ELEVENLABS_API_KEY=your_key yarn generate-tutorial-audio");
     process.exit(1);
   }
 
@@ -256,7 +292,7 @@ async function main() {
   // Parse the tutorial content file directly
   console.log(`Parsing ${path.basename(CONTENT_FILE)}...`);
   const allStepsData = parseTutorialContent();
-  console.log(`Found ${allStepsData.length} steps with audio files.\n`);
+  console.log(`Found ${allStepsData.length} steps with audio.\n`);
 
   // Filter to steps that need generation
   const stepsToGenerate = getStepsToGenerate(allStepsData, options);
@@ -281,8 +317,7 @@ async function main() {
 
   for (const { step, filePath } of stepsToGenerate) {
     const filename = path.basename(filePath);
-    const truncatedText =
-      step.text.length > 60 ? step.text.slice(0, 60) + "..." : step.text;
+    const truncatedText = step.text.length > 60 ? step.text.slice(0, 60) + "..." : step.text;
 
     console.log(`[${generated + failed + 1}/${stepsToGenerate.length}] ${filename}`);
     console.log(`    "${truncatedText}"`);
@@ -296,17 +331,13 @@ async function main() {
     try {
       const audioBuffer = await generateAudio(step.text, options.voiceId, apiKey!);
       fs.writeFileSync(filePath, audioBuffer);
-      console.log(
-        `    -> Generated ${(audioBuffer.length / 1024).toFixed(1)}KB\n`
-      );
+      console.log(`    -> Generated ${(audioBuffer.length / 1024).toFixed(1)}KB\n`);
       generated++;
 
       // Rate limiting: ElevenLabs has rate limits, add a small delay
       await sleep(500);
     } catch (error) {
-      console.error(
-        `    -> ERROR: ${error instanceof Error ? error.message : error}\n`
-      );
+      console.error(`    -> ERROR: ${error instanceof Error ? error.message : error}\n`);
       failed++;
     }
   }
