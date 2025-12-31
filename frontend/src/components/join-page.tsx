@@ -1,5 +1,5 @@
-import { useRef } from "react";
-import { connect } from "react-redux";
+import React, { useRef } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import Button from "reactstrap/lib/Button";
 import Col from "reactstrap/lib/Col";
 import Container from "reactstrap/lib/Container";
@@ -7,38 +7,33 @@ import Row from "reactstrap/lib/Row";
 
 import { useLocation } from "react-router";
 import { register } from "../actions/main-actions";
+import { MainState } from "../reducers/initial-state";
 
-const JoinPage = ({ dispatch, networkError }) => {
+interface NetworkError extends Error {
+  statusCode?: number;
+}
+
+const JoinPage: React.FC = () => {
   const location = useLocation();
-  const usernameRef = useRef();
-  const passRef = useRef();
-  const emailRef = useRef();
+  const usernameRef = useRef<HTMLInputElement>(null);
+  const passRef = useRef<HTMLInputElement>(null);
+  const emailRef = useRef<HTMLInputElement>(null);
+  const dispatch = useDispatch();
+  const networkError = useSelector<MainState, Error | null>((state) => state.network.error);
 
   const search = new URLSearchParams(location.search);
 
-  // class JoinPage extends React.Component {
-  //   static propTypes = {
-  //     dispatch: PropTypes.func,
-  //     networkError: CustomPropTypes.BoomNetworkError,
-  //     location: PropTypes.shape({
-  //       state: PropTypes.shape({
-  //         why: PropTypes.string,
-  //         redirectTo: PropTypes.string,
-  //       }),
-  //     }),
-  //   };
-
-  const _onSubmit = (event) => {
+  const onSubmit = (event: React.FormEvent) => {
     event.preventDefault();
 
     dispatch(
       register(
         {
-          email: emailRef.current.value,
-          password: passRef.current.value,
-          username: usernameRef.current.value,
+          email: emailRef.current?.value ?? "",
+          password: passRef.current?.value ?? "",
+          username: usernameRef.current?.value ?? "",
         },
-        search.get("redirectTo"),
+        search.get("redirectTo") ?? "",
       ),
     );
   };
@@ -46,16 +41,17 @@ const JoinPage = ({ dispatch, networkError }) => {
   const redirectPresent = search.get("redirectTo") && !search.get("why");
 
   let message = "";
-  let messageClass = null;
+  let messageClass: string | null = null;
   if (redirectPresent) {
     message = "Sorry, you need to log in to view that page.";
     messageClass = "info";
   }
   if (networkError) {
+    const error = networkError as NetworkError;
     message =
-      networkError.statusCode === 401
+      error.statusCode === 401
         ? "Sorry, your username or password was incorrect."
-        : networkError.message;
+        : error.message;
     messageClass = "danger";
   }
 
@@ -77,7 +73,7 @@ const JoinPage = ({ dispatch, networkError }) => {
                 <blockquote className="card-bodyquote">{message}</blockquote>
               </div>
             )}
-            <form className="card-body" onSubmit={_onSubmit}>
+            <form className="card-body" onSubmit={onSubmit}>
               <div className={`form-group ${message.includes("username") ? "has-danger" : ""}`}>
                 <label htmlFor="username">Username</label>
                 <input
@@ -160,10 +156,4 @@ const JoinPage = ({ dispatch, networkError }) => {
   );
 };
 
-function mapStateToProps(state) {
-  return {
-    networkError: state.network.error,
-  };
-}
-
-export default connect(mapStateToProps)(JoinPage);
+export default JoinPage;
