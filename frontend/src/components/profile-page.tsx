@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { useDispatch, useSelector } from "react-redux";
+import { useDispatch } from "react-redux";
 import Col from "reactstrap/lib/Col";
 import Container from "reactstrap/lib/Container";
 import Row from "reactstrap/lib/Row";
@@ -13,8 +13,7 @@ import {
 
 import { useParams } from "react-router";
 import { usePageTitle } from "../hooks/usePageTitle";
-import { MainState } from "../reducers/initial-state";
-import { Game } from "../types";
+import { useAppSelector } from "../hooks/redux";
 import WorldList from "./common/world-list";
 
 const LOADING_PROFILE: Profile = {
@@ -27,10 +26,7 @@ const ProfilePage = () => {
 
   const { username } = useParams();
 
-  const { me, profile, worlds } = useSelector<
-    MainState,
-    { me: MainState["me"]; profile: Profile; worlds: Game[] | null }
-  >((state) => {
+  const { me, profile, worlds } = useAppSelector((state) => {
     const profile = state.profiles[username!];
     return {
       me: state.me,

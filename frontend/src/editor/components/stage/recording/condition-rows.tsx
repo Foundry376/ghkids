@@ -1,13 +1,12 @@
 import React, { useState } from "react";
 
-import { useDispatch, useSelector } from "react-redux";
+import { useDispatch } from "react-redux";
 import { Button } from "reactstrap";
 import {
   Actor,
   ActorTransform,
   Character,
   Characters,
-  EditorState,
   EvaluatedCondition,
   RuleCondition,
   RuleValue,
@@ -15,6 +14,7 @@ import {
   VariableComparator,
   WorldMinimal,
 } from "../../../../types";
+import { useEditorSelector } from "../../../../hooks/redux";
 import { pickConditionValueFromKeyboard, selectToolId } from "../../../actions/ui-actions";
 import { TOOLS } from "../../../constants/constants";
 import { AppearanceDropdown, TransformDropdown } from "../../inspector/container-pane-variables";
@@ -53,7 +53,7 @@ export const FreeformConditionRow = ({
   onChange,
 }: FreeformConditionRowProps) => {
   const { left, right, comparator } = condition;
-  const selectedToolId = useSelector<EditorState, TOOLS>((state) => state.ui.selectedToolId);
+  const selectedToolId = useEditorSelector((state) => state.ui.selectedToolId);
   const dispatch = useDispatch();
 
   const impliedDatatype: ImpliedDatatype = (() => {
@@ -167,7 +167,7 @@ export const FreeformConditionValue = ({
   conditionId?: string;
   comparator: VariableComparator;
 }) => {
-  const selectedToolId = useSelector<EditorState, TOOLS>((state) => state.ui.selectedToolId);
+  const selectedToolId = useEditorSelector((state) => state.ui.selectedToolId);
   const dispatch = useDispatch();
 
   const [droppingValue, setDroppingValue] = useState(false);

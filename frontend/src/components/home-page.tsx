@@ -1,17 +1,17 @@
-import { useDispatch, useSelector } from "react-redux";
+import { useDispatch } from "react-redux";
 import { Link } from "react-router-dom";
 import Button from "reactstrap/lib/Button";
 
 import { useState } from "react";
 import { Modal, ModalBody } from "reactstrap";
 import { createWorld } from "../actions/main-actions";
-import { MainState } from "../reducers/initial-state";
+import { useAppSelector } from "../hooks/redux";
 
 const HomePage = () => {
   const dispatch = useDispatch();
   const [showingNew, setShowingNew] = useState(false);
 
-  const me = useSelector<MainState, MainState["me"]>((root) => root.me);
+  const me = useAppSelector((root) => root.me);
 
   return (
     <div>

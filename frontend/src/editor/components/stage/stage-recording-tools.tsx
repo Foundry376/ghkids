@@ -1,13 +1,13 @@
-import { useDispatch, useSelector } from "react-redux";
+import { useDispatch } from "react-redux";
 
 import classNames from "classnames";
 import Button from "reactstrap/lib/Button";
-import { EditorState } from "../../../types";
+import { useEditorSelector } from "../../../hooks/redux";
 import { pickConditionValueFromKeyboard, selectToolId } from "../../actions/ui-actions";
 import { TOOLS } from "../../constants/constants";
 
 const StageRecordingTools = () => {
-  const selectedToolId = useSelector<EditorState, TOOLS>((state) => state.ui.selectedToolId);
+  const selectedToolId = useEditorSelector((state) => state.ui.selectedToolId);
   const dispatch = useDispatch();
 
   return (

@@ -1,6 +1,6 @@
 import classNames from "classnames";
 import { useContext, useState } from "react";
-import { useDispatch, useSelector } from "react-redux";
+import { useDispatch } from "react-redux";
 import { Link } from "react-router-dom";
 
 import Button from "reactstrap/lib/Button";
@@ -17,18 +17,14 @@ import { TapToEditLabel } from "./tap-to-edit-label";
 import UndoRedoControls from "./undo-redo-controls";
 
 import { EditorContext } from "../../components/editor-context";
-import { EditorState, World } from "../../types";
+import { useEditorSelector } from "../../hooks/redux";
 
 const Toolbar = () => {
   const dispatch = useDispatch();
-  const selectedToolId = useSelector<EditorState, string>((state) => state.ui.selectedToolId);
-  const stageName = useSelector<EditorState, string | undefined>(
-    (state) => getCurrentStage(state)?.name,
-  );
-  const metadata = useSelector<EditorState, World["metadata"]>((state) => state.world.metadata);
-  const isInTutorial = useSelector<EditorState, boolean>(
-    (state) => state.ui.tutorial.stepIndex === 0,
-  );
+  const selectedToolId = useEditorSelector((state) => state.ui.selectedToolId);
+  const stageName = useEditorSelector((state) => getCurrentStage(state)?.name);
+  const metadata = useEditorSelector((state) => state.world.metadata);
+  const isInTutorial = useEditorSelector((state) => state.ui.tutorial.stepIndex === 0);
 
   const { usingLocalStorage, saveWorldAnd, saveWorld } = useContext(EditorContext);
   const [open, setOpen] = useState(false);

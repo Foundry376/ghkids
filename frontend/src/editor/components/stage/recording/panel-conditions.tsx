@@ -2,16 +2,15 @@ import React, { useState } from "react";
 
 import { FreeformConditionRow } from "./condition-rows";
 
-import { useDispatch, useSelector } from "react-redux";
+import { useDispatch } from "react-redux";
 import {
   Characters,
-  EditorState,
   EvaluatedCondition,
   EvaluatedRuleDetailsMap,
   RecordingState,
   UIState,
-  World,
 } from "../../../../types";
+import { useEditorSelector } from "../../../../hooks/redux";
 import { upsertRecordingCondition } from "../../../actions/recording-actions";
 import { getCurrentStageForWorld } from "../../../utils/selectors";
 import { actorIntersectsExtent } from "../../../utils/stage-helpers";
@@ -73,10 +72,8 @@ export const RecordingConditions = ({
   const [dropping, setDropping] = useState(false);
 
   // Get the main world to access evaluation details
-  const world = useSelector<EditorState, World>((state) => state.world);
-  const selectedActors = useSelector<EditorState, EditorState["ui"]["selectedActors"]>(
-    (state) => state.ui.selectedActors,
-  );
+  const world = useEditorSelector((state) => state.world);
+  const selectedActors = useEditorSelector((state) => state.ui.selectedActors);
 
   const { beforeWorld, conditions, extent } = recording;
   const stage = getCurrentStageForWorld(beforeWorld);

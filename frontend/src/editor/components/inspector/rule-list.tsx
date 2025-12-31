@@ -4,8 +4,9 @@ import { ContentEventGroup } from "./content-event-group";
 import { ContentFlowGroup } from "./content-flow-group";
 import { ContentRule } from "./content-rule";
 
-import { useDispatch, useSelector } from "react-redux";
-import { Character, EditorState, RuleTreeItem, UIState } from "../../../types";
+import { useDispatch } from "react-redux";
+import { Character, RuleTreeItem } from "../../../types";
+import { useEditorSelector } from "../../../hooks/redux";
 import { selectToolId, selectToolItem } from "../../actions/ui-actions";
 import { TOOLS } from "../../constants/constants";
 import { CONTAINER_TYPES } from "../../utils/world-constants";
@@ -33,10 +34,8 @@ export const RuleList = ({
 }) => {
   const { onRuleMoved, onRuleReRecord, onRuleDeleted, onRuleStamped } =
     useContext(RuleActionsContext);
-  const selectedToolId = useSelector<EditorState, TOOLS>((state) => state.ui.selectedToolId);
-  const stampToolItem = useSelector<EditorState, UIState["stampToolItem"]>(
-    (s) => s.ui.stampToolItem,
-  );
+  const selectedToolId = useEditorSelector((state) => state.ui.selectedToolId);
+  const stampToolItem = useEditorSelector((s) => s.ui.stampToolItem);
 
   const dispatch = useDispatch();
 

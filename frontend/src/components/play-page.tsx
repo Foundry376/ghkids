@@ -1,26 +1,23 @@
 import React, { useEffect } from "react";
-import { useDispatch, useSelector } from "react-redux";
+import { useDispatch } from "react-redux";
 import { Link, useParams } from "react-router-dom";
 import Button from "reactstrap/lib/Button";
 import Col from "reactstrap/lib/Col";
 import Container from "reactstrap/lib/Container";
 import Row from "reactstrap/lib/Row";
 
-import { createWorld, fetchWorld, User } from "../actions/main-actions";
+import { createWorld, fetchWorld } from "../actions/main-actions";
 import { usePageTitle } from "../hooks/usePageTitle";
 import { RootPlayer } from "../editor/root-player";
 import PageMessage from "./common/page-message";
-import { MainState } from "../reducers/initial-state";
-import { Game } from "../types";
+import { useAppSelector } from "../hooks/redux";
 
 const PlayPage: React.FC = () => {
   const { worldId } = useParams<{ worldId: string }>();
   const dispatch = useDispatch();
 
-  const me = useSelector<MainState, User | null>((state) => state.me);
-  const worlds = useSelector<MainState, { [worldId: string]: Game } | null>(
-    (state) => state.worlds,
-  );
+  const me = useAppSelector((state) => state.me);
+  const worlds = useAppSelector((state) => state.worlds);
 
   const world = worlds && worldId ? worlds[worldId] : null;
 

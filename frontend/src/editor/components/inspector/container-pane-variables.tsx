@@ -5,18 +5,11 @@ import DropdownItem from "reactstrap/lib/DropdownItem";
 import DropdownMenu from "reactstrap/lib/DropdownMenu";
 import DropdownToggle from "reactstrap/lib/DropdownToggle";
 
-import { useDispatch, useSelector } from "react-redux";
+import { useDispatch } from "react-redux";
 import { Button } from "reactstrap";
 import { DeepPartial } from "redux";
-import {
-  Actor,
-  ActorSelection,
-  ActorTransform,
-  Character,
-  EditorState,
-  Global,
-  WorldMinimal,
-} from "../../../types";
+import { Actor, ActorTransform, Character, Global, WorldMinimal } from "../../../types";
+import { useEditorSelector } from "../../../hooks/redux";
 import { deleteCharacterVariable, upsertCharacter } from "../../actions/characters-actions";
 import { changeActors } from "../../actions/stage-actions";
 import { selectToolId } from "../../actions/ui-actions";
@@ -157,10 +150,8 @@ export const ContainerPaneVariables = ({
   world: WorldMinimal;
 }) => {
   const dispatch = useDispatch();
-  const selectedToolId = useSelector<EditorState, TOOLS>((state) => state.ui.selectedToolId);
-  const selectedActors = useSelector<EditorState, ActorSelection | null>(
-    (state) => state.ui.selectedActors,
-  );
+  const selectedToolId = useEditorSelector((state) => state.ui.selectedToolId);
+  const selectedActors = useEditorSelector((state) => state.ui.selectedActors);
 
   // Chararacter and actor variables
 
