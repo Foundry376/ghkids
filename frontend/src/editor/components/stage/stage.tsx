@@ -161,6 +161,22 @@ export const Stage = ({
     };
   };
 
+  const centerOnActor = (actorId: string): Offset | null => {
+    if (!actorId) return null;
+
+    const actor = stage.actors[actorId];
+    if (!actor) return null;
+
+    // Calculate actor center position (add 0.5 to center on the cell)
+    const xCenter = actor.position.x + 0.5;
+    const yCenter = actor.position.y + 0.5;
+
+    return {
+      left: `calc(-${xCenter * STAGE_CELL_SIZE}px + 50%)`,
+      top: `calc(-${yCenter * STAGE_CELL_SIZE}px + 50%)`,
+    };
+  };
+
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (playback.running && el.current) {
@@ -176,6 +192,40 @@ export const Stage = ({
       setOffset(offset);
     }
   });
+
+  // Camera follow effect - center on followed actor after each tick during playback
+  useEffect(() => {
+    if (!playback.running) return;
+    if (recordingExtent && recordingCentered) return; // Don't override recording centering
+
+    const cameraFollowId = world.globals?.cameraFollow?.value;
+    if (!cameraFollowId) return;
+
+    // Check if stage is overflowing (needs scrolling)
+    const scrollWrapper = scrollEl.current;
+    if (!scrollWrapper) return;
+
+    const stageWidth = stage.width * STAGE_CELL_SIZE * scale;
+    const stageHeight = stage.height * STAGE_CELL_SIZE * scale;
+    const isOverflowing =
+      stageWidth > scrollWrapper.clientWidth || stageHeight > scrollWrapper.clientHeight;
+
+    if (!isOverflowing) return;
+
+    const newOffset = centerOnActor(cameraFollowId);
+    if (newOffset) {
+      setOffset(newOffset);
+    }
+  }, [
+    playback.running,
+    stage.actors,
+    stage.width,
+    stage.height,
+    world.globals?.cameraFollow?.value,
+    scale,
+    recordingExtent,
+    recordingCentered,
+  ]);
 
   const onBlur = () => {
     if (playback.running) {

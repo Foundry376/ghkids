@@ -26,6 +26,12 @@ const InitialWorld: World = {
       value: stage.id,
       type: "stage",
     },
+    cameraFollow: {
+      id: "cameraFollow",
+      name: "Camera Follow",
+      value: "",
+      type: "actor",
+    },
   },
   input: {
     keys: {},

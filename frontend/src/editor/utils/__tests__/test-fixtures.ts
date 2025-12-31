@@ -35,6 +35,7 @@ export function makeGlobals(overrides: Partial<Globals> = {}): Globals {
       value: "stage-1",
       type: "stage",
     },
+    cameraFollow: { id: "cameraFollow", name: "Camera Follow", value: "", type: "actor" },
     ...overrides,
   };
 }
