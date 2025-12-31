@@ -21,11 +21,15 @@ export function logout() {
   };
 }
 
-export function register({ username, password, email }: Omit<User, "id">, redirectTo: string) {
+export function register(
+  { username, password, email }: Omit<User, "id">,
+  redirectTo: string,
+  captchaToken?: string,
+) {
   return function (dispatch: Dispatch<MainActions>) {
     makeRequest<User>("/users", {
       method: "POST",
-      json: { username, password, email },
+      json: { username, password, email, captchaToken },
     }).then((user) => {
       dispatch({
         type: types.SET_ME,

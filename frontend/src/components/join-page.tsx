@@ -1,5 +1,6 @@
-import React, { useRef } from "react";
+import React, { useCallback, useRef, useState } from "react";
 import { useDispatch } from "react-redux";
+import { useGoogleReCaptcha } from "react-google-recaptcha-v3";
 import Button from "reactstrap/lib/Button";
 import Col from "reactstrap/lib/Col";
 import Container from "reactstrap/lib/Container";
@@ -20,23 +21,42 @@ const JoinPage: React.FC = () => {
   const emailRef = useRef<HTMLInputElement>(null);
   const dispatch = useDispatch();
   const networkError = useAppSelector((state) => state.network.error);
+  const { executeRecaptcha } = useGoogleReCaptcha();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const search = new URLSearchParams(location.search);
 
-  const onSubmit = (event: React.FormEvent) => {
-    event.preventDefault();
+  const onSubmit = useCallback(
+    async (event: React.FormEvent) => {
+      event.preventDefault();
 
-    dispatch(
-      register(
-        {
-          email: emailRef.current?.value ?? "",
-          password: passRef.current?.value ?? "",
-          username: usernameRef.current?.value ?? "",
-        },
-        search.get("redirectTo") ?? "",
-      ),
-    );
-  };
+      if (!executeRecaptcha) {
+        console.warn("reCAPTCHA not yet available");
+        return;
+      }
+
+      setIsSubmitting(true);
+      try {
+        const captchaToken = await executeRecaptcha("register");
+
+        dispatch(
+          register(
+            {
+              email: emailRef.current?.value ?? "",
+              password: passRef.current?.value ?? "",
+              username: usernameRef.current?.value ?? "",
+            },
+            search.get("redirectTo") ?? "",
+            captchaToken,
+          ),
+        );
+      } catch (err) {
+        console.error("reCAPTCHA error:", err);
+        setIsSubmitting(false);
+      }
+    },
+    [executeRecaptcha, dispatch, search],
+  );
 
   const redirectPresent = search.get("redirectTo") && !search.get("why");
 
@@ -131,8 +151,8 @@ const JoinPage: React.FC = () => {
                 .
               </p>
               <hr />
-              <Button color="primary" type="submit">
-                Create an account
+              <Button color="primary" type="submit" disabled={isSubmitting || !executeRecaptcha}>
+                {isSubmitting ? "Creating account..." : "Create an account"}
               </Button>
             </form>
           </div>
