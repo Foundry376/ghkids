@@ -1,17 +1,29 @@
 import React from "react";
-import PropTypes from "prop-types";
-import { connect } from "react-redux";
+import { connect, ConnectedProps } from "react-redux";
 import Button from "reactstrap/lib/Button";
 
 import { updateTutorialState } from "../../actions/ui-actions";
 import { getCurrentStage } from "../../utils/selectors";
-import { tutorialSteps } from "../../constants/tutorial";
+import { TutorialStep, tutorialSteps } from "../../constants/tutorial";
 
 import TutorialAnnotation from "./annotation";
 import Girl from "./girl";
+import { EditorState, Stage } from "../../../types";
+
+interface WaitsFor {
+  button?: string;
+  elementMatching?: string;
+  stateMatching?: (state: EditorState, stage: Stage) => boolean | undefined;
+  delay?: number;
+}
 
 class TutorialAdvancer {
-  constructor(step, callback) {
+  private _waitsFor: WaitsFor;
+  private _callback: () => void;
+  private _timer: ReturnType<typeof setTimeout> | undefined;
+  private _unsub: (() => void) | undefined;
+
+  constructor(step: TutorialStep, callback: () => void) {
     this._waitsFor = step.waitsFor || {};
     this._callback = callback;
 
@@ -21,10 +33,11 @@ class TutorialAdvancer {
 
     if (this._waitsFor.stateMatching) {
       const tryState = () => {
-        const state = window.editorStore.getState();
-        if (this._waitsFor.stateMatching(state, getCurrentStage(state))) {
+        const state = window.editorStore.getState() as EditorState;
+        const currentStage = getCurrentStage(state);
+        if (currentStage && this._waitsFor.stateMatching?.(state, currentStage)) {
           this._timer = setTimeout(this._callback, this._waitsFor.delay || 750);
-          this._unsub();
+          this._unsub?.();
         }
       };
       this._unsub = window.editorStore.subscribe(tryState);
@@ -33,9 +46,9 @@ class TutorialAdvancer {
 
     if (this._waitsFor.elementMatching) {
       const tryElements = () => {
-        if (document.querySelector(this._waitsFor.elementMatching)) {
+        if (document.querySelector(this._waitsFor.elementMatching!)) {
           this._timer = setTimeout(this._callback, this._waitsFor.delay || 250);
-          this._unsub();
+          this._unsub?.();
         }
       };
       const interval = setInterval(tryElements, 500);
@@ -44,14 +57,14 @@ class TutorialAdvancer {
     }
   }
 
-  onAudioEnded() {
+  onAudioEnded(): void {
     if (this._waitsFor.stateMatching || this._waitsFor.elementMatching || this._waitsFor.button) {
       return;
     }
     this._callback();
   }
 
-  detach() {
+  detach(): void {
     clearTimeout(this._timer);
     if (this._unsub) {
       this._unsub();
@@ -59,25 +72,36 @@ class TutorialAdvancer {
   }
 }
 
-class TutorialContainer extends React.Component {
-  static propTypes = {
-    stepSet: PropTypes.string,
-    stepIndex: PropTypes.number,
-    dispatch: PropTypes.func,
-  };
+type StepSetKey = keyof typeof tutorialSteps;
 
-  constructor(props, context) {
-    super(props, context);
+interface TutorialContainerState {
+  playing: boolean;
+}
+
+const mapStateToProps = (state: EditorState) => state.ui.tutorial;
+
+const connector = connect(mapStateToProps);
+
+type PropsFromRedux = ConnectedProps<typeof connector>;
+
+class TutorialContainer extends React.Component<PropsFromRedux, TutorialContainerState> {
+  private _audio: HTMLAudioElement | null = null;
+  private _advancer: TutorialAdvancer | null = null;
+
+  constructor(props: PropsFromRedux) {
+    super(props);
     this.state = {
       playing: false,
     };
   }
 
-  componentDidMount() {
+  componentDidMount(): void {
     this._startCurrentStep();
 
     const pageQueryParams = location.search.split(/[?&]/g).map((p) => p.split("="));
-    const pageQueryStepSet = (pageQueryParams.find((p) => p[0] === "tutorial") || [])[1];
+    const pageQueryStepSet = (pageQueryParams.find((p) => p[0] === "tutorial") || [])[1] as
+      | StepSetKey
+      | undefined;
 
     if (pageQueryStepSet && !this.props.stepSet) {
       this.props.dispatch(
@@ -89,17 +113,17 @@ class TutorialContainer extends React.Component {
     }
   }
 
-  componentDidUpdate(prevProps) {
+  componentDidUpdate(prevProps: PropsFromRedux): void {
     if (prevProps.stepIndex !== this.props.stepIndex) {
       this._startCurrentStep();
     }
   }
 
-  componentWillUnmount() {
+  componentWillUnmount(): void {
     this._detatchForCurrentStep();
   }
 
-  _detatchForCurrentStep() {
+  private _detatchForCurrentStep(): void {
     if (this._audio) {
       this._audio.pause();
       this._audio = null;
@@ -110,7 +134,7 @@ class TutorialContainer extends React.Component {
     }
   }
 
-  _startCurrentStep() {
+  private _startCurrentStep(): void {
     this._detatchForCurrentStep();
 
     const { stepSet, stepIndex } = this.props;
@@ -146,7 +170,7 @@ class TutorialContainer extends React.Component {
           return;
         }
         this.setState({ playing: false });
-        this._advancer.onAudioEnded();
+        this._advancer?.onAudioEnded();
       });
       this._audio.play().catch(() => {
         // Ignore AbortError when play() is interrupted by pause()
@@ -154,19 +178,19 @@ class TutorialContainer extends React.Component {
     }
   }
 
-  _onNextStep = () => {
+  private _onNextStep = (): void => {
     const { dispatch, stepIndex } = this.props;
     dispatch(updateTutorialState({ stepIndex: stepIndex + 1 }));
   };
 
-  _onPrevStep = () => {
+  private _onPrevStep = (): void => {
     const { dispatch, stepIndex } = this.props;
     if (stepIndex > 0) {
       dispatch(updateTutorialState({ stepIndex: stepIndex - 1 }));
     }
   };
 
-  render() {
+  render(): React.ReactNode {
     const { stepSet, stepIndex } = this.props;
     const { playing } = this.state;
     const step = stepSet && tutorialSteps[stepSet][stepIndex];
@@ -195,9 +219,12 @@ class TutorialContainer extends React.Component {
                   <i
                     className={`fa ${playing ? "fa-pause" : "fa-play"}`}
                     onClick={() =>
-                      this._audio && (playing ? this._audio.pause() : this._audio.play().catch(() => {
-                        // Ignore AbortError when play() is interrupted by pause()
-                      }))
+                      this._audio &&
+                      (playing
+                        ? this._audio.pause()
+                        : this._audio.play().catch(() => {
+                            // Ignore AbortError when play() is interrupted by pause()
+                          }))
                     }
                   />
                   <i className="fa fa-step-forward" onClick={this._onNextStep} />
@@ -213,8 +240,4 @@ class TutorialContainer extends React.Component {
   }
 }
 
-function mapStateToProps(state) {
-  return state.ui.tutorial;
-}
-
-export default connect(mapStateToProps)(TutorialContainer);
+export default connector(TutorialContainer);
