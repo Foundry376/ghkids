@@ -20,8 +20,22 @@ interface RecaptchaResponse {
 }
 
 async function verifyRecaptcha(token: string): Promise<{ success: boolean; score?: number; error?: string }> {
+  const isProduction = process.env.NODE_ENV === "production";
+
   if (!RECAPTCHA_SECRET_KEY) {
+    if (isProduction) {
+      logger.error("RECAPTCHA_SECRET_KEY not configured in production");
+      return { success: false, error: "Captcha not configured" };
+    }
     logger.warn("RECAPTCHA_SECRET_KEY not configured, skipping captcha verification");
+    return { success: true };
+  }
+
+  if (!token) {
+    if (isProduction) {
+      return { success: false, error: "Captcha token required" };
+    }
+    logger.warn("No captcha token provided, skipping verification in non-production");
     return { success: true };
   }
 

@@ -1,6 +1,6 @@
 import React, { useCallback, useRef, useState } from "react";
 import { useDispatch } from "react-redux";
-import { GoogleReCaptchaProvider, useGoogleReCaptcha } from "react-google-recaptcha-v3";
+import { useGoogleReCaptcha } from "react-google-recaptcha-v3";
 import Button from "reactstrap/lib/Button";
 import Col from "reactstrap/lib/Col";
 import Container from "reactstrap/lib/Container";
@@ -14,9 +14,7 @@ interface NetworkError extends Error {
   statusCode?: number;
 }
 
-const RECAPTCHA_SITE_KEY = import.meta.env.VITE_RECAPTCHA_SITE_KEY || "";
-
-const JoinPageForm: React.FC = () => {
+const JoinPage: React.FC = () => {
   const location = useLocation();
   const usernameRef = useRef<HTMLInputElement>(null);
   const passRef = useRef<HTMLInputElement>(null);
@@ -175,19 +173,6 @@ const JoinPageForm: React.FC = () => {
         </Col>
       </Row>
     </Container>
-  );
-};
-
-const JoinPage: React.FC = () => {
-  if (!RECAPTCHA_SITE_KEY) {
-    console.warn("VITE_RECAPTCHA_SITE_KEY not configured");
-    return <JoinPageForm />;
-  }
-
-  return (
-    <GoogleReCaptchaProvider reCaptchaKey={RECAPTCHA_SITE_KEY}>
-      <JoinPageForm />
-    </GoogleReCaptchaProvider>
   );
 };
 
