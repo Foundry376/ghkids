@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
-import { useDispatch, useSelector } from "react-redux";
+import { useDispatch } from "react-redux";
 import Button from "reactstrap/lib/Button";
 import Modal from "reactstrap/lib/Modal";
 import ModalBody from "reactstrap/lib/ModalBody";
 import ModalFooter from "reactstrap/lib/ModalFooter";
 
-import { EditorState } from "../../../types";
+import { useEditorSelector } from "../../../hooks/redux";
 import { upsertRecordingCondition } from "../../actions/recording-actions";
 import { pickConditionValueFromKeyboard } from "../../actions/ui-actions";
 import { makeId } from "../../utils/utils";
@@ -13,10 +13,9 @@ import Keyboard, { keyToCodakoKey } from "./keyboard";
 
 export const KeypickerContainer = () => {
   const dispatch = useDispatch();
-  const { open, initialKey, replaceConditionKey } = useSelector<
-    EditorState,
-    EditorState["ui"]["keypicker"]
-  >((state) => state.ui.keypicker);
+  const { open, initialKey, replaceConditionKey } = useEditorSelector(
+    (state) => state.ui.keypicker,
+  );
 
   const [key, setKey] = useState<string | null>(initialKey);
 

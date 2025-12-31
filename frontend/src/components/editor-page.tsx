@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useRef, useState } from "react";
-import { useDispatch, useSelector } from "react-redux";
+import { useDispatch } from "react-redux";
 
 import { createWorld, User } from "../actions/main-actions";
 import RootEditor from "../editor/root-editor";
@@ -11,7 +11,7 @@ import { usePageTitle } from "../hooks/usePageTitle";
 
 import { useParams } from "react-router";
 import { applyDataMigrations } from "../editor/data-migrations";
-import { MainState } from "../reducers/initial-state";
+import { useAppSelector } from "../hooks/redux";
 import { Game } from "../types";
 import PageMessage from "./common/page-message";
 import { EditorContext } from "./editor-context";
@@ -77,7 +77,7 @@ const LocalStorageAdapter = {
 // };
 
 const EditorPage = () => {
-  const me = useSelector<MainState, User>((s) => s.me!);
+  const me = useAppSelector((s) => s.me!);
   const dispatch = useDispatch();
 
   const worldId = useParams().worldId!;

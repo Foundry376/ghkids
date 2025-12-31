@@ -1,6 +1,6 @@
 import classNames from "classnames";
 import React, { useCallback, useState } from "react";
-import { useDispatch, useSelector } from "react-redux";
+import { useDispatch } from "react-redux";
 
 import Button from "reactstrap/lib/Button";
 import ButtonDropdown from "reactstrap/lib/ButtonDropdown";
@@ -29,7 +29,8 @@ import {
   showModal,
 } from "../actions/ui-actions";
 
-import { Character, Characters, EditorState, UIState } from "../../types";
+import { Character } from "../../types";
+import { useEditorSelector } from "../../hooks/redux";
 import { defaultAppearanceId } from "../utils/character-helpers";
 import { makeId } from "../utils/utils";
 import Sprite from "./sprites/sprite";
@@ -122,9 +123,9 @@ const CONFIRM_DELETE_CHARACTER = `Are you sure you want to delete this character
 
 export const Library: React.FC = () => {
   const dispatch = useDispatch();
-  const characters = useSelector<EditorState, Characters>((s) => s.characters);
-  const ui = useSelector<EditorState, UIState>((s) => s.ui);
-  const recordingActorId = useSelector<EditorState, string | null>((s) => s.recording.actorId);
+  const characters = useEditorSelector((s) => s.characters);
+  const ui = useEditorSelector((s) => s.ui);
+  const recordingActorId = useEditorSelector((s) => s.recording.actorId);
 
   const [characterDropdownOpen, setCharacterDropdownOpen] = useState(false);
 

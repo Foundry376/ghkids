@@ -2,16 +2,10 @@ import { getCurrentStageForWorld } from "../../../utils/selectors";
 
 import classNames from "classnames";
 import React, { useState } from "react";
-import { useDispatch, useSelector } from "react-redux";
+import { useDispatch } from "react-redux";
 import { Button } from "reactstrap";
-import {
-  Characters,
-  EditorState,
-  RecordingState,
-  RuleAction,
-  RuleValue,
-  UIState,
-} from "../../../../types";
+import { Characters, RecordingState, RuleAction, RuleValue } from "../../../../types";
+import { useEditorSelector } from "../../../../hooks/redux";
 import { updateRecordingActions } from "../../../actions/recording-actions";
 import { changeActors } from "../../../actions/stage-actions";
 import { selectToolId } from "../../../actions/ui-actions";
@@ -30,7 +24,7 @@ import { VariableActionPicker } from "./variable-action-picker";
 export const RecordingActions = (props: { characters: Characters; recording: RecordingState }) => {
   const { characters, recording } = props;
   const { beforeWorld, actions, extent } = recording;
-  const selectedToolId = useSelector<EditorState, TOOLS>((state) => state.ui.selectedToolId);
+  const selectedToolId = useEditorSelector((state) => state.ui.selectedToolId);
 
   const dispatch = useDispatch();
 
@@ -368,11 +362,9 @@ const StageAfterTools = () => {
   const [open, setOpen] = useState(false);
   const dispatch = useDispatch();
 
-  const characters = useSelector<EditorState, Characters>((state) => state.characters);
-  const selectedActors = useSelector<EditorState, UIState["selectedActors"]>(
-    (state) => state.ui.selectedActors,
-  );
-  const recording = useSelector<EditorState, RecordingState>((state) => state.recording);
+  const characters = useEditorSelector((state) => state.characters);
+  const selectedActors = useEditorSelector((state) => state.ui.selectedActors);
+  const recording = useEditorSelector((state) => state.recording);
   const afterStage = getCurrentStageForWorld(
     getAfterWorldForRecording(recording.beforeWorld, characters, recording),
   );

@@ -1,5 +1,5 @@
 import React, { CSSProperties, useEffect, useRef, useState } from "react";
-import { useDispatch, useSelector } from "react-redux";
+import { useDispatch } from "react-redux";
 
 import ActorSprite from "../sprites/actor-sprite";
 import ActorSelectionPopover from "./actor-selection-popover";
@@ -42,15 +42,13 @@ import {
 
 import {
   Actor,
-  Characters,
-  EditorState,
   EvaluatedSquare,
   Position,
   RuleExtent,
   Stage as StageType,
-  UIState,
   WorldMinimal,
 } from "../../../types";
+import { useEditorSelector } from "../../../hooks/redux";
 import { defaultAppearanceId } from "../../utils/character-helpers";
 import { makeId } from "../../utils/utils";
 import { keyToCodakoKey } from "../modal-keypicker/keyboard";
@@ -129,16 +127,15 @@ export const Stage = ({
   }, [stage.height, stage.scale, stage.width, recordingCentered]);
 
   const dispatch = useDispatch();
-  const characters = useSelector<EditorState, Characters>((state) => state.characters);
-  const { selectedActors, selectedToolId, stampToolItem, playback } = useSelector<
-    EditorState,
-    Pick<UIState, "selectedActors" | "selectedToolId" | "stampToolItem" | "playback">
-  >((state) => ({
-    selectedActors: state.ui.selectedActors,
-    selectedToolId: state.ui.selectedToolId,
-    stampToolItem: state.ui.stampToolItem,
-    playback: state.ui.playback,
-  }));
+  const characters = useEditorSelector((state) => state.characters);
+  const { selectedActors, selectedToolId, stampToolItem, playback } = useEditorSelector(
+    (state) => ({
+      selectedActors: state.ui.selectedActors,
+      selectedToolId: state.ui.selectedToolId,
+      stampToolItem: state.ui.stampToolItem,
+      playback: state.ui.playback,
+    }),
+  );
 
   // Helpers
 

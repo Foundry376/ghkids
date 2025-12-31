@@ -1,18 +1,17 @@
 import React, { useEffect } from "react";
-import { useDispatch, useSelector } from "react-redux";
+import { useDispatch } from "react-redux";
 import Button from "reactstrap/lib/Button";
 import Col from "reactstrap/lib/Col";
 import Container from "reactstrap/lib/Container";
 import Row from "reactstrap/lib/Row";
 
 import { createWorld, deleteWorld, fetchWorldsForUser } from "../actions/main-actions";
-import { MainState } from "../reducers/initial-state";
-import { Game } from "../types";
+import { useAppSelector } from "../hooks/redux";
 import WorldList from "./common/world-list";
 
 const DashboardPage: React.FC = () => {
   const dispatch = useDispatch();
-  const worlds = useSelector<MainState, Game[] | undefined>((state) => {
+  const worlds = useAppSelector((state) => {
     if (!state.worlds || !state.me) return undefined;
     return Object.values(state.worlds)
       .filter((w) => w.userId === state.me?.id)

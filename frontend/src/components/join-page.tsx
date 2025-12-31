@@ -1,5 +1,5 @@
 import React, { useRef } from "react";
-import { useDispatch, useSelector } from "react-redux";
+import { useDispatch } from "react-redux";
 import Button from "reactstrap/lib/Button";
 import Col from "reactstrap/lib/Col";
 import Container from "reactstrap/lib/Container";
@@ -7,7 +7,7 @@ import Row from "reactstrap/lib/Row";
 
 import { useLocation } from "react-router";
 import { register } from "../actions/main-actions";
-import { MainState } from "../reducers/initial-state";
+import { useAppSelector } from "../hooks/redux";
 
 interface NetworkError extends Error {
   statusCode?: number;
@@ -19,7 +19,7 @@ const JoinPage: React.FC = () => {
   const passRef = useRef<HTMLInputElement>(null);
   const emailRef = useRef<HTMLInputElement>(null);
   const dispatch = useDispatch();
-  const networkError = useSelector<MainState, Error | null>((state) => state.network.error);
+  const networkError = useAppSelector((state) => state.network.error);
 
   const search = new URLSearchParams(location.search);
 

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { useSelector } from "react-redux";
 import { Button, Modal, ModalBody, ModalFooter } from "reactstrap";
-import { ActorTransform, Characters, EditorState } from "../../../types";
+import { ActorTransform } from "../../../types";
+import { useEditorSelector } from "../../../hooks/redux";
 import { STAGE_CELL_SIZE } from "../../constants/constants";
 import ActorSprite from "../sprites/actor-sprite";
 import { TransformLabels } from "./transform-images";
@@ -20,7 +20,7 @@ export const TransformEditorModal = ({
   appearance?: string;
   onChange: (value: ActorTransform) => void;
 }) => {
-  const characters = useSelector<EditorState, Characters>((e) => e.characters);
+  const characters = useEditorSelector((e) => e.characters);
   const [transform, setTransform] = useState<ActorTransform>(value);
 
   useEffect(() => {

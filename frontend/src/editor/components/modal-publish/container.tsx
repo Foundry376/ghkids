@@ -1,11 +1,11 @@
 import { useContext, useEffect, useState } from "react";
-import { useDispatch, useSelector } from "react-redux";
+import { useDispatch } from "react-redux";
 import Button from "reactstrap/lib/Button";
 import Modal from "reactstrap/lib/Modal";
 import ModalBody from "reactstrap/lib/ModalBody";
 import ModalFooter from "reactstrap/lib/ModalFooter";
 
-import { EditorState } from "../../../types";
+import { useEditorSelector } from "../../../hooks/redux";
 import { updateWorldMetadata } from "../../actions/world-actions";
 import { dismissModal } from "../../actions/ui-actions";
 import { MODALS, WORLDS } from "../../constants/constants";
@@ -15,12 +15,8 @@ export const PublishContainer = () => {
   const dispatch = useDispatch();
   const { saveWorld } = useContext(EditorContext);
 
-  const open = useSelector<EditorState, boolean>(
-    (state) => state.ui.modal.openId === MODALS.PUBLISH,
-  );
-  const metadata = useSelector<EditorState, EditorState["world"]["metadata"]>(
-    (state) => state.world.metadata,
-  );
+  const open = useEditorSelector((state) => state.ui.modal.openId === MODALS.PUBLISH);
+  const metadata = useEditorSelector((state) => state.world.metadata);
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");

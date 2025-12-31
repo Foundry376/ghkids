@@ -1,4 +1,4 @@
-import { useDispatch, useSelector } from "react-redux";
+import { useDispatch } from "react-redux";
 import { RecordingActions } from "./recording/panel-actions";
 import { RecordingConditions } from "./recording/panel-conditions";
 import Stage from "./stage";
@@ -8,14 +8,8 @@ import StageRecordingTools from "./stage-recording-tools";
 
 import { useEffect, useRef, useState } from "react";
 import * as Types from "../../../types";
-import {
-  Characters,
-  EditorState,
-  EvaluatedRuleDetailsMap,
-  EvaluatedSquare,
-  UIState,
-  World,
-} from "../../../types";
+import { EvaluatedRuleDetailsMap, EvaluatedSquare, UIState } from "../../../types";
+import { useEditorSelector } from "../../../hooks/redux";
 import { RECORDING_PHASE } from "../../constants/constants";
 import { getCurrentStageForWorld } from "../../utils/selectors";
 import { Library } from "../library";
@@ -58,15 +52,11 @@ function getEvaluatedSquares(
 
 const StageContainer = ({ readonly }: { readonly?: boolean }) => {
   const dispatch = useDispatch();
-  const recording = useSelector<EditorState, EditorState["recording"]>((state) => state.recording);
-  const characters = useSelector<EditorState, Characters>((state) => state.characters);
-  const world = useSelector<EditorState, World>((state) => state.world);
-  const playback = useSelector<EditorState, EditorState["ui"]["playback"]>(
-    (state) => state.ui.playback,
-  );
-  const selectedActors = useSelector<EditorState, UIState["selectedActors"]>(
-    (state) => state.ui.selectedActors,
-  );
+  const recording = useEditorSelector((state) => state.recording);
+  const characters = useEditorSelector((state) => state.characters);
+  const world = useEditorSelector((state) => state.world);
+  const playback = useEditorSelector((state) => state.ui.playback);
+  const selectedActors = useEditorSelector((state) => state.ui.selectedActors);
 
   let stageA: React.ReactNode | null = null;
   let stageB: React.ReactNode | null = null;

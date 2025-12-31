@@ -1,6 +1,5 @@
 import { useLayoutEffect } from "react";
-import { useSelector } from "react-redux";
-import { Characters, EditorState, Stage } from "../../types";
+import { useEditorSelector } from "../../hooks/redux";
 import { TOOLS } from "../constants/constants";
 import { defaultAppearanceId } from "../utils/character-helpers";
 import { getCurrentStage } from "../utils/selectors";
@@ -64,11 +63,9 @@ function updateCursor() {
 }
 
 export const StampCursorSupport = () => {
-  const stage = useSelector<EditorState, Stage | null>((state) => getCurrentStage(state));
-  const characters = useSelector<EditorState, Characters>((state) => state.characters);
-  const { selectedToolId, stampToolItem } = useSelector<EditorState, EditorState["ui"]>(
-    (state) => state.ui,
-  );
+  const stage = useEditorSelector((state) => getCurrentStage(state));
+  const characters = useEditorSelector((state) => state.characters);
+  const { selectedToolId, stampToolItem } = useEditorSelector((state) => state.ui);
 
   useLayoutEffect(() => {
     cursorEl.style.transformOrigin = "0%,0%";

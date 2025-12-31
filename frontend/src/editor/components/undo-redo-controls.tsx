@@ -1,13 +1,13 @@
 import { useCallback, useEffect } from "react";
-import { useDispatch, useSelector } from "react-redux";
+import { useDispatch } from "react-redux";
 import Button from "reactstrap/lib/Button";
 import { undo, redo } from "../utils/undo-redo";
-import { EditorState } from "../../types";
+import { useEditorSelector } from "../../hooks/redux";
 
 const UndoRedoControls = () => {
   const dispatch = useDispatch();
-  const undoDepth = useSelector<EditorState, number>((state) => state.undoStack.length);
-  const redoDepth = useSelector<EditorState, number>((state) => state.redoStack.length);
+  const undoDepth = useEditorSelector((state) => state.undoStack.length);
+  const redoDepth = useEditorSelector((state) => state.redoStack.length);
 
   const dispatchAction = useCallback(
     (action: ReturnType<typeof undo> | ReturnType<typeof redo>) => {

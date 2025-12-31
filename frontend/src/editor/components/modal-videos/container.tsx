@@ -1,18 +1,16 @@
-import { useDispatch, useSelector } from "react-redux";
+import { useDispatch } from "react-redux";
 import Button from "reactstrap/lib/Button";
 import Modal from "reactstrap/lib/Modal";
 import ModalBody from "reactstrap/lib/ModalBody";
 import ModalFooter from "reactstrap/lib/ModalFooter";
 
-import { EditorState } from "../../../types";
+import { useEditorSelector } from "../../../hooks/redux";
 import { dismissModal } from "../../actions/ui-actions";
 import { MODALS } from "../../constants/constants";
 
 export const VideosContainer = () => {
   const dispatch = useDispatch();
-  const open = useSelector<EditorState, boolean>(
-    (state) => state.ui.modal.openId === MODALS.VIDEOS,
-  );
+  const open = useEditorSelector((state) => state.ui.modal.openId === MODALS.VIDEOS);
 
   const _onClose = () => {
     dispatch(dismissModal());

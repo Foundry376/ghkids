@@ -1,5 +1,5 @@
 import React, { useRef } from "react";
-import { useDispatch, useSelector } from "react-redux";
+import { useDispatch } from "react-redux";
 import { Link, useLocation } from "react-router-dom";
 import Button from "reactstrap/lib/Button";
 import Col from "reactstrap/lib/Col";
@@ -7,14 +7,14 @@ import Container from "reactstrap/lib/Container";
 import Row from "reactstrap/lib/Row";
 
 import { login } from "../actions/main-actions";
-import { MainState } from "../reducers/initial-state";
+import { useAppSelector } from "../hooks/redux";
 
 const LoginPage: React.FC = () => {
   const usernameRef = useRef<HTMLInputElement>(null);
   const passRef = useRef<HTMLInputElement>(null);
   const location = useLocation();
   const dispatch = useDispatch();
-  const networkError = useSelector<MainState, Error | null>((state) => state.network.error);
+  const networkError = useAppSelector((state) => state.network.error);
 
   const locationState = location.state as { redirectTo?: string } | null;
 

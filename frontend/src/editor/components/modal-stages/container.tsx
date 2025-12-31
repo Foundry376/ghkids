@@ -1,11 +1,11 @@
 import { useEffect, useRef } from "react";
-import { useDispatch, useSelector } from "react-redux";
+import { useDispatch } from "react-redux";
 import Button from "reactstrap/lib/Button";
 import Modal from "reactstrap/lib/Modal";
 import ModalBody from "reactstrap/lib/ModalBody";
 import ModalFooter from "reactstrap/lib/ModalFooter";
 
-import { EditorState } from "../../../types";
+import { useEditorSelector } from "../../../hooks/redux";
 import { createStage, deleteStageId, updateStageSettings } from "../../actions/stage-actions";
 import { dismissModal, selectStageId } from "../../actions/ui-actions";
 import { MODALS, WORLDS } from "../../constants/constants";
@@ -16,11 +16,9 @@ import { StageSettings } from "./settings";
 export const StagesContainer = () => {
   const dispatch = useDispatch();
   const listEl = useRef<HTMLDivElement>(null);
-  const stage = useSelector(getCurrentStage);
-  const stagesArray = useSelector(getStagesList);
-  const open = useSelector<EditorState, boolean>(
-    (state) => state.ui.modal.openId === MODALS.STAGES,
-  );
+  const stage = useEditorSelector(getCurrentStage);
+  const stagesArray = useEditorSelector(getStagesList);
+  const open = useEditorSelector((state) => state.ui.modal.openId === MODALS.STAGES);
 
   const _scrollToSelectedStage = () => {
     const el = listEl.current;
