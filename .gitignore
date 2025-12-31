@@ -5,3 +5,4 @@
 .DS_Store
 /api/yarn-error.log
 /api/image.png
+/scripts/.env

@@ -26,32 +26,23 @@ import { fileURLToPath } from "url";
 // Get directory paths
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const SOUNDS_DIR = path.resolve(__dirname, "../frontend/src/editor/sounds/tutorial");
-const CONTENT_FILE = path.resolve(__dirname, "../frontend/src/editor/constants/tutorial-content.ts");
+const SOUNDS_DIR = path.resolve(
+  __dirname,
+  "../frontend/src/editor/sounds/tutorial"
+);
+const CONTENT_FILE = path.resolve(
+  __dirname,
+  "../frontend/src/editor/constants/tutorial-content.ts"
+);
 
 // ElevenLabs configuration
 const ELEVENLABS_API_URL = "https://api.elevenlabs.io/v1/text-to-speech";
 
-// Default voice - "Rachel" is a good quality voice. You can change this to a child voice ID.
-// Some options:
-// - "21m00Tcm4TlvDq8ikWAM" = Rachel (default, female)
-// - "AZnzlk1XvdvUeBnXmlld" = Domi (female)
-// - "EXAVITQu4vr4xnSDxMaL" = Bella (female)
-// - "ErXwobaYiN019PkySvjV" = Antoni (male)
-// - "MF3mGyEYCl7XYWbV9V6O" = Elli (female)
-// - "TxGEqnHWrfWFTfGW9XjX" = Josh (male)
-// - "VR6AewLTigWG4xSOukaG" = Arnold (male)
-// - "pNInz6obpgDQGcFmaJgB" = Adam (male)
-// - "yoZ06aMxZJJ28mfd3POQ" = Sam (male)
-//
-// For child voices, you may need to:
-// 1. Use ElevenLabs voice cloning to create a child voice
-// 2. Use the "Voice Design" feature to create a custom child voice
-// 3. Check ElevenLabs voice library for community child voices
-const DEFAULT_VOICE_ID = "21m00Tcm4TlvDq8ikWAM";
+const DEFAULT_VOICE_ID = "uYXf8XasLslADfZ2MB4u";
 
 // Voice settings for more natural speech
 const VOICE_SETTINGS = {
+  speed: 1.07,
   stability: 0.5,
   similarity_boost: 0.75,
   style: 0.0,
@@ -201,7 +192,10 @@ function parseTutorialContent(): TutorialAudioStep[] {
     }
 
     // Check if this step has skipAudio: true (within reasonable distance after the text)
-    const searchRegion = content.slice(extracted.endIndex, extracted.endIndex + 200);
+    const searchRegion = content.slice(
+      extracted.endIndex,
+      extracted.endIndex + 200
+    );
     const hasSkipAudio = /\bskipAudio:\s*true/.test(searchRegion);
 
     if (hasSkipAudio) {
@@ -220,7 +214,11 @@ function parseTutorialContent(): TutorialAudioStep[] {
   return steps;
 }
 
-async function generateAudio(text: string, voiceId: string, apiKey: string): Promise<Buffer> {
+async function generateAudio(
+  text: string,
+  voiceId: string,
+  apiKey: string
+): Promise<Buffer> {
   const url = `${ELEVENLABS_API_URL}/${voiceId}`;
 
   const response = await fetch(url, {
@@ -231,8 +229,8 @@ async function generateAudio(text: string, voiceId: string, apiKey: string): Pro
       "xi-api-key": apiKey,
     },
     body: JSON.stringify({
-      text,
-      model_id: "eleven_monolingual_v1",
+      text: `[excited] ${text}`,
+      model_id: "eleven_v3",
       voice_settings: VOICE_SETTINGS,
     }),
   });
@@ -280,7 +278,9 @@ async function main() {
 
   if (!apiKey && !options.dryRun) {
     console.error("Error: ELEVENLABS_API_KEY environment variable is required");
-    console.error("Set it with: ELEVENLABS_API_KEY=your_key yarn generate-tutorial-audio");
+    console.error(
+      "Set it with: ELEVENLABS_API_KEY=your_key yarn generate-tutorial-audio"
+    );
     process.exit(1);
   }
 
@@ -317,9 +317,12 @@ async function main() {
 
   for (const { step, filePath } of stepsToGenerate) {
     const filename = path.basename(filePath);
-    const truncatedText = step.text.length > 60 ? step.text.slice(0, 60) + "..." : step.text;
+    const truncatedText =
+      step.text.length > 60 ? step.text.slice(0, 60) + "..." : step.text;
 
-    console.log(`[${generated + failed + 1}/${stepsToGenerate.length}] ${filename}`);
+    console.log(
+      `[${generated + failed + 1}/${stepsToGenerate.length}] ${filename}`
+    );
     console.log(`    "${truncatedText}"`);
 
     if (options.dryRun) {
@@ -329,15 +332,23 @@ async function main() {
     }
 
     try {
-      const audioBuffer = await generateAudio(step.text, options.voiceId, apiKey!);
+      const audioBuffer = await generateAudio(
+        step.text,
+        options.voiceId,
+        apiKey!
+      );
       fs.writeFileSync(filePath, audioBuffer);
-      console.log(`    -> Generated ${(audioBuffer.length / 1024).toFixed(1)}KB\n`);
+      console.log(
+        `    -> Generated ${(audioBuffer.length / 1024).toFixed(1)}KB\n`
+      );
       generated++;
 
       // Rate limiting: ElevenLabs has rate limits, add a small delay
       await sleep(500);
     } catch (error) {
-      console.error(`    -> ERROR: ${error instanceof Error ? error.message : error}\n`);
+      console.error(
+        `    -> ERROR: ${error instanceof Error ? error.message : error}\n`
+      );
       failed++;
     }
   }
