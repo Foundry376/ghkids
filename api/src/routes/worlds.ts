@@ -96,7 +96,7 @@ router.post("/worlds", userFromBasicAuth, async (req, res) => {
       const owner = sourceWorld.user;
       const notificationSettings = owner?.notificationSettings ?? DEFAULT_NOTIFICATION_SETTINGS;
       if (owner?.email && notificationSettings.forks) {
-        sendForkEmail(owner, {
+        await sendForkEmail(owner, {
           forkerUsername: req.user.username,
           worldName: sourceWorld.name,
           worldId: sourceWorld.id,
