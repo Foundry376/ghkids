@@ -6,7 +6,7 @@ import { makeRequest } from "../../../helpers/api";
 import { cancelRecording, finishRecording } from "../../actions/recording-actions";
 import { RECORDING_PHASE } from "../../constants/constants";
 import { getCurrentStageForWorld } from "../../utils/selectors";
-import { Actor, Characters, RecordingState, RuleAction, RuleCondition } from "../../../types";
+import { Actor, Characters, RecordingState, RuleAction, RuleCondition, Stage } from "../../../types";
 
 interface StageRecordingControlsProps {
   dispatch: Dispatch;
@@ -22,18 +22,6 @@ interface NamingPayloadAction {
   appearanceName?: string;
   value?: unknown;
   offset?: { x: number; y: number };
-}
-
-interface EnrichedAction {
-  type: string;
-  actorId?: string;
-  actorName?: string;
-  name?: string;
-  variableName?: string;
-  appearanceName?: string;
-  offset?: { x: number; y: number };
-  operation?: string;
-  value?: unknown;
 }
 
 interface NamingPayloadCondition {
@@ -61,6 +49,131 @@ interface NamingPayload {
   extent: RecordingState["extent"];
 }
 
+/** Build a mapping from actorId -> display name (e.g., "Cat", "Cat 2") */
+function buildActorIdToNameMap(
+  actors: Stage["actors"],
+  characters: Characters
+): Record<string, string> {
+  const nameCount: Record<string, number> = {};
+  const actorIdToName: Record<string, string> = {};
+
+  for (const actorId of Object.keys(actors)) {
+    const charId = actors[actorId]?.characterId;
+    const baseName = characters[charId]?.name || charId;
+    const count = (nameCount[baseName] || 0) + 1;
+    nameCount[baseName] = count;
+    actorIdToName[actorId] = count === 1 ? baseName : `${baseName} ${count}`;
+  }
+  return actorIdToName;
+}
+
+/** Get the appearance display name for an actor */
+function getAppearanceName(
+  actors: Stage["actors"],
+  characters: Characters,
+  actorId: string,
+  appearanceId: string
+): string {
+  const charId = actors[actorId]?.characterId;
+  return characters[charId]?.spritesheet?.appearanceNames?.[appearanceId] || appearanceId;
+}
+
+/** Get the variable display name for an actor's character */
+function getVariableName(
+  actors: Stage["actors"],
+  characters: Characters,
+  actorId: string,
+  variableId: string
+): string {
+  const charId = actors[actorId]?.characterId;
+  return characters[charId]?.variables?.[variableId]?.name || variableId;
+}
+
+/** Build payload for the rule naming API with human-readable names instead of IDs */
+export function buildNamingPayload(
+  recording: RecordingState,
+  characters: Characters
+): NamingPayload {
+  const stage = getCurrentStageForWorld(recording.beforeWorld);
+  const actors = stage?.actors ?? {};
+  const actorIdToName = buildActorIdToNameMap(actors, characters);
+
+  const getActorName = (actorId: string) => actorIdToName[actorId] || actorId;
+  const getCharName = (charId: string) => characters[charId]?.name || charId;
+
+  const mainActorName =
+    actorIdToName[recording.actorId!] || getCharName(recording.characterId!);
+
+  const mappedActions: NamingPayloadAction[] = (recording.actions || []).map(
+    (action: RuleAction) => {
+      const actorId = "actorId" in action ? action.actorId : undefined;
+
+      let variableName: string | undefined;
+      if (action.type === "variable" && actorId) {
+        variableName = getVariableName(actors, characters, actorId, action.variable);
+      }
+
+      let appearanceName: string | undefined;
+      if (action.type === "appearance" && actorId && action.value && "constant" in action.value) {
+        appearanceName = getAppearanceName(actors, characters, actorId, action.value.constant);
+      }
+
+      return {
+        type: action.type,
+        actorName: actorId ? getActorName(actorId) : "",
+        ...("offset" in action && { offset: action.offset }),
+        ...("operation" in action && { operation: action.operation }),
+        ...("value" in action && { value: action.value }),
+        ...(variableName && { variableName }),
+        ...(appearanceName && { appearanceName }),
+      };
+    }
+  );
+
+  const mappedConditions: NamingPayloadCondition[] = recording.conditions.map(
+    (condition: RuleCondition) => {
+      const leftActorId = "actorId" in condition.left ? condition.left.actorId : undefined;
+      const leftActorName = leftActorId ? getActorName(leftActorId) : "";
+      const leftVariableId = "variableId" in condition.left ? condition.left.variableId : "";
+      const leftVariableName = leftActorId
+        ? getVariableName(actors, characters, leftActorId, leftVariableId)
+        : leftVariableId;
+
+      // Translate appearance constant to display name
+      let right = condition.right;
+      if (leftVariableName === "appearance" && leftActorId && right && "constant" in right) {
+        right = { constant: getAppearanceName(actors, characters, leftActorId, right.constant) };
+      }
+
+      return {
+        comparator: condition.comparator,
+        enabled: condition.enabled,
+        key: condition.key,
+        left: { actorName: leftActorName, variableName: leftVariableName },
+        right,
+      };
+    }
+  );
+
+  const start_scene: NamingPayload["start_scene"] = Object.entries(actors).map(
+    ([actorId, actor]: [string, Actor]) => ({
+      characterName: getCharName(actor.characterId),
+      actorName: getActorName(actorId),
+      position: actor.position,
+      appearance: getAppearanceName(actors, characters, actorId, actor.appearance),
+    })
+  );
+
+  return {
+    characterId: getCharName(recording.characterId!),
+    mainActorName,
+    start_scene,
+    actions: mappedActions,
+    conditions: mappedConditions,
+    extent: recording.extent,
+  };
+}
+
 const StageRecordingControls: React.FC<StageRecordingControlsProps> = ({
   dispatch,
   recording,
@@ -68,158 +181,6 @@ const StageRecordingControls: React.FC<StageRecordingControlsProps> = ({
 }) => {
   const onCancel = () => {
     dispatch(cancelRecording());
-  };
-
-  const buildNamingPayload = (
-    recording: RecordingState,
-    characters: Characters,
-  ): NamingPayload => {
-    // Create a copy of the recording data with character names instead of IDs
-    const stage = getCurrentStageForWorld(recording.beforeWorld);
-    const _actors = stage?.actors ?? {};
-
-    // Build a mapping from actorId -> character display name, handling duplicates by appending numbers
-    const characterIdToCount: Record<string, number> = {};
-    const actorIdToName: Record<string, string> = {};
-    Object.keys(_actors || {}).forEach((actorId) => {
-      const characterId = _actors[actorId]?.characterId;
-      const baseName = characters[characterId]?.name || characterId;
-      const currentCount = (characterIdToCount[baseName] || 0) + 1;
-      characterIdToCount[baseName] = currentCount;
-      // First instance keeps base name; subsequent instances get a suffix
-      const displayName = currentCount === 1 ? baseName : `${baseName} ${currentCount}`;
-      actorIdToName[actorId] = displayName;
-    });
-
-    const getAppearanceNameForActorId = (actorId: string, appearanceId: string): string => {
-      const charId = _actors[actorId]?.characterId;
-      const appearanceNames = characters[charId]?.spritesheet?.appearanceNames || {};
-      return appearanceNames?.[appearanceId] || appearanceId;
-    };
-
-    const recordingWithNames = {
-      characterId: characters[recording.characterId!]?.name || recording.characterId!,
-      // Keep actorId as is since it's the specific actor instance (internal), but also map to a human-friendly name
-      actorName: actorIdToName[recording.actorId!] || recording.actorId!,
-      actions: (recording.actions || []).map((action: RuleAction): EnrichedAction => {
-        // Map variable id -> variable name and metadata when applicable
-        let variableName: string | undefined = undefined;
-        const actorId = "actorId" in action ? action.actorId : undefined;
-        if (action.type === "variable" && actorId) {
-          const actionActorCharId = _actors[actorId]?.characterId;
-          const varsForChar = characters[actionActorCharId]?.variables || {};
-          const varInfo = varsForChar?.[action.variable];
-          variableName = varInfo?.name || action.variable;
-        }
-        // Translate appearance changes (value.constant is an appearanceId)
-        let appearanceName: string | undefined = undefined;
-        if (action.type === "appearance" && actorId && action.value && "constant" in action.value) {
-          appearanceName = getAppearanceNameForActorId(actorId, action.value.constant);
-        }
-        // Extract optional properties if they exist on this action type
-        const offset = "offset" in action ? action.offset : undefined;
-        const operation = "operation" in action ? action.operation : undefined;
-        const value = "value" in action ? action.value : undefined;
-        return {
-          type: action.type,
-          // Keep actorId as is since it's the specific actor instance
-          // Replace with actorName for readability in the naming model
-          actorName: actorId ? (actorIdToName[actorId] || actorId) : undefined,
-          actorId: actorId, // Keep actorId as is since it's the specific actor instance
-          name: actorId ? characters[_actors[actorId]?.characterId]?.name : undefined,
-          offset,
-          operation,
-          value,
-          ...(variableName ? { variableName } : {}),
-          ...(appearanceName ? { appearanceName } : {}),
-        };
-      }),
-      conditions: recording.conditions.map((condition: RuleCondition) => {
-        // Map left side IDs to names; preserve right as-is (e.g., constants)
-        const leftActorId = "actorId" in condition.left ? condition.left.actorId : undefined;
-        const leftActorName = leftActorId ? (actorIdToName[leftActorId] || leftActorId) : "";
-        const leftActorCharId = leftActorId ? _actors[leftActorId]?.characterId : undefined;
-        const leftVars = leftActorCharId ? (characters[leftActorCharId]?.variables || {}) : {};
-        const leftVariableId = "variableId" in condition.left ? condition.left.variableId : "";
-        const leftVariableName = leftVars?.[leftVariableId]?.name || leftVariableId;
-        // Translate appearance right constant to appearance name if applicable
-        let right = condition.right;
-        if (leftVariableName === "appearance" && right && "constant" in right && leftActorId) {
-          right = { constant: getAppearanceNameForActorId(leftActorId, right.constant) };
-        }
-        return {
-          comparator: condition.comparator,
-          enabled: condition.enabled,
-          key: condition.key,
-          left: {
-            actorName: leftActorName,
-            variableName: leftVariableName,
-          },
-          right,
-        };
-      }),
-      extent: recording.extent,
-      // Provide a name for the main actor for the naming model
-      mainActorName:
-        actorIdToName[recording.actorId!] ||
-        characters[recording.characterId!]?.name ||
-        recording.characterId!,
-    };
-
-    // Build start_scene with actor positions and appearances
-    const start_scene: NamingPayload["start_scene"] = [];
-
-    // Build start_scene data for each involved actor
-    Object.keys(_actors).forEach((actorId) => {
-      const actor: Actor | undefined = _actors[actorId];
-      if (actor) {
-        const characterId = actor.characterId;
-        const characterName = characters[characterId]?.name || characterId;
-        const actorName = actorIdToName[actorId] || characterName;
-        const appearance = actor.appearance;
-        const appearanceName = getAppearanceNameForActorId(actorId, appearance);
-
-        start_scene.push({
-          characterName,
-          actorName,
-          position: actor.position,
-          appearance: appearanceName,
-        });
-      }
-    });
-
-    // Build the final payload for the naming request
-    const payload: NamingPayload = {
-      characterId: recordingWithNames.characterId,
-      // Instead of actorId and mainActorId, include actorName and mainActorName
-      mainActorName: recordingWithNames.mainActorName,
-      start_scene,
-      actions: recordingWithNames.actions.map(
-        ({ actorName, offset, type, variableName, appearanceName, operation, value }) => ({
-          type,
-          actorName: actorName || "",
-          operation,
-          // Use the variable's/appearance's human-friendly name when present
-          ...(variableName ? { variableName } : {}),
-          ...(appearanceName ? { appearanceName } : {}),
-          value,
-          offset,
-        }),
-      ),
-      conditions: recordingWithNames.conditions.map((c) => ({
-        comparator: c.comparator,
-        enabled: c.enabled,
-        key: c.key,
-        left: {
-          actorName: c.left.actorName,
-          variableName: c.left.variableName,
-        },
-        right: c.right,
-      })),
-      extent: recordingWithNames.extent,
-    };
-
-    return payload;
   };
 
   const onNext = async () => {
