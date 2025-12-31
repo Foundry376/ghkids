@@ -12,6 +12,7 @@
     "validate": "npm ls"
   },
   "dependencies": {
+    "@sendgrid/mail": "^8.1.4",
     "@supabase/supabase-js": "^2.48.1",
     "@types/cors": "^2.8.12",
     "@types/sinon": "^17.0.3",
