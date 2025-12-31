@@ -1,6 +1,6 @@
 import classNames from "classnames";
 import { useContext, useState } from "react";
-import { connect } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { Link } from "react-router-dom";
 
 import Button from "reactstrap/lib/Button";
@@ -17,20 +17,23 @@ import { TapToEditLabel } from "./tap-to-edit-label";
 import UndoRedoControls from "./undo-redo-controls";
 
 import { EditorContext } from "../../components/editor-context";
+import { EditorState, World } from "../../types";
 
-const Toolbar = ({ selectedToolId, dispatch, metadata, stageName, isInTutorial }) => {
-  // static propTypes = {
-  //   stageName: PropTypes.string,
-  //   metadata: PropTypes.object,
-  //   selectedToolId: PropTypes.string.isRequired,
-  //   dispatch: PropTypes.func.isRequired,
-  //   isInTutorial: PropTypes.bool,
-  // };
+const Toolbar = () => {
+  const dispatch = useDispatch();
+  const selectedToolId = useSelector<EditorState, string>((state) => state.ui.selectedToolId);
+  const stageName = useSelector<EditorState, string | undefined>(
+    (state) => getCurrentStage(state)?.name,
+  );
+  const metadata = useSelector<EditorState, World["metadata"]>((state) => state.world.metadata);
+  const isInTutorial = useSelector<EditorState, boolean>(
+    (state) => state.ui.tutorial.stepIndex === 0,
+  );
 
   const { usingLocalStorage, saveWorldAnd, saveWorld } = useContext(EditorContext);
   const [open, setOpen] = useState(false);
 
-  const _renderTool = (toolId) => {
+  const renderTool = (toolId: TOOLS) => {
     const classes = classNames({
       "tool-option": true,
       enabled: true,
@@ -49,16 +52,16 @@ const Toolbar = ({ selectedToolId, dispatch, metadata, stageName, isInTutorial }
     );
   };
 
-  const _onNameChange = (name) => {
+  const onNameChange = (name: string) => {
     dispatch(updateWorldMetadata("root", { ...metadata, name }));
   };
 
-  const _onUnpublish = () => {
+  const onUnpublish = () => {
     dispatch(updateWorldMetadata("root", { ...metadata, published: false }));
     saveWorld();
   };
 
-  const _renderLeft = () => {
+  const renderLeft = () => {
     if (usingLocalStorage) {
       return (
         <div className="create-account-notice">
@@ -104,7 +107,7 @@ const Toolbar = ({ selectedToolId, dispatch, metadata, stageName, isInTutorial }
             )}
             <DropdownItem divider />
             {metadata.published ? (
-              <DropdownItem onClick={_onUnpublish}>
+              <DropdownItem onClick={onUnpublish}>
                 <i className="fa fa-eye-slash" style={{ marginRight: 8 }} />
                 Unpublish Game
               </DropdownItem>
@@ -118,18 +121,18 @@ const Toolbar = ({ selectedToolId, dispatch, metadata, stageName, isInTutorial }
             <DropdownItem onClick={() => saveWorldAnd("/dashboard")}>Save &amp; Exit</DropdownItem>
           </DropdownMenu>
         </ButtonDropdown>
-        <TapToEditLabel className="world-name" value={metadata.name} onChange={_onNameChange} />
+        <TapToEditLabel className="world-name" value={metadata.name} onChange={onNameChange} />
       </div>
     );
   };
 
   return (
     <div className="toolbar">
-      <div style={{ flex: 1, textAlign: "left" }}>{_renderLeft()}</div>
+      <div style={{ flex: 1, textAlign: "left" }}>{renderLeft()}</div>
 
       <div style={{ display: "flex", alignItems: "center" }}>
         <div className="button-group">
-          {[TOOLS.POINTER, TOOLS.STAMP, TOOLS.TRASH, TOOLS.RECORD, TOOLS.PAINT].map(_renderTool)}
+          {[TOOLS.POINTER, TOOLS.STAMP, TOOLS.TRASH, TOOLS.RECORD, TOOLS.PAINT].map(renderTool)}
         </div>
         <UndoRedoControls />
       </div>
@@ -147,13 +150,4 @@ const Toolbar = ({ selectedToolId, dispatch, metadata, stageName, isInTutorial }
   );
 };
 
-function mapStateToProps(state) {
-  return {
-    selectedToolId: state.ui.selectedToolId,
-    stageName: getCurrentStage(state)?.name,
-    metadata: state.world.metadata,
-    isInTutorial: state.ui.tutorial.stepSet === "base",
-  };
-}
-
-export default connect(mapStateToProps)(Toolbar);
+export default Toolbar;
