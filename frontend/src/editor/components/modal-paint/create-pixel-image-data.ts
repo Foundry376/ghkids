@@ -24,16 +24,16 @@ export default function CreatePixelImageData(this: PixelImageData): void {
   this.log = (): void => {
     const url = getDataURLFromImageData(this);
     const img = new Image();
-    img.onload = function (this: HTMLImageElement) {
+    img.onload = () => {
       const dim = {
         string: "+",
         style:
           "font-size: 1px; padding: " +
-          Math.floor(this.height / 2) +
+          Math.floor(img.height / 2) +
           "px " +
-          Math.floor(this.width / 2) +
+          Math.floor(img.width / 2) +
           "px; line-height: " +
-          this.height +
+          img.height +
           "px;",
       };
       console.log(

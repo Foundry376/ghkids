@@ -196,7 +196,8 @@ export class PaintModel {
   mouseup(pixel: Point): void {
     const { tool } = this.state;
     if (tool) {
-      this.setState(tool.mouseup(tool.mousemove(pixel, this.state)));
+      const movedState = { ...this.state, ...tool.mousemove(pixel, this.state) };
+      this.setState(tool.mouseup(movedState) as Partial<PaintState>);
     }
   }
 
@@ -538,7 +539,7 @@ export class PaintModel {
     this.setState({ isGeneratingSprite: true });
 
     try {
-      const data = await makeRequest(
+      const data = await makeRequest<{ imageUrl?: string; name?: string; error?: string }>(
         `/generate-sprite?prompt=${encodeURIComponent(prompt)}&width=${canvasWidth}&height=${canvasHeight}`
       );
       if (data.imageUrl) {
@@ -627,7 +628,7 @@ export class PaintModel {
    * Returns the data needed to save the current state.
    * The React component is responsible for dispatching to Redux.
    */
-  getSaveData(character: Character, appearanceId: string): {
+  getSaveData(_character: Character, _appearanceId: string): {
     imageDataURL: string;
     anchorSquare: Point;
     filled: Record<string, boolean>;
@@ -655,7 +656,7 @@ export class PaintModel {
     if (!trimmed) return null;
 
     return {
-      imageDataURL: getDataURLFromImageData(trimmed),
+      imageDataURL: getDataURLFromImageData(trimmed)!,
       anchorSquare: this.state.anchorSquare,
       filled: getFilledSquares(flattened),
       width: flattened.width / 40,

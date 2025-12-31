@@ -143,7 +143,7 @@ const PixelCanvas: React.FC<PixelCanvasProps> = ({
 
     // Render tool preview
     if (tool && tool.render) {
-      tool.render(c, {
+      tool.render(c as unknown as import("./tools").ToolRenderTarget, {
         color,
         toolSize,
         pixelSize,

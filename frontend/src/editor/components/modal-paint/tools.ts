@@ -1,8 +1,8 @@
 import { forEachInLine, forEachInRect, getFlattenedImageData, Point } from "./helpers";
-import { PixelContext, PixelImageData, PixelInteraction, PixelToolState } from "./types";
+import { PixelToolState } from "./types";
 
 export interface ToolRenderTarget {
-  fillStyle: string;
+  fillStyle: string | CanvasGradient | CanvasPattern;
   fillPixel(x: number, y: number): void;
   fillToolSize(x: number, y: number, size: number): void;
   // Canvas context methods for preview rendering
