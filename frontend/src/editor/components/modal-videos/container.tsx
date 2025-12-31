@@ -18,11 +18,6 @@ export const VideosContainer = () => {
     dispatch(dismissModal());
   };
 
-  // Avoid re-rendering when not visible
-  if (!open) {
-    return null;
-  }
-
   return (
     <Modal isOpen={open} backdrop="static" toggle={() => {}}>
       <div className="modal-header" style={{ display: "flex" }}>
