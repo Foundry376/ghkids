@@ -36,10 +36,10 @@ type ImpliedDatatype =
   | { type: "actor" }
   | null;
 
-/** Status circle for condition evaluation */
+/** Status circle for condition evaluation - hidden when not evaluated */
 const ConditionStatusCircle = ({ status }: { status?: EvaluatedCondition }) => {
   if (status === undefined) {
-    return <div className="circle" />;
+    return null;
   }
   return <div className={`circle ${status.passed}`} />;
 };
