@@ -1,21 +1,21 @@
-import { useEffect, useState } from "react";
-import { connect } from "react-redux";
+import React, { useEffect, useState } from "react";
 import Col from "reactstrap/lib/Col";
 import Container from "reactstrap/lib/Container";
 import Row from "reactstrap/lib/Row";
 
 import { makeRequest } from "../helpers/api";
 import { usePageTitle } from "../hooks/usePageTitle";
+import { Game } from "../types";
 import WorldList from "./common/world-list";
 
-const ExplorePage = () => {
-  const [worlds, setWorlds] = useState(null);
+const ExplorePage: React.FC = () => {
+  const [worlds, setWorlds] = useState<Game[] | null>(null);
 
   usePageTitle("Explore");
 
   useEffect(() => {
-    makeRequest(`/worlds/explore`).then((worlds) => {
-      setWorlds(worlds);
+    makeRequest<Game[]>(`/worlds/explore`).then((fetchedWorlds) => {
+      setWorlds(fetchedWorlds);
     });
   }, []);
 
@@ -26,7 +26,12 @@ const ExplorePage = () => {
           <div className="card card-body">
             <h5>Popular Games</h5>
             <hr />
-            <WorldList worlds={worlds} />
+            <WorldList
+              worlds={worlds}
+              onDeleteWorld={() => {}}
+              onDuplicateWorld={() => {}}
+              canEdit={false}
+            />
           </div>
         </Col>
       </Row>
@@ -34,10 +39,4 @@ const ExplorePage = () => {
   );
 };
 
-function mapStateToProps(state) {
-  return {
-    me: state.me,
-  };
-}
-
-export default connect(mapStateToProps)(ExplorePage);
+export default ExplorePage;

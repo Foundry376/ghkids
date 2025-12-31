@@ -1,5 +1,5 @@
-import { useEffect } from "react";
-import { connect } from "react-redux";
+import React, { useEffect } from "react";
+import { useDispatch } from "react-redux";
 
 import { useLocation } from "react-router";
 import Col from "reactstrap/lib/Col";
@@ -7,15 +7,19 @@ import Container from "reactstrap/lib/Container";
 import Row from "reactstrap/lib/Row";
 import { uploadLocalStorageWorld } from "../actions/main-actions";
 
-const JoinSendWorldsPage = ({ dispatch }) => {
+const JoinSendWorldsPage: React.FC = () => {
   const location = useLocation();
+  const dispatch = useDispatch();
 
   useEffect(() => {
     const storageKey = new URLSearchParams(location.search).get("storageKey");
-    setTimeout(() => {
-      dispatch(uploadLocalStorageWorld(storageKey));
-    }, 400);
-  }, []);
+    if (storageKey) {
+      setTimeout(() => {
+        dispatch(uploadLocalStorageWorld(storageKey));
+      }, 400);
+    }
+  }, [dispatch, location.search]);
+
   return (
     <Container>
       <Row>
@@ -30,11 +34,4 @@ const JoinSendWorldsPage = ({ dispatch }) => {
   );
 };
 
-function mapStateToProps(state) {
-  return {
-    me: state.me,
-    networkError: state.network.error,
-  };
-}
-
-export default connect(mapStateToProps)(JoinSendWorldsPage);
+export default JoinSendWorldsPage;

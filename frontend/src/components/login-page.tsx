@@ -1,52 +1,50 @@
-import { connect } from "react-redux";
+import React, { useRef } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import { Link, useLocation } from "react-router-dom";
 import Button from "reactstrap/lib/Button";
 import Col from "reactstrap/lib/Col";
 import Container from "reactstrap/lib/Container";
 import Row from "reactstrap/lib/Row";
 
-import { useRef } from "react";
 import { login } from "../actions/main-actions";
+import { MainState } from "../reducers/initial-state";
 
-const LoginPage = ({ dispatch, networkError }) => {
-  const usernameRef = useRef();
-  const passRef = useRef();
+const LoginPage: React.FC = () => {
+  const usernameRef = useRef<HTMLInputElement>(null);
+  const passRef = useRef<HTMLInputElement>(null);
   const location = useLocation();
-  //   dispatch: PropTypes.func,
-  //   networkError: CustomPropTypes.BoomNetworkError,
-  //   location: PropTypes.shape({
-  //     state: PropTypes.shape({
-  //       redirectTo: PropTypes.string,
-  //     }),
-  //   }),
-  // };
-  const _onSubmit = (event) => {
+  const dispatch = useDispatch();
+  const networkError = useSelector<MainState, Error | null>((state) => state.network.error);
+
+  const locationState = location.state as { redirectTo?: string } | null;
+
+  const onSubmit = (event: React.FormEvent) => {
     event.preventDefault();
 
-    const nextPathname = location.state ? location.state.redirectTo : null;
+    const nextPathname = locationState?.redirectTo ?? null;
 
     dispatch(
       login(
         {
-          username: usernameRef.current.value,
-          password: passRef.current.value,
+          username: usernameRef.current?.value ?? "",
+          password: passRef.current?.value ?? "",
         },
-        nextPathname,
+        nextPathname ?? "",
       ),
     );
   };
 
-  const redirectPresent = location.state && location.state.redirectTo;
+  const redirectPresent = locationState?.redirectTo;
 
-  let message = null;
-  let messageClass = null;
+  let message: string | null = null;
+  let messageClass: string | null = null;
   if (redirectPresent) {
     message = "Sorry, you need to log in to view that page.";
     messageClass = "bg-info text-white";
   }
   if (networkError) {
     message =
-      networkError.statusCode === 401
+      "statusCode" in networkError && (networkError as { statusCode: number }).statusCode === 401
         ? "Sorry, your username or password was incorrect."
         : networkError.message;
     messageClass = "bg-danger text-white ";
@@ -65,7 +63,7 @@ const LoginPage = ({ dispatch, networkError }) => {
                 {message}
               </div>
             )}
-            <form className="card-body" onSubmit={_onSubmit}>
+            <form className="card-body" onSubmit={onSubmit}>
               <div className="form-group">
                 <label htmlFor="username">Username or email address:</label>
                 <input
@@ -104,10 +102,4 @@ const LoginPage = ({ dispatch, networkError }) => {
   );
 };
 
-function mapStateToProps(state) {
-  return {
-    networkError: state.network.error,
-  };
-}
-
-export default connect(mapStateToProps)(LoginPage);
+export default LoginPage;
