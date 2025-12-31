@@ -1,4 +1,5 @@
 import sgMail, { MailDataRequired } from "@sendgrid/mail";
+import { User } from "src/db/entity/user";
 
 export interface EmailOptions {
   to: string | string[];
@@ -61,29 +62,48 @@ export async function sendEmails(
   };
 }
 
+/**
+ * Sends an email to a user using a template.
+ * Automatically includes recipientUsername and recipientEmail in template data.
+ */
+export async function sendTemplateEmail(
+  recipient: User,
+  templateId: string,
+  data: Record<string, unknown> = {}
+): Promise<boolean> {
+  if (!recipient.email) {
+    console.warn(
+      `Cannot send email to user ${recipient.username}: no email address`
+    );
+    return false;
+  }
+
+  return sendEmail({
+    to: recipient.email,
+    templateId,
+    dynamicTemplateData: {
+      recipientUsername: recipient.username,
+      recipientEmail: recipient.email,
+      ...data,
+    },
+  });
+}
+
 export interface ForkEmailData {
-  ownerEmail: string;
-  ownerUsername: string;
   forkerUsername: string;
   worldName: string;
   worldId: number;
 }
 
-export async function sendForkEmail(data: ForkEmailData): Promise<boolean> {
+export async function sendForkEmail(
+  recipient: User,
+  data: ForkEmailData
+): Promise<boolean> {
   const templateId = process.env.SENDGRID_TEMPLATE_FORK;
   if (!templateId) {
     console.warn("SENDGRID_TEMPLATE_FORK not set, skipping fork email");
     return false;
   }
 
-  return sendEmail({
-    to: data.ownerEmail,
-    templateId,
-    dynamicTemplateData: {
-      ownerUsername: data.ownerUsername,
-      forkerUsername: data.forkerUsername,
-      worldName: data.worldName,
-      worldId: data.worldId,
-    },
-  });
+  return sendTemplateEmail(recipient, templateId, data);
 }

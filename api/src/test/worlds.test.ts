@@ -114,12 +114,12 @@ describe("Worlds API", () => {
 
         // Verify sendForkEmail was called with correct data
         expect(sendForkEmailStub.calledOnce).to.be.true;
-        const callArgs = sendForkEmailStub.firstCall.args[0];
-        expect(callArgs.ownerEmail).to.equal("owner@example.com");
-        expect(callArgs.ownerUsername).to.equal("owner");
-        expect(callArgs.forkerUsername).to.equal("forker");
-        expect(callArgs.worldName).to.equal("Original World");
-        expect(callArgs.worldId).to.equal(world.id);
+        const [recipient, data] = sendForkEmailStub.firstCall.args;
+        expect(recipient.email).to.equal("owner@example.com");
+        expect(recipient.username).to.equal("owner");
+        expect(data.forkerUsername).to.equal("forker");
+        expect(data.worldName).to.equal("Original World");
+        expect(data.worldId).to.equal(world.id);
       } finally {
         sendForkEmailStub.restore();
       }
