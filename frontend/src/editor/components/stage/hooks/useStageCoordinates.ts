@@ -115,8 +115,15 @@ export function isPositionInBounds(
  * - Pixel offsets (relative to stage element)
  * - Grid positions (game coordinates)
  *
- * IMPORTANT: The returned callbacks capture `stageElRef` and `scale` in closures.
- * They will use the current values when called, which is correct for event handlers.
+ * ## Closure Semantics
+ *
+ * - `stageElRef.current` is read at call time (always gets latest DOM element)
+ * - `scale` is captured in the closure when useCallback dependencies change
+ *
+ * Since this hook is called on every render with the current `scale` value,
+ * and React recreates callbacks when dependencies change, the callbacks
+ * always have access to the correct scale. This matches React's standard
+ * callback patterns.
  *
  * @param stageElRef - Ref to the stage DOM element
  * @param scale - Current zoom scale of the stage

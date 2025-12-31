@@ -10,6 +10,27 @@
  * - Add new tools
  * - Test tool behavior in isolation
  * - Modify tool behavior without hunting through event handlers
+ *
+ * ## Integration Contract
+ *
+ * When integrating these behaviors into the Stage component, the following
+ * contract must be honored:
+ *
+ * 1. **Popover Handling**: Before calling `onActorClick`, check if
+ *    `showPopoverOnOverlap` is true. If so, check for overlapping actors
+ *    and show the popover if there are multiple. Only call `onActorClick`
+ *    with the user's selected actor (from popover or single actor).
+ *
+ * 2. **Click-as-Drag**: In the original code, a single click triggers the
+ *    drag handler because `onMouseUp` calls `onMouseMove.current?.(event)`.
+ *    This means tools like TRASH work on single clicks. The integration
+ *    must preserve this by calling `onDragPosition` on mouseup if appropriate.
+ *
+ * 3. **Reset After Use**: After a tool action completes, check `resetAfterUse`.
+ *    If true and shift key is NOT held, dispatch `selectToolId(TOOLS.POINTER)`.
+ *
+ * 4. **Special Cases**: STAMP tool's drag behavior is handled separately
+ *    in stage.tsx due to complex actor creation logic.
  */
 
 import {
@@ -198,14 +219,19 @@ export const TOOL_BEHAVIORS: Partial<Record<TOOLS, ToolBehavior>> = {
    *
    * Original behavior:
    * - If no stampToolItem: click to set stamp source
-   * - If stampToolItem exists: drag to stamp copies (handled elsewhere)
+   * - If stampToolItem exists: drag to stamp copies
    * - Shows popover on overlap when selecting source
    * - Resets to POINTER after use
    *
-   * NOTE: The actual stamping (copying actors) is handled by the drag/drop
-   * system, not here. This only handles setting the stamp source.
+   * NOTE: When stampToolItem exists, the actual stamping (copying actors)
+   * is handled via onDragPosition. The stamp logic requires access to
+   * drop helper functions that must be provided via the context.
+   *
+   * IMPORTANT: showPopoverOnOverlap only applies when selecting a source
+   * (i.e., when stampToolItem is null). When stamping, we don't show popovers.
    */
   [TOOLS.STAMP]: {
+    // Only show popover when selecting source, not when stamping
     showPopoverOnOverlap: true,
     resetAfterUse: true,
     onActorClick: (actor, _event, ctx) => {
@@ -214,14 +240,23 @@ export const TOOL_BEHAVIORS: Partial<Record<TOOLS, ToolBehavior>> = {
         ctx.dispatch(selectToolItem(ctx.selFor([actor.id])));
         return true;
       }
-      // If stamp item exists, don't handle - let drag system take over
+      // If stamp item exists, don't handle click - stamping is drag-based
       return false;
     },
-    onDragPosition: (position, _isFirst, _event, ctx) => {
-      // Stamping during drag - handled by separate stamp logic
-      // This is a placeholder - actual implementation requires access to
-      // the drop functions which are in stage.tsx
-    },
+    /**
+     * Stamping during drag.
+     *
+     * INTEGRATION NOTE: The actual actor copying logic (onStampAtPosition)
+     * is complex and depends on stage.tsx's drop helpers. The integrating
+     * component should:
+     * 1. Check if selectedToolId === TOOLS.STAMP && stampToolItem exists
+     * 2. Call the appropriate stamp/copy function from stage.tsx
+     *
+     * This handler is intentionally minimal - it signals that STAMP has
+     * drag behavior, but the implementation lives in stage.tsx due to
+     * dependencies on actor creation logic.
+     */
+    onDragPosition: undefined, // Handled specially in stage.tsx
   },
 
   /**

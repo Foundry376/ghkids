@@ -110,14 +110,11 @@ export function useStageZoom(
     autofit();
 
     return () => window.removeEventListener("resize", autofit);
-  }, [
-    scrollElRef,
-    stageElRef,
-    stage.height,
-    stage.scale,
-    stage.width,
-    recordingCentered,
-  ]);
+    // Note: scrollElRef and stageElRef are intentionally excluded from deps.
+    // They are stable refs, and including them would deviate from the original
+    // stage.tsx implementation. The refs' .current values are read inside
+    // autofit() at execution time, which is correct.
+  }, [stage.height, stage.scale, stage.width, recordingCentered]);
 
   return scale;
 }
