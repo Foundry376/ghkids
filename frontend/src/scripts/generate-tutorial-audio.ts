@@ -1,6 +1,9 @@
 /**
  * Generate tutorial audio files using ElevenLabs TTS API.
  *
+ * This script parses tutorial-content.ts directly to extract text and audio
+ * file mappings, so there's no need for a separate data file.
+ *
  * Usage:
  *   ELEVENLABS_API_KEY=your_key yarn generate-tutorial-audio
  *
@@ -18,15 +21,12 @@
 import * as fs from "fs";
 import * as path from "path";
 import { fileURLToPath } from "url";
-import {
-  tutorialAudioData,
-  TutorialAudioStep,
-} from "../editor/constants/tutorial-audio-data.js";
 
 // Get directory paths
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const SOUNDS_DIR = path.resolve(__dirname, "../editor/sounds/tutorial");
+const CONTENT_FILE = path.resolve(__dirname, "../editor/constants/tutorial-content.ts");
 
 // ElevenLabs configuration
 const ELEVENLABS_API_URL = "https://api.elevenlabs.io/v1/text-to-speech";
@@ -56,6 +56,11 @@ const VOICE_SETTINGS = {
   style: 0.0,
   use_speaker_boost: true,
 };
+
+interface TutorialAudioStep {
+  text: string;
+  audioFile: string;
+}
 
 interface GenerationOptions {
   dryRun: boolean;
@@ -108,6 +113,71 @@ Environment:
   return options;
 }
 
+/**
+ * Extract the content of a template literal, handling escaped backticks.
+ */
+function extractTemplateLiteral(content: string, startIndex: number): { text: string; endIndex: number } | null {
+  if (content[startIndex] !== "`") {
+    return null;
+  }
+
+  let i = startIndex + 1;
+  let result = "";
+
+  while (i < content.length) {
+    const char = content[i];
+
+    if (char === "\\") {
+      // Escaped character - include both the backslash and next char
+      result += content[i + 1] || "";
+      i += 2;
+    } else if (char === "`") {
+      // End of template literal
+      return { text: result, endIndex: i };
+    } else {
+      result += char;
+      i++;
+    }
+  }
+
+  return null; // Unclosed template literal
+}
+
+/**
+ * Parse tutorial-content.ts to extract text and audioFile mappings.
+ * This avoids needing a separate data file - the content file is the source of truth.
+ */
+function parseTutorialContent(): TutorialAudioStep[] {
+  const content = fs.readFileSync(CONTENT_FILE, "utf-8");
+  const steps: TutorialAudioStep[] = [];
+
+  // Find all occurrences of "text:" followed by a template literal
+  const textPattern = /\btext:\s*`/g;
+  let textMatch;
+
+  while ((textMatch = textPattern.exec(content)) !== null) {
+    const backtickIndex = textMatch.index + textMatch[0].length - 1;
+    const extracted = extractTemplateLiteral(content, backtickIndex);
+
+    if (!extracted) {
+      continue;
+    }
+
+    // Look for audioFile in the same object (within reasonable distance after the text)
+    // Search forward from the end of the text for audioFile
+    const searchRegion = content.slice(extracted.endIndex, extracted.endIndex + 500);
+    const audioFileMatch = searchRegion.match(/\baudioFile:\s*"([^"]+)"/);
+
+    if (audioFileMatch) {
+      // Clean up the text: normalize whitespace
+      const cleanedText = extracted.text.replace(/\s+/g, " ").trim();
+      steps.push({ text: cleanedText, audioFile: audioFileMatch[1]! });
+    }
+  }
+
+  return steps;
+}
+
 async function generateAudio(
   text: string,
   voiceId: string,
@@ -118,7 +188,7 @@ async function generateAudio(
   const response = await fetch(url, {
     method: "POST",
     headers: {
-      "Accept": "audio/mpeg",
+      Accept: "audio/mpeg",
       "Content-Type": "application/json",
       "xi-api-key": apiKey,
     },
@@ -131,9 +201,7 @@ async function generateAudio(
 
   if (!response.ok) {
     const errorText = await response.text();
-    throw new Error(
-      `ElevenLabs API error (${response.status}): ${errorText}`
-    );
+    throw new Error(`ElevenLabs API error (${response.status}): ${errorText}`);
   }
 
   const arrayBuffer = await response.arrayBuffer();
@@ -142,16 +210,11 @@ async function generateAudio(
 
 function getStepsToGenerate(
   steps: TutorialAudioStep[],
-  _prefix: string,
   options: GenerationOptions
 ): { step: TutorialAudioStep; filePath: string }[] {
   const result: { step: TutorialAudioStep; filePath: string }[] = [];
 
   for (const step of steps) {
-    if (!step.audioFile) {
-      continue; // Skip steps without audio
-    }
-
     if (options.onlyFile && step.audioFile !== options.onlyFile) {
       continue;
     }
@@ -179,7 +242,9 @@ async function main() {
 
   if (!apiKey && !options.dryRun) {
     console.error("Error: ELEVENLABS_API_KEY environment variable is required");
-    console.error("Set it with: ELEVENLABS_API_KEY=your_key yarn generate-tutorial-audio");
+    console.error(
+      "Set it with: ELEVENLABS_API_KEY=your_key yarn generate-tutorial-audio"
+    );
     process.exit(1);
   }
 
@@ -188,20 +253,15 @@ async function main() {
     fs.mkdirSync(SOUNDS_DIR, { recursive: true });
   }
 
-  // Collect all steps to generate
-  const baseSteps = getStepsToGenerate(
-    tutorialAudioData.base,
-    "base",
-    options
-  );
-  const forkSteps = getStepsToGenerate(
-    tutorialAudioData.fork,
-    "fork",
-    options
-  );
-  const allSteps = [...baseSteps, ...forkSteps];
+  // Parse the tutorial content file directly
+  console.log(`Parsing ${path.basename(CONTENT_FILE)}...`);
+  const allStepsData = parseTutorialContent();
+  console.log(`Found ${allStepsData.length} steps with audio files.\n`);
 
-  if (allSteps.length === 0) {
+  // Filter to steps that need generation
+  const stepsToGenerate = getStepsToGenerate(allStepsData, options);
+
+  if (stepsToGenerate.length === 0) {
     console.log("No audio files to generate.");
     if (!options.force) {
       console.log("Use --force to regenerate existing files.");
@@ -209,22 +269,22 @@ async function main() {
     return;
   }
 
-  console.log(`\nTutorial Audio Generator`);
+  console.log(`Tutorial Audio Generator`);
   console.log(`========================`);
   console.log(`Voice ID: ${options.voiceId}`);
   console.log(`Output directory: ${SOUNDS_DIR}`);
-  console.log(`Files to generate: ${allSteps.length}`);
+  console.log(`Files to generate: ${stepsToGenerate.length}`);
   console.log(`Mode: ${options.dryRun ? "DRY RUN" : "LIVE"}\n`);
 
   let generated = 0;
   let failed = 0;
 
-  for (const { step, filePath } of allSteps) {
+  for (const { step, filePath } of stepsToGenerate) {
     const filename = path.basename(filePath);
     const truncatedText =
       step.text.length > 60 ? step.text.slice(0, 60) + "..." : step.text;
 
-    console.log(`[${generated + failed + 1}/${allSteps.length}] ${filename}`);
+    console.log(`[${generated + failed + 1}/${stepsToGenerate.length}] ${filename}`);
     console.log(`    "${truncatedText}"`);
 
     if (options.dryRun) {
@@ -236,13 +296,17 @@ async function main() {
     try {
       const audioBuffer = await generateAudio(step.text, options.voiceId, apiKey!);
       fs.writeFileSync(filePath, audioBuffer);
-      console.log(`    -> Generated ${(audioBuffer.length / 1024).toFixed(1)}KB\n`);
+      console.log(
+        `    -> Generated ${(audioBuffer.length / 1024).toFixed(1)}KB\n`
+      );
       generated++;
 
       // Rate limiting: ElevenLabs has rate limits, add a small delay
       await sleep(500);
     } catch (error) {
-      console.error(`    -> ERROR: ${error instanceof Error ? error.message : error}\n`);
+      console.error(
+        `    -> ERROR: ${error instanceof Error ? error.message : error}\n`
+      );
       failed++;
     }
   }

@@ -20,7 +20,6 @@
     "types": ["node"]
   },
   "include": [
-    "src/scripts/**/*.ts",
-    "src/editor/constants/tutorial-audio-data.ts"
+    "src/scripts/**/*.ts"
   ]
 }
