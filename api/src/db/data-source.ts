@@ -13,7 +13,7 @@ export const AppDataSource = new DataSource({
   url: url,
   type: "postgres",
   synchronize: process.env.NODE_ENV !== "production",
-  logging: true,
+  logging: ["error"],
   maxQueryExecutionTime: 30000,
   entities: [User, World],
   subscribers: [],

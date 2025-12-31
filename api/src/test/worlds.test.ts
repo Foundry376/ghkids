@@ -1,8 +1,8 @@
 import { expect } from "chai";
 import request from "supertest";
-import app from "../src/app";
-import { AppDataSource } from "../src/db/data-source";
-import { World } from "../src/db/entity/world";
+import app from "../app";
+import { AppDataSource } from "../db/data-source";
+import { World } from "../db/entity/world";
 import { createTestUser } from "./helpers";
 import { resetDatabase } from "./setup";
 
@@ -77,10 +77,7 @@ describe("Worlds API", () => {
     it("should create a new world with authentication", async () => {
       const { authHeader } = await createTestUser("testuser", "password123");
 
-      const res = await request(app)
-        .post("/worlds")
-        .set("Authorization", authHeader)
-        .expect(200);
+      const res = await request(app).post("/worlds").set("Authorization", authHeader).expect(200);
 
       expect(res.body.name).to.equal("Untitled");
       expect(res.body.id).to.be.a("number");
@@ -167,10 +164,7 @@ describe("Worlds API", () => {
         userId: user.id,
       });
 
-      await request(app)
-        .delete(`/worlds/${world.id}`)
-        .set("Authorization", authHeader)
-        .expect(200);
+      await request(app).delete(`/worlds/${world.id}`).set("Authorization", authHeader).expect(200);
 
       const deletedWorld = await worldRepo.findOneBy({ id: world.id });
       expect(deletedWorld).to.be.null;

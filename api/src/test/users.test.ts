@@ -1,8 +1,8 @@
 import { expect } from "chai";
 import request from "supertest";
-import app from "../src/app";
-import { AppDataSource } from "../src/db/data-source";
-import { User } from "../src/db/entity/user";
+import app from "../app";
+import { AppDataSource } from "../db/data-source";
+import { User } from "../db/entity/user";
 import { createTestUser } from "./helpers";
 import { resetDatabase } from "./setup";
 
@@ -19,10 +19,7 @@ describe("Users API", () => {
     it("should return current user with authentication", async () => {
       const { user, authHeader } = await createTestUser("testuser", "password123");
 
-      const res = await request(app)
-        .get("/users/me")
-        .set("Authorization", authHeader)
-        .expect(200);
+      const res = await request(app).get("/users/me").set("Authorization", authHeader).expect(200);
 
       expect(res.body.username).to.equal("testuser");
       expect(res.body.id).to.equal(user.id);
@@ -127,10 +124,7 @@ describe("Users API", () => {
       const credentials = Buffer.from("logintest:mypassword").toString("base64");
       const authHeader = `Basic ${credentials}`;
 
-      const res = await request(app)
-        .get("/users/me")
-        .set("Authorization", authHeader)
-        .expect(200);
+      const res = await request(app).get("/users/me").set("Authorization", authHeader).expect(200);
 
       expect(res.body.username).to.equal("logintest");
     });

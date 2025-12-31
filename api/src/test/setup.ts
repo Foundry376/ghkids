@@ -1,5 +1,5 @@
 import "reflect-metadata";
-import { AppDataSource } from "../src/db/data-source";
+import { AppDataSource } from "../db/data-source";
 
 // Ensure we're in test mode
 process.env.NODE_ENV = "test";
@@ -11,7 +11,9 @@ process.env.NODE_ENV = "test";
  */
 export async function resetDatabase(): Promise<void> {
   if (!AppDataSource.isInitialized) {
-    throw new Error("Database not initialized. Ensure initializeDatabase() is called in beforeAll.");
+    throw new Error(
+      "Database not initialized. Ensure initializeDatabase() is called in beforeAll.",
+    );
   }
 
   const entities = AppDataSource.entityMetadatas;

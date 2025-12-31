@@ -1,6 +1,6 @@
 import crypto from "crypto";
-import { AppDataSource } from "../src/db/data-source";
-import { User } from "../src/db/entity/user";
+import { AppDataSource } from "../db/data-source";
+import { User } from "../db/entity/user";
 
 /**
  * Creates a test user with the given username and password.
@@ -8,7 +8,7 @@ import { User } from "../src/db/entity/user";
  */
 export async function createTestUser(
   username: string,
-  password: string
+  password: string,
 ): Promise<{ user: User; authHeader: string }> {
   const userRepo = AppDataSource.getRepository(User);
 

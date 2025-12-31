@@ -20,7 +20,9 @@ if (process.env.NODE_ENV && ["production"].includes(process.env.NODE_ENV)) {
 }
 
 if (process.env.NODE_ENV && ["production"].includes(process.env.NODE_ENV)) {
-  process.on("unhandledRejection", logger.error);
+  process.on("unhandledRejection", (e) => {
+    logger.error(`Unhandled rejection: ${e instanceof Error ? e.stack || e.message : String(e)}`);
+  });
 }
 
 app.use(cookieParser());
@@ -30,7 +32,7 @@ app.use((req, res, next) => {
     limit: "15mb",
   })(req, res, (err) => {
     if (err) {
-      logger.error(err);
+      logger.error(err instanceof Error ? err.message : String(err));
       res.status(400).json({ message: "Request is not valid JSON" });
       return;
     }
@@ -58,7 +60,7 @@ app.use((err: Error, req: express.Request, res: express.Response, next: express.
     res.status(422).json({ message: `File too large, only files under 20MB will be uploaded` });
   }
 
-  logger.error(err);
+  logger.error(err.stack || err.message);
   res.status(500).json({ message: err.toString() });
 });
 

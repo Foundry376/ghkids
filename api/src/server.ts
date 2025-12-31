@@ -1,9 +1,9 @@
 // The common service utils must be imported first
 
 import { Express } from "express";
-import { logger } from "./logger";
 import throng from "throng";
 import { AppDataSource } from "./db/data-source";
+import { logger } from "./logger";
 
 if (!process.env.TS_NODE_DEV && !process.env.TS_NODE) {
   require("module-alias/register");

@@ -1,7 +1,6 @@
 {
   "name": "codako-api",
   "version": "1.5.0",
-  "main": "index.js",
   "license": "MIT",
   "scripts": {
     "dev": "pkill -f \"nodemon\"; concurrently -k -p \"[{name}]\" -n \"TypeScript,Node\" -c \"yellow.bold,cyan.bold,green.bold\" \"tsc -w\" \"nodemon --delay 5 dist/server.js\"",
