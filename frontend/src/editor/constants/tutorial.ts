@@ -3,6 +3,8 @@ import { EditorState, Stage } from "../../types";
 import { Actions } from "../actions";
 import { changeActors } from "../actions/stage-actions";
 import { stopPlayback } from "../actions/ui-actions";
+import { TutorialAnnotationProps } from "../components/tutorial/annotation";
+import { PoseKey } from "../components/tutorial/girl";
 import { getCurrentStageForWorld } from "../utils/selectors";
 import { RECORDING_PHASE, TOOLS } from "./constants";
 
@@ -39,11 +41,11 @@ const baseTutorialBoulderPath = {
 };
 
 export type TutorialStep = {
-  pose: string | string[];
+  pose: PoseKey | PoseKey[];
   text: string;
   soundURL?: string;
   onEnter?: (dispatch: Dispatch<Actions>) => void;
-  annotation?: { selectors: string[]; style: string; options?: { [key: string]: number } };
+  annotation?: TutorialAnnotationProps;
   waitsFor?: {
     button?: string; // label
     elementMatching?: string;
@@ -802,7 +804,7 @@ const baseTutorialSteps: TutorialStep[] = [
   },
 ];
 
-const forkTutorialSteps = [
+const forkTutorialSteps: TutorialStep[] = [
   {
     pose: "sitting-talking",
     text: `Hi there! I've copied this game to your account so you can edit it as much as you want.
@@ -886,6 +888,7 @@ const forkTutorialSteps = [
     waitsFor: {
       button: "End Walkthrough",
     },
+    pose: "sitting-talking",
   },
 ];
 

@@ -7,7 +7,7 @@ interface VariableOverlayProps {
   showVariables: boolean;
   visibleVariables: Record<string, boolean>;
   pixelSize: number;
-  imageData: ImageData | null;
+  imageData: Pick<ImageData, "width" | "height"> | null;
   stageContext?: boolean;
 }
 
@@ -49,8 +49,7 @@ const VariableOverlay: React.FC<VariableOverlayProps> = ({
       >
         {visibleVariableKeys.map((variableId) => {
           const variable = variables[variableId];
-          const displayValue =
-            actor?.variableValues?.[variableId] || variable.defaultValue || "";
+          const displayValue = actor?.variableValues?.[variableId] || variable.defaultValue || "";
           return (
             <div
               key={variableId}
@@ -90,8 +89,7 @@ const VariableOverlay: React.FC<VariableOverlayProps> = ({
     >
       {visibleVariableKeys.map((variableId, index) => {
         const variable = variables[variableId];
-        const displayValue =
-          actor?.variableValues?.[variableId] || variable.defaultValue || "";
+        const displayValue = actor?.variableValues?.[variableId] || variable.defaultValue || "";
         const x = 10 + (index % 2) * 120;
         const y = 15 + Math.floor(index / 2) * 20;
         return (

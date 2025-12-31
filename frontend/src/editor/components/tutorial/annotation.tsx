@@ -10,7 +10,7 @@ interface AnnotationOptions {
   height?: number;
 }
 
-interface TutorialAnnotationProps {
+export interface TutorialAnnotationProps {
   style?: "arrow" | "outline";
   selectors?: string[];
   options?: AnnotationOptions;
@@ -85,7 +85,7 @@ export default class TutorialAnnotation extends React.Component<
 
   private onSomeElementScrolled = (event: Event): void => {
     if (event.target !== document) {
-      window.requestAnimationFrame(this.reposition);
+      window.requestAnimationFrame(() => this.reposition());
     }
   };
 
@@ -96,13 +96,8 @@ export default class TutorialAnnotation extends React.Component<
     this.targetObservers = this.targetEls
       .filter((el): el is Element => !!el)
       .map((el) => {
-        const o = new MutationObserver(this.reposition);
-        o.observe(el, {
-          attributes: true,
-          childList: true,
-          characterData: true,
-          subtree: true,
-        });
+        const o = new MutationObserver((records) => this.reposition(records));
+        o.observe(el, { attributes: true, childList: true, characterData: true, subtree: true });
         return o;
       });
 

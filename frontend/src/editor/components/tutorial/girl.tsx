@@ -3,7 +3,7 @@ import React from "react";
 import { poseFrames } from "../../constants/tutorial";
 import "../../styles/girl.scss";
 
-type PoseKey = keyof typeof poseFrames;
+export type PoseKey = keyof typeof poseFrames;
 
 interface GirlProps {
   pose?: PoseKey | PoseKey[];
