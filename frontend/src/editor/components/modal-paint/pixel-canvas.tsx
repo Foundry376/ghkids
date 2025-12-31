@@ -62,6 +62,10 @@ const PixelCanvas: React.FC<PixelCanvasProps> = ({
   const pixelContextRef = useRef<PixelContext | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  // Track mousedown state in a ref for synchronous access in event handlers
+  const mousedownRef = useRef(false);
+  mousedownRef.current = mousedown;
+
   const getSelectionPixels = useCallback((): Record<string, boolean> => {
     if (interactionPixels) {
       return interactionPixels;
@@ -245,55 +249,68 @@ const PixelCanvas: React.FC<PixelCanvasProps> = ({
     };
   }, [pixelSize, getSelectionPixels, renderToCanvas]);
 
-  // Mouse move handler (attached to canvas when not dragging)
-  const handleMouseMoveOnCanvas = useCallback(
-    (event: MouseEvent) => {
-      const p = pixelForEvent(event);
+  // Store current props/state in refs for stable event handlers
+  const propsRef = useRef({
+    onMouseDown,
+    onMouseMove,
+    onMouseUp,
+    pixelForEvent,
+    getSelectionPixels,
+    selectionOffset,
+  });
+  propsRef.current = {
+    onMouseDown,
+    onMouseMove,
+    onMouseUp,
+    pixelForEvent,
+    getSelectionPixels,
+    selectionOffset,
+  };
 
-      if (mousedown) {
-        onMouseMove(event, p);
-      }
+  // Stable mouse move handler - never changes reference
+  const stableMouseMove = useCallback((event: MouseEvent) => {
+    const { pixelForEvent, onMouseMove, getSelectionPixels, selectionOffset } = propsRef.current;
+    const p = pixelForEvent(event);
 
-      const selectionPixels = getSelectionPixels();
-      const isOverSelection =
-        selectionPixels[`${p.x - selectionOffset.x},${p.y - selectionOffset.y}`];
-      if (isOverSelection !== mouseoverSelection) {
-        setMouseoverSelection(!!isOverSelection);
-      }
-    },
-    [mousedown, onMouseMove, pixelForEvent, getSelectionPixels, selectionOffset, mouseoverSelection]
-  );
+    if (mousedownRef.current) {
+      onMouseMove(event, p);
+    }
+
+    const selectionPixels = getSelectionPixels();
+    const isOverSelection =
+      selectionPixels[`${p.x - selectionOffset.x},${p.y - selectionOffset.y}`];
+    setMouseoverSelection((prev) => (isOverSelection ? true : prev ? false : prev));
+  }, []);
+
+  // Stable mouse up handler - never changes reference
+  const stableMouseUp = useCallback((event: MouseEvent) => {
+    if (!canvasRef.current) return;
+
+    canvasRef.current.addEventListener("mousemove", stableMouseMove);
+    document.removeEventListener("mousemove", stableMouseMove);
+    document.removeEventListener("mouseup", stableMouseUp);
+
+    if (mousedownRef.current) {
+      const { onMouseUp, pixelForEvent } = propsRef.current;
+      onMouseUp(event, pixelForEvent(event));
+      setMousedown(false);
+    }
+  }, [stableMouseMove]);
 
   // Handle mouse down
   const handleMouseDown = useCallback(
     (event: React.MouseEvent) => {
       if (!canvasRef.current) return;
 
-      canvasRef.current.removeEventListener("mousemove", handleMouseMoveOnCanvas);
-      document.addEventListener("mousemove", handleMouseMoveOnCanvas);
-      document.addEventListener("mouseup", handleMouseUp);
+      canvasRef.current.removeEventListener("mousemove", stableMouseMove);
+      document.addEventListener("mousemove", stableMouseMove);
+      document.addEventListener("mouseup", stableMouseUp);
 
+      const { onMouseDown, pixelForEvent } = propsRef.current;
       onMouseDown(event, pixelForEvent(event));
       setMousedown(true);
     },
-    [onMouseDown, pixelForEvent, handleMouseMoveOnCanvas]
-  );
-
-  // Handle mouse up
-  const handleMouseUp = useCallback(
-    (event: MouseEvent) => {
-      if (!canvasRef.current) return;
-
-      canvasRef.current.addEventListener("mousemove", handleMouseMoveOnCanvas);
-      document.removeEventListener("mousemove", handleMouseMoveOnCanvas);
-      document.removeEventListener("mouseup", handleMouseUp);
-
-      if (mousedown) {
-        onMouseUp(event, pixelForEvent(event));
-        setMousedown(false);
-      }
-    },
-    [mousedown, onMouseUp, pixelForEvent, handleMouseMoveOnCanvas]
+    [stableMouseMove, stableMouseUp]
   );
 
   // Set up initial mousemove listener
@@ -301,14 +318,14 @@ const PixelCanvas: React.FC<PixelCanvasProps> = ({
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    canvas.addEventListener("mousemove", handleMouseMoveOnCanvas);
+    canvas.addEventListener("mousemove", stableMouseMove);
 
     return () => {
-      canvas.removeEventListener("mousemove", handleMouseMoveOnCanvas);
-      document.removeEventListener("mousemove", handleMouseMoveOnCanvas);
-      document.removeEventListener("mouseup", handleMouseUp);
+      canvas.removeEventListener("mousemove", stableMouseMove);
+      document.removeEventListener("mousemove", stableMouseMove);
+      document.removeEventListener("mouseup", stableMouseUp);
     };
-  }, [handleMouseMoveOnCanvas, handleMouseUp]);
+  }, [stableMouseMove, stableMouseUp]);
 
   const { width, height } = imageData || { width: 1, height: 1 };
 
