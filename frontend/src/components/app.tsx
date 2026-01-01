@@ -35,6 +35,11 @@ const App = () => {
                 Explore
               </Link>
             </li>
+            <li className="nav-item">
+              <Link className="nav-link" to="/changelog">
+                Changelog
+              </Link>
+            </li>
           </ul>
           <div style={{ flex: 1 }} />
           <ul className="nav ">
