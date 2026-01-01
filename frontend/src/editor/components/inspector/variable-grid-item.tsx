@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Character, Global } from "../../../types";
 import { ConnectedActorBlock } from "../stage/recording/blocks";
 import { TapToEditLabel } from "../tap-to-edit-label";
@@ -27,6 +28,17 @@ export const VariableGridItem = ({
   const defaultValue = "defaultValue" in definition ? definition.defaultValue : undefined;
   const displayValue = value !== undefined ? value : defaultValue;
 
+  const type =
+    "type" in definition
+      ? definition.type
+      : displayValue?.startsWith("stage:")
+        ? "stage"
+        : displayValue?.startsWith("actor")
+          ? "actor"
+          : null;
+
+  const [dropping, setDropping] = useState(false);
+
   const _onDragStart = (event: React.DragEvent) => {
     const displayValue = value !== undefined ? value : defaultValue;
 
@@ -42,16 +54,28 @@ export const VariableGridItem = ({
     );
   };
 
-  let content = null;
+  const _onDragOver = (event: React.DragEvent) => {
+    if (type === "actor" && event.dataTransfer.types.includes("sprite")) {
+      event.preventDefault();
+      setDropping(true);
+    }
+  };
 
-  const type =
-    "type" in definition
-      ? definition.type
-      : displayValue?.startsWith("stage:")
-        ? "stage"
-        : displayValue?.startsWith("actor")
-          ? "actor"
-          : null;
+  const _onDragLeave = () => {
+    setDropping(false);
+  };
+
+  const _onDrop = (event: React.DragEvent) => {
+    if (type === "actor" && event.dataTransfer.types.includes("sprite")) {
+      const { dragAnchorActorId } = JSON.parse(event.dataTransfer.getData("sprite"));
+      onChangeValue(definition.id, dragAnchorActorId);
+      event.preventDefault();
+      event.stopPropagation();
+    }
+    setDropping(false);
+  };
+
+  let content = null;
 
   if (type === "stage") {
     content = (
@@ -85,10 +109,13 @@ export const VariableGridItem = ({
 
   return (
     <div
-      className={`variable-box variable-set-${value !== undefined}`}
+      className={`variable-box variable-set-${value !== undefined} dropping-${dropping}`}
       onClick={(e) => onClick(definition.id, e)}
       draggable={draggable}
       onDragStart={_onDragStart}
+      onDragOver={_onDragOver}
+      onDragLeave={_onDragLeave}
+      onDrop={_onDrop}
     >
       <TapToEditLabel
         className="name"
