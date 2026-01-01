@@ -10,7 +10,7 @@ const router = express.Router();
  *
  * GET /test/sendemail?to=your@email.com
  */
-router.get("/test/sendemail", async (req, res) => {
+router.get("/test/send-email", async (req, res) => {
   if (process.env.NODE_ENV === "production") {
     return res.status(403).json({ message: "Not available in production" });
   }

@@ -17,7 +17,11 @@ function loadTemplate(templateName: string): HandlebarsTemplateDelegate {
     return cached;
   }
 
-  const templatePath = path.join(__dirname, "templates", `${templateName}.html`);
+  const templatePath = path.join(
+    __dirname.replace("/dist/", "/src/"),
+    "templates",
+    `${templateName}.html`,
+  );
   const templateSource = fs.readFileSync(templatePath, "utf-8");
   const compiled = Handlebars.compile(templateSource);
   templateCache.set(templateName, compiled);
@@ -66,7 +70,7 @@ export async function sendEmail(options: EmailOptions): Promise<boolean> {
 }
 
 export async function sendEmails(
-  emails: EmailOptions[]
+  emails: EmailOptions[],
 ): Promise<{ sent: number; failed: number }> {
   const results = await Promise.all(emails.map(sendEmail));
   return {
@@ -83,12 +87,10 @@ export async function sendTemplateEmail(
   recipient: User,
   template: string,
   subject: string,
-  data: Record<string, unknown> = {}
+  data: Record<string, unknown> = {},
 ): Promise<boolean> {
   if (!recipient.email) {
-    console.warn(
-      `Cannot send email to user ${recipient.username}: no email address`
-    );
+    console.warn(`Cannot send email to user ${recipient.username}: no email address`);
     return false;
   }
 
@@ -110,14 +112,11 @@ export interface ForkEmailData {
   worldId: number;
 }
 
-export async function sendForkEmail(
-  recipient: User,
-  data: ForkEmailData
-): Promise<boolean> {
+export async function sendForkEmail(recipient: User, data: ForkEmailData): Promise<boolean> {
   return sendTemplateEmail(
     recipient,
     "fork",
     `${data.forkerUsername} forked your world "${data.worldName}"`,
-    { ...data }
+    { ...data },
   );
 }

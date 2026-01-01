@@ -1,7 +1,3 @@
-import { sendTemplateEmail } from "src/connectors/email";
-import { AppDataSource } from "src/db/data-source";
-import { User } from "src/db/entity/user";
-
 interface Announcement {
   title: string;
   body: string;
@@ -16,40 +12,34 @@ export async function deliverAnnouncements(): Promise<void> {
   // For now, this is a placeholder that would be triggered when
   // there's a new announcement to deliver
   const pendingAnnouncement: Announcement | null = null; // await getPendingAnnouncement();
-
   if (!pendingAnnouncement) {
     console.log("[Announcements] No pending announcements to deliver");
     return;
   }
 
   // Find users with announcements enabled and an email address
-  const users = await AppDataSource.getRepository(User)
-    .createQueryBuilder("user")
-    .where("user.email IS NOT NULL")
-    .andWhere("user.notificationSettings->>'announcements' = :enabled", {
-      enabled: "true",
-    })
-    .getMany();
+  // const users = await AppDataSource.getRepository(User)
+  //   .createQueryBuilder("user")
+  //   .where("user.email IS NOT NULL")
+  //   .andWhere("user.notificationSettings->>'announcements' = :enabled", {
+  //     enabled: "true",
+  //   })
+  //   .getMany();
 
-  console.log(
-    `[Announcements] Found ${users.length} users with announcements enabled`
-  );
+  // console.log(`[Announcements] Found ${users.length} users with announcements enabled`);
 
-  for (const user of users) {
-    try {
-      await sendTemplateEmail(user, "announcement", pendingAnnouncement.title, {
-        title: pendingAnnouncement.title,
-        body: pendingAnnouncement.body,
-      });
+  // for (const user of users) {
+  //   try {
+  //     await sendTemplateEmail(user, "announcement", pendingAnnouncement.title, {
+  //       title: pendingAnnouncement.title,
+  //       body: pendingAnnouncement.body,
+  //     });
 
-      console.log(`[Announcements] Sent announcement to ${user.username}`);
-    } catch (err) {
-      console.error(
-        `[Announcements] Failed to send announcement to ${user.username}:`,
-        err
-      );
-    }
-  }
+  //     console.log(`[Announcements] Sent announcement to ${user.username}`);
+  //   } catch (err) {
+  //     console.error(`[Announcements] Failed to send announcement to ${user.username}:`, err);
+  //   }
+  // }
 
   // TODO: Mark announcement as sent
 }
