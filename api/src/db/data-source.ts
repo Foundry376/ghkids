@@ -1,5 +1,4 @@
 import { DataSource } from "typeorm";
-import { logger } from "../logger";
 import { User } from "./entity/user";
 import { World } from "./entity/world";
 
@@ -24,8 +23,3 @@ export const AppDataSource = new DataSource({
     poolSize: process.env.DATABASE_POOL_SIZE || 40,
   },
 });
-
-export const initialize =
-  !process.env.SEED && process.env.NODE_ENV !== "test"
-    ? AppDataSource.initialize().catch(logger.error)
-    : null;
