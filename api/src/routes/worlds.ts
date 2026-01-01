@@ -1,5 +1,5 @@
 import express from "express";
-import { sendForkEmail } from "src/connectors/sendgrid";
+import { sendForkEmail } from "src/connectors/email";
 import { AppDataSource } from "src/db/data-source";
 import { DEFAULT_NOTIFICATION_SETTINGS, User } from "src/db/entity/user";
 import { World } from "src/db/entity/world";

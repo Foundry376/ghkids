@@ -1,24 +1,21 @@
+import { sendTemplateEmail } from "src/connectors/email";
 import { AppDataSource } from "src/db/data-source";
 import { User } from "src/db/entity/user";
-import { sendEmail } from "src/connectors/sendgrid";
+
+interface Announcement {
+  title: string;
+  body: string;
+}
 
 /**
  * Delivers announcement emails to users who have announcements enabled.
  * Checks for pending announcements and sends them to eligible users.
  */
 export async function deliverAnnouncements(): Promise<void> {
-  const templateId = process.env.SENDGRID_TEMPLATE_ANNOUNCEMENT;
-  if (!templateId) {
-    console.warn(
-      "[Announcements] SENDGRID_TEMPLATE_ANNOUNCEMENT not set, skipping"
-    );
-    return;
-  }
-
   // TODO: Check for pending announcements that need to be sent
   // For now, this is a placeholder that would be triggered when
   // there's a new announcement to deliver
-  const pendingAnnouncement = null; // await getPendingAnnouncement();
+  const pendingAnnouncement: Announcement | null = null; // await getPendingAnnouncement();
 
   if (!pendingAnnouncement) {
     console.log("[Announcements] No pending announcements to deliver");
@@ -40,17 +37,9 @@ export async function deliverAnnouncements(): Promise<void> {
 
   for (const user of users) {
     try {
-      // TODO: Build announcement data for the email template
-      const announcementData = {
-        username: user.username,
-        // title: pendingAnnouncement.title,
-        // body: pendingAnnouncement.body,
-      };
-
-      await sendEmail({
-        to: user.email,
-        templateId,
-        dynamicTemplateData: announcementData,
+      await sendTemplateEmail(user, "announcement", pendingAnnouncement.title, {
+        title: pendingAnnouncement.title,
+        body: pendingAnnouncement.body,
       });
 
       console.log(`[Announcements] Sent announcement to ${user.username}`);

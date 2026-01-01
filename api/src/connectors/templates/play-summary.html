@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Your Weekly Play Summary</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      line-height: 1.6;
+      color: #333;
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    .header {
+      text-align: center;
+      padding: 20px 0;
+      border-bottom: 1px solid #eee;
+    }
+    .header h1 {
+      color: #5c6bc0;
+      margin: 0;
+      font-size: 24px;
+    }
+    .content {
+      padding: 30px 0;
+    }
+    .stat {
+      background: #f5f5f5;
+      padding: 15px;
+      border-radius: 4px;
+      margin: 10px 0;
+      text-align: center;
+    }
+    .stat-number {
+      font-size: 36px;
+      font-weight: bold;
+      color: #5c6bc0;
+    }
+    .stat-label {
+      color: #666;
+      font-size: 14px;
+    }
+    .button {
+      display: inline-block;
+      background-color: #5c6bc0;
+      color: white;
+      text-decoration: none;
+      padding: 12px 24px;
+      border-radius: 4px;
+      margin: 20px 0;
+    }
+    .footer {
+      text-align: center;
+      padding: 20px 0;
+      border-top: 1px solid #eee;
+      color: #888;
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>Codako</h1>
+  </div>
+  <div class="content">
+    <p>Hi {{recipientUsername}},</p>
+    <p>Here's how your worlds performed this week:</p>
+
+    <div class="stat">
+      <div class="stat-number">{{totalPlays}}</div>
+      <div class="stat-label">Total Plays</div>
+    </div>
+
+    <p>Keep creating and sharing your worlds with the community!</p>
+
+    <p>
+      <a href="https://www.codako.org/explore" class="button">Explore More Worlds</a>
+    </p>
+  </div>
+  <div class="footer">
+    <p>You're receiving this because you have play summary notifications enabled.</p>
+    <p>&copy; Codako</p>
+  </div>
+</body>
+</html>

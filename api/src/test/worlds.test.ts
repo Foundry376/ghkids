@@ -2,7 +2,7 @@ import { expect } from "chai";
 import sinon from "sinon";
 import request from "supertest";
 import app from "../app";
-import * as sendgrid from "../connectors/sendgrid";
+import * as email from "../connectors/email";
 import { AppDataSource } from "../db/data-source";
 import { User } from "../db/entity/user";
 import { World } from "../db/entity/world";
@@ -87,7 +87,7 @@ describe("Worlds API", () => {
     });
 
     it("should send fork email when forking a world", async () => {
-      const sendForkEmailStub = sinon.stub(sendgrid, "sendForkEmail").resolves(true);
+      const sendForkEmailStub = sinon.stub(email, "sendForkEmail").resolves(true);
 
       try {
         // Create owner with email and fork notifications enabled
@@ -126,7 +126,7 @@ describe("Worlds API", () => {
     });
 
     it("should not send fork email when owner has forks notifications disabled", async () => {
-      const sendForkEmailStub = sinon.stub(sendgrid, "sendForkEmail").resolves(true);
+      const sendForkEmailStub = sinon.stub(email, "sendForkEmail").resolves(true);
 
       try {
         // Create owner with forks notifications disabled
