@@ -17,6 +17,7 @@ function startService(run: () => void) {
   const start = async (pid: number) => {
     logger.info("Initializing database connections");
     await AppDataSource.initialize();
+    logger.info("Initialized database connections");
 
     logger.info("Starting service...");
     void run();
