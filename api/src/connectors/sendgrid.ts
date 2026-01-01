@@ -53,7 +53,7 @@ export async function sendEmail(options: EmailOptions): Promise<boolean> {
 }
 
 export async function sendEmails(
-  emails: EmailOptions[]
+  emails: EmailOptions[],
 ): Promise<{ sent: number; failed: number }> {
   const results = await Promise.all(emails.map(sendEmail));
   return {
@@ -69,12 +69,10 @@ export async function sendEmails(
 export async function sendTemplateEmail(
   recipient: User,
   templateId: string,
-  data: Record<string, unknown> = {}
+  data: Record<string, unknown> = {},
 ): Promise<boolean> {
   if (!recipient.email) {
-    console.warn(
-      `Cannot send email to user ${recipient.username}: no email address`
-    );
+    console.warn(`Cannot send email to user ${recipient.username}: no email address`);
     return false;
   }
 
@@ -89,16 +87,13 @@ export async function sendTemplateEmail(
   });
 }
 
-export interface ForkEmailData {
+export type ForkEmailData = {
   forkerUsername: string;
   worldName: string;
   worldId: number;
-}
+};
 
-export async function sendForkEmail(
-  recipient: User,
-  data: ForkEmailData
-): Promise<boolean> {
+export async function sendForkEmail(recipient: User, data: ForkEmailData): Promise<boolean> {
   const templateId = process.env.SENDGRID_TEMPLATE_FORK;
   if (!templateId) {
     console.warn("SENDGRID_TEMPLATE_FORK not set, skipping fork email");
