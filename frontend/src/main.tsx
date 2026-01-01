@@ -1,6 +1,6 @@
 import { render } from "react-dom";
-import { Provider } from "react-redux";
 import { GoogleReCaptchaProvider } from "react-google-recaptcha-v3";
+import { Provider } from "react-redux";
 
 // Add support for touch-based click events
 // import injectTapEventPlugin from 'react-tap-event-plugin';
@@ -23,7 +23,7 @@ import "./styles/styles.scss";
 const store = configureStore();
 window.store = store;
 
-const RECAPTCHA_SITE_KEY = import.meta.env.VITE_RECAPTCHA_SITE_KEY || "";
+const RECAPTCHA_SITE_KEY = `6LczpzwsAAAAADQs-j6-hokHJ8JUsqZ8NZ6t3BTC`;
 
 // // Create an enhanced history that syncs navigation events with the store
 
