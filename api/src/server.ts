@@ -16,7 +16,7 @@ const WORKERS = Number(process.env.WORKERS || "1");
 function startService(run: () => void) {
   const start = async (pid: number) => {
     logger.info("Initializing database connections");
-    await Promise.all([AppDataSource.initialize]);
+    await AppDataSource.initialize();
 
     logger.info("Starting service...");
     void run();
