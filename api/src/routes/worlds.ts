@@ -1,6 +1,7 @@
 import express from "express";
+import { sendForkEmail } from "src/connectors/email";
 import { AppDataSource } from "src/db/data-source";
-import { User } from "src/db/entity/user";
+import { DEFAULT_NOTIFICATION_SETTINGS, User } from "src/db/entity/user";
 import { World } from "src/db/entity/world";
 import { userFromBasicAuth } from "src/middleware";
 
@@ -81,12 +82,26 @@ router.post("/worlds", userFromBasicAuth, async (req, res) => {
     if (from === "tutorial") {
       from = process.env.TUTORIAL_WORLD_ID;
     }
-    sourceWorld = await AppDataSource.getRepository(World).findOneBy({ id: Number(from) });
+    sourceWorld = await AppDataSource.getRepository(World).findOne({
+      where: { id: Number(from) },
+      relations: ["user"],
+    });
   }
   if (sourceWorld) {
     if (fork) {
       sourceWorld.forkCount += 1;
       await AppDataSource.getRepository(World).save(sourceWorld);
+
+      // Send fork notification email to owner
+      const owner = sourceWorld.user;
+      const notificationSettings = owner?.notificationSettings ?? DEFAULT_NOTIFICATION_SETTINGS;
+      if (owner?.email && notificationSettings.forks) {
+        await sendForkEmail(owner, {
+          forkerUsername: req.user.username,
+          worldName: sourceWorld.name,
+          worldId: sourceWorld.id,
+        });
+      }
     }
     newWorld = AppDataSource.getRepository(World).create({
       userId: req.user.id,

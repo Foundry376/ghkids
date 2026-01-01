@@ -54,6 +54,10 @@ app.use("/", require("./routes/worlds").default);
 app.use("/", require("./routes/characters").default);
 app.use("/", require("./routes/openai").default);
 
+if (process.env.NODE_ENV !== "production") {
+  app.use("/", require("./routes/testing").default);
+}
+
 app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
   // Catch multer limit errors
   if (err instanceof MulterError && err.code === "LIMIT_FILE_SIZE") {
