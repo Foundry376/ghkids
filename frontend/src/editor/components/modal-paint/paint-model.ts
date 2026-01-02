@@ -640,27 +640,45 @@ export class PaintModel {
     if (!flattened) return null;
 
     // Trim inwards from all sides if entire row/column of tiles is empty
-    const filledTiles = Object.keys(getFilledSquares(flattened)).map((str) => str.split(","));
+    const filledSquares = getFilledSquares(flattened);
+    const filledTiles = Object.keys(filledSquares).map((str) => str.split(","));
     const minXFilled = filledTiles.reduce((min, [x]) => Math.min(min, Number(x)), 100);
     const minYFilled = filledTiles.reduce((min, [, y]) => Math.min(min, Number(y)), 100);
     const maxXFilled = filledTiles.reduce((max, [x]) => Math.max(max, Number(x)), 0);
     const maxYFilled = filledTiles.reduce((max, [, y]) => Math.max(max, Number(y)), 0);
 
+    const trimmedWidth = maxXFilled - minXFilled + 1;
+    const trimmedHeight = maxYFilled - minYFilled + 1;
+
     const trimmed = getImageDataWithNewFrame(flattened, {
-      width: (maxXFilled - minXFilled + 1) * 40,
-      height: (maxYFilled - minYFilled + 1) * 40,
+      width: trimmedWidth * 40,
+      height: trimmedHeight * 40,
       offsetX: -minXFilled * 40,
       offsetY: -minYFilled * 40,
     });
 
     if (!trimmed) return null;
 
+    // Adjust anchor position relative to trimmed image bounds
+    // and clamp to ensure it's within the trimmed image area
+    const adjustedAnchor: Point = {
+      x: Math.max(0, Math.min(trimmedWidth - 1, this.state.anchorSquare.x - minXFilled)),
+      y: Math.max(0, Math.min(trimmedHeight - 1, this.state.anchorSquare.y - minYFilled)),
+    };
+
+    // Adjust filled squares map to be relative to trimmed image
+    const adjustedFilled: Record<string, boolean> = {};
+    for (const key of Object.keys(filledSquares)) {
+      const [x, y] = key.split(",").map(Number);
+      adjustedFilled[`${x - minXFilled},${y - minYFilled}`] = true;
+    }
+
     return {
       imageDataURL: getDataURLFromImageData(trimmed)!,
-      anchorSquare: this.state.anchorSquare,
-      filled: getFilledSquares(flattened),
-      width: flattened.width / 40,
-      height: flattened.height / 40,
+      anchorSquare: adjustedAnchor,
+      filled: adjustedFilled,
+      width: trimmedWidth,
+      height: trimmedHeight,
       variableOverlay: {
         showVariables: this.state.showVariables,
         visibleVariables: this.state.visibleVariables,
