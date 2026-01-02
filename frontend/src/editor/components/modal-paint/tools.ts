@@ -1,4 +1,4 @@
-import { forEachInLine, forEachInRect, getFlattenedImageData, Point } from "./helpers";
+import { forEachInLine, forEachInRect, getFilledSquares, getFlattenedImageData, Point } from "./helpers";
 import { PixelToolState } from "./types";
 
 export interface ToolRenderTarget {
@@ -456,14 +456,31 @@ export class ChooseAnchorSquareTool extends PixelTool {
   }
 
   mouseup(props: PixelToolState): Partial<PixelToolState> & { tool?: PixelTool } {
-    const { interaction } = props;
+    const { interaction, imageData } = props;
 
     if (!interaction.e) {
       return super.mouseup(props);
     }
+
+    const squareX = Math.floor(interaction.e.x / 40);
+    const squareY = Math.floor(interaction.e.y / 40);
+
+    // Validate that the selected square contains content (is filled)
+    // to prevent anchor from being positioned outside visible character area
+    const filledSquares = getFilledSquares(imageData);
+    const isSquareFilled = filledSquares[`${squareX},${squareY}`] === true;
+
+    if (!isSquareFilled) {
+      // Don't update anchor if the square is empty, just return to previous tool
+      return {
+        ...super.mouseup(props),
+        tool: this.prevTool,
+      };
+    }
+
     return {
       ...super.mouseup(props),
-      anchorSquare: { x: Math.floor(interaction.e.x / 40), y: Math.floor(interaction.e.y / 40) },
+      anchorSquare: { x: squareX, y: squareY },
       tool: this.prevTool,
     };
   }
