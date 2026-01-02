@@ -12,7 +12,7 @@ import { Actor, ActorTransform, Character, Global, RuleTreeItem, WorldMinimal } 
 import { useEditorSelector } from "../../../hooks/redux";
 import { deleteCharacterVariable, upsertCharacter } from "../../actions/characters-actions";
 import { changeActors } from "../../actions/stage-actions";
-import { selectToolId, selectToolItem } from "../../actions/ui-actions";
+import { selectToolId } from "../../actions/ui-actions";
 import { deleteGlobal, upsertGlobal } from "../../actions/world-actions";
 import { TOOLS } from "../../constants/constants";
 import { findRules, FindRulesResult, ruleUsesVariable } from "../../utils/stage-helpers";
@@ -180,7 +180,6 @@ const PositionGridItem = ({ actor, coordinate, onChange }: PositionGridItemProps
 type VariableInUseModalProps = {
   variableName: string;
   rulesUsingVariable: FindRulesResult;
-  onShowRule: (rule: RuleTreeItem) => void;
   onConfirm: () => void;
   onCancel: () => void;
 };
@@ -188,7 +187,6 @@ type VariableInUseModalProps = {
 const VariableInUseModal = ({
   variableName,
   rulesUsingVariable,
-  onShowRule,
   onConfirm,
   onCancel,
 }: VariableInUseModalProps) => {
@@ -211,16 +209,7 @@ const VariableInUseModal = ({
         <p>Rules using this variable:</p>
         <ul style={{ margin: 0, paddingLeft: 20 }}>
           {rulesUsingVariable.map(({ rule }) => (
-            <li key={rule.id}>
-              <Button
-                color="link"
-                size="sm"
-                style={{ padding: 0 }}
-                onClick={() => onShowRule(rule)}
-              >
-                {getRuleName(rule)}
-              </Button>
-            </li>
+            <li key={rule.id}>{getRuleName(rule)}</li>
           ))}
         </ul>
       </ModalBody>
@@ -276,11 +265,6 @@ export const ContainerPaneVariables = ({
         dispatch(selectToolId(TOOLS.POINTER));
       }
     }
-  };
-
-  const _onShowRule = (rule: RuleTreeItem) => {
-    setPendingDelete(null);
-    dispatch(selectToolItem({ ruleId: rule.id }));
   };
 
   const _onConfirmDelete = () => {
@@ -432,7 +416,6 @@ export const ContainerPaneVariables = ({
         <VariableInUseModal
           variableName={pendingDelete.variableName}
           rulesUsingVariable={pendingDelete.rulesUsingVariable}
-          onShowRule={_onShowRule}
           onConfirm={_onConfirmDelete}
           onCancel={_onCancelDelete}
         />
