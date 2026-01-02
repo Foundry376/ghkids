@@ -15,7 +15,7 @@ import { changeActors } from "../../actions/stage-actions";
 import { selectToolId, selectToolItem } from "../../actions/ui-actions";
 import { deleteGlobal, upsertGlobal } from "../../actions/world-actions";
 import { TOOLS } from "../../constants/constants";
-import { findRulesUsingVariable } from "../../utils/stage-helpers";
+import { findRules, FindRulesResult, ruleUsesVariable } from "../../utils/stage-helpers";
 import Sprite from "../sprites/sprite";
 import { TransformEditorModal } from "./transform-editor";
 import { TransformImages, TransformLabels } from "./transform-images";
@@ -177,10 +177,69 @@ const PositionGridItem = ({ actor, coordinate, onChange }: PositionGridItemProps
   );
 };
 
+type VariableInUseModalProps = {
+  variableName: string;
+  rulesUsingVariable: FindRulesResult;
+  onShowRule: (rule: RuleTreeItem) => void;
+  onConfirm: () => void;
+  onCancel: () => void;
+};
+
+const VariableInUseModal = ({
+  variableName,
+  rulesUsingVariable,
+  onShowRule,
+  onConfirm,
+  onCancel,
+}: VariableInUseModalProps) => {
+  const getRuleName = (rule: RuleTreeItem): string => {
+    if ("name" in rule) return rule.name;
+    return rule.id;
+  };
+
+  return (
+    <Modal isOpen toggle={onCancel}>
+      <ModalHeader toggle={onCancel}>Variable In Use</ModalHeader>
+      <ModalBody>
+        <p>
+          The variable "{variableName}" is used in{" "}
+          {rulesUsingVariable.length === 1
+            ? "1 rule"
+            : `${rulesUsingVariable.length} rules`}
+          . Deleting it may cause unexpected behavior.
+        </p>
+        <p>Rules using this variable:</p>
+        <ul style={{ margin: 0, paddingLeft: 20 }}>
+          {rulesUsingVariable.map(({ rule }) => (
+            <li key={rule.id}>
+              <Button
+                color="link"
+                size="sm"
+                style={{ padding: 0 }}
+                onClick={() => onShowRule(rule)}
+              >
+                {getRuleName(rule)}
+              </Button>
+            </li>
+          ))}
+        </ul>
+      </ModalBody>
+      <ModalFooter>
+        <Button color="secondary" onClick={onCancel}>
+          Cancel
+        </Button>
+        <Button color="danger" onClick={onConfirm}>
+          Delete Anyway
+        </Button>
+      </ModalFooter>
+    </Modal>
+  );
+};
+
 type PendingDeleteState = {
   variableId: string;
   variableName: string;
-  rulesUsingVariable: Array<{ rule: RuleTreeItem; path: string[] }>;
+  rulesUsingVariable: FindRulesResult;
 } | null;
 
 export const ContainerPaneVariables = ({
@@ -202,7 +261,7 @@ export const ContainerPaneVariables = ({
   const _onClickVar = (id: string, event: React.MouseEvent) => {
     if (selectedToolId === TOOLS.TRASH) {
       // Check if this variable is used in any rules
-      const rulesUsingVariable = findRulesUsingVariable(character.rules, id);
+      const rulesUsingVariable = findRules(character, ruleUsesVariable(id));
 
       if (rulesUsingVariable.length > 0) {
         // Show confirmation dialog instead of deleting
@@ -348,16 +407,6 @@ export const ContainerPaneVariables = ({
     );
   }
 
-  const getRuleName = (rule: RuleTreeItem): string => {
-    if ("name" in rule) return rule.name;
-    if (rule.type === "group-event") {
-      if (rule.event === "key") return `On Key Press`;
-      if (rule.event === "click") return `On Click`;
-      return `On Idle`;
-    }
-    return rule.id;
-  };
-
   return (
     <div className={`scroll-container`}>
       <div className="scroll-container-contents">
@@ -379,41 +428,15 @@ export const ContainerPaneVariables = ({
         </div>
       </div>
 
-      <Modal isOpen={!!pendingDelete} toggle={_onCancelDelete}>
-        <ModalHeader toggle={_onCancelDelete}>Variable In Use</ModalHeader>
-        <ModalBody>
-          <p>
-            The variable "{pendingDelete?.variableName}" is used in{" "}
-            {pendingDelete?.rulesUsingVariable.length === 1
-              ? "1 rule"
-              : `${pendingDelete?.rulesUsingVariable.length} rules`}
-            . Deleting it may cause unexpected behavior.
-          </p>
-          <p>Rules using this variable:</p>
-          <ul style={{ margin: 0, paddingLeft: 20 }}>
-            {pendingDelete?.rulesUsingVariable.map(({ rule }) => (
-              <li key={rule.id}>
-                <Button
-                  color="link"
-                  size="sm"
-                  style={{ padding: 0 }}
-                  onClick={() => _onShowRule(rule)}
-                >
-                  {getRuleName(rule)}
-                </Button>
-              </li>
-            ))}
-          </ul>
-        </ModalBody>
-        <ModalFooter>
-          <Button color="secondary" onClick={_onCancelDelete}>
-            Cancel
-          </Button>
-          <Button color="danger" onClick={_onConfirmDelete}>
-            Delete Anyway
-          </Button>
-        </ModalFooter>
-      </Modal>
+      {pendingDelete && (
+        <VariableInUseModal
+          variableName={pendingDelete.variableName}
+          rulesUsingVariable={pendingDelete.rulesUsingVariable}
+          onShowRule={_onShowRule}
+          onConfirm={_onConfirmDelete}
+          onCancel={_onCancelDelete}
+        />
+      )}
     </div>
   );
 };
