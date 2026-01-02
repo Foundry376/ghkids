@@ -470,3 +470,75 @@ export function comparatorMatches(
       isNever(comparator);
   }
 }
+
+/**
+ * Find all rules that use a specific variable ID.
+ * Returns an array of objects with the rule and its container path.
+ */
+export function findRulesUsingVariable(
+  rules: RuleTreeItem[],
+  variableId: string,
+  path: string[] = [],
+): Array<{ rule: RuleTreeItem; path: string[] }> {
+  const results: Array<{ rule: RuleTreeItem; path: string[] }> = [];
+
+  for (const rule of rules) {
+    const currentPath = [...path, rule.id];
+
+    // Check if this is a flow item with a loop count referencing the variable
+    if (
+      rule.type === "group-flow" &&
+      "behavior" in rule &&
+      rule.behavior === "loop" &&
+      "loopCount" in rule &&
+      "variableId" in rule.loopCount &&
+      rule.loopCount.variableId === variableId
+    ) {
+      results.push({ rule, path: currentPath });
+    }
+
+    // Check if this is a rule with conditions or actions using the variable
+    if (rule.type === "rule") {
+      // Check conditions
+      const hasConditionUsingVar = rule.conditions.some(
+        (c) =>
+          ("actorId" in c.left && "variableId" in c.left && c.left.variableId === variableId) ||
+          ("actorId" in c.right && "variableId" in c.right && c.right.variableId === variableId),
+      );
+
+      // Check actions
+      const hasActionUsingVar = rule.actions.some(
+        (a) =>
+          (a.type === "variable" && a.variable === variableId) ||
+          ("value" in a &&
+            a.value &&
+            "actorId" in a.value &&
+            "variableId" in a.value &&
+            a.value.variableId === variableId),
+      );
+
+      if (hasConditionUsingVar || hasActionUsingVar) {
+        results.push({ rule, path: currentPath });
+      }
+    }
+
+    // Check flow item check conditions
+    if (rule.type === "group-flow" && rule.check) {
+      const hasCheckConditionUsingVar = rule.check.conditions.some(
+        (c) =>
+          ("actorId" in c.left && "variableId" in c.left && c.left.variableId === variableId) ||
+          ("actorId" in c.right && "variableId" in c.right && c.right.variableId === variableId),
+      );
+      if (hasCheckConditionUsingVar) {
+        results.push({ rule, path: currentPath });
+      }
+    }
+
+    // Recursively check nested rules
+    if ("rules" in rule) {
+      results.push(...findRulesUsingVariable(rule.rules, variableId, currentPath));
+    }
+  }
+
+  return results;
+}
