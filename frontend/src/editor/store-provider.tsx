@@ -1,36 +1,65 @@
-/* eslint-disable import/default */
-
-import PropTypes from "prop-types";
 import React from "react";
 import { Provider } from "react-redux";
+import { Store } from "redux";
 import u from "updeep";
 
+import { EditorState, Game } from "../types";
 import { default as initialData, default as InitialState } from "./reducers/initial-state";
 import configureStore from "./store/configureStore";
 import { getCurrentStage } from "./utils/selectors";
 import { getStageScreenshot } from "./utils/stage-helpers";
 
-export default class StoreProvider extends React.Component {
-  static propTypes = {
-    world: PropTypes.object,
-    children: PropTypes.node,
-    onWorldChanged: PropTypes.func,
-  };
+declare global {
+  interface Window {
+    editorStore?: Store<EditorState>;
+  }
+}
 
-  constructor(props, context) {
-    super(props, context);
+interface WorldData {
+  id: number;
+  name: string;
+  data?: Partial<EditorState>;
+  published?: boolean;
+  description?: string | null;
+}
 
-    this._saveTimeout = null;
+interface StoreProviderProps {
+  world: WorldData;
+  children: React.ReactNode;
+  onWorldChanged: () => void;
+}
+
+interface StoreProviderState {
+  editorStore: Store<EditorState>;
+  loaded: boolean;
+}
+
+export interface WorldSaveData {
+  thumbnail: string;
+  name: string;
+  description: string | null;
+  published: boolean;
+  data: EditorState;
+}
+
+export default class StoreProvider extends React.Component<
+  StoreProviderProps,
+  StoreProviderState
+> {
+  private _saveTimeout: ReturnType<typeof setTimeout> | null = null;
+
+  constructor(props: StoreProviderProps) {
+    super(props);
     this.state = this.getStateForStore(props.world);
   }
 
-  componentWillReceiveProps(nextProps) {
+  UNSAFE_componentWillReceiveProps(nextProps: StoreProviderProps) {
     if (nextProps.world.id !== this.props.world.id) {
       this.setState(this.getStateForStore(nextProps.world));
     }
   }
 
-  getStateForStore = (world) => {
+  getStateForStore = (world: WorldData): StoreProviderState => {
     const { data, name, id, published, description } = world;
 
     const fullState = u(
@@ -40,8 +69,8 @@ export default class StoreProvider extends React.Component {
           metadata: { name, id, published: published || false, description: description || null },
         },
       },
-      data || initialData,
-    );
+      data || initialData
+    ) as EditorState;
 
     const store = (window.editorStore = configureStore(fullState));
     store.subscribe(this.props.onWorldChanged);
@@ -52,18 +81,20 @@ export default class StoreProvider extends React.Component {
     };
   };
 
-  getWorldSaveData = () => {
+  getWorldSaveData = (): WorldSaveData => {
     const savedState = u(
       {
         undoStack: u.constant([]),
         redoStack: u.constant([]),
         stages: u.map({ history: u.constant([]) }),
       },
-      this.state.editorStore.getState(),
-    );
+      this.state.editorStore.getState()
+    ) as EditorState;
+
+    const currentStage = getCurrentStage(savedState);
 
     return {
-      thumbnail: getStageScreenshot(getCurrentStage(savedState), { size: 400 }),
+      thumbnail: currentStage ? getStageScreenshot(currentStage, { size: 400 }) : "",
       name: savedState.world.metadata.name,
       description: savedState.world.metadata.description,
       published: savedState.world.metadata.published,
