@@ -84,12 +84,12 @@ export function fetchWorld(id: ID) {
 }
 
 export function deleteWorld(id: ID) {
-  return function () {
+  return function (dispatch: Dispatch<MainActions>) {
     if (
       window.confirm("Are you sure you want to delete this world? This action cannot be undone.")
     ) {
       makeRequest(`/worlds/${id}`, { method: "DELETE" }).then(() => {
-        fetchWorldsForUser("me");
+        dispatch(fetchWorldsForUser("me"));
       });
     }
   };
