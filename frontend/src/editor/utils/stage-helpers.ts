@@ -248,25 +248,110 @@ export function applyVariableOperation(existing: string, operation: MathOperatio
   throw new Error(`applyVariableOperation unknown operation ${operation}`);
 }
 
+export type RulePredicate = (rule: RuleTreeItem) => boolean;
+
+export type FindRulesResult = Array<{ rule: RuleTreeItem; parent: { rules: RuleTreeItem[] }; index: number }>;
+
+/**
+ * Find all rules matching a predicate function.
+ * Returns an array of objects with the rule, its parent container, and index.
+ */
+export function findRules(
+  node: { rules: RuleTreeItem[] },
+  predicate: RulePredicate,
+): FindRulesResult {
+  const results: FindRulesResult = [];
+
+  if (!("rules" in node)) {
+    return results;
+  }
+
+  for (let idx = 0; idx < node.rules.length; idx++) {
+    const rule = node.rules[idx];
+
+    if (predicate(rule)) {
+      results.push({ rule, parent: node, index: idx });
+    }
+
+    if ("rules" in rule && rule.rules) {
+      results.push(...findRules(rule, predicate));
+    }
+  }
+
+  return results;
+}
+
+/**
+ * Find a single rule by ID.
+ * Returns [rule, parent, index] or [null, {rules: []}, 0] if not found.
+ */
 export function findRule(
   node: { rules: RuleTreeItem[] },
   id: string,
 ): [RuleTreeItem | null, { rules: RuleTreeItem[] }, number] {
-  if (!("rules" in node)) {
-    return [null, { rules: [] }, 0] as const;
-  }
-  for (let idx = 0; idx < node.rules.length; idx++) {
-    const n = node.rules[idx];
-    if (n.id === id) {
-      return [n, node, idx];
-    } else if ("rules" in n && n.rules) {
-      const rval = findRule(n, id);
-      if (rval[0] !== null) {
-        return rval;
-      }
-    }
+  const results = findRules(node, (rule) => rule.id === id);
+  if (results.length > 0) {
+    return [results[0].rule, results[0].parent, results[0].index];
   }
   return [null, { rules: [] }, 0] as const;
+}
+
+/**
+ * Predicate to check if a rule uses a specific variable ID.
+ */
+export function ruleUsesVariable(variableId: string): RulePredicate {
+  return (rule: RuleTreeItem) => {
+    // Check if this is a flow item with a loop count referencing the variable
+    if (
+      rule.type === "group-flow" &&
+      "behavior" in rule &&
+      rule.behavior === "loop" &&
+      "loopCount" in rule &&
+      "variableId" in rule.loopCount &&
+      rule.loopCount.variableId === variableId
+    ) {
+      return true;
+    }
+
+    // Check if this is a rule with conditions or actions using the variable
+    if (rule.type === "rule") {
+      // Check conditions
+      const hasConditionUsingVar = rule.conditions.some(
+        (c) =>
+          ("actorId" in c.left && "variableId" in c.left && c.left.variableId === variableId) ||
+          ("actorId" in c.right && "variableId" in c.right && c.right.variableId === variableId),
+      );
+
+      // Check actions
+      const hasActionUsingVar = rule.actions.some(
+        (a) =>
+          (a.type === "variable" && a.variable === variableId) ||
+          ("value" in a &&
+            a.value &&
+            "actorId" in a.value &&
+            "variableId" in a.value &&
+            a.value.variableId === variableId),
+      );
+
+      if (hasConditionUsingVar || hasActionUsingVar) {
+        return true;
+      }
+    }
+
+    // Check flow item check conditions
+    if (rule.type === "group-flow" && rule.check) {
+      const hasCheckConditionUsingVar = rule.check.conditions.some(
+        (c) =>
+          ("actorId" in c.left && "variableId" in c.left && c.left.variableId === variableId) ||
+          ("actorId" in c.right && "variableId" in c.right && c.right.variableId === variableId),
+      );
+      if (hasCheckConditionUsingVar) {
+        return true;
+      }
+    }
+
+    return false;
+  };
 }
 type HTMLImageElementLoaded = HTMLImageElement & { _codakoloaded?: boolean };
 
@@ -470,3 +555,4 @@ export function comparatorMatches(
       isNever(comparator);
   }
 }
+

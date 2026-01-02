@@ -6,15 +6,16 @@ import DropdownMenu from "reactstrap/lib/DropdownMenu";
 import DropdownToggle from "reactstrap/lib/DropdownToggle";
 
 import { useDispatch } from "react-redux";
-import { Button } from "reactstrap";
+import { Button, Modal, ModalBody, ModalFooter, ModalHeader } from "reactstrap";
 import { DeepPartial } from "redux";
-import { Actor, ActorTransform, Character, Global, WorldMinimal } from "../../../types";
+import { Actor, ActorTransform, Character, Global, RuleTreeItem, WorldMinimal } from "../../../types";
 import { useEditorSelector } from "../../../hooks/redux";
 import { deleteCharacterVariable, upsertCharacter } from "../../actions/characters-actions";
 import { changeActors } from "../../actions/stage-actions";
 import { selectToolId } from "../../actions/ui-actions";
 import { deleteGlobal, upsertGlobal } from "../../actions/world-actions";
 import { TOOLS } from "../../constants/constants";
+import { findRules, FindRulesResult, ruleUsesVariable } from "../../utils/stage-helpers";
 import Sprite from "../sprites/sprite";
 import { TransformEditorModal } from "./transform-editor";
 import { TransformImages, TransformLabels } from "./transform-images";
@@ -176,6 +177,60 @@ const PositionGridItem = ({ actor, coordinate, onChange }: PositionGridItemProps
   );
 };
 
+type VariableInUseModalProps = {
+  variableName: string;
+  rulesUsingVariable: FindRulesResult;
+  onConfirm: () => void;
+  onCancel: () => void;
+};
+
+const VariableInUseModal = ({
+  variableName,
+  rulesUsingVariable,
+  onConfirm,
+  onCancel,
+}: VariableInUseModalProps) => {
+  const getRuleName = (rule: RuleTreeItem): string => {
+    if ("name" in rule) return rule.name;
+    return rule.id;
+  };
+
+  return (
+    <Modal isOpen toggle={onCancel}>
+      <ModalHeader toggle={onCancel}>Variable In Use</ModalHeader>
+      <ModalBody>
+        <p>
+          The variable "{variableName}" is used in{" "}
+          {rulesUsingVariable.length === 1
+            ? "1 rule"
+            : `${rulesUsingVariable.length} rules`}
+          . Deleting it may cause unexpected behavior.
+        </p>
+        <p>Rules using this variable:</p>
+        <ul style={{ margin: 0, paddingLeft: 20 }}>
+          {rulesUsingVariable.map(({ rule }) => (
+            <li key={rule.id}>{getRuleName(rule)}</li>
+          ))}
+        </ul>
+      </ModalBody>
+      <ModalFooter>
+        <Button color="secondary" onClick={onCancel}>
+          Cancel
+        </Button>
+        <Button color="danger" onClick={onConfirm}>
+          Delete Anyway
+        </Button>
+      </ModalFooter>
+    </Modal>
+  );
+};
+
+type PendingDeleteState = {
+  variableId: string;
+  variableName: string;
+  rulesUsingVariable: FindRulesResult;
+} | null;
+
 export const ContainerPaneVariables = ({
   character,
   actor,
@@ -188,16 +243,39 @@ export const ContainerPaneVariables = ({
   const dispatch = useDispatch();
   const selectedToolId = useEditorSelector((state) => state.ui.selectedToolId);
   const selectedActors = useEditorSelector((state) => state.ui.selectedActors);
+  const [pendingDelete, setPendingDelete] = useState<PendingDeleteState>(null);
 
   // Chararacter and actor variables
 
   const _onClickVar = (id: string, event: React.MouseEvent) => {
     if (selectedToolId === TOOLS.TRASH) {
-      dispatch(deleteCharacterVariable(character.id, id));
+      // Check if this variable is used in any rules
+      const rulesUsingVariable = findRules(character, ruleUsesVariable(id));
+
+      if (rulesUsingVariable.length > 0) {
+        // Show confirmation dialog instead of deleting
+        const variableName = character.variables[id]?.name || "Untitled";
+        setPendingDelete({ variableId: id, variableName, rulesUsingVariable });
+      } else {
+        // No rules use this variable, safe to delete
+        dispatch(deleteCharacterVariable(character.id, id));
+      }
+
       if (!event.shiftKey) {
         dispatch(selectToolId(TOOLS.POINTER));
       }
     }
+  };
+
+  const _onConfirmDelete = () => {
+    if (pendingDelete) {
+      dispatch(deleteCharacterVariable(character.id, pendingDelete.variableId));
+      setPendingDelete(null);
+    }
+  };
+
+  const _onCancelDelete = () => {
+    setPendingDelete(null);
   };
 
   const _onChangeVarDefinition = (id: string, changes: Partial<Character["variables"][0]>) => {
@@ -333,6 +411,15 @@ export const ContainerPaneVariables = ({
           {_renderWorldSection()}
         </div>
       </div>
+
+      {pendingDelete && (
+        <VariableInUseModal
+          variableName={pendingDelete.variableName}
+          rulesUsingVariable={pendingDelete.rulesUsingVariable}
+          onConfirm={_onConfirmDelete}
+          onCancel={_onCancelDelete}
+        />
+      )}
     </div>
   );
 };
