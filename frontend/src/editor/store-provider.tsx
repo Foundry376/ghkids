@@ -15,16 +15,8 @@ declare global {
   }
 }
 
-interface WorldData {
-  id: number;
-  name: string;
-  data?: Partial<EditorState>;
-  published?: boolean;
-  description?: string | null;
-}
-
 interface StoreProviderProps {
-  world: WorldData;
+  world: Game;
   children: React.ReactNode;
   onWorldChanged: () => void;
 }
@@ -34,13 +26,9 @@ interface StoreProviderState {
   loaded: boolean;
 }
 
-export interface WorldSaveData {
-  thumbnail: string;
-  name: string;
-  description: string | null;
-  published: boolean;
+export type WorldSaveData = Pick<Game, "thumbnail" | "name" | "description" | "published"> & {
   data: EditorState;
-}
+};
 
 export default class StoreProvider extends React.Component<
   StoreProviderProps,
@@ -59,7 +47,7 @@ export default class StoreProvider extends React.Component<
     }
   }
 
-  getStateForStore = (world: WorldData): StoreProviderState => {
+  getStateForStore = (world: Game): StoreProviderState => {
     const { data, name, id, published, description } = world;
 
     const fullState = u(
