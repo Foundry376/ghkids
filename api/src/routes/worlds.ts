@@ -32,12 +32,10 @@ router.get("/worlds/:objectId", async (req, res) => {
   world.playCount += 1;
   await AppDataSource.getRepository(World).save(world);
 
-  // Prefer unsavedData if available, otherwise use data
-  const dataToReturn = world.unsavedData || world.data;
-
+  // Return both data and unsavedData with their timestamps - let frontend decide which to use
   res.json(
     Object.assign({}, world.serialize(), {
-      data: dataToReturn ? JSON.parse(dataToReturn) : null,
+      data: world.data ? JSON.parse(world.data) : null,
       unsavedData: world.unsavedData ? JSON.parse(world.unsavedData) : null,
     }),
   );
@@ -128,30 +126,39 @@ router.put("/worlds/:objectId", userFromBasicAuth, async (req, res) => {
 
   // Handle different save actions
   if (action === "save") {
-    // Save: copy unsavedData to data, clear unsavedData
+    // Save: copy unsavedData to data, clear unsavedData and its timestamp
     if (world.unsavedData) {
       world.data = world.unsavedData;
       world.unsavedData = null;
+      world.unsavedDataUpdatedAt = null;
+    } else if (req.body.data) {
+      // If no unsavedData but data provided, save directly to data
+      world.data = JSON.stringify(req.body.data);
     }
     // Also update name and thumbnail if provided
     world.name = req.body.name || world.name;
     world.thumbnail = req.body.thumbnail || world.thumbnail;
+    // updatedAt will be automatically updated by TypeORM
   } else if (action === "discard") {
-    // Discard: clear unsavedData only
+    // Discard: clear unsavedData and its timestamp
     world.unsavedData = null;
+    world.unsavedDataUpdatedAt = null;
   } else {
-    // Default: saveDraft - save to unsavedData
+    // Default: saveDraft - save to unsavedData and update its timestamp
     world.name = req.body.name || world.name;
     world.thumbnail = req.body.thumbnail || world.thumbnail;
-    world.unsavedData = req.body.data ? JSON.stringify(req.body.data) : world.unsavedData;
+    if (req.body.data) {
+      world.unsavedData = JSON.stringify(req.body.data);
+      world.unsavedDataUpdatedAt = new Date(); // Manually update timestamp
+    }
+    // Don't update updatedAt when saving draft
   }
 
   await AppDataSource.getRepository(World).save(world);
-  
-  const dataToReturn = world.unsavedData || world.data;
+
   res.json(
     Object.assign({}, world.serialize(), {
-      data: dataToReturn ? JSON.parse(dataToReturn) : null,
+      data: world.data ? JSON.parse(world.data) : null,
       unsavedData: world.unsavedData ? JSON.parse(world.unsavedData) : null,
     }),
   );

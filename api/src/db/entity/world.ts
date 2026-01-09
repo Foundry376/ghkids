@@ -15,6 +15,9 @@ export class World {
   @Column({ type: "text", nullable: true })
   unsavedData: string | null;
 
+  @Column({ type: "timestamptz", nullable: true })
+  unsavedDataUpdatedAt: Date | null;
+
   @Column({ type: "text" })
   thumbnail: string;
 
@@ -54,6 +57,7 @@ export class World {
       thumbnail: this.thumbnail ? this.thumbnail.toString() : null,
       createdAt: this.createdAt,
       updatedAt: this.updatedAt,
+      unsavedDataUpdatedAt: this.unsavedDataUpdatedAt,
       hasUnsavedData: !!this.unsavedData,
     };
   }

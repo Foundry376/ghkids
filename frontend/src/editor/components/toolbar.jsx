@@ -113,7 +113,7 @@ const Toolbar = ({ selectedToolId, dispatch, metadata, stageName, isInTutorial }
             Unsaved changes
           </span>
         )}
-        <Button color="primary" size="sm" onClick={() => saveDraft()}>
+        <Button color="primary" size="sm" onClick={() => save()}>
           Save
         </Button>
         <Button color="success" size="sm" onClick={() => saveAndExit("/dashboard")}>
