@@ -10,6 +10,8 @@ import { makeRequest } from "../helpers/api";
 import { usePageTitle } from "../hooks/usePageTitle";
 
 import { useParams } from "react-router";
+import { Modal, ModalBody } from "reactstrap";
+import Button from "reactstrap/lib/Button";
 import { applyDataMigrations } from "../editor/data-migrations";
 import { useAppSelector } from "../hooks/redux";
 import { Game } from "../types";
@@ -55,30 +57,34 @@ const LocalStorageAdapter = {
       window.location.href = `/editor/${_value.uploadedAsId}`;
       return Promise.reject(new Error("Redirecting to the new path for this world."));
     }
-    // Prefer unsavedData if available
-    if (_value.unsavedData) {
-      _value.data = _value.unsavedData;
-    }
+    // Return unsavedData separately so loading logic can handle it
+    // Don't modify _value.data here - let the loading logic decide
     return Promise.resolve(_value);
   },
   save: function (_me: User, worldId: string, json: any, action?: string) {
     const _value = JSON.parse(window.localStorage.getItem(worldId)!);
     if (action === "save") {
-      // Copy unsavedData to data, clear unsavedData
+      // Copy unsavedData to data, clear unsavedData and its timestamp
       if (_value.unsavedData) {
         _value.data = _value.unsavedData;
         delete _value.unsavedData;
+        delete _value.unsavedDataUpdatedAt;
       } else if (json.data) {
         _value.data = json.data;
       }
+      if (json.name) _value.name = json.name;
+      if (json.thumbnail) _value.thumbnail = json.thumbnail;
+      _value.updatedAt = new Date().toISOString();
     } else if (action === "discard") {
-      // Clear unsavedData
+      // Clear unsavedData and its timestamp
       delete _value.unsavedData;
+      delete _value.unsavedDataUpdatedAt;
     } else {
-      // Default: saveDraft - save to unsavedData
+      // Default: saveDraft - save to unsavedData and update timestamp
       _value.unsavedData = json.data;
       if (json.name) _value.name = json.name;
       if (json.thumbnail) _value.thumbnail = json.thumbnail;
+      _value.unsavedDataUpdatedAt = new Date().toISOString();
     }
     window.localStorage.setItem(worldId, JSON.stringify(_value));
     return Promise.resolve(_value);
@@ -105,29 +111,70 @@ const EditorPage = () => {
   const worldId = useParams().worldId!;
 
   const _mounted = useRef(true);
+  const _saveTimeout = useRef<number | null>(null);
   const _savePromise = useRef<Promise<any> | null>(null);
   const storeProvider = useRef<StoreProvider | null>(null);
+  const _isCommitting = useRef(false); // Flag to prevent auto-save during commit
+  const _isExitingWithoutSaving = useRef(false); // Flag to prevent auto-save on exit
+  const _isSavingAndExiting = useRef(false); // Flag to prevent warning when saving and exiting
 
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState(null);
   const [world, setWorld] = useState<Game | null>(null);
   const [retry, setRetry] = useState(0);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [showDraftPrompt, setShowDraftPrompt] = useState(false);
+  const [draftWorld, setDraftWorld] = useState<Game | null>(null);
 
   const Adapter = window.location.href.includes("localstorage") ? LocalStorageAdapter : APIAdapter;
 
   useEffect(() => {
+    const _onVisibilityChange = () => {
+      // Save draft when tab becomes hidden (user switching tabs or closing)
+      // But don't save if user explicitly chose to exit without saving
+      if (document.hidden && hasUnsavedChanges && storeProvider.current && !_isExitingWithoutSaving.current) {
+        // Clear any pending timeout
+        if (_saveTimeout.current) {
+          clearTimeout(_saveTimeout.current);
+          _saveTimeout.current = null;
+        }
+        // Save draft immediately
+        saveDraft();
+      }
+    };
+
     const _onBeforeUnload = (event: BeforeUnloadEvent) => {
-      if (hasUnsavedChanges) {
+      // Also try to save on beforeunload as backup, but not if exiting without saving or saving and exiting
+      if (
+        hasUnsavedChanges &&
+        storeProvider.current &&
+        !_isExitingWithoutSaving.current &&
+        !_isSavingAndExiting.current
+      ) {
+        if (_saveTimeout.current) {
+          clearTimeout(_saveTimeout.current);
+          _saveTimeout.current = null;
+        }
+        saveDraft();
+      }
+      // Only show warning if we're not explicitly exiting without saving or saving and exiting
+      if (
+        hasUnsavedChanges &&
+        !_isExitingWithoutSaving.current &&
+        !_isSavingAndExiting.current
+      ) {
         const msg = "You have unsaved changes. Are you sure you want to leave?";
-        event.returnValue = msg; // Gecko, Trident, Chrome 34+
-        return msg; // Gecko, WebKit, Chrome <34
+        event.returnValue = msg;
+        return msg;
       }
       return undefined;
     };
+
+    document.addEventListener("visibilitychange", _onVisibilityChange);
     window.addEventListener("beforeunload", _onBeforeUnload);
     _mounted.current = true;
     return () => {
+      document.removeEventListener("visibilitychange", _onVisibilityChange);
       window.removeEventListener("beforeunload", _onBeforeUnload);
       _mounted.current = false;
     };
@@ -139,33 +186,71 @@ const EditorPage = () => {
     const load = async () => {
       try {
         const loaded = applyDataMigrations(await Adapter.load(me, worldId));
-        // Prefer unsavedData if available, otherwise use data
-        if ((loaded as any).unsavedData) {
-          loaded.data = (loaded as any).unsavedData;
-          setHasUnsavedChanges(true);
+        // Check if there's an unsaved draft
+        const unsavedData = (loaded as any).unsavedData;
+        const unsavedDataUpdatedAt = (loaded as any).unsavedDataUpdatedAt
+          ? new Date((loaded as any).unsavedDataUpdatedAt)
+          : null;
+        const updatedAt = (loaded as any).updatedAt ? new Date((loaded as any).updatedAt) : null;
+
+        // Check if draft is newer than saved data, or if saved data doesn't exist
+        const hasNewerDraft =
+          unsavedData &&
+          (!updatedAt || !unsavedDataUpdatedAt || unsavedDataUpdatedAt > updatedAt);
+
+        if (hasNewerDraft) {
+          console.log("Found newer draft", {
+            unsavedDataUpdatedAt,
+            updatedAt,
+            hasUnsavedData: !!unsavedData,
+            hasSavedData: !!loaded.data,
+          });
+          // Store both versions for user to choose
+          // Draft version uses unsavedData (already parsed JSON from backend)
+          const draftVersion: Game = {
+            ...loaded,
+            data: unsavedData,
+          };
+          setDraftWorld(draftVersion);
+          // Saved version uses the committed data (or draft if no saved data exists)
+          const savedVersion: Game = {
+            ...loaded,
+            data: loaded.data || unsavedData, // Fallback to unsavedData if no saved data exists
+          };
+          // Set saved version initially (user will choose draft if they want it)
+          setWorld(savedVersion);
+          setShowDraftPrompt(true);
+          // Don't set hasUnsavedChanges yet - wait for user to choose
         } else {
-          setHasUnsavedChanges(false);
-        }
-        try {
+          // No draft or draft is older - load normally
+          if (unsavedData && !loaded.data) {
+            // If we have unsavedData but no saved data, use unsavedData
+            loaded.data = unsavedData;
+            setHasUnsavedChanges(true);
+          } else if (unsavedData) {
+            // If we have both, use saved data (draft is older)
+            setHasUnsavedChanges(false);
+          } else {
+            // No draft at all
+            setHasUnsavedChanges(false);
+          }
           setWorld(loaded);
-          setLoaded(true);
-        } catch (err1: any) {
+        }
+        setLoaded(true);
+      } catch (err1: any) {
+        try {
+          const loaded = applyDataMigrations(await Adapter.load(me, worldId));
           loaded.data = deepClone(loaded.data);
           delete loaded.data.ui;
           delete loaded.data.recording;
-          try {
-            setWorld(loaded);
-            setLoaded(true);
-            setRetry(1);
-          } catch {
-            setWorld(null);
-            setError(err1.toString());
-          }
+          setWorld(loaded);
+          setLoaded(true);
+          setRetry(1);
+        } catch {
+          setWorld(null);
+          setError(err1.toString());
+          setLoaded(true);
         }
-      } catch (err: any) {
-        setError(err.message);
-        setLoaded(true);
-        return;
       }
 
       if (!_mounted.current) {
@@ -176,11 +261,16 @@ const EditorPage = () => {
   }, [me, Adapter, worldId]);
 
   const saveDraft = () => {
-    if (!storeProvider.current) {
+    if (!storeProvider.current || _isCommitting.current || _isExitingWithoutSaving.current) {
       return Promise.resolve();
     }
     const json = storeProvider.current.getWorldSaveData();
+    if (_saveTimeout.current) {
+      clearTimeout(_saveTimeout.current);
+      _saveTimeout.current = null;
+    }
     if (_savePromise.current) {
+      saveDraftSoon();
       return _savePromise.current;
     }
 
@@ -189,7 +279,8 @@ const EditorPage = () => {
         if (!_mounted.current) {
           return;
         }
-        setHasUnsavedChanges(true);
+        // Don't change hasUnsavedChanges here - it tracks in-memory changes vs draft
+        // The draft is now saved, but if there are new changes, hasUnsavedChanges should stay true
         _savePromise.current = null;
       })
       .catch((e) => {
@@ -206,28 +297,48 @@ const EditorPage = () => {
     return _savePromise.current;
   };
 
+  const saveDraftSoon = () => {
+    if (_saveTimeout.current) {
+      clearTimeout(_saveTimeout.current);
+    }
+    _saveTimeout.current = setTimeout(() => {
+      saveDraft();
+    }, 5000);
+  };
+
   const save = () => {
     if (!storeProvider.current) {
       return Promise.resolve();
     }
     const json = storeProvider.current.getWorldSaveData();
+    if (_saveTimeout.current) {
+      clearTimeout(_saveTimeout.current);
+      _saveTimeout.current = null;
+    }
     if (_savePromise.current) {
       return _savePromise.current;
     }
 
+    _isCommitting.current = true; // Prevent auto-save during commit
     _savePromise.current = Adapter.save(me, worldId, json, "save")
       .then(() => {
         if (!_mounted.current) {
           return;
         }
+        // After commit, clear unsaved changes flag since everything is now saved
         setHasUnsavedChanges(false);
         _savePromise.current = null;
+        // Keep the flag for a short time to prevent immediate re-triggering
+        setTimeout(() => {
+          _isCommitting.current = false;
+        }, 1000);
       })
       .catch((e) => {
         if (!_mounted.current) {
           return;
         }
         _savePromise.current = null;
+        _isCommitting.current = false;
         alert(
           `Codako was unable to save changes to your world. Your internet connection may be offline. \n(Detail: ${e.message})`,
         );
@@ -238,7 +349,17 @@ const EditorPage = () => {
   };
 
   const saveAndExit = (dest: string) => {
+    // Set flag to prevent warning
+    _isSavingAndExiting.current = true;
+    // Clear any pending saves
+    if (_saveTimeout.current) {
+      clearTimeout(_saveTimeout.current);
+      _saveTimeout.current = null;
+    }
+    // Clear unsaved changes flag immediately since we're committing
+    setHasUnsavedChanges(false);
     save().then(() => {
+      // Navigate after save completes
       if (dest === "tutorial") {
         dispatch(createWorld({ from: "tutorial" }));
       } else {
@@ -248,17 +369,51 @@ const EditorPage = () => {
   };
 
   const exitWithoutSaving = (dest: string) => {
+    // Set flag to prevent auto-save on exit
+    _isExitingWithoutSaving.current = true;
+    // Clear any pending saves
+    if (_saveTimeout.current) {
+      clearTimeout(_saveTimeout.current);
+      _saveTimeout.current = null;
+    }
+    // Discard the draft since user explicitly chose to exit without saving
     if (hasUnsavedChanges) {
       Adapter.save(me, worldId, {}, "discard").catch(() => {
         // Ignore errors when discarding
       });
     }
     setHasUnsavedChanges(false);
-    if (dest === "tutorial") {
-      dispatch(createWorld({ from: "tutorial" }));
-    } else {
-      window.location.href = dest;
+    // Navigate after a brief delay to ensure flag is set
+    setTimeout(() => {
+      if (dest === "tutorial") {
+        dispatch(createWorld({ from: "tutorial" }));
+      } else {
+        window.location.href = dest;
+      }
+    }, 0);
+  };
+
+  const loadDraft = () => {
+    if (draftWorld) {
+      // Force StoreProvider to re-render by incrementing retry
+      setRetry((prev) => prev + 1);
+      setWorld(draftWorld);
+      setShowDraftPrompt(false);
+      setHasUnsavedChanges(true);
     }
+  };
+
+  const revertToSaved = () => {
+    console.log("Reverting to saved version", world);
+    // Clear unsavedData and load from data
+    Adapter.save(me, worldId, {}, "discard").catch(() => {
+      // Ignore errors when discarding
+    });
+    // Force StoreProvider to re-render by incrementing retry
+    // world is already set to the saved version
+    setRetry((prev) => prev + 1);
+    setShowDraftPrompt(false);
+    setHasUnsavedChanges(false);
   };
 
   return (
@@ -277,19 +432,45 @@ const EditorPage = () => {
       {error || !loaded ? (
         <PageMessage text={error ? error : "Loading..."} />
       ) : (
-        <StoreProvider
-          key={`${world!.id}${retry}`}
-          world={world}
-          onWorldChanged={() => {
-            // No auto-save - just mark that there are unsaved changes
-            setHasUnsavedChanges(true);
-          }}
-          ref={(r) => {
-            storeProvider.current = r;
-          }}
-        >
-          <RootEditor />
-        </StoreProvider>
+        <>
+          <Modal isOpen={showDraftPrompt} backdrop="static" centered>
+            <div className="modal-header">
+              <h4 style={{ marginBottom: 0 }}>Unsaved Draft Found</h4>
+            </div>
+            <ModalBody>
+              <p>
+                We found an unsaved draft from your last session. Would you like to continue working
+                on the draft or revert to the last saved version?
+              </p>
+              <div style={{ display: "flex", gap: "12px", justifyContent: "flex-end" }}>
+                <Button color="secondary" onClick={revertToSaved}>
+                  Revert to Saved
+                </Button>
+                <Button color="primary" onClick={loadDraft}>
+                  Load Draft
+                </Button>
+              </div>
+            </ModalBody>
+          </Modal>
+          {world && (
+            <StoreProvider
+              key={`${world.id}${retry}`}
+              world={world}
+              onWorldChanged={() => {
+                // Auto-save to unsavedData after 5 seconds, but not if we're committing
+                if (!_isCommitting.current) {
+                  setHasUnsavedChanges(true);
+                  saveDraftSoon();
+                }
+              }}
+              ref={(r) => {
+                storeProvider.current = r;
+              }}
+            >
+              <RootEditor />
+            </StoreProvider>
+          )}
+        </>
       )}
     </EditorContext.Provider>
   );

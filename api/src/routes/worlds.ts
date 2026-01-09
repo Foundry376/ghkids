@@ -34,7 +34,7 @@ router.get("/worlds/:objectId", async (req, res) => {
   world.playCount = Number(world.playCount) + 1;
   await AppDataSource.getRepository(World).save(world);
 
-  // Return both data and unsavedData - let frontend decide which to use
+  // Return both data and unsavedData with their timestamps - let frontend decide which to use
   res.json(
     Object.assign({}, world.serialize(), {
       data: world.data,
@@ -157,6 +157,7 @@ router.put("/worlds/:objectId", userFromBasicAuth, async (req, res) => {
     // Allow updating published/description on save
     world.description = req.body.description ?? world.description;
     world.published = req.body.published ?? world.published;
+    // updatedAt will be automatically updated by TypeORM
   } else if (action === "discard") {
     // Discard: clear unsavedData and timestamp
     world.unsavedData = null;
@@ -172,6 +173,7 @@ router.put("/worlds/:objectId", userFromBasicAuth, async (req, res) => {
     // Allow updating published/description during draft save too
     world.description = req.body.description ?? world.description;
     world.published = req.body.published ?? world.published;
+    // Don't update updatedAt when saving draft
   }
 
   await AppDataSource.getRepository(World).save(world);
