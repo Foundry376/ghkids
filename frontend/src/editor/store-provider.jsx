@@ -20,12 +20,15 @@ export default class StoreProvider extends React.Component {
   constructor(props, context) {
     super(props, context);
 
-    this._saveTimeout = null;
     this.state = this.getStateForStore(props.world);
   }
 
   componentWillReceiveProps(nextProps) {
-    if (nextProps.world.id !== this.props.world.id) {
+    // Update if world id changes OR if data changes (for draft loading)
+    if (
+      nextProps.world.id !== this.props.world.id ||
+      JSON.stringify(nextProps.world.data) !== JSON.stringify(this.props.world.data)
+    ) {
       this.setState(this.getStateForStore(nextProps.world));
     }
   }

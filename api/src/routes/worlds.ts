@@ -130,7 +130,10 @@ router.put("/worlds/:objectId", userFromBasicAuth, async (req, res) => {
     if (world.unsavedData) {
       world.data = world.unsavedData;
       world.unsavedData = null;
-      world.unsavedDataUpdatedAt = null;
+      // Only clear timestamp if column exists (for backward compatibility)
+      if ("unsavedDataUpdatedAt" in world) {
+        (world as any).unsavedDataUpdatedAt = null;
+      }
     } else if (req.body.data) {
       // If no unsavedData but data provided, save directly to data
       world.data = JSON.stringify(req.body.data);
@@ -142,14 +145,20 @@ router.put("/worlds/:objectId", userFromBasicAuth, async (req, res) => {
   } else if (action === "discard") {
     // Discard: clear unsavedData and its timestamp
     world.unsavedData = null;
-    world.unsavedDataUpdatedAt = null;
+    // Only clear timestamp if column exists (for backward compatibility)
+    if ("unsavedDataUpdatedAt" in world) {
+      (world as any).unsavedDataUpdatedAt = null;
+    }
   } else {
     // Default: saveDraft - save to unsavedData and update its timestamp
     world.name = req.body.name || world.name;
     world.thumbnail = req.body.thumbnail || world.thumbnail;
     if (req.body.data) {
       world.unsavedData = JSON.stringify(req.body.data);
-      world.unsavedDataUpdatedAt = new Date(); // Manually update timestamp
+      // Only update timestamp if column exists (for backward compatibility)
+      if ("unsavedDataUpdatedAt" in world) {
+        (world as any).unsavedDataUpdatedAt = new Date();
+      }
     }
     // Don't update updatedAt when saving draft
   }

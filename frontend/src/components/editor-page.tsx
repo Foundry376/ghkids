@@ -90,19 +90,6 @@ const LocalStorageAdapter = {
   },
 };
 
-// static propTypes = {
-//   me: PropTypes.object,
-//   dispatch: PropTypes.func,
-//   location: PropTypes.shape({
-//     query: PropTypes.shape({
-//       localstorage: PropTypes.string,
-//     }),
-//   }),
-//   params: PropTypes.shape({
-//     worldId: PropTypes.string,
-//   }),
-// };
-
 const EditorPage = () => {
   const me = useSelector<MainState, User>((s) => s.me!);
   const dispatch = useDispatch();
@@ -196,12 +183,6 @@ const EditorPage = () => {
           (!updatedAt || !unsavedDataUpdatedAt || unsavedDataUpdatedAt > updatedAt);
 
         if (hasNewerDraft) {
-          console.log("Found newer draft", {
-            unsavedDataUpdatedAt,
-            updatedAt,
-            hasUnsavedData: !!unsavedData,
-            hasSavedData: !!loaded.data,
-          });
           // Store both versions for user to choose
           // Draft version uses unsavedData (already parsed JSON from backend)
           const draftVersion: Game = {
@@ -401,7 +382,6 @@ const EditorPage = () => {
   };
 
   const revertToSaved = () => {
-    console.log("Reverting to saved version", world);
     // Clear unsavedData and load from data
     Adapter.save(me, worldId, {}, "discard").catch(() => {
       // Ignore errors when discarding

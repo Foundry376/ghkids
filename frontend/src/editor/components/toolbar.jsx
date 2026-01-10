@@ -31,7 +31,6 @@ const Toolbar = ({ selectedToolId, dispatch, metadata, stageName, isInTutorial }
     usingLocalStorage,
     saveWorldAnd,
     save,
-    saveDraft,
     saveAndExit,
     exitWithoutSaving,
     hasUnsavedChanges,
@@ -105,6 +104,13 @@ const Toolbar = ({ selectedToolId, dispatch, metadata, stageName, isInTutorial }
                 Start Tutorial...
               </DropdownItem>
             )}
+            <DropdownItem divider />
+            <DropdownItem onClick={() => saveAndExit("/dashboard")}>
+              Save &amp; Exit
+            </DropdownItem>
+            <DropdownItem onClick={() => exitWithoutSaving("/dashboard")}>
+              Exit Without Saving
+            </DropdownItem>
           </DropdownMenu>
         </ButtonDropdown>
         <TapToEditLabel className="world-name" value={metadata.name} onChange={_onNameChange} />
@@ -115,12 +121,6 @@ const Toolbar = ({ selectedToolId, dispatch, metadata, stageName, isInTutorial }
         )}
         <Button color="primary" size="sm" onClick={() => save()}>
           Save
-        </Button>
-        <Button color="success" size="sm" onClick={() => saveAndExit("/dashboard")}>
-          Save &amp; Exit
-        </Button>
-        <Button color="secondary" size="sm" onClick={() => exitWithoutSaving("/dashboard")}>
-          Exit Without Saving
         </Button>
       </div>
     );
