@@ -31,7 +31,6 @@ const Toolbar = () => {
     saveWorldAnd,
     saveWorld,
     save,
-    saveDraft,
     saveAndExit,
     exitWithoutSaving,
     hasUnsavedChanges,
@@ -122,6 +121,13 @@ const Toolbar = () => {
                 Publish Game...
               </DropdownItem>
             )}
+            <DropdownItem divider />
+            <DropdownItem onClick={() => saveAndExit("/dashboard")}>
+              Save &amp; Exit
+            </DropdownItem>
+            <DropdownItem onClick={() => exitWithoutSaving("/dashboard")}>
+              Exit Without Saving
+            </DropdownItem>
           </DropdownMenu>
         </ButtonDropdown>
         <TapToEditLabel className="world-name" value={metadata.name} onChange={onNameChange} />
@@ -132,12 +138,6 @@ const Toolbar = () => {
         )}
         <Button color="primary" size="sm" onClick={() => save()}>
           Save
-        </Button>
-        <Button color="success" size="sm" onClick={() => saveAndExit("/dashboard")}>
-          Save &amp; Exit
-        </Button>
-        <Button color="secondary" size="sm" onClick={() => exitWithoutSaving("/dashboard")}>
-          Exit Without Saving
         </Button>
       </div>
     );
