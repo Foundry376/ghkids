@@ -26,7 +26,15 @@ const Toolbar = () => {
   const metadata = useEditorSelector((state) => state.world.metadata);
   const isInTutorial = useEditorSelector((state) => state.ui.tutorial.stepIndex === 0);
 
-  const { usingLocalStorage, saveWorldAnd, saveWorld } = useContext(EditorContext);
+  const {
+    usingLocalStorage,
+    saveWorldAnd,
+    saveWorld,
+    save,
+    saveAndExit,
+    exitWithoutSaving,
+    hasUnsavedChanges,
+  } = useContext(EditorContext);
   const [open, setOpen] = useState(false);
 
   const renderTool = (toolId: TOOLS) => {
@@ -78,7 +86,7 @@ const Toolbar = () => {
     }
 
     return (
-      <div style={{ display: "flex", alignItems: "center" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
         <ButtonDropdown data-tutorial-id="main-menu" isOpen={open} toggle={() => setOpen(!open)}>
           <DropdownToggle>
             <i className="fa fa-ellipsis-v" />
@@ -114,10 +122,23 @@ const Toolbar = () => {
               </DropdownItem>
             )}
             <DropdownItem divider />
-            <DropdownItem onClick={() => saveWorldAnd("/dashboard")}>Save &amp; Exit</DropdownItem>
+            <DropdownItem onClick={() => saveAndExit("/dashboard")}>
+              Save &amp; Exit
+            </DropdownItem>
+            <DropdownItem onClick={() => exitWithoutSaving("/dashboard")}>
+              Exit Without Saving
+            </DropdownItem>
           </DropdownMenu>
         </ButtonDropdown>
         <TapToEditLabel className="world-name" value={metadata.name} onChange={onNameChange} />
+        {hasUnsavedChanges && (
+          <span style={{ fontSize: "12px", color: "#ff9800", marginLeft: "8px" }}>
+            Unsaved changes
+          </span>
+        )}
+        <Button color="primary" size="sm" onClick={() => save()}>
+          Save
+        </Button>
       </div>
     );
   };
