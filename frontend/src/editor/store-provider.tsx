@@ -34,8 +34,6 @@ export default class StoreProvider extends React.Component<
   StoreProviderProps,
   StoreProviderState
 > {
-  private _saveTimeout: ReturnType<typeof setTimeout> | null = null;
-
   constructor(props: StoreProviderProps) {
     super(props);
     this.state = this.getStateForStore(props.world);
@@ -70,21 +68,23 @@ export default class StoreProvider extends React.Component<
   };
 
   getWorldSaveData = (): WorldSaveData => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const savedState = u(
       {
         undoStack: u.constant([]),
         redoStack: u.constant([]),
-        stages: u.map({ history: u.constant([]) }),
-      },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        stages: (u as any).map({ history: u.constant([]) }),
+      } as any,
       this.state.editorStore.getState()
     ) as EditorState;
 
     const currentStage = getCurrentStage(savedState);
 
     return {
-      thumbnail: currentStage ? getStageScreenshot(currentStage, { size: 400 }) : "",
+      thumbnail: currentStage ? (getStageScreenshot(currentStage, { size: 400 }) ?? "") : "",
       name: savedState.world.metadata.name,
-      description: savedState.world.metadata.description,
+      description: savedState.world.metadata.description ?? null,
       published: savedState.world.metadata.published,
       data: savedState,
     };

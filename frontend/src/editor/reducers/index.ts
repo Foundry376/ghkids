@@ -3,6 +3,7 @@ import { Actions } from "../actions";
 import * as Types from "../constants/action-types";
 import { undoRedoReducerFactory } from "../utils/undo-redo";
 import charactersReducer from "./characters-reducer";
+import InitialState from "./initial-state";
 import recordingReducer from "./recording-reducer";
 import uiReducer from "./ui-reducer";
 import worldReducer from "./world-reducer";
@@ -38,7 +39,7 @@ function applyReducerMap(map: any, state: any, action: Actions) {
   return nextState as EditorState;
 }
 
-export default function (state: EditorState, action: Actions) {
+export default function (state: EditorState = InitialState, action: Actions) {
   // apply reducers that handle individual state keys
   let nextState = applyReducerMap(reducerMap, state, action);
 

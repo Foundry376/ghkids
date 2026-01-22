@@ -1,4 +1,5 @@
 import { applyMiddleware, compose, createStore, Store, StoreEnhancer } from "redux";
+// @ts-ignore - no type definitions available
 import reduxImmutableStateInvariant from "redux-immutable-state-invariant";
 import thunk from "redux-thunk";
 
@@ -31,10 +32,11 @@ function configureStoreDev(initialState: MainState): Store<MainState> {
   );
 
   if (import.meta.hot) {
-    // Enable Webpack hot module replacement for reducers
-    import.meta.hot.accept("../reducers", () => {
-      const nextReducer = new URL("../reducers", import.meta.url).href.default;
-      store.replaceReducer(nextReducer);
+    // Enable Vite hot module replacement for reducers
+    import.meta.hot.accept("../reducers", (newModule) => {
+      if (newModule) {
+        store.replaceReducer(newModule.default);
+      }
     });
   }
 
@@ -42,6 +44,6 @@ function configureStoreDev(initialState: MainState): Store<MainState> {
 }
 
 const configureStore: (initialState: MainState) => Store<MainState> =
-  process.env.NODE_ENV === "production" ? configureStoreProd : configureStoreDev;
+  import.meta.env.PROD ? configureStoreProd : configureStoreDev;
 
 export default configureStore;

@@ -20,7 +20,7 @@ export const ScenarioStage = React.memo(
     maxWidth: number;
     maxHeight: number;
   }) => {
-    const { world, characters } = window.editorStore.getState();
+    const { world, characters } = window.editorStore!.getState();
 
     const { xmin, xmax, ymin, ymax } = rule.extent;
     const width = (xmax - xmin + 1) * STAGE_CELL_SIZE;

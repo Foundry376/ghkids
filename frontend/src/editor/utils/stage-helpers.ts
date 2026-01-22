@@ -466,7 +466,7 @@ export function renderTransformedImage(
 }
 
 export function getStageScreenshot(stage: Stage, { size }: { size: number }) {
-  const { characters } = window.editorStore.getState();
+  const { characters } = window.editorStore!.getState();
 
   const scale = Math.min(size / (stage.width * 40), size / (stage.height * 40));
   const pxPerSquare = Math.round(40 * scale);
@@ -492,7 +492,7 @@ export function getStageScreenshot(stage: Stage, { size }: { size: number }) {
   Object.values(stage.actors).forEach((actor) => {
     const i = new Image();
     const { appearances, appearanceInfo } = characters[actor.characterId].spritesheet;
-    i.src = appearances[actor.appearance];
+    i.src = appearances[actor.appearance][0];
     const info = appearanceInfo?.[actor.appearance] || DEFAULT_APPEARANCE_INFO;
 
     context.save();

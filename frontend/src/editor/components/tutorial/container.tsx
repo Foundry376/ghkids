@@ -28,19 +28,19 @@ class TutorialAdvancer {
     this._callback = callback;
 
     if (step.onEnter) {
-      step.onEnter(window.editorStore.dispatch);
+      step.onEnter(window.editorStore!.dispatch);
     }
 
     if (this._waitsFor.stateMatching) {
       const tryState = () => {
-        const state = window.editorStore.getState() as EditorState;
+        const state = window.editorStore!.getState() as EditorState;
         const currentStage = getCurrentStage(state);
         if (currentStage && this._waitsFor.stateMatching?.(state, currentStage)) {
           this._timer = setTimeout(this._callback, this._waitsFor.delay || 750);
           this._unsub?.();
         }
       };
-      this._unsub = window.editorStore.subscribe(tryState);
+      this._unsub = window.editorStore!.subscribe(tryState);
       tryState();
     }
 

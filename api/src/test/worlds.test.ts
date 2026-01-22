@@ -200,7 +200,7 @@ describe("Worlds API", () => {
       });
 
       const res = await request(app)
-        .put(`/worlds/${world.id}`)
+        .put(`/worlds/${world.id}?action=save`)
         .set("Authorization", authHeader)
         .send({ name: "Updated Name", data: { updated: true } })
         .expect(200);

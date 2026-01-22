@@ -1,6 +1,5 @@
 /* eslint no-unused-vars: 0 */
 import Cookies from "js-cookie";
-import { MainActions } from "../actions/main-actions";
 import { MainState } from "../reducers/initial-state";
 
 const KEY = "session";
@@ -10,8 +9,10 @@ let value = Cookies.get(KEY);
 
 export const sessionStorageMiddleware =
   (store: { getState: () => MainState }) =>
-  (next: (action: MainActions) => MainState) =>
-  (action: MainActions) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (next: (action: any) => any) =>
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (action: any) => {
     const result = next(action);
 
     const { me } = store.getState();

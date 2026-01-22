@@ -13,6 +13,7 @@ import { initializeSentry } from "./utils/sentry";
 initializeSentry();
 
 import routes from "./routes";
+import initialState from "./reducers/initial-state";
 import configureStore from "./store/configureStore";
 
 import "bootstrap/dist/css/bootstrap.min.css";
@@ -20,7 +21,7 @@ import { BrowserRouter } from "react-router-dom";
 import "./styles/font-awesome.min.css";
 import "./styles/styles.scss";
 
-const store = configureStore();
+const store = configureStore(initialState);
 window.store = store;
 
 const RECAPTCHA_SITE_KEY = `6LczpzwsAAAAADQs-j6-hokHJ8JUsqZ8NZ6t3BTC`;

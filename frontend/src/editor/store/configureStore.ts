@@ -34,10 +34,11 @@ function configureStoreDev(initialState: EditorState): Store<EditorState> {
   );
 
   if (import.meta.hot) {
-    // Enable Webpack hot module replacement for reducers
-    import.meta.hot.accept("../reducers", () => {
-      const nextReducer = new URL("../reducers", import.meta.url).href.default;
-      store.replaceReducer(nextReducer);
+    // Enable Vite hot module replacement for reducers
+    import.meta.hot.accept("../reducers", (newModule) => {
+      if (newModule) {
+        store.replaceReducer(newModule.default);
+      }
     });
   }
 
@@ -45,6 +46,6 @@ function configureStoreDev(initialState: EditorState): Store<EditorState> {
 }
 
 const configureStore: (initialState: EditorState) => Store<EditorState> =
-  process.env.NODE_ENV === "production" ? configureStoreProd : configureStoreDev;
+  import.meta.env.PROD ? configureStoreProd : configureStoreDev;
 
 export default configureStore;
