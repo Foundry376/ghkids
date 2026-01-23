@@ -10,7 +10,6 @@ interface ActorSelectionPopoverProps {
   characters: Characters;
   position: { x: number; y: number }; // Screen pixel position for popover
   onSelect: (actor: Actor) => void;
-  onDragStart: (actor: Actor) => void;
   onClose: () => void;
 }
 
@@ -19,7 +18,6 @@ const ActorSelectionPopover: React.FC<ActorSelectionPopoverProps> = ({
   characters,
   position,
   onSelect,
-  onDragStart,
   onClose,
 }) => {
   const popoverRef = useRef<HTMLDivElement>(null);
@@ -87,9 +85,7 @@ const ActorSelectionPopover: React.FC<ActorSelectionPopoverProps> = ({
                   character={character}
                   actor={{ ...actor, position: { x: bounds.offsetX, y: bounds.offsetY } }}
                   selected={false}
-                  dragActorIds={[actor.id]}
                   onMouseUp={() => onSelect(actor)}
-                  onDragStart={() => onDragStart(actor)}
                 />
               </div>
             </div>

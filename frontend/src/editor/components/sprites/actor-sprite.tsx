@@ -1,10 +1,6 @@
 import { Actor, Character } from "../../../types";
 import { STAGE_CELL_SIZE } from "../../constants/constants";
-import {
-  pointApplyingTransform,
-  renderTransformedImage,
-  transformSwapsDimensions,
-} from "../../utils/stage-helpers";
+import { pointApplyingTransform } from "../../utils/stage-helpers";
 import VariableOverlay from "../modal-paint/variable-overlay";
 import { DEFAULT_APPEARANCE_INFO, SPRITE_TRANSFORM_CSS } from "./sprite";
 
@@ -18,7 +14,12 @@ const ActorSprite = (props: {
   onClick?: (e: React.MouseEvent) => void;
   onMouseUp?: (e: React.MouseEvent) => void;
   onDoubleClick?: (e: React.MouseEvent) => void;
-  onDragStart?: (e: React.DragEvent) => void;
+  onStartDrag?: (
+    actor: Actor,
+    actorIds: string[],
+    event: React.MouseEvent,
+    anchorOffset: { x: number; y: number },
+  ) => void;
   transitionDuration?: number;
 }) => {
   const {
@@ -30,7 +31,7 @@ const ActorSprite = (props: {
     onClick,
     onMouseUp,
     onDoubleClick,
-    onDragStart: onDragStartProp,
+    onStartDrag,
   } = props;
 
   if (!character) {
@@ -54,7 +55,7 @@ const ActorSprite = (props: {
   const { appearances, appearanceInfo } = character.spritesheet;
   const info = appearanceInfo?.[actor.appearance] || DEFAULT_APPEARANCE_INFO;
 
-  const isEventInFilledSquare = (event: React.DragEvent | React.MouseEvent<HTMLDivElement>) => {
+  const isEventInFilledSquare = (event: React.MouseEvent) => {
     if (!(event.target instanceof HTMLElement)) {
       return false;
     }
@@ -73,9 +74,9 @@ const ActorSprite = (props: {
     return true;
   };
 
-  const onDragStart = (event: React.DragEvent) => {
-    if (!dragActorIds) {
-      event.preventDefault();
+  // Handle mouse down to initiate custom drag (replaces native HTML drag)
+  const onMouseDownForDrag = (event: React.MouseEvent) => {
+    if (!dragActorIds || !onStartDrag) {
       return;
     }
     if (!(event.target instanceof HTMLElement)) {
@@ -85,65 +86,15 @@ const ActorSprite = (props: {
       return;
     }
 
+    // Calculate click offset within the sprite for proper drag positioning
     const { top, left } = event.target.getBoundingClientRect();
-    const dragLeft = event.clientX - left;
-    const dragTop = event.clientY - top;
+    const anchorOffset = {
+      x: event.clientX - left,
+      y: event.clientY - top,
+    };
 
-    event.dataTransfer.effectAllowed = "copyMove";
-    event.dataTransfer.setData(
-      "drag-offset",
-      JSON.stringify({
-        dragLeft,
-        dragTop,
-      }),
-    );
-    event.dataTransfer.setData(
-      "sprite",
-      JSON.stringify({
-        dragAnchorActorId: actor.id,
-        actorIds: dragActorIds,
-      }),
-    );
-
-    // Create a properly transformed drag image using canvas
-    // This fixes garbled appearance when dragging rotated/flipped actors
-    const imgEl =
-      event.target.tagName === "IMG"
-        ? (event.target as HTMLImageElement)
-        : event.target.querySelector("img");
-
-    if (imgEl) {
-      const transform = actor.transform ?? "0";
-      const imgWidth = imgEl.naturalWidth || imgEl.width;
-      const imgHeight = imgEl.naturalHeight || imgEl.height;
-
-      const canvas = renderTransformedImage(imgEl, imgWidth, imgHeight, transform);
-      const dragImage = new Image();
-      dragImage.src = canvas.toDataURL();
-
-      // Adjust drag offset for rotated images where dimensions are swapped
-      let adjustedDragLeft = dragLeft;
-      let adjustedDragTop = dragTop;
-      if (transformSwapsDimensions(transform)) {
-        if (transform === "90") {
-          adjustedDragLeft = dragTop;
-          adjustedDragTop = imgWidth - dragLeft;
-        } else if (transform === "270") {
-          adjustedDragLeft = imgHeight - dragTop;
-          adjustedDragTop = dragLeft;
-        } else if (transform === "d1") {
-          adjustedDragLeft = dragTop;
-          adjustedDragTop = dragLeft;
-        } else if (transform === "d2") {
-          adjustedDragLeft = imgHeight - dragTop;
-          adjustedDragTop = imgWidth - dragLeft;
-        }
-      }
-
-      event.dataTransfer.setDragImage(dragImage, adjustedDragLeft, adjustedDragTop);
-    }
-
-    onDragStartProp?.(event);
+    // Start custom drag
+    onStartDrag(actor, dragActorIds, event, anchorOffset);
   };
 
   let data = new URL("../../img/splat.png", import.meta.url).href;
@@ -169,13 +120,9 @@ const ActorSprite = (props: {
       }}
     >
       <img
-        draggable={!!dragActorIds}
+        draggable={false}
         data-stage-character-id={character.id}
-        onDragStart={(event) => {
-          if (isEventInFilledSquare(event)) {
-            onDragStart(event);
-          }
-        }}
+        onMouseDown={onMouseDownForDrag}
         onMouseUp={(event) => {
           if (isEventInFilledSquare(event)) {
             onMouseUp?.(event);
@@ -199,6 +146,7 @@ const ActorSprite = (props: {
           transitionProperty: "transform",
           transitionDuration: `${transitionDuration}ms`,
           pointerEvents: "auto",
+          cursor: dragActorIds ? "grab" : undefined,
         }}
       />
       {shouldShowVariables && (

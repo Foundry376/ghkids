@@ -1,4 +1,5 @@
 import React, { CSSProperties, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useDispatch } from "react-redux";
 
 import ActorSprite from "../sprites/actor-sprite";
@@ -6,6 +7,7 @@ import RecordingHandle from "../sprites/recording-handle";
 import RecordingIgnoredSprite from "../sprites/recording-ignored-sprite";
 import RecordingMaskSprite from "../sprites/recording-mask-sprite";
 import { RecordingSquareStatus } from "../sprites/recording-square-status";
+import { DEFAULT_APPEARANCE_INFO, SPRITE_TRANSFORM_CSS } from "../sprites/sprite";
 import ActorSelectionPopover from "./actor-selection-popover";
 
 import {
@@ -65,6 +67,15 @@ interface StageProps {
 type Offset = { top: string | number; left: string | number };
 type MouseStatus = { isDown: boolean; visited: { [posKey: string]: true } };
 type SelectionRect = { start: { top: number; left: number }; end: { top: number; left: number } };
+
+// Custom drag state for multi-sprite dragging with proper transform preview
+type SpriteDragState = {
+  actors: Actor[]; // All actors being dragged
+  anchorActorId: string; // The actor that was clicked to start the drag
+  anchorOffset: { x: number; y: number }; // Click offset within the anchor actor (in scaled px)
+  clientPx: { x: number; y: number }; // Current viewport coordinates for drag preview
+  mode: "move" | "copy"; // Whether we're moving or copying (alt key)
+};
 
 const DRAGGABLE_TOOLS = [TOOLS.IGNORE_SQUARE, TOOLS.TRASH, TOOLS.STAMP];
 
@@ -157,6 +168,7 @@ export const Stage = ({
     position: { x: number; y: number };
     toolId: string;
   } | null>(null);
+  const [spriteDrag, setSpriteDrag] = useState<SpriteDragState | null>(null);
 
   const lastFiredExtent = useRef<string | null>(null);
   const lastActorPositions = useRef<{ [actorId: string]: Position }>({});
@@ -539,6 +551,35 @@ export const Stage = ({
     }
   };
 
+  // Start custom sprite dragging (called from ActorSprite onMouseDown)
+  const onStartSpriteDrag = (
+    actor: Actor,
+    actorIds: string[],
+    event: React.MouseEvent,
+    anchorOffset: { x: number; y: number },
+  ) => {
+    const actors = actorIds.map((id) => stage.actors[id]).filter(Boolean);
+    setSpriteDrag({
+      actors,
+      anchorActorId: actor.id,
+      anchorOffset,
+      clientPx: { x: event.clientX, y: event.clientY },
+      mode: event.altKey ? "copy" : "move",
+    });
+
+    // Set up global mouse listeners for drag tracking
+    const onMouseUpAnywhere = (e: MouseEvent) => {
+      document.removeEventListener("mouseup", onMouseUpAnywhere);
+      document.removeEventListener("mousemove", onMouseMoveAnywhere);
+      onMouseUp.current?.(e);
+    };
+    const onMouseMoveAnywhere = (e: MouseEvent) => {
+      onMouseMove.current?.(e);
+    };
+    document.addEventListener("mouseup", onMouseUpAnywhere);
+    document.addEventListener("mousemove", onMouseMoveAnywhere);
+  };
+
   const onMouseUpActor = (actor: Actor, event: React.MouseEvent) => {
     let handled = false;
 
@@ -652,7 +693,17 @@ export const Stage = ({
   // Note: In this handler, the mouse cursor may be outside the stage
   const onMouseMove = useRef<(event: MouseEvent) => void>();
   onMouseMove.current = (event: MouseEvent) => {
-    if (!mouse.current.isDown) {
+    if (!mouse.current.isDown && !spriteDrag) {
+      return;
+    }
+
+    // If we are dragging sprites, update the cursor position (viewport coordinates)
+    if (spriteDrag) {
+      setSpriteDrag({
+        ...spriteDrag,
+        clientPx: { x: event.clientX, y: event.clientY },
+        mode: event.altKey ? "copy" : "move",
+      });
       return;
     }
 
@@ -718,6 +769,43 @@ export const Stage = ({
     onMouseMove.current?.(event);
 
     mouse.current = { isDown: false, visited: {} };
+
+    // Complete sprite drag
+    if (spriteDrag) {
+      const { actors, anchorActorId, anchorOffset, clientPx, mode } = spriteDrag;
+      const anchorActor = stage.actors[anchorActorId];
+      const stageEl = el.current;
+
+      if (anchorActor && stageEl) {
+        // Convert from viewport coordinates to stage-relative coordinates
+        const stageRect = stageEl.getBoundingClientRect();
+        const stageRelativeX = clientPx.x - stageRect.left - anchorOffset.x;
+        const stageRelativeY = clientPx.y - stageRect.top - anchorOffset.y;
+
+        // Calculate drop position in grid cells
+        const dropX = Math.round(stageRelativeX / STAGE_CELL_SIZE / scale);
+        const dropY = Math.round(stageRelativeY / STAGE_CELL_SIZE / scale);
+
+        const position = { x: dropX, y: dropY };
+        const anchorCharacter = characters[anchorActor.characterId];
+        applyAnchorAdjustment(position, anchorCharacter, anchorActor);
+
+        const offsetX = position.x - anchorActor.position.x;
+        const offsetY = position.y - anchorActor.position.y;
+
+        // Only process if there's actual movement
+        if (offsetX !== 0 || offsetY !== 0) {
+          const actorIds = actors.map((a) => a.id);
+          onDropActorsAtPosition(
+            { actorIds, dragAnchorActorId: anchorActorId },
+            position,
+            mode === "copy" ? "stamp-copy" : "move",
+          );
+        }
+      }
+      setSpriteDrag(null);
+      return;
+    }
 
     if (selectionRect) {
       const selectedActors: Actor[] = [];
@@ -815,11 +903,6 @@ export const Stage = ({
         break;
     }
 
-    setActorSelectionPopover(null);
-  };
-
-  const onPopoverDragStart = () => {
-    // Close the popover when drag starts - the drag will continue to the stage
     setActorSelectionPopover(null);
   };
 
@@ -941,6 +1024,7 @@ export const Stage = ({
               : [actor.id]
             : undefined
         }
+        onStartDrag={draggable && !playback.running ? onStartSpriteDrag : undefined}
       />
     );
   };
@@ -1007,13 +1091,74 @@ export const Stage = ({
           }}
         />
       ) : null}
+      {spriteDrag &&
+        createPortal(
+          (() => {
+            const anchorActor = spriteDrag.actors.find((a) => a.id === spriteDrag.anchorActorId);
+            if (!anchorActor) return null;
+
+            // Base position: cursor position minus the click offset within the anchor sprite
+            const baseX = spriteDrag.clientPx.x - spriteDrag.anchorOffset.x;
+            const baseY = spriteDrag.clientPx.y - spriteDrag.anchorOffset.y;
+
+            return (
+              <div
+                className="sprite-drag-preview"
+                style={{
+                  position: "fixed",
+                  left: 0,
+                  top: 0,
+                  pointerEvents: "none",
+                  zIndex: 10000,
+                }}
+              >
+                {spriteDrag.actors.map((actor) => {
+                  const character = characters[actor.characterId];
+                  if (!character) return null;
+                  const { appearances, appearanceInfo } = character.spritesheet;
+                  const info = appearanceInfo?.[actor.appearance] || DEFAULT_APPEARANCE_INFO;
+                  const data = appearances[actor.appearance]?.[0];
+                  if (!data) return null;
+
+                  // Position relative to anchor actor (in grid cells, converted to pixels)
+                  const relX = actor.position.x - anchorActor.position.x;
+                  const relY = actor.position.y - anchorActor.position.y;
+
+                  const transform = actor.transform ?? "0";
+
+                  return (
+                    <img
+                      key={actor.id}
+                      src={data}
+                      className="sprite"
+                      style={{
+                        position: "absolute",
+                        left: baseX + (relX - info.anchor.x) * STAGE_CELL_SIZE * scale,
+                        top: baseY + (relY - info.anchor.y) * STAGE_CELL_SIZE * scale,
+                        width: info.width * STAGE_CELL_SIZE * scale,
+                        height: info.height * STAGE_CELL_SIZE * scale,
+                        transform: SPRITE_TRANSFORM_CSS[transform],
+                        transformOrigin: `${((info.anchor.x + 0.5) / info.width) * 100}% ${((info.anchor.y + 0.5) / info.height) * 100}%`,
+                        opacity: 0.85,
+                        filter:
+                          spriteDrag.mode === "copy"
+                            ? "drop-shadow(2px 2px 4px rgba(0,0,0,0.3))"
+                            : undefined,
+                      }}
+                    />
+                  );
+                })}
+              </div>
+            );
+          })(),
+          document.body,
+        )}
       {actorSelectionPopover && (
         <ActorSelectionPopover
           actors={actorSelectionPopover.actors}
           characters={characters}
           position={actorSelectionPopover.position}
           onSelect={onPopoverSelectActor}
-          onDragStart={onPopoverDragStart}
           onClose={onPopoverClose}
         />
       )}
