@@ -1,6 +1,5 @@
 import classNames from "classnames";
 import { useEffect, useState } from "react";
-import { useSelector } from "react-redux";
 import Nav from "reactstrap/lib/Nav";
 import NavItem from "reactstrap/lib/NavItem";
 import NavLink from "reactstrap/lib/NavLink";
@@ -10,14 +9,12 @@ import AddVariableButton from "./add-variable-button";
 import { ContainerPaneRules } from "./container-pane-rules";
 import { ContainerPaneVariables } from "./container-pane-variables";
 
-import { EditorState } from "../../../types";
+import { useEditorSelector } from "../../../hooks/redux";
 import { getCurrentStageForWorld } from "../../utils/selectors";
 import { InspectorContext } from "./inspector-context";
 
 export const InspectorContainer = () => {
-  const { ui, recording, world, characters } = useSelector<EditorState, EditorState>(
-    (state) => state,
-  );
+  const { ui, recording, world, characters } = useEditorSelector((state) => state);
 
   const isRecording = !!recording.characterId;
   const [activeTab, setActiveTab] = useState<"rules" | "variables">(
@@ -53,9 +50,10 @@ export const InspectorContainer = () => {
       value={{
         world: focusedWorld,
         characters: characters,
-        evaluatedRuleIdsForActor: focusedActor
-          ? focusedWorld.evaluatedRuleIds[focusedActor.id]
-          : {},
+        evaluatedRuleDetailsForActor:
+          focusedActor && focusedWorld.evaluatedRuleDetails
+            ? focusedWorld.evaluatedRuleDetails[focusedActor.id]
+            : {},
       }}
     >
       <div className={`panel inspector-panel-container tool-supported`}>

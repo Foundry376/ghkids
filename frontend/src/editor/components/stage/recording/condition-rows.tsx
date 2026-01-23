@@ -1,19 +1,20 @@
 import React, { useState } from "react";
 
-import { useDispatch, useSelector } from "react-redux";
+import { useDispatch } from "react-redux";
 import { Button } from "reactstrap";
 import {
   Actor,
   ActorTransform,
   Character,
   Characters,
-  EditorState,
+  EvaluatedCondition,
   RuleCondition,
   RuleValue,
   Stage,
   VariableComparator,
   WorldMinimal,
 } from "../../../../types";
+import { useEditorSelector } from "../../../../hooks/redux";
 import { pickConditionValueFromKeyboard, selectToolId } from "../../../actions/ui-actions";
 import { TOOLS } from "../../../constants/constants";
 import { AppearanceDropdown, TransformDropdown } from "../../inspector/container-pane-variables";
@@ -24,25 +25,36 @@ interface FreeformConditionRowProps {
   world: WorldMinimal;
   characters: Characters;
   condition: RuleCondition;
+  conditionStatus?: EvaluatedCondition;
   onChange?: (keep: boolean, condition: RuleCondition) => void;
 }
 
 type ImpliedDatatype =
   | { type: "transform"; characterId?: string; appearance?: string }
   | { type: "appearance"; character: Character }
+  | { type: "position" }
   | { type: "key" }
   | { type: "actor" }
   | null;
+
+/** Status circle for condition evaluation - hidden when not evaluated */
+const ConditionStatusCircle = ({ status }: { status?: EvaluatedCondition }) => {
+  if (status === undefined) {
+    return null;
+  }
+  return <div className={`circle ${status.passed}`} />;
+};
 
 export const FreeformConditionRow = ({
   condition,
   actors,
   world,
   characters,
+  conditionStatus,
   onChange,
 }: FreeformConditionRowProps) => {
   const { left, right, comparator } = condition;
-  const selectedToolId = useSelector<EditorState, TOOLS>((state) => state.ui.selectedToolId);
+  const selectedToolId = useEditorSelector((state) => state.ui.selectedToolId);
   const dispatch = useDispatch();
 
   const impliedDatatype: ImpliedDatatype = (() => {
@@ -74,6 +86,9 @@ export const FreeformConditionRow = ({
         return { type: "appearance", character };
       }
     }
+    if (variableIds.includes("x") || variableIds.includes("y")) {
+      return { type: "position" };
+    }
     return null;
   })();
 
@@ -88,6 +103,7 @@ export const FreeformConditionRow = ({
 
   return (
     <li className={`enabled-true tool-supported`} onClick={onToolClick}>
+      <ConditionStatusCircle status={conditionStatus} />
       <FreeformConditionValue
         conditionId={condition.key}
         value={left}
@@ -155,7 +171,7 @@ export const FreeformConditionValue = ({
   conditionId?: string;
   comparator: VariableComparator;
 }) => {
-  const selectedToolId = useSelector<EditorState, TOOLS>((state) => state.ui.selectedToolId);
+  const selectedToolId = useEditorSelector((state) => state.ui.selectedToolId);
   const dispatch = useDispatch();
 
   const [droppingValue, setDroppingValue] = useState(false);
@@ -295,7 +311,7 @@ export const FreeformConditionValue = ({
     if (impliedDatatype?.type === "appearance") {
       const appearanceIds = Object.keys(impliedDatatype.character.spritesheet.appearances);
       onChange?.({ constant: appearanceIds[0] });
-    } else if (impliedDatatype?.type === "transform") {
+    } else if (impliedDatatype?.type === "transform" || impliedDatatype?.type === "position") {
       onChange?.({ constant: "0" });
     } else {
       onChange?.({ constant: "" });
@@ -364,6 +380,9 @@ function comparatorsForImpliedDatatype(inferred: ImpliedDatatype) {
   }
   if (inferred?.type === "appearance") {
     return ["=", "!=", "contains", "starts-with", "ends-with"];
+  }
+  if (inferred?.type === "position") {
+    return ["=", "!=", "<", ">", "<=", ">="];
   }
   return ["=", "!="];
 }

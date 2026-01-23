@@ -21,11 +21,15 @@ export function logout() {
   };
 }
 
-export function register({ username, password, email }: Omit<User, "id">, redirectTo: string) {
+export function register(
+  { username, password, email }: Omit<User, "id">,
+  redirectTo: string,
+  captchaToken?: string,
+) {
   return function (dispatch: Dispatch<MainActions>) {
     makeRequest<User>("/users", {
       method: "POST",
-      json: { username, password, email },
+      json: { username, password, email, captchaToken },
     }).then((user) => {
       dispatch({
         type: types.SET_ME,
@@ -80,12 +84,13 @@ export function fetchWorld(id: ID) {
 }
 
 export function deleteWorld(id: ID) {
-  return function () {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return function (dispatch: any) {
     if (
       window.confirm("Are you sure you want to delete this world? This action cannot be undone.")
     ) {
       makeRequest(`/worlds/${id}`, { method: "DELETE" }).then(() => {
-        fetchWorldsForUser("me");
+        dispatch(fetchWorldsForUser("me"));
       });
     }
   };

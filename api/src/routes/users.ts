@@ -1,12 +1,77 @@
-import crypto from "node:crypto";
 import express from "express";
+import crypto from "node:crypto";
 import { AppDataSource } from "src/db/data-source";
 import { User } from "src/db/entity/user";
 import { userFromBasicAuth } from "src/middleware";
+import { logger } from "src/logger";
 
 const router = express.Router();
 
+const RECAPTCHA_SECRET_KEY = process.env.RECAPTCHA_SECRET_KEY;
+const RECAPTCHA_SCORE_THRESHOLD = 0.5;
+
+interface RecaptchaResponse {
+  success: boolean;
+  score?: number;
+  action?: string;
+  challenge_ts?: string;
+  hostname?: string;
+  "error-codes"?: string[];
+}
+
+async function verifyRecaptcha(token: string): Promise<{ success: boolean; score?: number; error?: string }> {
+  const isProduction = process.env.NODE_ENV === "production";
+
+  if (!RECAPTCHA_SECRET_KEY) {
+    if (isProduction) {
+      logger.error("RECAPTCHA_SECRET_KEY not configured in production");
+      return { success: false, error: "Captcha not configured" };
+    }
+    logger.warn("RECAPTCHA_SECRET_KEY not configured, skipping captcha verification");
+    return { success: true };
+  }
+
+  if (!token) {
+    if (isProduction) {
+      return { success: false, error: "Captcha token required" };
+    }
+    logger.warn("No captcha token provided, skipping verification in non-production");
+    return { success: true };
+  }
+
+  try {
+    const response = await fetch("https://www.google.com/recaptcha/api/siteverify", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: new URLSearchParams({
+        secret: RECAPTCHA_SECRET_KEY,
+        response: token,
+      }),
+    });
+
+    const data = (await response.json()) as RecaptchaResponse;
+
+    if (!data.success) {
+      return { success: false, error: `reCAPTCHA verification failed: ${data["error-codes"]?.join(", ") || "unknown error"}` };
+    }
+
+    if (data.score !== undefined && data.score < RECAPTCHA_SCORE_THRESHOLD) {
+      return { success: false, score: data.score, error: `reCAPTCHA score too low: ${data.score}` };
+    }
+
+    return { success: true, score: data.score };
+  } catch (err) {
+    logger.error(`reCAPTCHA verification error: ${err}`);
+    return { success: false, error: "Failed to verify captcha" };
+  }
+}
+
 router.get("/users/me", userFromBasicAuth, async (req, res) => {
+  if (!req.user) {
+    return res.status(401).json({ message: "Authentication required." });
+  }
   res.json(req.user.serialize());
 });
 
@@ -19,7 +84,14 @@ router.get("/users/:username", async (req, res) => {
 });
 
 router.post("/users", async (req, res) => {
-  const { username, email, password } = req.body;
+  const { username, email, password, captchaToken } = req.body;
+
+  // Verify reCAPTCHA token
+  const captchaResult = await verifyRecaptcha(captchaToken || "");
+  if (!captchaResult.success) {
+    logger.warn(`Registration blocked by captcha: ${captchaResult.error}`);
+    return res.status(400).json({ message: "Captcha verification failed. Please try again." });
+  }
 
   const passwordSalt = `${Math.round(new Date().valueOf() * Math.random())}`;
   const hash = crypto.createHmac("sha512", passwordSalt);

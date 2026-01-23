@@ -17,10 +17,12 @@
     "baseUrl": ".",
     "strictPropertyInitialization": false,
     "paths": {
-      "src/*": ["src/*"],
-      "*": ["node_modules/*"]
+      "src/*": ["src/*"]
     },
     "skipLibCheck": true //<--GraphQL libs
   },
-  "include": ["src/**/*"]
+  "include": ["src/**/*"],
+  "ts-node": {
+    "files": true
+  }
 }

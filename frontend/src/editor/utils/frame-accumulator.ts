@@ -1,7 +1,11 @@
-import { Actor } from "../../types";
+import { Actor, RuleActionAnimationStyle } from "../../types";
 import { deepClone } from "./utils";
 
-export type FrameActor = Actor & { deleted?: boolean; actionIdx?: number };
+export type FrameActor = Actor & {
+  deleted?: boolean;
+  actionIdx?: number;
+  animationStyle?: RuleActionAnimationStyle;
+};
 export type Frame = { actors: { [actorId: string]: FrameActor }; id: number };
 
 export class FrameAccumulator {
@@ -25,6 +29,7 @@ export class FrameAccumulator {
     );
 
     let current: Frame = deepClone(this.initial);
+    let frameIndex = 1;
 
     while (true) {
       const changeActorIds = Object.keys(remaining);
@@ -45,7 +50,9 @@ export class FrameAccumulator {
       }
       frames.push(current);
       current = deepClone(current);
-      current.id += 0.1;
+      // Use integer increment to avoid floating point precision issues
+      current.id = this.initial.id + frameIndex;
+      frameIndex++;
     }
     return frames;
   }

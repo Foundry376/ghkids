@@ -2,16 +2,10 @@ import { getCurrentStageForWorld } from "../../../utils/selectors";
 
 import classNames from "classnames";
 import React, { useState } from "react";
-import { useDispatch, useSelector } from "react-redux";
+import { useDispatch } from "react-redux";
 import { Button } from "reactstrap";
-import {
-  Characters,
-  EditorState,
-  RecordingState,
-  RuleAction,
-  RuleValue,
-  UIState,
-} from "../../../../types";
+import { Characters, RecordingState, RuleAction, RuleValue } from "../../../../types";
+import { useEditorSelector } from "../../../../hooks/redux";
 import { updateRecordingActions } from "../../../actions/recording-actions";
 import { changeActors } from "../../../actions/stage-actions";
 import { selectToolId } from "../../../actions/ui-actions";
@@ -30,7 +24,7 @@ import { VariableActionPicker } from "./variable-action-picker";
 export const RecordingActions = (props: { characters: Characters; recording: RecordingState }) => {
   const { characters, recording } = props;
   const { beforeWorld, actions, extent } = recording;
-  const selectedToolId = useSelector<EditorState, TOOLS>((state) => state.ui.selectedToolId);
+  const selectedToolId = useEditorSelector((state) => state.ui.selectedToolId);
 
   const dispatch = useDispatch();
 
@@ -224,7 +218,7 @@ export const RecordingActions = (props: { characters: Characters; recording: Rec
 
   const [droppingValue, setDroppingValue] = useState(false);
   const [showAnimationFrames, setShowAnimationFrames] = useState(() =>
-    actions?.some((a) => a.noAnimationFrame),
+    actions?.some((a) => a.animationStyle),
   );
 
   if (!actions) {
@@ -302,39 +296,12 @@ export const RecordingActions = (props: { characters: Characters; recording: Rec
           const afterWorld = getAfterWorldForRecording(beforeWorld, characters, recording, idx);
           afterStage = getCurrentStageForWorld(afterWorld);
 
-          const framesMaxActionIdx = showAnimationFrames
-            ? Math.max(
-                ...(afterWorld.evaluatedTickFrames || []).flatMap((f) =>
-                  Object.values(f.actors).map((p) => p.actionIdx ?? -1),
-                ),
-              )
-            : null;
-
           const node = _renderAction(a, (modified) => {
             dispatch(updateRecordingActions(actions.map((a, i) => (i === idx ? modified : a))));
           });
 
-          const prevAction = actions[idx - 1];
           return (
             <React.Fragment key={idx}>
-              {framesMaxActionIdx === idx - 1 ? (
-                <div
-                  className={`frame-divider ${prevAction?.noAnimationFrame ? "disabled" : ""}`}
-                  onClick={() => {
-                    dispatch(
-                      updateRecordingActions(
-                        actions.map((a, i) =>
-                          i === idx - 1
-                            ? { ...prevAction, noAnimationFrame: !prevAction.noAnimationFrame }
-                            : a,
-                        ),
-                      ),
-                    );
-                  }}
-                >
-                  ANIMATION FRAME
-                </div>
-              ) : undefined}
               <li
                 className={`tool-supported`}
                 onClick={(e) => {
@@ -348,6 +315,37 @@ export const RecordingActions = (props: { characters: Characters; recording: Rec
               >
                 <div style={{ display: "flex", alignItems: "center", gap: 2 }}>{node}</div>
                 <div style={{ flex: 1 }} />
+                {showAnimationFrames ? (
+                  <div
+                    style={{ width: 60 }}
+                    className={`frame-divider ${a.animationStyle}`}
+                    onClick={() => {
+                      dispatch(
+                        updateRecordingActions(
+                          actions.map((a, i) =>
+                            i === idx
+                              ? {
+                                  ...a,
+                                  animationStyle:
+                                    a.animationStyle === "none"
+                                      ? "skip"
+                                      : a.animationStyle === "skip"
+                                        ? undefined
+                                        : "none",
+                                }
+                              : a,
+                          ),
+                        ),
+                      );
+                    }}
+                  >
+                    {
+                      { none: "None", skip: "Skip", linear: "Animate" }[
+                        a.animationStyle ?? "linear"
+                      ]
+                    }
+                  </div>
+                ) : undefined}
                 <div onClick={() => onRemoveAction(a)} className="condition-remove">
                   <div />
                 </div>
@@ -364,11 +362,9 @@ const StageAfterTools = () => {
   const [open, setOpen] = useState(false);
   const dispatch = useDispatch();
 
-  const characters = useSelector<EditorState, Characters>((state) => state.characters);
-  const selectedActors = useSelector<EditorState, UIState["selectedActors"]>(
-    (state) => state.ui.selectedActors,
-  );
-  const recording = useSelector<EditorState, RecordingState>((state) => state.recording);
+  const characters = useEditorSelector((state) => state.characters);
+  const selectedActors = useEditorSelector((state) => state.ui.selectedActors);
+  const recording = useEditorSelector((state) => state.recording);
   const afterStage = getCurrentStageForWorld(
     getAfterWorldForRecording(recording.beforeWorld, characters, recording),
   );

@@ -9,6 +9,13 @@ body {
   margin: 0;
   padding: 0;
 }
+.modal-header {
+  padding-top: 16px;
+  padding-bottom: 12px;
+  h4 {
+    margin-bottom: 0;
+  }
+}
 
 .navbar-nav .nav-item + .nav-item {
   margin-left: 1.4rem;
@@ -147,7 +154,8 @@ body {
   }
 }
 
-.faq {
+.faq,
+.changelog {
   padding-top: 40px;
   padding-bottom: 40px;
   h4 {

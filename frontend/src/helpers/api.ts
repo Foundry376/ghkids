@@ -2,7 +2,9 @@
 import * as types from "../constants/action-types";
 
 // Use the production backend for development:
-const API_ROOT = `https://www.codako.org`;
+const API_ROOT = window.location.host.includes("staging")
+  ? `https://staging.codako.org`
+  : `https://www.codako.org`;
 //
 // const API_ROOT = window.location.host.includes("codako") ? `` : `http://localhost:8080`;
 

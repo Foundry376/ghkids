@@ -1,4 +1,11 @@
-import { Column, CreateDateColumn, Entity, ManyToOne, PrimaryGeneratedColumn } from "typeorm";
+import {
+  Column,
+  CreateDateColumn,
+  Entity,
+  ManyToOne,
+  PrimaryGeneratedColumn,
+  UpdateDateColumn,
+} from "typeorm";
 import { User } from "./user";
 
 @Entity({ name: "worlds" })
@@ -9,8 +16,14 @@ export class World {
   @Column({ type: "text" })
   name: string;
 
+  @Column({ type: "jsonb", nullable: true })
+  data: Record<string, unknown> | null;
+
   @Column({ type: "text", nullable: true })
-  data: string | null;
+  unsavedData: string | null;
+
+  @Column({ type: "timestamptz", nullable: true })
+  unsavedDataUpdatedAt: Date | null;
 
   @Column({ type: "text" })
   thumbnail: string;
@@ -24,14 +37,14 @@ export class World {
   @CreateDateColumn({ type: "timestamptz", default: () => "NOW()" })
   createdAt: Date;
 
-  @CreateDateColumn({ type: "timestamptz", default: () => "NOW()" })
+  @UpdateDateColumn({ type: "timestamptz", default: () => "NOW()" })
   updatedAt: Date;
 
   @ManyToOne(() => User, { persistence: false })
   user: User;
 
   @Column()
-  userId: number;
+  userId: string;
 
   @ManyToOne(() => World, { persistence: false, nullable: true })
   forkParent: World | null;
@@ -39,18 +52,28 @@ export class World {
   @Column({ default: null })
   forkParentId: number | null;
 
+  @Column({ type: "boolean", default: false })
+  published: boolean;
+
+  @Column({ type: "text", nullable: true })
+  description: string | null;
+
   serialize(): any {
     return {
       name: this.name,
       id: this.id,
       userId: this.userId,
-      playCount: this.playCount,
-      forkCount: this.forkCount,
+      playCount: Number(this.playCount),
+      forkCount: Number(this.forkCount),
       forkParent: this.forkParent ? this.forkParent.serialize() : null,
       user: this.user ? this.user.serialize() : null,
       thumbnail: this.thumbnail ? this.thumbnail.toString() : null,
       createdAt: this.createdAt,
       updatedAt: this.updatedAt,
+      published: this.published,
+      description: this.description,
+      unsavedDataUpdatedAt: this.unsavedDataUpdatedAt,
+      hasUnsavedData: !!this.unsavedData,
     };
   }
 }

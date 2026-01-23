@@ -1,5 +1,6 @@
 import { Route, Routes } from "react-router-dom";
 import App from "./components/app";
+import ChangelogPage from "./components/changelog-page";
 import DashboardPage from "./components/dashboard-page";
 import EditorPage from "./components/editor-page";
 import ExplorePage from "./components/explore-page";
@@ -18,6 +19,7 @@ export default (
       <Route path="/" element={<HomePage />} />
       <Route path="explore" element={<ExplorePage />} />
       <Route path="faq" element={<FAQPage />} />
+      <Route path="changelog" element={<ChangelogPage />} />
       <Route path="login" element={<LoginPage />} />
       <Route path="join" element={<JoinPage />} />
       <Route path="join-send-world" element={<JoinSendWorldsPage />} />

@@ -1,9 +1,9 @@
 // The common service utils must be imported first
 
 import { Express } from "express";
-import { logger } from "./logger";
 import throng from "throng";
 import { AppDataSource } from "./db/data-source";
+import { logger } from "./logger";
 
 if (!process.env.TS_NODE_DEV && !process.env.TS_NODE) {
   require("module-alias/register");
@@ -16,7 +16,8 @@ const WORKERS = Number(process.env.WORKERS || "1");
 function startService(run: () => void) {
   const start = async (pid: number) => {
     logger.info("Initializing database connections");
-    await Promise.all([AppDataSource.initialize]);
+    await AppDataSource.initialize();
+    logger.info("Initialized database connections");
 
     logger.info("Starting service...");
     void run();

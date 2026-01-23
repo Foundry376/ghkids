@@ -81,7 +81,9 @@ export type RuleAction = (
       operation: MathOperation;
       value: RuleValue;
     }
-) & { noAnimationFrame?: boolean };
+) & { animationStyle?: RuleActionAnimationStyle };
+
+export type RuleActionAnimationStyle = "linear" | "none" | "skip";
 
 export type ActorTransform = "0" | "90" | "180" | "270" | "flip-x" | "flip-y" | "d1" | "d2";
 
@@ -153,7 +155,7 @@ export type RuleCondition = {
 
 export type RuleValue =
   | { constant: string }
-  | { actorId: string; variableId: string | "apperance" | "transform" }
+  | { actorId: string; variableId: string | "appearance" | "transform" | "x" | "y" }
   | { globalId: string };
 
 /**
@@ -185,7 +187,10 @@ export type Actor = {
   appearance: string;
   position: PositionRelativeToWorld;
   transform?: ActorTransform;
+
+  // Available in the context of the world operator
   frameCount?: number; // used to sync subdivided animation frames to CSS durations
+  animationStyle?: RuleActionAnimationStyle;
 };
 
 export type Stage = {
@@ -239,9 +244,51 @@ export type Character = {
   >;
 };
 
-export type EvaluatedRuleIds = {
+/** Detailed evaluation result for a single condition */
+export type EvaluatedCondition = {
+  conditionKey: string;
+  passed: boolean;
+  leftValue?: string | null;
+  rightValue?: string | null;
+};
+
+/** Detailed evaluation result for a single extent square */
+export type EvaluatedSquare = {
+  x: number;
+  y: number;
+  passed: boolean;
+  reason?:
+    | "offscreen" // Position is offscreen on non-wrapping stage
+    | "actor-count-mismatch" // Different number of actors than expected
+    | "actor-match-failed" // Actor exists but doesn't match rule actor
+    | "ok"; // Square passed
+  expectedActorCount?: number;
+  actualActorCount?: number;
+};
+
+/** Detailed evaluation result for a rule */
+export type EvaluatedRuleDetails = {
+  passed: boolean;
+
+  // Which stage of checking caused failure (for quick diagnosis)
+  failedAt?:
+    | "extent-square" // A square in the extent didn't match
+    | "missing-required-actor" // A required actor wasn't found
+    | "action-offset-invalid" // An action would go offscreen
+    | "condition-failed"; // A condition check failed
+
+  // Detailed breakdown
+  conditions: EvaluatedCondition[];
+  squares: EvaluatedSquare[];
+
+  // Which actors were successfully matched (ruleActorId -> stageActorId)
+  matchedActors: { [ruleActorId: string]: string };
+};
+
+/** Granular evaluation data per actor per rule */
+export type EvaluatedRuleDetailsMap = {
   [actorId: string]: {
-    [ruleTreeItemId: string]: boolean;
+    [ruleId: string]: EvaluatedRuleDetails;
   };
 };
 
@@ -268,19 +315,26 @@ export type Global =
       name: "Key Pressed";
       value: string;
       type: "key";
+    }
+  | {
+      id: "cameraFollow";
+      name: "Camera Follow";
+      value: string;
+      type: "actor";
     };
 
 export type Globals = {
   click: Global;
   keypress: Global;
   selectedStageId: Global;
+  cameraFollow: Global;
   [globalId: string]: Global;
 };
 
 export type HistoryItem = {
   input: FrameInput;
   globals: Globals;
-  evaluatedRuleIds: EvaluatedRuleIds;
+  evaluatedRuleDetails: EvaluatedRuleDetailsMap;
   stages: { [stageId: string]: Pick<Stage, "actors"> };
 };
 
@@ -289,7 +343,7 @@ export type WorldMinimal = {
   stages: { [stageId: string]: Stage };
   globals: Globals;
   input: FrameInput;
-  evaluatedRuleIds: EvaluatedRuleIds;
+  evaluatedRuleDetails: EvaluatedRuleDetailsMap;
   evaluatedTickFrames?: Frame[];
 };
 
@@ -298,6 +352,8 @@ export type World = WorldMinimal & {
   metadata: {
     name: string;
     id: number;
+    published: boolean;
+    description: string | null;
   };
 };
 
@@ -312,6 +368,7 @@ export type UIState = {
     | { ruleId: string }
     | null;
   tutorial: {
+    stepSet?: keyof typeof import("./editor/constants/tutorial").tutorialSteps;
     stepIndex: number;
   };
   playback: {
@@ -356,6 +413,8 @@ export type Game = {
   thumbnail: string;
   createdAt: string;
   updatedAt: string;
+  published: boolean;
+  description: string | null;
   data: Partial<EditorState> & Omit<EditorState, "ui" | "recording">;
 };
 

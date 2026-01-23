@@ -18,6 +18,8 @@ export function applyValueChanges(value: any) {
 
 export function applyDataMigrations(game: Game): Game {
   const nonmigrated = JSON.stringify(game);
+  const migrationErrors: Error[] = [];
+
   const result = JSON.parse(JSON.stringify(game), (key, value) => {
     try {
       if (key === "transform") {
@@ -119,6 +121,7 @@ export function applyDataMigrations(game: Game): Game {
         }
       }
     } catch (err) {
+      migrationErrors.push(err as Error);
       console.error(`[Migration Error]: ${(err as Error).stack}`, key, value);
     }
     return value;
@@ -129,6 +132,13 @@ export function applyDataMigrations(game: Game): Game {
     delete result.data.ui;
     delete result.data.recording;
     console.log(result);
+  }
+
+  if (migrationErrors.length > 0) {
+    console.warn(
+      `[Data Migration] ${migrationErrors.length} error(s) occurred during migration. ` +
+        `Some game data may not have been migrated correctly.`,
+    );
   }
 
   return result;

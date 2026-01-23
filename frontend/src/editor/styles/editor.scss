@@ -87,6 +87,21 @@ html {
   touch-action: pan-x pan-y;
   position: relative;
 
+  .circle {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border-radius: 12px;
+    background-color: transparent;
+    border: 1px solid rgba(0, 0, 0, 0.2);
+    &.true {
+      background-color: #74e535;
+    }
+    &.false {
+      background-color: red;
+    }
+  }
+
   .loading {
     margin: auto;
     margin-top: 200px;
@@ -326,16 +341,25 @@ html {
         font-weight: 700;
         text-align: center;
         background: repeating-linear-gradient(
-          145deg,
+          100deg,
           #2daef978 0px,
-          rgba(47, 167, 237, 0.557) 10px,
+          rgba(2, 115, 181, 0.557) 10px,
           #2daef978 20px
         );
 
         &:hover {
           filter: brightness(1.1);
         }
-        &.disabled {
+        &.none {
+          background: repeating-linear-gradient(
+            90deg,
+            #2daef978 0%,
+            #2daef978 50%,
+            rgba(2, 115, 181, 0.557) 51%,
+            rgba(2, 115, 181, 0.557) 100%
+          );
+        }
+        &.skip {
           background: repeating-linear-gradient(
             145deg,
             #cbcbcb78 0px,
@@ -598,8 +622,8 @@ html {
 
 .modal-dialog.paint {
   user-select: none;
-  min-width: 660px;
-  max-width: 660px;
+  min-width: 720px;
+  max-width: 720px;
   canvas {
     cursor: crosshair;
   }
@@ -710,6 +734,10 @@ html {
     &.variable-set-true {
       background-color: orange;
     }
+    &.dropping-true {
+      border: 2px solid rgba(91, 192, 222, 0.8);
+      background: rgba(91, 192, 222, 0.35);
+    }
 
     .name {
       background-color: transparent;
@@ -772,6 +800,38 @@ html {
     box-sizing: border-box;
     display: inline-block;
     padding: 5px;
+  }
+}
+
+.actor-selection-popover {
+  background: white;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  padding: 6px;
+
+  .actor-selection-popover-content {
+    display: flex;
+    gap: 4px;
+  }
+
+  .actor-option {
+    cursor: pointer;
+    border: 2px solid transparent;
+    border-radius: 4px;
+    background: #f5f5f5;
+    transition:
+      border-color 0.1s,
+      background-color 0.1s;
+
+    &:hover {
+      border-color: #007bff;
+      background: rgba(0, 123, 255, 0.1);
+    }
+
+    img {
+      pointer-events: auto;
+    }
   }
 }
 
@@ -838,20 +898,6 @@ html {
       border: 1px solid rgba(255, 255, 25, 0.6);
     }
 
-    .circle {
-      display: inline-block;
-      width: 12px;
-      height: 12px;
-      border-radius: 12px;
-      background-color: transparent;
-      border: 1px solid rgba(0, 0, 0, 0.2);
-      &.true {
-        background-color: #74e535;
-      }
-      &.false {
-        background-color: red;
-      }
-    }
     .icon {
       width: 32px;
       height: 32px;
@@ -1201,6 +1247,7 @@ button.btn.selected:active {
 
 .character-cards {
   max-height: 500px;
+  padding-left: 8px;
   overflow-y: scroll;
   display: flex;
   flex-direction: row;

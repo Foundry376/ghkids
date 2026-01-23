@@ -16,15 +16,34 @@ router.get("/generate-sprite", userFromBasicAuth, async (req, res) => {
   const prompt = (req.query.prompt as string) || "A sprite of a fantasy creature"; // Default prompt if none provided
   openai = openai || new OpenAI({});
 
+  // Determine the best DALL-E 3 image size based on canvas aspect ratio
+  // DALL-E 3 supports: 1024x1024, 1024x1792 (portrait), 1792x1024 (landscape)
+  const canvasWidth = parseInt(req.query.width as string, 10) || 40;
+  const canvasHeight = parseInt(req.query.height as string, 10) || 40;
+  const aspectRatio = canvasWidth / canvasHeight;
+
+  let imageSize: "1024x1024" | "1024x1792" | "1792x1024" = "1024x1024";
+  if (aspectRatio > 1.3) {
+    // Canvas is wider than tall (landscape)
+    imageSize = "1792x1024";
+  } else if (aspectRatio < 0.77) {
+    // Canvas is taller than wide (portrait)
+    imageSize = "1024x1792";
+  }
+
+  console.log(
+    `Generating sprite with size ${imageSize} for canvas ${canvasWidth}x${canvasHeight} (aspect ratio: ${aspectRatio.toFixed(2)})`,
+  );
+
   openai.images
     .generate({
       model: "dall-e-3",
       prompt: prompt,
       n: 1,
-      size: "1024x1024",
+      size: imageSize,
     })
     .then((response) => {
-      const imageUrl = response.data[0].url;
+      const imageUrl = response.data?.[0]?.url;
       if (!imageUrl) {
         res.status(500).json({ error: "Failed to retrieve image URL" });
         return;
@@ -339,7 +358,7 @@ router.get("/generate-background", userFromBasicAuth, async (req, res) => {
       size: "1792x1024",
     });
 
-    const imageUrl = response.data[0].url;
+    const imageUrl = response.data?.[0]?.url;
     if (!imageUrl) {
       res.status(500).json({ error: "Failed to retrieve image URL" });
       return;
@@ -401,7 +420,8 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
-router.post("/upload-image", upload.single("image"), async (req, res) => {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+router.post("/upload-image", upload.single("image") as any, async (req, res) => {
   try {
     const file = req.file;
     if (!file) return res.status(400).json({ error: "No file uploaded" });

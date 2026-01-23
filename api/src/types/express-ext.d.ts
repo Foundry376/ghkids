@@ -1,4 +1,4 @@
-import { User } from "src/db/entity/user";
+import { User } from "../db/entity/user";
 
 declare global {
   namespace Express {
@@ -13,4 +13,4 @@ declare global {
   }
 }
 
-export const a = 1;
+export {};

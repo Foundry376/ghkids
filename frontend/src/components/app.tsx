@@ -1,15 +1,15 @@
 import * as Sentry from "@sentry/react";
-import { useDispatch, useSelector } from "react-redux";
+import { useDispatch } from "react-redux";
 import { Link, Outlet, useLocation } from "react-router-dom";
 import Button from "reactstrap/lib/Button";
 
 import { logout } from "../actions/main-actions";
-import { MainState } from "../reducers/initial-state";
+import { useAppSelector } from "../hooks/redux";
 
 const App = () => {
   const location = useLocation();
-  const me = useSelector<MainState, MainState["me"]>((state) => state.me);
-  const network = useSelector<MainState, MainState["network"]>((state) => state.network);
+  const me = useAppSelector((state) => state.me);
+  const network = useAppSelector((state) => state.network);
   const dispatch = useDispatch();
 
   const _renderNav = () => {
@@ -33,6 +33,11 @@ const App = () => {
             <li className="nav-item">
               <Link className="nav-link" to="/explore">
                 Explore
+              </Link>
+            </li>
+            <li className="nav-item">
+              <Link className="nav-link" to="/changelog">
+                Changelog
               </Link>
             </li>
           </ul>

@@ -6,10 +6,22 @@ import {
   UpdateDateColumn,
 } from "typeorm";
 
+export interface UserNotificationSettings {
+  announcements: boolean;
+  forks: boolean;
+  playSummaries: boolean;
+}
+
+export const DEFAULT_NOTIFICATION_SETTINGS: UserNotificationSettings = {
+  announcements: true,
+  forks: true,
+  playSummaries: true,
+};
+
 @Entity({ name: "users" })
 export class User {
   @PrimaryGeneratedColumn("uuid")
-  id: number;
+  id: string;
 
   @Column({ type: "varchar", nullable: true })
   username: string;
@@ -28,6 +40,12 @@ export class User {
 
   @UpdateDateColumn({ type: "timestamp", default: () => "NOW()" })
   updatedAt: Date;
+
+  @Column({
+    type: "jsonb",
+    default: DEFAULT_NOTIFICATION_SETTINGS,
+  })
+  notificationSettings: UserNotificationSettings;
 
   serialize() {
     return {

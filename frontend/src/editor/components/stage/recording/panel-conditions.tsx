@@ -3,11 +3,63 @@ import React, { useState } from "react";
 import { FreeformConditionRow } from "./condition-rows";
 
 import { useDispatch } from "react-redux";
-import { Characters, RecordingState } from "../../../../types";
+import {
+  Characters,
+  EvaluatedCondition,
+  EvaluatedRuleDetailsMap,
+  RecordingState,
+  UIState,
+} from "../../../../types";
+import { useEditorSelector } from "../../../../hooks/redux";
 import { upsertRecordingCondition } from "../../../actions/recording-actions";
 import { getCurrentStageForWorld } from "../../../utils/selectors";
 import { actorIntersectsExtent } from "../../../utils/stage-helpers";
 import { makeId } from "../../../utils/utils";
+
+/**
+ * Builds a map of condition key -> evaluation status by looking up the rule's
+ * evaluation data from the main world. Tries the selected actor on the main
+ * stage first, then falls back to finding any actor with data for this rule.
+ */
+function buildConditionStatusMap(
+  ruleId: string | null,
+  evaluatedRuleDetails: EvaluatedRuleDetailsMap,
+  selectedActors: UIState["selectedActors"],
+): { [conditionKey: string]: EvaluatedCondition } {
+  if (!ruleId) {
+    return {};
+  }
+
+  // Try to get evaluation data from the selected actor on the main stage
+  let evalActorId: string | null = null;
+
+  if (selectedActors?.worldId === "root" && selectedActors.actorIds[0]) {
+    evalActorId = selectedActors.actorIds[0];
+  } else {
+    // Fall back: find any actor that has evaluation data for this rule
+    for (const actorId of Object.keys(evaluatedRuleDetails || {})) {
+      if (evaluatedRuleDetails[actorId]?.[ruleId]) {
+        evalActorId = actorId;
+        break;
+      }
+    }
+  }
+
+  if (!evalActorId) {
+    return {};
+  }
+
+  const ruleDetails = evaluatedRuleDetails[evalActorId]?.[ruleId];
+  if (!ruleDetails?.conditions) {
+    return {};
+  }
+
+  const map: { [conditionKey: string]: EvaluatedCondition } = {};
+  for (const cond of ruleDetails.conditions) {
+    map[cond.conditionKey] = cond;
+  }
+  return map;
+}
 
 export const RecordingConditions = ({
   recording,
@@ -19,11 +71,21 @@ export const RecordingConditions = ({
   const dispatch = useDispatch();
   const [dropping, setDropping] = useState(false);
 
+  // Get the main world to access evaluation details
+  const world = useEditorSelector((state) => state.world);
+  const selectedActors = useEditorSelector((state) => state.ui.selectedActors);
+
   const { beforeWorld, conditions, extent } = recording;
   const stage = getCurrentStageForWorld(beforeWorld);
   if (!stage) {
     return <span />;
   }
+
+  const conditionStatusMap = buildConditionStatusMap(
+    recording.ruleId,
+    world.evaluatedRuleDetails,
+    selectedActors,
+  );
 
   const rows: React.ReactNode[] = [];
 
@@ -45,6 +107,7 @@ export const RecordingConditions = ({
           world={beforeWorld}
           condition={condition}
           characters={characters}
+          conditionStatus={conditionStatusMap[condition.key]}
           onChange={(enabled, rest) => dispatch(upsertRecordingCondition({ ...rest, enabled }))}
         />,
       );

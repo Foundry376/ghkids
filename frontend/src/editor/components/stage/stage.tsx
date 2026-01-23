@@ -1,10 +1,12 @@
 import React, { CSSProperties, useEffect, useRef, useState } from "react";
-import { useDispatch, useSelector } from "react-redux";
+import { useDispatch } from "react-redux";
 
 import ActorSprite from "../sprites/actor-sprite";
+import ActorSelectionPopover from "./actor-selection-popover";
 import RecordingHandle from "../sprites/recording-handle";
 import RecordingIgnoredSprite from "../sprites/recording-ignored-sprite";
 import RecordingMaskSprite from "../sprites/recording-mask-sprite";
+import { RecordingSquareStatus } from "../sprites/recording-square-status";
 
 import {
   setRecordingExtent,
@@ -32,6 +34,7 @@ import { extentIgnoredPositions } from "../../utils/recording-helpers";
 import {
   actorFilledPoints,
   actorFillsPoint,
+  actorsAtPoint,
   applyAnchorAdjustment,
   buildActorSelection,
   pointIsOutside,
@@ -39,14 +42,13 @@ import {
 
 import {
   Actor,
-  Characters,
-  EditorState,
+  EvaluatedSquare,
   Position,
   RuleExtent,
   Stage as StageType,
-  UIState,
   WorldMinimal,
 } from "../../../types";
+import { useEditorSelector } from "../../../hooks/redux";
 import { defaultAppearanceId } from "../../utils/character-helpers";
 import { makeId } from "../../utils/utils";
 import { keyToCodakoKey } from "../modal-keypicker/keyboard";
@@ -56,6 +58,7 @@ interface StageProps {
   world: WorldMinimal;
   recordingExtent?: RuleExtent;
   recordingCentered?: boolean;
+  evaluatedSquares?: EvaluatedSquare[];
   readonly?: boolean;
   style?: CSSProperties;
 }
@@ -71,6 +74,7 @@ export const STAGE_ZOOM_STEPS = [1, 0.88, 0.75, 0.63, 0.5, 0.42, 0.38];
 export const Stage = ({
   recordingExtent,
   recordingCentered,
+  evaluatedSquares,
   stage,
   world,
   readonly,
@@ -82,6 +86,11 @@ export const Stage = ({
   );
 
   const [selectionRect, setSelectionRect] = useState<SelectionRect | null>(null);
+  const [actorSelectionPopover, setActorSelectionPopover] = useState<{
+    actors: Actor[];
+    position: { x: number; y: number };
+    toolId: string;
+  } | null>(null);
 
   const lastFiredExtent = useRef<string | null>(null);
   const lastActorPositions = useRef<{ [actorId: string]: Position }>({});
@@ -118,16 +127,15 @@ export const Stage = ({
   }, [stage.height, stage.scale, stage.width, recordingCentered]);
 
   const dispatch = useDispatch();
-  const characters = useSelector<EditorState, Characters>((state) => state.characters);
-  const { selectedActors, selectedToolId, stampToolItem, playback } = useSelector<
-    EditorState,
-    Pick<UIState, "selectedActors" | "selectedToolId" | "stampToolItem" | "playback">
-  >((state) => ({
-    selectedActors: state.ui.selectedActors,
-    selectedToolId: state.ui.selectedToolId,
-    stampToolItem: state.ui.stampToolItem,
-    playback: state.ui.playback,
-  }));
+  const characters = useEditorSelector((state) => state.characters);
+  const { selectedActors, selectedToolId, stampToolItem, playback } = useEditorSelector(
+    (state) => ({
+      selectedActors: state.ui.selectedActors,
+      selectedToolId: state.ui.selectedToolId,
+      stampToolItem: state.ui.stampToolItem,
+      playback: state.ui.playback,
+    }),
+  );
 
   // Helpers
 
@@ -153,6 +161,22 @@ export const Stage = ({
     };
   };
 
+  const centerOnActor = (actorId: string): Offset | null => {
+    if (!actorId) return null;
+
+    const actor = stage.actors[actorId];
+    if (!actor) return null;
+
+    // Calculate actor center position (add 0.5 to center on the cell)
+    const xCenter = actor.position.x + 0.5;
+    const yCenter = actor.position.y + 0.5;
+
+    return {
+      left: `calc(-${xCenter * STAGE_CELL_SIZE}px + 50%)`,
+      top: `calc(-${yCenter * STAGE_CELL_SIZE}px + 50%)`,
+    };
+  };
+
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (playback.running && el.current) {
@@ -168,6 +192,40 @@ export const Stage = ({
       setOffset(offset);
     }
   });
+
+  // Camera follow effect - center on followed actor after each tick during playback
+  useEffect(() => {
+    if (!playback.running) return;
+    if (recordingExtent && recordingCentered) return; // Don't override recording centering
+
+    const cameraFollowId = world.globals?.cameraFollow?.value;
+    if (!cameraFollowId) return;
+
+    // Check if stage is overflowing (needs scrolling)
+    const scrollWrapper = scrollEl.current;
+    if (!scrollWrapper) return;
+
+    const stageWidth = stage.width * STAGE_CELL_SIZE * scale;
+    const stageHeight = stage.height * STAGE_CELL_SIZE * scale;
+    const isOverflowing =
+      stageWidth > scrollWrapper.clientWidth || stageHeight > scrollWrapper.clientHeight;
+
+    if (!isOverflowing) return;
+
+    const newOffset = centerOnActor(cameraFollowId);
+    if (newOffset) {
+      setOffset(newOffset);
+    }
+  }, [
+    playback.running,
+    stage.actors,
+    stage.width,
+    stage.height,
+    world.globals?.cameraFollow?.value,
+    scale,
+    recordingExtent,
+    recordingCentered,
+  ]);
 
   const onBlur = () => {
     if (playback.running) {
@@ -416,33 +474,55 @@ export const Stage = ({
   const onMouseUpActor = (actor: Actor, event: React.MouseEvent) => {
     let handled = false;
 
+    // Helper to check for overlapping actors and show popover if needed
+    const showPopoverIfOverlapping = (toolId: string): boolean => {
+      const overlapping = actorsAtPoint(stage.actors, characters, actor.position);
+      if (overlapping.length > 1) {
+        setActorSelectionPopover({
+          actors: overlapping,
+          position: { x: event.clientX, y: event.clientY },
+          toolId,
+        });
+        return true;
+      }
+      return false;
+    };
+
     switch (selectedToolId) {
       case TOOLS.PAINT:
-        dispatch(paintCharacterAppearance(actor.characterId, actor.appearance));
+        if (!showPopoverIfOverlapping(TOOLS.PAINT)) {
+          dispatch(paintCharacterAppearance(actor.characterId, actor.appearance));
+        }
         handled = true;
         break;
       case TOOLS.STAMP:
         if (!stampToolItem) {
-          dispatch(selectToolItem(selFor([actor.id])));
+          if (!showPopoverIfOverlapping(TOOLS.STAMP)) {
+            dispatch(selectToolItem(selFor([actor.id])));
+          }
           handled = true;
         }
         break;
       case TOOLS.RECORD:
-        dispatch(setupRecordingForActor({ characterId: actor.characterId, actor }));
-        dispatch(selectToolId(TOOLS.POINTER));
+        if (!showPopoverIfOverlapping(TOOLS.RECORD)) {
+          dispatch(setupRecordingForActor({ characterId: actor.characterId, actor }));
+          dispatch(selectToolId(TOOLS.POINTER));
+        }
         handled = true;
         break;
       case TOOLS.ADD_CLICK_CONDITION:
-        dispatch(
-          upsertRecordingCondition({
-            key: makeId("condition"),
-            left: { globalId: "click" },
-            right: { constant: actor.id },
-            comparator: "=",
-            enabled: true,
-          }),
-        );
-        dispatch(selectToolId(TOOLS.POINTER));
+        if (!showPopoverIfOverlapping(TOOLS.ADD_CLICK_CONDITION)) {
+          dispatch(
+            upsertRecordingCondition({
+              key: makeId("condition"),
+              left: { globalId: "click" },
+              right: { constant: actor.id },
+              comparator: "=",
+              enabled: true,
+            }),
+          );
+          dispatch(selectToolId(TOOLS.POINTER));
+        }
         handled = true;
         break;
       case TOOLS.POINTER:
@@ -461,7 +541,9 @@ export const Stage = ({
             ),
           );
         } else {
-          dispatch(select(actor.characterId, selFor([actor.id])));
+          if (!showPopoverIfOverlapping(TOOLS.POINTER)) {
+            dispatch(select(actor.characterId, selFor([actor.id])));
+          }
         }
         handled = true;
         break;
@@ -530,11 +612,34 @@ export const Stage = ({
       onStampAtPosition({ x, y });
     }
     if (selectedToolId === TOOLS.TRASH) {
-      const actor = Object.values(stage.actors)
-        .reverse()
-        .find((a) => actorFillsPoint(a, characters, { x, y }));
+      // If popover is open, skip - we're waiting for user to pick from the popover
+      if (actorSelectionPopover) {
+        return;
+      }
+
+      const overlapping = actorsAtPoint(stage.actors, characters, { x, y });
+
+      // On initial click (not drag), show popover if multiple actors overlap
+      const isFirstClick = Object.keys(mouse.current.visited).length === 1;
+      if (isFirstClick && overlapping.length > 1) {
+        setActorSelectionPopover({
+          actors: overlapping,
+          position: { x: event.clientX, y: event.clientY },
+          toolId: TOOLS.TRASH,
+        });
+        return;
+      }
+
+      // For drag or single actor, delete the topmost actor
+      const actor = overlapping[overlapping.length - 1];
       if (actor) {
-        dispatch(deleteActors(selFor([actor.id])));
+        // If the clicked actor is part of the selection, delete all selected actors
+        const selectedIds = selected.map((a) => a.id);
+        if (selectedIds.includes(actor.id)) {
+          dispatch(deleteActors(selFor(selectedIds)));
+        } else {
+          dispatch(deleteActors(selFor([actor.id])));
+        }
       }
     }
   };
@@ -581,7 +686,12 @@ export const Stage = ({
       setSelectionRect(null);
     }
     if (!event.shiftKey && !event.defaultPrevented) {
-      if (TOOLS.TRASH === selectedToolId || TOOLS.STAMP === selectedToolId) {
+      if (
+        TOOLS.TRASH === selectedToolId ||
+        TOOLS.STAMP === selectedToolId ||
+        TOOLS.RECORD === selectedToolId ||
+        TOOLS.PAINT === selectedToolId
+      ) {
         dispatch(selectToolId(TOOLS.POINTER));
       }
     }
@@ -600,13 +710,62 @@ export const Stage = ({
     }
   };
 
+  const onPopoverSelectActor = (actor: Actor) => {
+    if (!actorSelectionPopover) return;
+
+    const { toolId } = actorSelectionPopover;
+
+    switch (toolId) {
+      case TOOLS.PAINT:
+        dispatch(paintCharacterAppearance(actor.characterId, actor.appearance));
+        break;
+      case TOOLS.STAMP:
+        dispatch(selectToolItem(selFor([actor.id])));
+        break;
+      case TOOLS.RECORD:
+        dispatch(setupRecordingForActor({ characterId: actor.characterId, actor }));
+        dispatch(selectToolId(TOOLS.POINTER));
+        break;
+      case TOOLS.ADD_CLICK_CONDITION:
+        dispatch(
+          upsertRecordingCondition({
+            key: makeId("condition"),
+            left: { globalId: "click" },
+            right: { constant: actor.id },
+            comparator: "=",
+            enabled: true,
+          }),
+        );
+        dispatch(selectToolId(TOOLS.POINTER));
+        break;
+      case TOOLS.TRASH:
+        dispatch(deleteActors(selFor([actor.id])));
+        break;
+      case TOOLS.POINTER:
+      default:
+        dispatch(select(actor.characterId, selFor([actor.id])));
+        break;
+    }
+
+    setActorSelectionPopover(null);
+  };
+
+  const onPopoverDragStart = () => {
+    // Close the popover when drag starts - the drag will continue to the stage
+    setActorSelectionPopover(null);
+  };
+
+  const onPopoverClose = () => {
+    setActorSelectionPopover(null);
+  };
+
   const renderRecordingExtent = () => {
     const { width, height } = stage;
     if (!recordingExtent) {
       return [];
     }
 
-    const components = [];
+    const components: React.ReactNode[] = [];
     const { xmin, xmax, ymin, ymax } = recordingExtent;
 
     // add the dark squares
@@ -635,6 +794,18 @@ export const Stage = ({
       .forEach(({ x, y }) => {
         components.push(<RecordingIgnoredSprite x={x} y={y} key={`ignored-${x}-${y}`} />);
       });
+
+    // add square status overlay if provided
+    if (evaluatedSquares && evaluatedSquares.length > 0) {
+      components.push(
+        <RecordingSquareStatus
+          key="square-status"
+          squares={evaluatedSquares}
+          extentXMin={xmin}
+          extentYMin={ymin}
+        />,
+      );
+    }
 
     // add the handles
     const handles = {
@@ -683,14 +854,16 @@ export const Stage = ({
     lastActorPositions.current[actor.id] = Object.assign({}, actor.position);
 
     const draggable = !readonly && !DRAGGABLE_TOOLS.includes(selectedToolId);
-
+    const animationStyle = actor.animationStyle || "linear";
     return (
       <ActorSprite
         key={`${actor.id}-${didWrap}`}
         selected={selected.includes(actor)}
         onMouseUp={(event) => onMouseUpActor(actor, event)}
         onDoubleClick={() => onSelectActor(actor)}
-        transitionDuration={playback.speed / (actor.frameCount || 1)}
+        transitionDuration={
+          animationStyle === "linear" ? playback.speed / (actor.frameCount || 1) : 0
+        }
         character={character}
         actor={actor}
         dragActorIds={
@@ -742,7 +915,7 @@ export const Stage = ({
             height: stage.height * STAGE_CELL_SIZE,
             background: backgroundCSS,
             pointerEvents: "none",
-            filter: "brightness(1) saturate(0.8)",
+            filter: "brightness(0.8) saturate(0.8)",
           }}
         />
 
@@ -766,6 +939,16 @@ export const Stage = ({
           }}
         />
       ) : null}
+      {actorSelectionPopover && (
+        <ActorSelectionPopover
+          actors={actorSelectionPopover.actors}
+          characters={characters}
+          position={actorSelectionPopover.position}
+          onSelect={onPopoverSelectActor}
+          onDragStart={onPopoverDragStart}
+          onClose={onPopoverClose}
+        />
+      )}
     </div>
   );
 };

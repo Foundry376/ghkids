@@ -1,6 +1,7 @@
 import express from "express";
+import { sendForkEmail } from "src/connectors/email";
 import { AppDataSource } from "src/db/data-source";
-import { User } from "src/db/entity/user";
+import { DEFAULT_NOTIFICATION_SETTINGS, User } from "src/db/entity/user";
 import { World } from "src/db/entity/world";
 import { userFromBasicAuth } from "src/middleware";
 
@@ -8,6 +9,7 @@ const router = express.Router();
 
 router.get("/worlds/explore", async (req, res) => {
   const worlds = await AppDataSource.getRepository(World).find({
+    where: { published: true },
     relations: ["user", "forkParent"],
     order: { playCount: "DESC" },
     take: 50,
@@ -29,12 +31,14 @@ router.get("/worlds/:objectId", async (req, res) => {
     return;
   }
 
-  world.playCount += 1;
+  world.playCount = Number(world.playCount) + 1;
   await AppDataSource.getRepository(World).save(world);
 
+  // Return both data and unsavedData with their timestamps - let frontend decide which to use
   res.json(
     Object.assign({}, world.serialize(), {
-      data: world.data ? JSON.parse(world.data) : null,
+      data: world.data,
+      unsavedData: world.unsavedData ? JSON.parse(world.unsavedData) : null,
     }),
   );
 });
@@ -69,7 +73,7 @@ router.get("/worlds", userFromBasicAuth, async (req, res) => {
 
 router.post("/worlds", userFromBasicAuth, async (req, res) => {
   if (!req.user) {
-    return res.status(401);
+    return res.status(401).json({ message: "Authentication required." });
   }
   const { fork } = req.query;
   let { from } = req.query;
@@ -80,12 +84,26 @@ router.post("/worlds", userFromBasicAuth, async (req, res) => {
     if (from === "tutorial") {
       from = process.env.TUTORIAL_WORLD_ID;
     }
-    sourceWorld = await AppDataSource.getRepository(World).findOneBy({ id: Number(from) });
+    sourceWorld = await AppDataSource.getRepository(World).findOne({
+      where: { id: Number(from) },
+      relations: ["user"],
+    });
   }
   if (sourceWorld) {
     if (fork) {
       sourceWorld.forkCount += 1;
       await AppDataSource.getRepository(World).save(sourceWorld);
+
+      // Send fork notification email to owner
+      const owner = sourceWorld.user;
+      const notificationSettings = owner?.notificationSettings ?? DEFAULT_NOTIFICATION_SETTINGS;
+      if (owner?.email && notificationSettings.forks) {
+        await sendForkEmail(owner, {
+          forkerUsername: req.user.username,
+          worldName: sourceWorld.name,
+          worldId: sourceWorld.id,
+        });
+      }
     }
     newWorld = AppDataSource.getRepository(World).create({
       userId: req.user.id,
@@ -112,6 +130,7 @@ router.put("/worlds/:objectId", userFromBasicAuth, async (req, res) => {
   }
 
   const { objectId } = req.params;
+  const action = req.query.action as string | undefined; // 'save', 'saveDraft', or 'discard'
   const world = await AppDataSource.getRepository(World).findOneBy({
     userId: req.user.id,
     id: Number(objectId),
@@ -120,19 +139,54 @@ router.put("/worlds/:objectId", userFromBasicAuth, async (req, res) => {
     res.status(404).json({ message: "No world with that ID exists for that user." });
     return;
   }
-  world.name = req.body.name || world.name;
-  world.thumbnail = req.body.thumbnail || world.thumbnail;
-  world.data = req.body.data ? JSON.stringify(req.body.data) : world.data;
+
+  // Handle different save actions
+  if (action === "save") {
+    // Save: copy unsavedData to data, clear unsavedData and timestamp
+    if (world.unsavedData) {
+      world.data = JSON.parse(world.unsavedData) as Record<string, unknown>;
+      world.unsavedData = null;
+      world.unsavedDataUpdatedAt = null;
+    } else if (req.body.data) {
+      // If no unsavedData but data provided, save directly to data
+      world.data = req.body.data;
+    }
+    // Also update name and thumbnail if provided
+    world.name = req.body.name || world.name;
+    world.thumbnail = req.body.thumbnail || world.thumbnail;
+    // Allow updating published/description on save
+    world.description = req.body.description ?? world.description;
+    world.published = req.body.published ?? world.published;
+    // updatedAt will be automatically updated by TypeORM
+  } else if (action === "discard") {
+    // Discard: clear unsavedData and timestamp
+    world.unsavedData = null;
+    world.unsavedDataUpdatedAt = null;
+  } else {
+    // Default: saveDraft - save to unsavedData and update timestamp
+    world.name = req.body.name || world.name;
+    world.thumbnail = req.body.thumbnail || world.thumbnail;
+    if (req.body.data) {
+      world.unsavedData = JSON.stringify(req.body.data);
+      world.unsavedDataUpdatedAt = new Date();
+    }
+    // Allow updating published/description during draft save too
+    world.description = req.body.description ?? world.description;
+    world.published = req.body.published ?? world.published;
+    // Don't update updatedAt when saving draft
+  }
 
   await AppDataSource.getRepository(World).save(world);
+
   res.json(
     Object.assign({}, world.serialize(), {
-      data: world.data ? JSON.parse(world.data) : null,
+      data: world.data,
+      unsavedData: world.unsavedData ? JSON.parse(world.unsavedData) : null,
     }),
   );
 });
 
-router.delete("/worlds/:objectId", async (req, res) => {
+router.delete("/worlds/:objectId", userFromBasicAuth, async (req, res) => {
   const { objectId } = req.params;
 
   const world = await AppDataSource.getRepository(World).findOneBy({

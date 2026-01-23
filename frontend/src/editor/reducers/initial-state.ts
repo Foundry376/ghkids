@@ -26,6 +26,12 @@ const InitialWorld: World = {
       value: stage.id,
       type: "stage",
     },
+    cameraFollow: {
+      id: "cameraFollow",
+      name: "Camera Follow",
+      value: "",
+      type: "actor",
+    },
   },
   input: {
     keys: {},
@@ -34,9 +40,11 @@ const InitialWorld: World = {
   metadata: {
     name: "",
     id: 0,
+    published: false,
+    description: null,
   },
   history: [],
-  evaluatedRuleIds: {},
+  evaluatedRuleDetails: {},
 };
 
 const InitialState: EditorState = {

@@ -1,12 +1,11 @@
 import { useEffect } from "react";
-import { useSelector } from "react-redux";
 
-import { EditorState, Stage } from "../../../types";
+import { useEditorSelector } from "../../../hooks/redux";
 import { getStagesList } from "../../utils/selectors";
 import { prepareCrossoriginImages } from "../../utils/stage-helpers";
 
 export const StageImagesLoader = () => {
-  const stages = useSelector<EditorState, Stage[]>((state) => getStagesList(state));
+  const stages = useEditorSelector((state) => getStagesList(state));
   useEffect(() => {
     prepareCrossoriginImages(stages);
   }, [stages]);

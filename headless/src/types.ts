@@ -133,12 +133,6 @@ export type Character = {
   variables: {};
 };
 
-export type EvaluatedRuleIds = {
-  [actorId: string]: {
-    [ruleTreeItemId: string]: boolean;
-  };
-};
-
 export type World = {
   id: string;
   stages: {
@@ -157,7 +151,6 @@ export type World = {
     clicks: {};
   };
   history: any;
-  evaluatedRuleIds: EvaluatedRuleIds;
   metadata: {
     name: string;
     id: number;

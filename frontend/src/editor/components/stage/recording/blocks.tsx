@@ -1,12 +1,5 @@
-import { useSelector } from "react-redux";
-import {
-  Actor,
-  ActorTransform,
-  Character,
-  Characters,
-  EditorState,
-  WorldMinimal,
-} from "../../../../types";
+import { Actor, ActorTransform, Character, WorldMinimal } from "../../../../types";
+import { useEditorSelector } from "../../../../hooks/redux";
 import { getCurrentStageForWorld } from "../../../utils/selectors";
 import { TransformLabels } from "../../inspector/transform-images";
 import Sprite from "../../sprites/sprite";
@@ -69,16 +62,18 @@ export const ActorVariableBlock = ({
   disambiguate?: boolean;
   variableId: string;
 }) => {
+  const getVariableLabel = () => {
+    if (variableId === "transform") return "direction";
+    if (variableId === "appearance") return "appearance";
+    if (variableId === "x") return "X";
+    if (variableId === "y") return "Y";
+    return <VariableBlock name={(variableId && character.variables[variableId]?.name) || ""} />;
+  };
+
   return (
     <div>
       <ActorBlock character={character} actor={actor} disambiguate={disambiguate} />
-      {variableId === "transform" ? (
-        "direction"
-      ) : variableId === "appearance" ? (
-        "appearance"
-      ) : (
-        <VariableBlock name={(variableId && character.variables[variableId].name) || ""} />
-      )}
+      {getVariableLabel()}
     </div>
   );
 };
@@ -118,8 +113,8 @@ export const ConnectedActorBlock = ({
   actorId: string;
   recordingWorld?: WorldMinimal;
 }) => {
-  const world = useSelector<EditorState, WorldMinimal>((state) => state.world);
-  const characters = useSelector<EditorState, Characters>((state) => state.characters);
+  const world = useEditorSelector((state) => state.world);
+  const characters = useEditorSelector((state) => state.characters);
   const actor = getCurrentStageForWorld(recordingWorld || world)?.actors[actorId];
   const character = actor && characters[actor.characterId];
   if (actor && character) {

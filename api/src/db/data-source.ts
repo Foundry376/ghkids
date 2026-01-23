@@ -1,5 +1,4 @@
 import { DataSource } from "typeorm";
-import { logger } from "../logger";
 import { User } from "./entity/user";
 import { World } from "./entity/world";
 
@@ -13,15 +12,14 @@ export const AppDataSource = new DataSource({
   url: url,
   type: "postgres",
   synchronize: process.env.NODE_ENV !== "production",
-  logging: true,
+  logging: ["error"],
   maxQueryExecutionTime: 30000,
   entities: [User, World],
   subscribers: [],
   ssl: process.env.NODE_ENV === "production" ? { rejectUnauthorized: false } : false,
   migrations: process.env.NODE_ENV === "test" ? [] : ["dist/db/migrations/*.js"],
+  migrationsRun: process.env.NODE_ENV === "production",
   extra: {
     poolSize: process.env.DATABASE_POOL_SIZE || 40,
   },
 });
-
-export const initialize = !process.env.SEED ? AppDataSource.initialize().catch(logger.error) : null;

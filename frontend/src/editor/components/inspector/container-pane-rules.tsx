@@ -1,14 +1,8 @@
 import React, { useEffect, useRef } from "react";
 
-import { useDispatch, useSelector } from "react-redux";
-import {
-  Character,
-  EditorState,
-  Rule,
-  RuleTreeFlowItemCheck,
-  RuleTreeItem,
-  UIState,
-} from "../../../types";
+import { useDispatch } from "react-redux";
+import { Character, Rule, RuleTreeFlowItemCheck, RuleTreeItem } from "../../../types";
+import { useEditorSelector } from "../../../hooks/redux";
 import { upsertCharacter } from "../../actions/characters-actions";
 import { editRuleRecording } from "../../actions/recording-actions";
 import { selectToolId } from "../../actions/ui-actions";
@@ -27,7 +21,7 @@ export const RuleActionsContext = React.createContext<{
 
 export const ContainerPaneRules = ({ character }: { character: Character | null }) => {
   const dispatch = useDispatch();
-  const { selectedToolId, stampToolItem } = useSelector<EditorState, UIState>((state) => state.ui);
+  const { selectedToolId, stampToolItem } = useEditorSelector((state) => state.ui);
   const _scrollContainerEl = useRef<HTMLDivElement>(null);
   const _scrollId = useRef<number>(0);
 

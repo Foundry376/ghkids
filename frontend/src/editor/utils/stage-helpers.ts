@@ -34,6 +34,14 @@ export function actorFillsPoint(actor: Actor, characters: Characters, point: Pos
   return actorFilledPoints(actor, characters).some((p) => p.x === point.x && p.y === point.y);
 }
 
+export function actorsAtPoint(
+  actors: { [id: string]: Actor },
+  characters: Characters,
+  point: Position,
+): Actor[] {
+  return Object.values(actors).filter((actor) => actorFillsPoint(actor, characters, point));
+}
+
 export function actorIntersectsExtent(actor: Actor, characters: Characters, extent: RuleExtent) {
   const points = new Set(actorFilledPoints(actor, characters).map((p) => `${p.x},${p.y}`));
   for (let x = extent.xmin; x <= extent.xmax; x++) {
@@ -46,9 +54,14 @@ export function actorIntersectsExtent(actor: Actor, characters: Characters, exte
 
 export function actorFilledPoints(actor: Actor, characters: Characters) {
   const character = characters[actor.characterId];
-  const info = character?.spritesheet.appearanceInfo?.[actor.appearance];
+  if (!character) {
+    console.warn(`actorFilledPoints: character ${actor.characterId} not found for actor ${actor.id}`);
+    return [actor.position];
+  }
+  const info = character.spritesheet.appearanceInfo?.[actor.appearance];
   const { x, y } = actor.position;
   if (!info) {
+    // No appearance info is normal for simple 1x1 sprites
     return [{ x, y }];
   }
   const results: Position[] = [];
@@ -107,7 +120,8 @@ export function pointApplyingTransform(
   return [x, y];
 }
 
-export function shuffleArray<T>(d: Array<T>): Array<T> {
+export function shuffleArray<T>(input: Array<T>): Array<T> {
+  const d = [...input]; // Create a copy to avoid mutating input
   for (let c = d.length - 1; c > 0; c--) {
     const b = Math.floor(Math.random() * (c + 1));
     const a = d[c];
@@ -132,12 +146,17 @@ export function resolveRuleValue(
     return val.constant;
   }
   if ("actorId" in val) {
-    return getVariableValue(
-      actors[val.actorId],
-      characters[actors[val.actorId].characterId],
-      val.variableId,
-      comparator,
-    );
+    const actor = actors[val.actorId];
+    if (!actor) {
+      console.warn(`resolveRuleValue: actor ${val.actorId} not found`);
+      return null;
+    }
+    const character = characters[actor.characterId];
+    if (!character) {
+      console.warn(`resolveRuleValue: character ${actor.characterId} not found`);
+      return null;
+    }
+    return getVariableValue(actor, character, val.variableId, comparator);
   }
   if ("globalId" in val) {
     return globals[val.globalId]?.value;
@@ -169,6 +188,12 @@ export function getVariableValue(
   if (id === "transform") {
     return actor.transform ?? null;
   }
+  if (id === "x") {
+    return String(actor.position.x);
+  }
+  if (id === "y") {
+    return String(actor.position.y);
+  }
   if (actor.variableValues[id] !== undefined) {
     return actor.variableValues[id] ?? null;
   }
@@ -178,6 +203,18 @@ export function getVariableValue(
   return null;
 }
 
+// Inverse transforms in D4 symmetry group
+const INVERSE_TRANSFORMS: { [key in ActorTransform]: ActorTransform } = {
+  "0": "0",
+  "90": "270",
+  "180": "180",
+  "270": "90",
+  "flip-x": "flip-x",
+  "flip-y": "flip-y",
+  d1: "d1",
+  d2: "d2",
+};
+
 export function applyTransformOperation(
   existing: ActorTransform,
   operation: MathOperation,
@@ -185,6 +222,10 @@ export function applyTransformOperation(
 ) {
   if (operation === "add") {
     return RELATIVE_TRANSFORMS[existing][value];
+  }
+  if (operation === "subtract") {
+    // Subtract is composition with the inverse: existing * inverse(value)
+    return RELATIVE_TRANSFORMS[existing][INVERSE_TRANSFORMS[value]];
   }
   if (operation === "set") {
     return value;
@@ -207,25 +248,110 @@ export function applyVariableOperation(existing: string, operation: MathOperatio
   throw new Error(`applyVariableOperation unknown operation ${operation}`);
 }
 
+export type RulePredicate = (rule: RuleTreeItem) => boolean;
+
+export type FindRulesResult = Array<{ rule: RuleTreeItem; parent: { rules: RuleTreeItem[] }; index: number }>;
+
+/**
+ * Find all rules matching a predicate function.
+ * Returns an array of objects with the rule, its parent container, and index.
+ */
+export function findRules(
+  node: { rules: RuleTreeItem[] },
+  predicate: RulePredicate,
+): FindRulesResult {
+  const results: FindRulesResult = [];
+
+  if (!("rules" in node)) {
+    return results;
+  }
+
+  for (let idx = 0; idx < node.rules.length; idx++) {
+    const rule = node.rules[idx];
+
+    if (predicate(rule)) {
+      results.push({ rule, parent: node, index: idx });
+    }
+
+    if ("rules" in rule && rule.rules) {
+      results.push(...findRules(rule, predicate));
+    }
+  }
+
+  return results;
+}
+
+/**
+ * Find a single rule by ID.
+ * Returns [rule, parent, index] or [null, {rules: []}, 0] if not found.
+ */
 export function findRule(
   node: { rules: RuleTreeItem[] },
   id: string,
 ): [RuleTreeItem | null, { rules: RuleTreeItem[] }, number] {
-  if (!("rules" in node)) {
-    return [null, { rules: [] }, 0] as const;
-  }
-  for (let idx = 0; idx < node.rules.length; idx++) {
-    const n = node.rules[idx];
-    if (n.id === id) {
-      return [n, node, idx];
-    } else if ("rules" in n && n.rules) {
-      const rval = findRule(n, id);
-      if (rval[0] !== null) {
-        return rval;
-      }
-    }
+  const results = findRules(node, (rule) => rule.id === id);
+  if (results.length > 0) {
+    return [results[0].rule, results[0].parent, results[0].index];
   }
   return [null, { rules: [] }, 0] as const;
+}
+
+/**
+ * Predicate to check if a rule uses a specific variable ID.
+ */
+export function ruleUsesVariable(variableId: string): RulePredicate {
+  return (rule: RuleTreeItem) => {
+    // Check if this is a flow item with a loop count referencing the variable
+    if (
+      rule.type === "group-flow" &&
+      "behavior" in rule &&
+      rule.behavior === "loop" &&
+      "loopCount" in rule &&
+      "variableId" in rule.loopCount &&
+      rule.loopCount.variableId === variableId
+    ) {
+      return true;
+    }
+
+    // Check if this is a rule with conditions or actions using the variable
+    if (rule.type === "rule") {
+      // Check conditions
+      const hasConditionUsingVar = rule.conditions.some(
+        (c) =>
+          ("actorId" in c.left && "variableId" in c.left && c.left.variableId === variableId) ||
+          ("actorId" in c.right && "variableId" in c.right && c.right.variableId === variableId),
+      );
+
+      // Check actions
+      const hasActionUsingVar = rule.actions.some(
+        (a) =>
+          (a.type === "variable" && a.variable === variableId) ||
+          ("value" in a &&
+            a.value &&
+            "actorId" in a.value &&
+            "variableId" in a.value &&
+            a.value.variableId === variableId),
+      );
+
+      if (hasConditionUsingVar || hasActionUsingVar) {
+        return true;
+      }
+    }
+
+    // Check flow item check conditions
+    if (rule.type === "group-flow" && rule.check) {
+      const hasCheckConditionUsingVar = rule.check.conditions.some(
+        (c) =>
+          ("actorId" in c.left && "variableId" in c.left && c.left.variableId === variableId) ||
+          ("actorId" in c.right && "variableId" in c.right && c.right.variableId === variableId),
+      );
+      if (hasCheckConditionUsingVar) {
+        return true;
+      }
+    }
+
+    return false;
+  };
 }
 type HTMLImageElementLoaded = HTMLImageElement & { _codakoloaded?: boolean };
 
@@ -301,8 +427,46 @@ export function applyActorTransformToContext(
   }
 }
 
+/**
+ * Returns whether the given transform swaps width and height dimensions.
+ * This is true for 90°, 270°, and diagonal reflections.
+ */
+export function transformSwapsDimensions(transform: ActorTransform): boolean {
+  return transform === "90" || transform === "270" || transform === "d1" || transform === "d2";
+}
+
+/**
+ * Renders an image with the given transform applied to a new canvas.
+ * Returns the canvas element with the transformed image drawn on it.
+ */
+export function renderTransformedImage(
+  img: CanvasImageSource,
+  imgWidth: number,
+  imgHeight: number,
+  transform: ActorTransform,
+): HTMLCanvasElement {
+  const needsSwap = transformSwapsDimensions(transform);
+  const canvasWidth = needsSwap ? imgHeight : imgWidth;
+  const canvasHeight = needsSwap ? imgWidth : imgHeight;
+
+  const canvas = document.createElement("canvas");
+  canvas.width = canvasWidth;
+  canvas.height = canvasHeight;
+  const ctx = canvas.getContext("2d");
+
+  if (ctx) {
+    ctx.save();
+    ctx.translate(canvasWidth / 2, canvasHeight / 2);
+    applyActorTransformToContext(ctx, transform);
+    ctx.drawImage(img, -imgWidth / 2, -imgHeight / 2);
+    ctx.restore();
+  }
+
+  return canvas;
+}
+
 export function getStageScreenshot(stage: Stage, { size }: { size: number }) {
-  const { characters } = window.editorStore.getState();
+  const { characters } = window.editorStore!.getState();
 
   const scale = Math.min(size / (stage.width * 40), size / (stage.height * 40));
   const pxPerSquare = Math.round(40 * scale);
@@ -328,7 +492,7 @@ export function getStageScreenshot(stage: Stage, { size }: { size: number }) {
   Object.values(stage.actors).forEach((actor) => {
     const i = new Image();
     const { appearances, appearanceInfo } = characters[actor.characterId].spritesheet;
-    i.src = appearances[actor.appearance];
+    i.src = appearances[actor.appearance][0];
     const info = appearanceInfo?.[actor.appearance] || DEFAULT_APPEARANCE_INFO;
 
     context.save();
@@ -355,6 +519,40 @@ export function getStageScreenshot(stage: Stage, { size }: { size: number }) {
   return null;
 }
 
-export function isNever(val: never) {
+export function isNever(val: never): never {
   throw new Error(`Expected var to be never but it is ${JSON.stringify(val)}.`);
 }
+
+export function comparatorMatches(
+  comparator: VariableComparator,
+  a: string | null,
+  b: string | null,
+): boolean {
+  switch (comparator) {
+    case "=":
+      return `${a}` === `${b}`;
+    case "!=":
+      return `${a}` != `${b}`;
+    case ">=":
+      return Number(a) >= Number(b);
+    case "<=":
+      return Number(a) <= Number(b);
+    case ">":
+      return Number(a) > Number(b);
+    case "<":
+      return Number(a) < Number(b);
+    case "contains":
+      if (`${a}`.includes(",")) {
+        // This is a special hack for keypress so "ArrowLeft,Space" doesn't match "A"
+        return a?.split(",").some((v) => v === b) ?? false;
+      }
+      return `${a}`.includes(`${b}`);
+    case "ends-with":
+      return `${a}`.endsWith(`${b}`);
+    case "starts-with":
+      return `${a}`.startsWith(`${b}`);
+    default:
+      isNever(comparator);
+  }
+}
+

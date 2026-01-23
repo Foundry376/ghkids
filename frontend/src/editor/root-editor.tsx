@@ -7,17 +7,17 @@ import TutorialContainer from "./components/tutorial/container";
 import ExploreCharactersContainer from "./components/modal-explore-characters/container";
 import KeypickerContainer from "./components/modal-keypicker/container";
 import PaintContainer from "./components/modal-paint/container";
+import { PublishContainer } from "./components/modal-publish/container";
 import { StagesContainer } from "./components/modal-stages/container";
 import VideosContainer from "./components/modal-videos/container";
 import { StageImagesLoader } from "./components/stage/stage-images-loader";
 
-import { useSelector } from "react-redux";
-import { EditorState } from "../types";
+import { useEditorSelector } from "../hooks/redux";
 import { StampCursorSupport } from "./components/cursor-support";
 import "./styles/editor.scss";
 
 const RootEditor = () => {
-  const selectedToolId = useSelector<EditorState>((state) => state.ui.selectedToolId);
+  const selectedToolId = useEditorSelector((state) => state.ui.selectedToolId);
 
   return (
     <div className={`editor tool-${selectedToolId}`}>
@@ -36,6 +36,7 @@ const RootEditor = () => {
         <StagesContainer />
         <VideosContainer />
         <ExploreCharactersContainer />
+        <PublishContainer />
 
         {/**behaviors / hooks / weird stuff */}
         <StageImagesLoader />

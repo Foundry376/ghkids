@@ -5,7 +5,7 @@ import { DisclosureTriangle } from "./disclosure-triangle";
 import { RuleStateCircle } from "./rule-state-circle";
 import { ScenarioStage } from "./scenario-stage";
 
-import { Rule } from "../../../types";
+import { EvaluatedCondition, Rule } from "../../../types";
 import { FreeformConditionRow } from "../stage/recording/condition-rows";
 import { isCollapsePersisted, persistCollapsedState } from "./collapse-state-storage";
 import { RuleActionsContext } from "./container-pane-rules";
@@ -13,12 +13,21 @@ import { InspectorContext } from "./inspector-context";
 
 export const ContentRule = ({ rule }: { rule: Rule }) => {
   const [collapsed, setCollapsed] = useState(isCollapsePersisted(rule.id));
-  const { characters, world } = useContext(InspectorContext);
+  const { characters, world, evaluatedRuleDetailsForActor } = useContext(InspectorContext);
   const { onRuleChanged } = useContext(RuleActionsContext);
 
   const _onNameChange = (name: string) => {
     onRuleChanged(rule.id, { name });
   };
+
+  // Build condition status map from evaluation details
+  const conditionStatusMap: { [conditionKey: string]: EvaluatedCondition } = {};
+  const ruleDetails = evaluatedRuleDetailsForActor?.[rule.id];
+  if (ruleDetails?.conditions) {
+    for (const cond of ruleDetails.conditions) {
+      conditionStatusMap[cond.conditionKey] = cond;
+    }
+  }
 
   const conditions: React.ReactNode[] = [];
   rule.conditions.forEach((condition) => {
@@ -30,6 +39,7 @@ export const ContentRule = ({ rule }: { rule: Rule }) => {
           world={world}
           condition={condition}
           characters={characters}
+          conditionStatus={conditionStatusMap[condition.key]}
         />,
       );
     }
