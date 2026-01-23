@@ -208,6 +208,11 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
         matchedActors: {},
       };
 
+      // Skip disabled rules
+      if (rule.enabled === false) {
+        return emptyDetails;
+      }
+
       if (rule.type === CONTAINER_TYPES.EVENT) {
         const eventPassed = checkEvent(rule);
         if (!eventPassed) {

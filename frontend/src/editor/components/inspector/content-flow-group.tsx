@@ -73,7 +73,10 @@ export const ContentFlowGroup = ({
     <div>
       <div className={`${rule.behavior}`}>
         <div style={{ display: "flex", gap: 4, alignItems: "baseline" }}>
-          <RuleStateCircle rule={rule} />
+          <RuleStateCircle
+            rule={rule}
+            onToggle={() => onRuleChanged(rule.id, { enabled: rule.enabled === false })}
+          />
           <TapToEditLabel className="name" value={rule.name} onChange={_onNameChange} />
         </div>
 

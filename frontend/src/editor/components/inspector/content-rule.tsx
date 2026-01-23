@@ -48,7 +48,10 @@ export const ContentRule = ({ rule }: { rule: Rule }) => {
   return (
     <div>
       <div className="scenario">
-        <RuleStateCircle rule={rule} />
+        <RuleStateCircle
+          rule={rule}
+          onToggle={() => onRuleChanged(rule.id, { enabled: rule.enabled === false })}
+        />
         <div style={{ flex: 1 }} />
         <ScenarioStage rule={rule} applyActions={false} maxWidth={75} maxHeight={75} />
         <i className="fa fa-arrow-right" aria-hidden="true" />

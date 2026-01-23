@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useContext, useState } from "react";
 import { DisclosureTriangle } from "./disclosure-triangle";
 import { RuleList } from "./rule-list";
 import { RuleStateCircle } from "./rule-state-circle";
@@ -6,6 +6,7 @@ import { RuleStateCircle } from "./rule-state-circle";
 import { Character, RuleTreeEventItem } from "../../../types";
 import { nameForKey } from "../../utils/event-helpers";
 import { isCollapsePersisted, persistCollapsedState } from "./collapse-state-storage";
+import { RuleActionsContext } from "./container-pane-rules";
 
 export const ContentEventGroup = ({
   rule,
@@ -15,6 +16,7 @@ export const ContentEventGroup = ({
   character: Character;
 }) => {
   const [collapsed, setCollapsed] = useState(isCollapsePersisted(rule.id));
+  const { onRuleChanged } = useContext(RuleActionsContext);
 
   const _name = () => {
     const { event, code } = rule;
@@ -38,7 +40,10 @@ export const ContentEventGroup = ({
     <div>
       <div className="header">
         <div style={{ float: "left", width: 20, lineHeight: "1.15em" }}>
-          <RuleStateCircle rule={rule} />
+          <RuleStateCircle
+            rule={rule}
+            onToggle={() => onRuleChanged(rule.id, { enabled: rule.enabled === false })}
+          />
           <DisclosureTriangle
             onClick={() => {
               setCollapsed(!collapsed);

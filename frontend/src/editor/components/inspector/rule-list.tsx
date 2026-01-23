@@ -203,7 +203,7 @@ export const RuleList = ({
         draggable
         key={r.id}
         data-rule-id={r.id}
-        className={`rule-container tool-supported ${r.type} ${dragState.hovering === r.id && "hovering"}`}
+        className={`rule-container tool-supported ${r.type} ${dragState.hovering === r.id && "hovering"} ${r.enabled === false && "rule-disabled"}`}
         onClick={(event) => _onRuleClicked(event, r)}
         onDoubleClick={(event) => _onRuleDoubleClick(event, r)}
         onDragStart={(event) => _onDragStart(event, r)}
