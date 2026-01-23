@@ -609,6 +609,14 @@ html {
     .scroll-container-contents {
       position: absolute;
       width: 100%;
+      min-height: 100%;
+      display: flex;
+      flex-direction: column;
+
+      // Make the top-level rules-list fill the container for easier drop targeting
+      > .rules-list {
+        flex: 1;
+      }
     }
   }
 }
