@@ -412,9 +412,12 @@ export class PaintModel {
   updateCanvasSize(dSquaresX: number, dSquaresY: number, offsetX: number, offsetY: number): void {
     if (!this.state.imageData) return;
 
-    const newImageData = getImageDataWithNewFrame(this.state.imageData, {
-      width: this.state.imageData.width + 40 * dSquaresX,
-      height: this.state.imageData.height + 40 * dSquaresY,
+    // Flatten selection into the canvas before resizing
+    const flattenedImageData = getFlattenedImageData(this.state) || this.state.imageData;
+
+    const newImageData = getImageDataWithNewFrame(flattenedImageData, {
+      width: flattenedImageData.width + 40 * dSquaresX,
+      height: flattenedImageData.height + 40 * dSquaresY,
       offsetX: 40 * offsetX,
       offsetY: 40 * offsetY,
     });
