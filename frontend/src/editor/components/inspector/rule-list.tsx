@@ -79,13 +79,20 @@ export const RuleList = ({
     );
     for (let i = 0; i < all.length; i++) {
       const { top, height } = all[i].getBoundingClientRect();
+      const isLastItem = i === all.length - 1;
+
       if (event.clientY < top + Math.min(50, height * 0.33)) {
         return i;
       }
 
       // create a dead zone within the item. This is crucial for the drop-zones
-      // within the item (ala nested rule list).
-      if (event.clientY < top + Math.max(height - 50, height * 0.66)) {
+      // within the item (ala nested rule list). For the last item, the dead zone
+      // ends at 50% to make it easier to drop at the end of the list.
+      const deadZoneEnd = isLastItem
+        ? top + height * 0.5
+        : top + Math.max(height - 50, height * 0.66);
+
+      if (event.clientY < deadZoneEnd) {
         return DROP_INDEX_INSIDE_BUT_INDETERMINATE;
       }
     }
