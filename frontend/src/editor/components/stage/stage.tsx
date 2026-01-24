@@ -2,6 +2,7 @@ import React, { CSSProperties, useEffect, useRef, useState } from "react";
 import { useDispatch } from "react-redux";
 
 import ActorSprite from "../sprites/actor-sprite";
+import { DEFAULT_APPEARANCE_INFO } from "../sprites/sprite";
 import ActorSelectionPopover from "./actor-selection-popover";
 import RecordingHandle from "../sprites/recording-handle";
 import RecordingIgnoredSprite from "../sprites/recording-ignored-sprite";
@@ -327,9 +328,46 @@ export const Stage = ({
     const dragOffset =
       "dataTransfer" in event && event.dataTransfer && event.dataTransfer.getData("drag-offset");
 
-    // subtracting half when no offset is present is a lazy way of doing Math.floor instead of Math.round!
-    const halfOffset = { dragTop: STAGE_CELL_SIZE / 2, dragLeft: STAGE_CELL_SIZE / 2 };
-    const { dragLeft, dragTop } = dragOffset ? JSON.parse(dragOffset) : halfOffset;
+    let dragLeft: number;
+    let dragTop: number;
+
+    if (dragOffset) {
+      // Drag-and-drop: use the offset stored in dataTransfer
+      const parsed = JSON.parse(dragOffset);
+      dragLeft = parsed.dragLeft;
+      dragTop = parsed.dragTop;
+    } else if (selectedToolId === TOOLS.STAMP && stampToolItem) {
+      // Stamp tool: compute offset based on anchor point to match cursor positioning
+      // The cursor shows the sprite with its anchor point at the mouse position,
+      // so the offset is from sprite top-left to anchor center in screen pixels
+      let info = DEFAULT_APPEARANCE_INFO;
+      if ("actorIds" in stampToolItem && stampToolItem.actorIds) {
+        const anchorActor = stage.actors[stampToolItem.actorIds[0]];
+        if (anchorActor) {
+          const anchorCharacter = characters[anchorActor.characterId];
+          if (anchorCharacter) {
+            info =
+              anchorCharacter.spritesheet.appearanceInfo?.[anchorActor.appearance] ||
+              DEFAULT_APPEARANCE_INFO;
+          }
+        }
+      } else if ("characterId" in stampToolItem) {
+        const character = characters[stampToolItem.characterId];
+        if (character) {
+          const appearance =
+            ("appearanceId" in stampToolItem ? stampToolItem.appearanceId : null) ??
+            defaultAppearanceId(character.spritesheet);
+          info = character.spritesheet.appearanceInfo?.[appearance] || DEFAULT_APPEARANCE_INFO;
+        }
+      }
+      // Offset from sprite top-left to anchor center, in screen pixels (accounting for scale)
+      dragLeft = (info.anchor.x + 0.5) * STAGE_CELL_SIZE * scale;
+      dragTop = (info.anchor.y + 0.5) * STAGE_CELL_SIZE * scale;
+    } else {
+      // Default: subtracting half is a lazy way of doing Math.floor instead of Math.round
+      dragLeft = STAGE_CELL_SIZE / 2;
+      dragTop = STAGE_CELL_SIZE / 2;
+    }
 
     const px = getPxOffsetForEvent(event);
     return {
