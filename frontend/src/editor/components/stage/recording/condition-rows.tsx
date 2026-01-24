@@ -37,10 +37,17 @@ type ImpliedDatatype =
   | { type: "actor" }
   | null;
 
-/** Status circle for condition evaluation - hidden when not evaluated */
-const ConditionStatusCircle = ({ status }: { status?: EvaluatedCondition }) => {
+/** Status circle for condition evaluation */
+const ConditionStatusCircle = ({
+  status,
+  alwaysShow,
+}: {
+  status?: EvaluatedCondition;
+  alwaysShow?: boolean;
+}) => {
   if (status === undefined) {
-    return null;
+    // In sidebar mode (alwaysShow), show gray circle; in editor mode, hide
+    return alwaysShow ? <div className="circle" /> : null;
   }
   return <div className={`circle ${status.passed}`} />;
 };
@@ -103,7 +110,7 @@ export const FreeformConditionRow = ({
 
   return (
     <li className={`enabled-true tool-supported`} onClick={onToolClick}>
-      <ConditionStatusCircle status={conditionStatus} />
+      <ConditionStatusCircle status={conditionStatus} alwaysShow={!onChange} />
       <FreeformConditionValue
         conditionId={condition.key}
         value={left}

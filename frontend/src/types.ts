@@ -101,6 +101,7 @@ export type RuleTreeEventItem = {
   event: "idle" | "key" | "click";
   code?: number; // used for key event
   id: string;
+  enabled?: boolean;
 };
 
 export type RuleTreeFlowItemCheck = {
@@ -116,6 +117,7 @@ export type RuleTreeFlowItemBase = {
   name: string;
   rules: RuleTreeItem[];
   id: string;
+  enabled?: boolean;
 
   check?: RuleTreeFlowItemCheck;
 };
@@ -178,6 +180,7 @@ export type Rule = {
   extent: RuleExtent;
   id: string;
   name: string;
+  enabled?: boolean;
 };
 
 export type Actor = {
