@@ -18,7 +18,7 @@ export default function CreatePixelContext(this: PixelContext, PixelSize: number
     endY: number,
     offsetX: number,
     offsetY: number,
-    options: { ignoreClearPixels?: boolean } = {}
+    options: { ignoreClearPixels?: boolean } = {},
   ): void => {
     const { data, width } = imageData;
     let lastSetColor: string | null = null;
@@ -48,8 +48,8 @@ export default function CreatePixelContext(this: PixelContext, PixelSize: number
   };
 
   this.fillToolSize = (x: number, y: number, size: number): void => {
-    const xmin = x - Math.round(size / 2);
-    const ymin = y - Math.round(size / 2);
+    const xmin = x - Math.floor(size / 2);
+    const ymin = y - Math.floor(size / 2);
     for (let px = xmin; px < xmin + size; px++) {
       for (let py = ymin; py < ymin + size; py++) {
         this.fillPixel(px, py);
@@ -95,7 +95,7 @@ export default function CreatePixelContext(this: PixelContext, PixelSize: number
             x * PixelSize + PixelSize / 2,
             y * PixelSize + PixelSize / 2,
             PixelSize / 2,
-            PixelSize / 2
+            PixelSize / 2,
           );
         }
       }

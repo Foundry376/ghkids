@@ -15,7 +15,7 @@ export default function CreatePixelImageData(this: PixelImageData): void {
     const clone = new ImageData(
       new Uint8ClampedArray(this.data),
       this.width,
-      this.height
+      this.height,
     ) as PixelImageData;
     CreatePixelImageData.call(clone);
     return clone;
@@ -45,7 +45,7 @@ export default function CreatePixelImageData(this: PixelImageData): void {
           this.width +
           "px " +
           this.height +
-          "px; color: transparent;"
+          "px; color: transparent;",
       );
     };
     img.src = url!;
@@ -67,7 +67,7 @@ export default function CreatePixelImageData(this: PixelImageData): void {
     endY: number,
     offsetX: number,
     offsetY: number,
-    options: { ignoreClearPixels?: boolean } = {}
+    options: { ignoreClearPixels?: boolean } = {},
   ): void => {
     const { data, width } = imageData;
     for (let x = startX; x < endX; x++) {
@@ -106,16 +106,12 @@ export default function CreatePixelImageData(this: PixelImageData): void {
     if (xx >= this.width || xx < 0 || yy >= this.height || yy < 0) {
       return;
     }
-    this.fillPixelRGBA(
-      xx,
-      yy,
-      ...(this._fillStyleComponents as [number, number, number, number])
-    );
+    this.fillPixelRGBA(xx, yy, ...(this._fillStyleComponents as [number, number, number, number]));
   };
 
   this.fillToolSize = (x: number, y: number, size: number): void => {
-    const xmin = x - Math.round(size / 2);
-    const ymin = y - Math.round(size / 2);
+    const xmin = x - Math.floor(size / 2);
+    const ymin = y - Math.floor(size / 2);
     for (let px = xmin; px < xmin + size; px++) {
       for (let py = ymin; py < ymin + size; py++) {
         this.fillPixel(px, py);
@@ -129,7 +125,7 @@ export default function CreatePixelImageData(this: PixelImageData): void {
     r: number,
     g: number,
     b: number,
-    a: number
+    a: number,
   ): void => {
     if (xx < 0 || xx >= this.width) {
       return;
@@ -148,20 +144,15 @@ export default function CreatePixelImageData(this: PixelImageData): void {
     return [this.data[oo], this.data[oo + 1], this.data[oo + 2], this.data[oo + 3]];
   };
 
-  this.clearPixelsInRect = (
-    startX: number,
-    startY: number,
-    endX: number,
-    endY: number
-  ): void => {
+  this.clearPixelsInRect = (startX: number, startY: number, endX: number, endY: number): void => {
     forEachInRect({ x: startX, y: startY }, { x: endX, y: endY }, (x, y) =>
-      this.fillPixelRGBA(x, y, 0, 0, 0, 0)
+      this.fillPixelRGBA(x, y, 0, 0, 0, 0),
     );
   };
 
   this.getContiguousPixels = (
     startPixel: Point,
-    callback?: (p: Point) => void
+    callback?: (p: Point) => void,
   ): Record<string, boolean> => {
     const points: Point[] = [startPixel];
     const startPixelData = this.getPixel(startPixel.x, startPixel.y);

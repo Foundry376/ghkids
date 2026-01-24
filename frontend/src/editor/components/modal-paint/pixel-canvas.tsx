@@ -9,9 +9,23 @@ import { PixelContext, PixelImageData, PixelInteraction } from "./types";
 const SELECTION_ANTS_INTERVAL = 200;
 
 function getEdgePixels(
-  pixelMap: Record<string, boolean>
-): [number, number, boolean | undefined, boolean | undefined, boolean | undefined, boolean | undefined][] {
-  const results: [number, number, boolean | undefined, boolean | undefined, boolean | undefined, boolean | undefined][] = [];
+  pixelMap: Record<string, boolean>,
+): [
+  number,
+  number,
+  boolean | undefined,
+  boolean | undefined,
+  boolean | undefined,
+  boolean | undefined,
+][] {
+  const results: [
+    number,
+    number,
+    boolean | undefined,
+    boolean | undefined,
+    boolean | undefined,
+    boolean | undefined,
+  ][] = [];
   for (const p of Object.keys(pixelMap)) {
     const [x, y] = p.split(",").map(Number);
     const left = pixelMap[`${x - 1},${y}`];
@@ -59,19 +73,16 @@ const PixelCanvas: React.FC<PixelCanvasProps> = ({
   const pixelContextRef = useRef<PixelContext | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Pixel coordinate calculation
+  // Pixel coordinate calculation using offsetX/offsetY directly
+  // This avoids issues with getBoundingClientRect() and scroll containers
   const pixelForEvent = useCallback(
-    ({ clientX, clientY }: { clientX: number; clientY: number }): Point => {
-      if (!canvasRef.current) {
-        return { x: 0, y: 0 };
-      }
-      const { top, left } = canvasRef.current.getBoundingClientRect();
+    ({ offsetX, offsetY }: { offsetX: number; offsetY: number }): Point => {
       return {
-        x: Math.floor((clientX - left) / pixelSize),
-        y: Math.floor((clientY - top) / pixelSize),
+        x: Math.floor(offsetX / pixelSize),
+        y: Math.floor(offsetY / pixelSize),
       };
     },
-    [pixelSize]
+    [pixelSize],
   );
 
   // Get selection pixels for rendering marching ants
@@ -113,7 +124,7 @@ const PixelCanvas: React.FC<PixelCanvasProps> = ({
         selectionOffset.y,
         {
           ignoreClearPixels: true,
-        }
+        },
       );
     }
 
@@ -131,7 +142,7 @@ const PixelCanvas: React.FC<PixelCanvasProps> = ({
             x * pixelSize + 0.5,
             y * pixelSize + 0.5,
             40 * pixelSize - 1,
-            40 * pixelSize - 1
+            40 * pixelSize - 1,
           );
 
           if (!filled[`${x / 40},${y / 40}`]) {
@@ -143,17 +154,21 @@ const PixelCanvas: React.FC<PixelCanvasProps> = ({
 
     // Render tool preview
     if (tool && tool.render) {
-      tool.render(c as unknown as import("./tools").ToolRenderTarget, {
-        color,
-        toolSize,
-        pixelSize,
-        anchorSquare,
-        imageData,
-        selectionImageData,
-        selectionOffset,
-        interaction,
-        interactionPixels,
-      }, true);
+      tool.render(
+        c as unknown as import("./tools").ToolRenderTarget,
+        {
+          color,
+          toolSize,
+          pixelSize,
+          anchorSquare,
+          imageData,
+          selectionImageData,
+          selectionOffset,
+          interaction,
+          interactionPixels,
+        },
+        true,
+      );
     }
 
     // Render selection marching ants
@@ -246,21 +261,29 @@ const PixelCanvas: React.FC<PixelCanvasProps> = ({
     };
   }, [pixelSize, getSelectionPixels, renderToCanvas]);
 
-  // Handle mouse down - start drag and register global listeners
-  const handleMouseDown = useCallback(
-    (event: React.MouseEvent) => {
-      const pixel = pixelForEvent(event);
+  // Handle pointer down - start drag with pointer capture
+  const handlePointerDown = useCallback(
+    (event: React.PointerEvent) => {
+      const canvas = canvasRef.current;
+      if (canvas) {
+        canvas.setPointerCapture(event.pointerId);
+      }
+      const pixel = pixelForEvent(event.nativeEvent);
+      debugger;
       model.mousedown(pixel, event.nativeEvent);
       setIsDragging(true);
     },
-    [model, pixelForEvent]
+    [model, pixelForEvent],
   );
 
-  // Document-level mouse tracking for drag operations
+  // Canvas-level pointer tracking for drag operations (using pointer capture)
   useEffect(() => {
     if (!isDragging) return;
 
-    const handleMouseMove = (event: MouseEvent) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const handlePointerMove = (event: PointerEvent) => {
       const pixel = pixelForEvent(event);
       model.mousemove(pixel);
 
@@ -271,18 +294,18 @@ const PixelCanvas: React.FC<PixelCanvasProps> = ({
       setMouseoverSelection(!!isOverSelection);
     };
 
-    const handleMouseUp = (event: MouseEvent) => {
+    const handlePointerUp = (event: PointerEvent) => {
       const pixel = pixelForEvent(event);
       model.mouseup(pixel);
       setIsDragging(false);
     };
 
-    document.addEventListener("mousemove", handleMouseMove);
-    document.addEventListener("mouseup", handleMouseUp);
+    canvas.addEventListener("pointermove", handlePointerMove);
+    canvas.addEventListener("pointerup", handlePointerUp);
 
     return () => {
-      document.removeEventListener("mousemove", handleMouseMove);
-      document.removeEventListener("mouseup", handleMouseUp);
+      canvas.removeEventListener("pointermove", handlePointerMove);
+      canvas.removeEventListener("pointerup", handlePointerUp);
     };
   }, [isDragging, model, pixelForEvent, getSelectionPixels, selectionOffset]);
 
@@ -293,7 +316,7 @@ const PixelCanvas: React.FC<PixelCanvasProps> = ({
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    const handleMouseMove = (event: MouseEvent) => {
+    const handlePointerMove = (event: PointerEvent) => {
       const pixel = pixelForEvent(event);
       const selectionPixels = getSelectionPixels();
       const isOverSelection =
@@ -301,16 +324,14 @@ const PixelCanvas: React.FC<PixelCanvasProps> = ({
       setMouseoverSelection(!!isOverSelection);
     };
 
-    canvas.addEventListener("mousemove", handleMouseMove);
-    return () => canvas.removeEventListener("mousemove", handleMouseMove);
+    canvas.addEventListener("pointermove", handlePointerMove);
+    return () => canvas.removeEventListener("pointermove", handlePointerMove);
   }, [isDragging, pixelForEvent, getSelectionPixels, selectionOffset]);
 
   const { width, height } = imageData || { width: 1, height: 1 };
 
   return (
-    <div
-      style={{ width: 455, height: 455, overflow: "scroll", lineHeight: 0, background: "#ccc" }}
-    >
+    <div style={{ width: 455, height: 455, overflow: "scroll", lineHeight: 0, background: "#ccc" }}>
       <div
         style={{
           minHeight: "100%",
@@ -323,14 +344,14 @@ const PixelCanvas: React.FC<PixelCanvasProps> = ({
         }}
       >
         <canvas
-          style={{ backgroundColor: "white" }}
+          style={{ backgroundColor: "white", touchAction: "none" }}
           width={width * pixelSize}
           height={height * pixelSize}
           className={classNames({
             mousedown: isDragging,
             mouseoverSelection: mouseoverSelection,
           })}
-          onMouseDown={handleMouseDown}
+          onPointerDown={handlePointerDown}
           ref={canvasRef}
         />
       </div>
