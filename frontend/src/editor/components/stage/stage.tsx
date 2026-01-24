@@ -551,11 +551,12 @@ export const Stage = ({
     }
   };
 
-  // Start custom sprite dragging (called from ActorSprite onMouseDown)
+  // Start custom sprite drag preview (called from ActorSprite onDragStart)
+  // Native drag handles dataTransfer, we just show custom preview
   const onStartSpriteDrag = (
     actor: Actor,
     actorIds: string[],
-    event: React.MouseEvent,
+    event: React.DragEvent,
     anchorOffset: { x: number; y: number },
   ) => {
     const actors = actorIds.map((id) => stage.actors[id]).filter(Boolean);
@@ -567,17 +568,24 @@ export const Stage = ({
       mode: event.altKey ? "copy" : "move",
     });
 
-    // Set up global mouse listeners for drag tracking
-    const onMouseUpAnywhere = (e: MouseEvent) => {
-      document.removeEventListener("mouseup", onMouseUpAnywhere);
-      document.removeEventListener("mousemove", onMouseMoveAnywhere);
-      onMouseUp.current?.(e);
+    // Track drag position globally via native drag events
+    const onDragOver = (e: DragEvent) => {
+      // Update preview position during drag
+      setSpriteDrag((prev) =>
+        prev ? { ...prev, clientPx: { x: e.clientX, y: e.clientY }, mode: e.altKey ? "copy" : "move" } : null,
+      );
     };
-    const onMouseMoveAnywhere = (e: MouseEvent) => {
-      onMouseMove.current?.(e);
+    const onDragEnd = () => {
+      document.removeEventListener("dragover", onDragOver);
+      document.removeEventListener("dragend", onDragEnd);
     };
-    document.addEventListener("mouseup", onMouseUpAnywhere);
-    document.addEventListener("mousemove", onMouseMoveAnywhere);
+    document.addEventListener("dragover", onDragOver);
+    document.addEventListener("dragend", onDragEnd);
+  };
+
+  // End sprite drag (called from ActorSprite onDragEnd)
+  const onEndSpriteDrag = () => {
+    setSpriteDrag(null);
   };
 
   const onMouseUpActor = (actor: Actor, event: React.MouseEvent) => {
@@ -693,17 +701,7 @@ export const Stage = ({
   // Note: In this handler, the mouse cursor may be outside the stage
   const onMouseMove = useRef<(event: MouseEvent) => void>();
   onMouseMove.current = (event: MouseEvent) => {
-    if (!mouse.current.isDown && !spriteDrag) {
-      return;
-    }
-
-    // If we are dragging sprites, update the cursor position (viewport coordinates)
-    if (spriteDrag) {
-      setSpriteDrag({
-        ...spriteDrag,
-        clientPx: { x: event.clientX, y: event.clientY },
-        mode: event.altKey ? "copy" : "move",
-      });
+    if (!mouse.current.isDown) {
       return;
     }
 
@@ -769,43 +767,6 @@ export const Stage = ({
     onMouseMove.current?.(event);
 
     mouse.current = { isDown: false, visited: {} };
-
-    // Complete sprite drag
-    if (spriteDrag) {
-      const { actors, anchorActorId, anchorOffset, clientPx, mode } = spriteDrag;
-      const anchorActor = stage.actors[anchorActorId];
-      const stageEl = el.current;
-
-      if (anchorActor && stageEl) {
-        // Convert from viewport coordinates to stage-relative coordinates
-        const stageRect = stageEl.getBoundingClientRect();
-        const stageRelativeX = clientPx.x - stageRect.left - anchorOffset.x;
-        const stageRelativeY = clientPx.y - stageRect.top - anchorOffset.y;
-
-        // Calculate drop position in grid cells
-        const dropX = Math.round(stageRelativeX / STAGE_CELL_SIZE / scale);
-        const dropY = Math.round(stageRelativeY / STAGE_CELL_SIZE / scale);
-
-        const position = { x: dropX, y: dropY };
-        const anchorCharacter = characters[anchorActor.characterId];
-        applyAnchorAdjustment(position, anchorCharacter, anchorActor);
-
-        const offsetX = position.x - anchorActor.position.x;
-        const offsetY = position.y - anchorActor.position.y;
-
-        // Only process if there's actual movement
-        if (offsetX !== 0 || offsetY !== 0) {
-          const actorIds = actors.map((a) => a.id);
-          onDropActorsAtPosition(
-            { actorIds, dragAnchorActorId: anchorActorId },
-            position,
-            mode === "copy" ? "stamp-copy" : "move",
-          );
-        }
-      }
-      setSpriteDrag(null);
-      return;
-    }
 
     if (selectionRect) {
       const selectedActors: Actor[] = [];
@@ -1025,6 +986,7 @@ export const Stage = ({
             : undefined
         }
         onStartDrag={draggable && !playback.running ? onStartSpriteDrag : undefined}
+        onEndDrag={draggable && !playback.running ? onEndSpriteDrag : undefined}
       />
     );
   };

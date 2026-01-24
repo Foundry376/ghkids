@@ -17,9 +17,10 @@ const ActorSprite = (props: {
   onStartDrag?: (
     actor: Actor,
     actorIds: string[],
-    event: React.MouseEvent,
+    event: React.DragEvent,
     anchorOffset: { x: number; y: number },
   ) => void;
+  onEndDrag?: () => void;
   transitionDuration?: number;
 }) => {
   const {
@@ -32,6 +33,7 @@ const ActorSprite = (props: {
     onMouseUp,
     onDoubleClick,
     onStartDrag,
+    onEndDrag,
   } = props;
 
   if (!character) {
@@ -74,9 +76,10 @@ const ActorSprite = (props: {
     return true;
   };
 
-  // Handle mouse down to initiate custom drag (replaces native HTML drag)
-  const onMouseDownForDrag = (event: React.MouseEvent) => {
-    if (!dragActorIds || !onStartDrag) {
+  // Handle drag start - sets dataTransfer for external drop targets while using custom preview
+  const onDragStart = (event: React.DragEvent) => {
+    if (!dragActorIds) {
+      event.preventDefault();
       return;
     }
     if (!(event.target instanceof HTMLElement)) {
@@ -93,8 +96,31 @@ const ActorSprite = (props: {
       y: event.clientY - top,
     };
 
-    // Start custom drag
-    onStartDrag(actor, dragActorIds, event, anchorOffset);
+    // Set dataTransfer data for external drop targets (variable boxes, etc.)
+    event.dataTransfer.effectAllowed = "copyMove";
+    event.dataTransfer.setData(
+      "drag-offset",
+      JSON.stringify({ dragLeft: anchorOffset.x, dragTop: anchorOffset.y }),
+    );
+    event.dataTransfer.setData(
+      "sprite",
+      JSON.stringify({
+        dragAnchorActorId: actor.id,
+        actorIds: dragActorIds,
+      }),
+    );
+
+    // Hide native drag image - we use our custom preview instead
+    const emptyImg = new Image();
+    emptyImg.src = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
+    event.dataTransfer.setDragImage(emptyImg, 0, 0);
+
+    // Start custom drag preview
+    onStartDrag?.(actor, dragActorIds, event, anchorOffset);
+  };
+
+  const onDragEnd = () => {
+    onEndDrag?.();
   };
 
   let data = new URL("../../img/splat.png", import.meta.url).href;
@@ -120,9 +146,10 @@ const ActorSprite = (props: {
       }}
     >
       <img
-        draggable={false}
+        draggable={!!dragActorIds}
         data-stage-character-id={character.id}
-        onMouseDown={onMouseDownForDrag}
+        onDragStart={onDragStart}
+        onDragEnd={onDragEnd}
         onMouseUp={(event) => {
           if (isEventInFilledSquare(event)) {
             onMouseUp?.(event);
