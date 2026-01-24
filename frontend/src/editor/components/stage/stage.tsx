@@ -2,11 +2,11 @@ import React, { CSSProperties, useEffect, useRef, useState } from "react";
 import { useDispatch } from "react-redux";
 
 import ActorSprite from "../sprites/actor-sprite";
-import ActorSelectionPopover from "./actor-selection-popover";
 import RecordingHandle from "../sprites/recording-handle";
 import RecordingIgnoredSprite from "../sprites/recording-ignored-sprite";
 import RecordingMaskSprite from "../sprites/recording-mask-sprite";
 import { RecordingSquareStatus } from "../sprites/recording-square-status";
+import ActorSelectionPopover from "./actor-selection-popover";
 
 import {
   setRecordingExtent,
@@ -39,6 +39,7 @@ import {
   pointIsOutside,
 } from "../../utils/stage-helpers";
 
+import { useEditorSelector } from "../../../hooks/redux";
 import {
   Actor,
   EvaluatedSquare,
@@ -47,7 +48,6 @@ import {
   Stage as StageType,
   WorldMinimal,
 } from "../../../types";
-import { useEditorSelector } from "../../../hooks/redux";
 import { defaultAppearanceId } from "../../utils/character-helpers";
 import { makeId } from "../../utils/utils";
 import { keyToCodakoKey } from "../modal-keypicker/keyboard";
@@ -69,6 +69,68 @@ type SelectionRect = { start: { top: number; left: number }; end: { top: number;
 const DRAGGABLE_TOOLS = [TOOLS.IGNORE_SQUARE, TOOLS.TRASH, TOOLS.STAMP];
 
 export const STAGE_ZOOM_STEPS = [1, 0.88, 0.75, 0.63, 0.5, 0.42, 0.38];
+
+function useGlobalHeldKeys(worldId: string) {
+  const dispatch = useDispatch();
+  const heldKeysRef = useRef<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (!worldId) {
+      return;
+    }
+    const syncHeldKeys = () => {
+      const keysObj: { [key: string]: true } = {};
+      heldKeysRef.current.forEach((key) => {
+        keysObj[key] = true;
+      });
+      dispatch(recordInputForGameState(worldId, { keys: keysObj }));
+    };
+
+    const onDocumentKeyDown = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement;
+      if (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable) {
+        return;
+      }
+
+      if (event.metaKey || event.ctrlKey || event.shiftKey) {
+        return;
+      }
+
+      const codakoKey = keyToCodakoKey(event.key);
+      if (!heldKeysRef.current.has(codakoKey)) {
+        heldKeysRef.current.add(codakoKey);
+        syncHeldKeys();
+      }
+    };
+
+    const onDocumentKeyUp = (event: KeyboardEvent) => {
+      const codakoKey = keyToCodakoKey(event.key);
+      if (heldKeysRef.current.has(codakoKey)) {
+        heldKeysRef.current.delete(codakoKey);
+        syncHeldKeys();
+      }
+    };
+
+    const onWindowBlur = () => {
+      if (heldKeysRef.current.size > 0) {
+        heldKeysRef.current.clear();
+        syncHeldKeys();
+      }
+    };
+
+    document.addEventListener("keydown", onDocumentKeyDown);
+    document.addEventListener("keyup", onDocumentKeyUp);
+    window.addEventListener("blur", onWindowBlur);
+
+    return () => {
+      document.removeEventListener("keydown", onDocumentKeyDown);
+      document.removeEventListener("keyup", onDocumentKeyUp);
+      window.removeEventListener("blur", onWindowBlur);
+    };
+  }, [dispatch, worldId]);
+
+  return heldKeysRef;
+}
 
 export const Stage = ({
   recordingExtent,
@@ -97,7 +159,8 @@ export const Stage = ({
   const mouse = useRef<MouseStatus>({ isDown: false, visited: {} });
   const scrollEl = useRef<HTMLDivElement | null>();
   const el = useRef<HTMLDivElement | null>();
-  const heldKeysRef = useRef<Set<string>>(new Set());
+
+  useGlobalHeldKeys(world.id);
 
   useEffect(() => {
     const autofit = () => {
@@ -232,66 +295,6 @@ export const Stage = ({
       el.current?.focus();
     }
   };
-
-  // Track currently-held keys at document level so they're available even when stage isn't focused
-  useEffect(() => {
-    const syncHeldKeys = () => {
-      const keysObj: { [key: string]: true } = {};
-      heldKeysRef.current.forEach((key) => {
-        keysObj[key] = true;
-      });
-      dispatch(recordInputForGameState(world.id, { keys: keysObj }));
-    };
-
-    const onDocumentKeyDown = (event: KeyboardEvent) => {
-      // Ignore if typing in an input, textarea, or contenteditable
-      const target = event.target as HTMLElement;
-      if (
-        target.tagName === "INPUT" ||
-        target.tagName === "TEXTAREA" ||
-        target.isContentEditable
-      ) {
-        return;
-      }
-
-      // Ignore modifier key combos (shortcuts)
-      if (event.metaKey || event.ctrlKey || event.shiftKey) {
-        return;
-      }
-
-      const codakoKey = keyToCodakoKey(event.key);
-      if (!heldKeysRef.current.has(codakoKey)) {
-        heldKeysRef.current.add(codakoKey);
-        syncHeldKeys();
-      }
-    };
-
-    const onDocumentKeyUp = (event: KeyboardEvent) => {
-      const codakoKey = keyToCodakoKey(event.key);
-      if (heldKeysRef.current.has(codakoKey)) {
-        heldKeysRef.current.delete(codakoKey);
-        syncHeldKeys();
-      }
-    };
-
-    // Clear all held keys when window loses focus (user switches tabs/apps)
-    const onWindowBlur = () => {
-      if (heldKeysRef.current.size > 0) {
-        heldKeysRef.current.clear();
-        syncHeldKeys();
-      }
-    };
-
-    document.addEventListener("keydown", onDocumentKeyDown);
-    document.addEventListener("keyup", onDocumentKeyUp);
-    window.addEventListener("blur", onWindowBlur);
-
-    return () => {
-      document.removeEventListener("keydown", onDocumentKeyDown);
-      document.removeEventListener("keyup", onDocumentKeyUp);
-      window.removeEventListener("blur", onWindowBlur);
-    };
-  }, [dispatch, world.id]);
 
   const onKeyDown = (event: React.KeyboardEvent) => {
     const isShortcut = event.metaKey || event.ctrlKey;
