@@ -9,9 +9,23 @@ import { PixelContext, PixelImageData, PixelInteraction } from "./types";
 const SELECTION_ANTS_INTERVAL = 200;
 
 function getEdgePixels(
-  pixelMap: Record<string, boolean>
-): [number, number, boolean | undefined, boolean | undefined, boolean | undefined, boolean | undefined][] {
-  const results: [number, number, boolean | undefined, boolean | undefined, boolean | undefined, boolean | undefined][] = [];
+  pixelMap: Record<string, boolean>,
+): [
+  number,
+  number,
+  boolean | undefined,
+  boolean | undefined,
+  boolean | undefined,
+  boolean | undefined,
+][] {
+  const results: [
+    number,
+    number,
+    boolean | undefined,
+    boolean | undefined,
+    boolean | undefined,
+    boolean | undefined,
+  ][] = [];
   for (const p of Object.keys(pixelMap)) {
     const [x, y] = p.split(",").map(Number);
     const left = pixelMap[`${x - 1},${y}`];
@@ -68,7 +82,7 @@ const PixelCanvas: React.FC<PixelCanvasProps> = ({
         y: Math.floor(offsetY / pixelSize),
       };
     },
-    [pixelSize]
+    [pixelSize],
   );
 
   // Get selection pixels for rendering marching ants
@@ -110,7 +124,7 @@ const PixelCanvas: React.FC<PixelCanvasProps> = ({
         selectionOffset.y,
         {
           ignoreClearPixels: true,
-        }
+        },
       );
     }
 
@@ -128,7 +142,7 @@ const PixelCanvas: React.FC<PixelCanvasProps> = ({
             x * pixelSize + 0.5,
             y * pixelSize + 0.5,
             40 * pixelSize - 1,
-            40 * pixelSize - 1
+            40 * pixelSize - 1,
           );
 
           if (!filled[`${x / 40},${y / 40}`]) {
@@ -140,17 +154,21 @@ const PixelCanvas: React.FC<PixelCanvasProps> = ({
 
     // Render tool preview
     if (tool && tool.render) {
-      tool.render(c as unknown as import("./tools").ToolRenderTarget, {
-        color,
-        toolSize,
-        pixelSize,
-        anchorSquare,
-        imageData,
-        selectionImageData,
-        selectionOffset,
-        interaction,
-        interactionPixels,
-      }, true);
+      tool.render(
+        c as unknown as import("./tools").ToolRenderTarget,
+        {
+          color,
+          toolSize,
+          pixelSize,
+          anchorSquare,
+          imageData,
+          selectionImageData,
+          selectionOffset,
+          interaction,
+          interactionPixels,
+        },
+        true,
+      );
     }
 
     // Render selection marching ants
@@ -251,10 +269,11 @@ const PixelCanvas: React.FC<PixelCanvasProps> = ({
         canvas.setPointerCapture(event.pointerId);
       }
       const pixel = pixelForEvent(event.nativeEvent);
+      debugger;
       model.mousedown(pixel, event.nativeEvent);
       setIsDragging(true);
     },
-    [model, pixelForEvent]
+    [model, pixelForEvent],
   );
 
   // Canvas-level pointer tracking for drag operations (using pointer capture)
@@ -312,9 +331,7 @@ const PixelCanvas: React.FC<PixelCanvasProps> = ({
   const { width, height } = imageData || { width: 1, height: 1 };
 
   return (
-    <div
-      style={{ width: 455, height: 455, overflow: "scroll", lineHeight: 0, background: "#ccc" }}
-    >
+    <div style={{ width: 455, height: 455, overflow: "scroll", lineHeight: 0, background: "#ccc" }}>
       <div
         style={{
           minHeight: "100%",
