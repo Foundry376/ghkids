@@ -59,16 +59,13 @@ const PixelCanvas: React.FC<PixelCanvasProps> = ({
   const pixelContextRef = useRef<PixelContext | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Pixel coordinate calculation
+  // Pixel coordinate calculation using offsetX/offsetY directly
+  // This avoids issues with getBoundingClientRect() and scroll containers
   const pixelForEvent = useCallback(
-    ({ clientX, clientY }: { clientX: number; clientY: number }): Point => {
-      if (!canvasRef.current) {
-        return { x: 0, y: 0 };
-      }
-      const { top, left } = canvasRef.current.getBoundingClientRect();
+    ({ offsetX, offsetY }: { offsetX: number; offsetY: number }): Point => {
       return {
-        x: Math.floor((clientX - left) / pixelSize),
-        y: Math.floor((clientY - top) / pixelSize),
+        x: Math.floor(offsetX / pixelSize),
+        y: Math.floor(offsetY / pixelSize),
       };
     },
     [pixelSize]
@@ -246,21 +243,28 @@ const PixelCanvas: React.FC<PixelCanvasProps> = ({
     };
   }, [pixelSize, getSelectionPixels, renderToCanvas]);
 
-  // Handle mouse down - start drag and register global listeners
-  const handleMouseDown = useCallback(
-    (event: React.MouseEvent) => {
-      const pixel = pixelForEvent(event);
+  // Handle pointer down - start drag with pointer capture
+  const handlePointerDown = useCallback(
+    (event: React.PointerEvent) => {
+      const canvas = canvasRef.current;
+      if (canvas) {
+        canvas.setPointerCapture(event.pointerId);
+      }
+      const pixel = pixelForEvent(event.nativeEvent);
       model.mousedown(pixel, event.nativeEvent);
       setIsDragging(true);
     },
     [model, pixelForEvent]
   );
 
-  // Document-level mouse tracking for drag operations
+  // Canvas-level pointer tracking for drag operations (using pointer capture)
   useEffect(() => {
     if (!isDragging) return;
 
-    const handleMouseMove = (event: MouseEvent) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const handlePointerMove = (event: PointerEvent) => {
       const pixel = pixelForEvent(event);
       model.mousemove(pixel);
 
@@ -271,18 +275,18 @@ const PixelCanvas: React.FC<PixelCanvasProps> = ({
       setMouseoverSelection(!!isOverSelection);
     };
 
-    const handleMouseUp = (event: MouseEvent) => {
+    const handlePointerUp = (event: PointerEvent) => {
       const pixel = pixelForEvent(event);
       model.mouseup(pixel);
       setIsDragging(false);
     };
 
-    document.addEventListener("mousemove", handleMouseMove);
-    document.addEventListener("mouseup", handleMouseUp);
+    canvas.addEventListener("pointermove", handlePointerMove);
+    canvas.addEventListener("pointerup", handlePointerUp);
 
     return () => {
-      document.removeEventListener("mousemove", handleMouseMove);
-      document.removeEventListener("mouseup", handleMouseUp);
+      canvas.removeEventListener("pointermove", handlePointerMove);
+      canvas.removeEventListener("pointerup", handlePointerUp);
     };
   }, [isDragging, model, pixelForEvent, getSelectionPixels, selectionOffset]);
 
@@ -293,7 +297,7 @@ const PixelCanvas: React.FC<PixelCanvasProps> = ({
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    const handleMouseMove = (event: MouseEvent) => {
+    const handlePointerMove = (event: PointerEvent) => {
       const pixel = pixelForEvent(event);
       const selectionPixels = getSelectionPixels();
       const isOverSelection =
@@ -301,8 +305,8 @@ const PixelCanvas: React.FC<PixelCanvasProps> = ({
       setMouseoverSelection(!!isOverSelection);
     };
 
-    canvas.addEventListener("mousemove", handleMouseMove);
-    return () => canvas.removeEventListener("mousemove", handleMouseMove);
+    canvas.addEventListener("pointermove", handlePointerMove);
+    return () => canvas.removeEventListener("pointermove", handlePointerMove);
   }, [isDragging, pixelForEvent, getSelectionPixels, selectionOffset]);
 
   const { width, height } = imageData || { width: 1, height: 1 };
@@ -323,14 +327,14 @@ const PixelCanvas: React.FC<PixelCanvasProps> = ({
         }}
       >
         <canvas
-          style={{ backgroundColor: "white" }}
+          style={{ backgroundColor: "white", touchAction: "none" }}
           width={width * pixelSize}
           height={height * pixelSize}
           className={classNames({
             mousedown: isDragging,
             mouseoverSelection: mouseoverSelection,
           })}
-          onMouseDown={handleMouseDown}
+          onPointerDown={handlePointerDown}
           ref={canvasRef}
         />
       </div>
