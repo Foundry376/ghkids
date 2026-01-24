@@ -120,6 +120,45 @@ export function pointApplyingTransform(
   return [x, y];
 }
 
+/**
+ * Calculate the visual bounds and position offset needed to render a transformed
+ * sprite within a container. When a transform (rotation/flip) is applied, the
+ * visual bounding box changes and may shift relative to the anchor point.
+ *
+ * Returns the container dimensions (in cells) and the position offset needed
+ * so the sprite's visual fits starting at (0, 0).
+ */
+export function getTransformedBounds(
+  info: { width: number; height: number; anchor: { x: number; y: number } },
+  transform: Actor["transform"],
+): { offsetX: number; offsetY: number; width: number; height: number } {
+  // Transform anchor and corners to find the bounding box
+  const [anchorX, anchorY] = pointApplyingTransform(info.anchor.x, info.anchor.y, info, transform);
+
+  // Transform all four corners and find min/max
+  const corners = [
+    [0, 0],
+    [info.width - 1, 0],
+    [0, info.height - 1],
+    [info.width - 1, info.height - 1],
+  ].map(([x, y]) => {
+    const [tx, ty] = pointApplyingTransform(x, y, info, transform);
+    return [tx - anchorX, ty - anchorY];
+  });
+
+  const minX = Math.min(...corners.map(([x]) => x));
+  const maxX = Math.max(...corners.map(([x]) => x));
+  const minY = Math.min(...corners.map(([, y]) => y));
+  const maxY = Math.max(...corners.map(([, y]) => y));
+
+  return {
+    offsetX: -minX,
+    offsetY: -minY,
+    width: maxX - minX + 1,
+    height: maxY - minY + 1,
+  };
+}
+
 export function shuffleArray<T>(input: Array<T>): Array<T> {
   const d = [...input]; // Create a copy to avoid mutating input
   for (let c = d.length - 1; c > 0; c--) {

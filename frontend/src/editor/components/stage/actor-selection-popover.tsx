@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from "react";
 import { Actor, Characters } from "../../../types";
 import { STAGE_CELL_SIZE } from "../../constants/constants";
+import { getTransformedBounds } from "../../utils/stage-helpers";
 import ActorSprite from "../sprites/actor-sprite";
 import { DEFAULT_APPEARANCE_INFO } from "../sprites/sprite";
 
@@ -67,20 +68,24 @@ const ActorSelectionPopover: React.FC<ActorSelectionPopoverProps> = ({
 
           if (!character) return null;
 
+          // Calculate transformed bounds to properly size container and position sprite
+          const bounds = getTransformedBounds(info, actor.transform);
+
           return (
             <div
               key={actor.id}
               className="actor-option"
               style={{
-                width: info.width * STAGE_CELL_SIZE + 8,
-                height: info.height * STAGE_CELL_SIZE + 8,
+                width: bounds.width * STAGE_CELL_SIZE + 8,
+                height: bounds.height * STAGE_CELL_SIZE + 8,
                 padding: 2,
+                overflow: "hidden",
               }}
             >
               <div style={{ position: "relative" }}>
                 <ActorSprite
                   character={character}
-                  actor={{ ...actor, position: { x: 0, y: 0 } }}
+                  actor={{ ...actor, position: { x: bounds.offsetX, y: bounds.offsetY } }}
                   selected={false}
                   dragActorIds={[actor.id]}
                   onMouseUp={() => onSelect(actor)}
