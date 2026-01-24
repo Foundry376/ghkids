@@ -1,8 +1,55 @@
 import React, { useEffect, useRef } from "react";
-import { Actor, Characters } from "../../../types";
+import { Actor, ActorTransform, AppearanceInfo, Characters } from "../../../types";
 import { STAGE_CELL_SIZE } from "../../constants/constants";
+import { pointApplyingTransform } from "../../utils/stage-helpers";
 import ActorSprite from "../sprites/actor-sprite";
 import { DEFAULT_APPEARANCE_INFO } from "../sprites/sprite";
+
+/**
+ * Calculate the visual bounds and position offset needed to render a transformed
+ * actor within a container. When an actor has a transform (rotation/flip), the
+ * visual bounding box changes and may shift relative to the anchor point.
+ *
+ * Returns the container dimensions (in cells) and the position offset needed
+ * so the actor's visual fits starting at (0, 0).
+ */
+function getTransformedBounds(
+  info: AppearanceInfo,
+  transform: ActorTransform | undefined,
+): { offsetX: number; offsetY: number; width: number; height: number } {
+  const t = transform ?? "0";
+
+  // Calculate where the anchor ends up after transform
+  const [anchorX, anchorY] = pointApplyingTransform(info.anchor.x, info.anchor.y, info, t);
+
+  // Find the bounding box of all cells after transform
+  let minX = Infinity,
+    minY = Infinity,
+    maxX = -Infinity,
+    maxY = -Infinity;
+
+  for (let dx = 0; dx < info.width; dx++) {
+    for (let dy = 0; dy < info.height; dy++) {
+      const [sx, sy] = pointApplyingTransform(dx, dy, info, t);
+      // Position relative to anchor (how ActorSprite calculates grid positions)
+      const x = sx - anchorX;
+      const y = sy - anchorY;
+      minX = Math.min(minX, x);
+      minY = Math.min(minY, y);
+      maxX = Math.max(maxX, x);
+      maxY = Math.max(maxY, y);
+    }
+  }
+
+  return {
+    // Position offset needed so the visual starts at (0, 0)
+    offsetX: -minX,
+    offsetY: -minY,
+    // Visual dimensions in cells
+    width: maxX - minX + 1,
+    height: maxY - minY + 1,
+  };
+}
 
 interface ActorSelectionPopoverProps {
   actors: Actor[];
@@ -67,20 +114,24 @@ const ActorSelectionPopover: React.FC<ActorSelectionPopoverProps> = ({
 
           if (!character) return null;
 
+          // Calculate transformed bounds to properly size container and position sprite
+          const bounds = getTransformedBounds(info, actor.transform);
+
           return (
             <div
               key={actor.id}
               className="actor-option"
               style={{
-                width: info.width * STAGE_CELL_SIZE + 8,
-                height: info.height * STAGE_CELL_SIZE + 8,
+                width: bounds.width * STAGE_CELL_SIZE + 8,
+                height: bounds.height * STAGE_CELL_SIZE + 8,
                 padding: 2,
+                overflow: "hidden",
               }}
             >
               <div style={{ position: "relative" }}>
                 <ActorSprite
                   character={character}
-                  actor={{ ...actor, position: { x: 0, y: 0 } }}
+                  actor={{ ...actor, position: { x: bounds.offsetX, y: bounds.offsetY } }}
                   selected={false}
                   dragActorIds={[actor.id]}
                   onMouseUp={() => onSelect(actor)}
