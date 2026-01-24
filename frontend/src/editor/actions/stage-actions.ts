@@ -128,21 +128,16 @@ export type ActionUpdateStageSettings = {
   settings: DeepPartial<Stage>;
 };
 
-export function recordKeyForGameState(worldId: string, key: string): ActionInputForGameState {
+export function recordInputForGameState(
+  worldId: string,
+  keys: { [key: string]: true },
+  clicks: { [actorId: string]: true } = {},
+): ActionInputForGameState {
   return {
     type: types.INPUT_FOR_GAME_STATE,
     worldId,
-    keys: { [key]: true },
-    clicks: {},
-  };
-}
-
-export function recordClickForGameState(worldId: string, actorId: string): ActionInputForGameState {
-  return {
-    type: types.INPUT_FOR_GAME_STATE,
-    worldId,
-    keys: {},
-    clicks: { [actorId]: true },
+    keys,
+    clicks,
   };
 }
 

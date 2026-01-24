@@ -38,7 +38,7 @@ export default function worldReducer(
       return u(
         {
           input: {
-            keys: action.keys,
+            keys: u.constant(action.keys),
             clicks: action.clicks,
           },
         },

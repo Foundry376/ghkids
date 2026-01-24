@@ -19,8 +19,7 @@ import {
   changeActorsIndividually,
   createActors,
   deleteActors,
-  recordClickForGameState,
-  recordKeyForGameState,
+  recordInputForGameState,
 } from "../../actions/stage-actions";
 import {
   paintCharacterAppearance,
@@ -98,6 +97,7 @@ export const Stage = ({
   const mouse = useRef<MouseStatus>({ isDown: false, visited: {} });
   const scrollEl = useRef<HTMLDivElement | null>();
   const el = useRef<HTMLDivElement | null>();
+  const heldKeysRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     const autofit = () => {
@@ -233,6 +233,66 @@ export const Stage = ({
     }
   };
 
+  // Track currently-held keys at document level so they're available even when stage isn't focused
+  useEffect(() => {
+    const syncHeldKeys = () => {
+      const keysObj: { [key: string]: true } = {};
+      heldKeysRef.current.forEach((key) => {
+        keysObj[key] = true;
+      });
+      dispatch(recordInputForGameState(world.id, keysObj));
+    };
+
+    const onDocumentKeyDown = (event: KeyboardEvent) => {
+      // Ignore if typing in an input, textarea, or contenteditable
+      const target = event.target as HTMLElement;
+      if (
+        target.tagName === "INPUT" ||
+        target.tagName === "TEXTAREA" ||
+        target.isContentEditable
+      ) {
+        return;
+      }
+
+      // Ignore modifier key combos (shortcuts)
+      if (event.metaKey || event.ctrlKey || event.shiftKey) {
+        return;
+      }
+
+      const codakoKey = keyToCodakoKey(event.key);
+      if (!heldKeysRef.current.has(codakoKey)) {
+        heldKeysRef.current.add(codakoKey);
+        syncHeldKeys();
+      }
+    };
+
+    const onDocumentKeyUp = (event: KeyboardEvent) => {
+      const codakoKey = keyToCodakoKey(event.key);
+      if (heldKeysRef.current.has(codakoKey)) {
+        heldKeysRef.current.delete(codakoKey);
+        syncHeldKeys();
+      }
+    };
+
+    // Clear all held keys when window loses focus (user switches tabs/apps)
+    const onWindowBlur = () => {
+      if (heldKeysRef.current.size > 0) {
+        heldKeysRef.current.clear();
+        syncHeldKeys();
+      }
+    };
+
+    document.addEventListener("keydown", onDocumentKeyDown);
+    document.addEventListener("keyup", onDocumentKeyUp);
+    window.addEventListener("blur", onWindowBlur);
+
+    return () => {
+      document.removeEventListener("keydown", onDocumentKeyDown);
+      document.removeEventListener("keyup", onDocumentKeyUp);
+      window.removeEventListener("blur", onWindowBlur);
+    };
+  }, [dispatch, world.id]);
+
   const onKeyDown = (event: React.KeyboardEvent) => {
     const isShortcut = event.metaKey || event.ctrlKey;
 
@@ -255,8 +315,8 @@ export const Stage = ({
       }
       return;
     }
-
-    dispatch(recordKeyForGameState(world.id, keyToCodakoKey(`${event.key}`)));
+    // Note: Key tracking for game state is handled by document-level listeners
+    // in the useEffect above, so we don't need to dispatch here
   };
 
   const onDragOver = (event: React.DragEvent) => {
@@ -527,7 +587,12 @@ export const Stage = ({
         break;
       case TOOLS.POINTER:
         if (playback.running) {
-          dispatch(recordClickForGameState(world.id, actor.id));
+          // Pass current held keys along with the click
+          const keysObj: { [key: string]: true } = {};
+          heldKeysRef.current.forEach((key) => {
+            keysObj[key] = true;
+          });
+          dispatch(recordInputForGameState(world.id, keysObj, { [actor.id]: true }));
         } else if (event.shiftKey) {
           const selectedIds = selected.map((a) => a.id);
           dispatch(
