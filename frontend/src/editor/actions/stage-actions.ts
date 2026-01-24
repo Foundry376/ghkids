@@ -130,22 +130,23 @@ export type ActionUpdateStageSettings = {
 
 export function recordInputForGameState(
   worldId: string,
-  keys: { [key: string]: true },
-  clicks: { [actorId: string]: true } = {},
+  input: {
+    keys?: { [key: string]: true };
+    clicks?: { [actorId: string]: true };
+  },
 ): ActionInputForGameState {
   return {
     type: types.INPUT_FOR_GAME_STATE,
     worldId,
-    keys,
-    clicks,
+    ...input,
   };
 }
 
 export type ActionInputForGameState = {
   type: "INPUT_FOR_GAME_STATE";
   worldId: string;
-  keys: { [key: string]: true };
-  clicks: { [actorId: string]: true };
+  keys?: { [key: string]: true };
+  clicks?: { [actorId: string]: true };
 };
 
 export function createActors(

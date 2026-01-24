@@ -240,7 +240,7 @@ export const Stage = ({
       heldKeysRef.current.forEach((key) => {
         keysObj[key] = true;
       });
-      dispatch(recordInputForGameState(world.id, keysObj));
+      dispatch(recordInputForGameState(world.id, { keys: keysObj }));
     };
 
     const onDocumentKeyDown = (event: KeyboardEvent) => {
@@ -587,12 +587,7 @@ export const Stage = ({
         break;
       case TOOLS.POINTER:
         if (playback.running) {
-          // Pass current held keys along with the click
-          const keysObj: { [key: string]: true } = {};
-          heldKeysRef.current.forEach((key) => {
-            keysObj[key] = true;
-          });
-          dispatch(recordInputForGameState(world.id, keysObj, { [actor.id]: true }));
+          dispatch(recordInputForGameState(world.id, { clicks: { [actor.id]: true } }));
         } else if (event.shiftKey) {
           const selectedIds = selected.map((a) => a.id);
           dispatch(

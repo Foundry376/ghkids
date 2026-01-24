@@ -35,15 +35,14 @@ export default function worldReducer(
       return u({ globals: u.omit(action.globalId) }, state);
     }
     case Types.INPUT_FOR_GAME_STATE: {
-      return u(
-        {
-          input: {
-            keys: u.constant(action.keys),
-            clicks: action.clicks,
-          },
-        },
-        state,
-      );
+      const inputUpdates: { keys?: unknown; clicks?: unknown } = {};
+      if (action.keys !== undefined) {
+        inputUpdates.keys = u.constant(action.keys);
+      }
+      if (action.clicks !== undefined) {
+        inputUpdates.clicks = action.clicks;
+      }
+      return u({ input: inputUpdates }, state);
     }
     case Types.ADVANCE_GAME_STATE: {
       const { characters } = entireState;
