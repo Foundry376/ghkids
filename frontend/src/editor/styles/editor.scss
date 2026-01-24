@@ -525,6 +525,36 @@ html {
       overflow: hidden;
       text-overflow: ellipsis;
     }
+
+    .tick-clock {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      vertical-align: middle;
+      margin: 0 4px;
+      transition: transform 0.15s ease;
+
+      &.pulse {
+        transform: scale(1.2);
+      }
+
+      &.running .clock-hand {
+        filter: drop-shadow(0 0 2px rgba(0, 123, 255, 0.5));
+      }
+
+      svg {
+        display: block;
+      }
+    }
+  }
+
+  @keyframes tick-clock-spin {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
   }
 
   .library-container {
