@@ -111,11 +111,28 @@ html {
     cursor: pointer;
     flex-shrink: 0;
     pointer-events: auto;
+    position: relative;
     transition: transform 0.1s ease, box-shadow 0.1s ease;
+
+    &::after {
+      content: "";
+      position: absolute;
+      top: 50%;
+      left: -1px;
+      width: 14px;
+      height: 2px;
+      background-color: rgba(0, 0, 0, 0.6);
+      transform: translateY(-50%) rotate(-45deg);
+      opacity: 0;
+      transition: opacity 0.1s ease;
+    }
 
     &:hover {
       transform: scale(1.2);
-      box-shadow: 0 0 4px rgba(0, 0, 0, 0.3);
+
+      &::after {
+        opacity: 1;
+      }
     }
 
     &:active {
