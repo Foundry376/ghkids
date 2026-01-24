@@ -812,6 +812,7 @@ html {
 
   .actor-selection-popover-content {
     display: flex;
+    flex-direction: column;
     gap: 4px;
   }
 
