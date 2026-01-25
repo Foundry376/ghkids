@@ -33,7 +33,7 @@ const PaintContainer: React.FC = () => {
   >((s) => s.ui.paint);
   const characters = useSelector<EditorState, Characters>((s) => s.characters);
   const selectedActors = useSelector<EditorState, EditorState["ui"]["selectedActors"]>(
-    (s) => s.ui.selectedActors
+    (s) => s.ui.selectedActors,
   );
   const world = useSelector<EditorState, EditorState["world"]>((s) => s.world);
 
@@ -42,7 +42,11 @@ const PaintContainer: React.FC = () => {
 
   // Get current actor from selection
   const currentActor: Actor | null = (() => {
-    if (selectedActors?.worldId && selectedActors?.stageId && selectedActors.actorIds.length === 1) {
+    if (
+      selectedActors?.worldId &&
+      selectedActors?.stageId &&
+      selectedActors.actorIds.length === 1
+    ) {
       const stage = world.stages[selectedActors.stageId];
       if (stage?.actors[selectedActors.actorIds[0]]) {
         return stage.actors[selectedActors.actorIds[0]];
@@ -98,6 +102,7 @@ const PaintContainer: React.FC = () => {
   }, [model]);
 
   // File input ref
+  const focusRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Event handlers - simple delegation to model
@@ -108,7 +113,7 @@ const PaintContainer: React.FC = () => {
         event.stopPropagation();
       }
     },
-    [model]
+    [model],
   );
 
   const handleClose = useCallback(() => {
@@ -123,7 +128,7 @@ const PaintContainer: React.FC = () => {
       alert(
         `Sorry, an error occurred and we're unable to save your image. Did you copy/paste,` +
           ` import from a file, or use the AI Generation feature? Please let me know at` +
-          ` ben@foundry376.com and include what browser you're using!`
+          ` ben@foundry376.com and include what browser you're using!`,
       );
       return;
     }
@@ -170,7 +175,7 @@ const PaintContainer: React.FC = () => {
               },
             },
           },
-        })
+        }),
       );
     }, 10);
   }, [characterId, appearanceId, character, reduxDispatch, model]);
@@ -182,7 +187,7 @@ const PaintContainer: React.FC = () => {
         model.handleFileSelect(file);
       }
     },
-    [model]
+    [model],
   );
 
   const handleDownloadImage = useCallback(() => {
@@ -195,9 +200,19 @@ const PaintContainer: React.FC = () => {
   const state = model.getState();
   const { imageData, tool, toolSize, color, undoStack, redoStack } = state;
 
+  const handleOpened = useCallback(() => {
+    focusRef.current?.focus();
+  }, []);
+
   return (
-    <Modal isOpen={imageData !== null} backdrop="static" toggle={() => {}} className="paint">
-      <div tabIndex={0} onKeyDown={handleKeyDown}>
+    <Modal
+      isOpen={imageData !== null}
+      backdrop="static"
+      toggle={() => {}}
+      className="paint"
+      onOpened={handleOpened}
+    >
+      <div tabIndex={0} onKeyDown={handleKeyDown} ref={focusRef}>
         <input
           id="hiddenFileInput"
           ref={fileInputRef}
@@ -236,16 +251,10 @@ const PaintContainer: React.FC = () => {
               ) : (
                 <DropdownItem onClick={() => model.clearAll()}>Clear All</DropdownItem>
               )}
-              <DropdownItem
-                disabled={!state.selectionImageData}
-                onClick={() => model.cut()}
-              >
+              <DropdownItem disabled={!state.selectionImageData} onClick={() => model.cut()}>
                 Cut Selection
               </DropdownItem>
-              <DropdownItem
-                disabled={!state.selectionImageData}
-                onClick={() => model.copy()}
-              >
+              <DropdownItem disabled={!state.selectionImageData} onClick={() => model.copy()}>
                 Copy Selection
               </DropdownItem>
               <DropdownItem onClick={() => model.paste()}>Paste</DropdownItem>
@@ -253,9 +262,7 @@ const PaintContainer: React.FC = () => {
               <DropdownItem onClick={() => model.flipHorizontally()}>
                 Flip Horizontally
               </DropdownItem>
-              <DropdownItem onClick={() => model.flipVertically()}>
-                Flip Vertically
-              </DropdownItem>
+              <DropdownItem onClick={() => model.flipVertically()}>Flip Vertically</DropdownItem>
               <DropdownItem onClick={() => model.rotate90()}>Rotate 90º</DropdownItem>
               <DropdownItem onClick={() => model.rotateNeg90()}>Rotate -90º</DropdownItem>
               <DropdownItem divider />
@@ -431,7 +438,11 @@ const PaintContainer: React.FC = () => {
               onChange={(e) => model.setSpriteDescription(e.target.value)}
               disabled={state.isGeneratingSprite}
             />
-            <Button size="sm" onClick={() => model.generateSprite()} disabled={state.isGeneratingSprite}>
+            <Button
+              size="sm"
+              onClick={() => model.generateSprite()}
+              disabled={state.isGeneratingSprite}
+            >
               {state.isGeneratingSprite ? (
                 <span>
                   <i className="fa fa-spinner fa-spin" /> Drawing...

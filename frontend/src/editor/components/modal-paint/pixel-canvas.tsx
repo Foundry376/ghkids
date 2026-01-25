@@ -269,7 +269,6 @@ const PixelCanvas: React.FC<PixelCanvasProps> = ({
         canvas.setPointerCapture(event.pointerId);
       }
       const pixel = pixelForEvent(event.nativeEvent);
-      debugger;
       model.mousedown(pixel, event.nativeEvent);
       setIsDragging(true);
     },

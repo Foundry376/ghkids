@@ -83,7 +83,7 @@ const INITIAL_STATE: PaintState = {
 function pixelSizeToFit(imageData: ImageData): number {
   return Math.max(
     1,
-    Math.min(Math.floor(455 / imageData.width), Math.floor(455 / imageData.height))
+    Math.min(Math.floor(455 / imageData.width), Math.floor(455 / imageData.height)),
   );
 }
 
@@ -260,7 +260,7 @@ export class PaintModel {
     } catch (err) {
       alert(
         `Codako doesn't have permission to view your clipboard. ` +
-          `Please grant permission in your browser and try again!`
+          `Please grant permission in your browser and try again!`,
       );
       return;
     }
@@ -333,6 +333,7 @@ export class PaintModel {
       imageData: empty,
       selectionOffset: { x: 0, y: 0 },
       selectionImageData: getFlattenedImageData(this.state),
+      tool: TOOLS_LIST.find((t) => t.name === "select"),
     });
   }
 
@@ -470,7 +471,7 @@ export class PaintModel {
           selectionImageData: nextSelectionImageData as PixelImageData,
           tool: TOOLS_LIST.find((t) => t.name === "select"),
         });
-      }
+      },
     );
   }
 
@@ -483,7 +484,7 @@ export class PaintModel {
       () => {
         this.applyExternalDataURL(reader.result as string);
       },
-      false
+      false,
     );
     reader.readAsDataURL(file);
   }
@@ -543,7 +544,7 @@ export class PaintModel {
 
     try {
       const data = await makeRequest<{ imageUrl?: string; name?: string; error?: string }>(
-        `/generate-sprite?prompt=${encodeURIComponent(prompt)}&width=${canvasWidth}&height=${canvasHeight}`
+        `/generate-sprite?prompt=${encodeURIComponent(prompt)}&width=${canvasWidth}&height=${canvasHeight}`,
       );
       if (data.imageUrl) {
         this.applyExternalDataURL(data.imageUrl, null, { fill: true });
@@ -579,10 +580,13 @@ export class PaintModel {
       };
 
       const afterMousedown = magicWandTool.mousedown({ x: 0, y: 0 }, toolState);
-      const afterMousemove = magicWandTool.mousemove({ x: 0, y: 0 }, {
-        ...toolState,
-        ...afterMousedown,
-      });
+      const afterMousemove = magicWandTool.mousemove(
+        { x: 0, y: 0 },
+        {
+          ...toolState,
+          ...afterMousedown,
+        },
+      );
       const afterMouseup = magicWandTool.mouseup({
         ...toolState,
         ...afterMousedown,
@@ -631,7 +635,10 @@ export class PaintModel {
    * Returns the data needed to save the current state.
    * The React component is responsible for dispatching to Redux.
    */
-  getSaveData(_character: Character, _appearanceId: string): {
+  getSaveData(
+    _character: Character,
+    _appearanceId: string,
+  ): {
     imageDataURL: string;
     anchorSquare: Point;
     filled: Record<string, boolean>;
