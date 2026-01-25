@@ -45,16 +45,21 @@ export type ActionDeleteStageId = {
 
 // individual stage actions (Require world id, act on current stage in that world)
 
-export function advanceGameState(worldId: string): ActionAdvanceGameState {
+export function advanceGameState(
+  worldId: string,
+  options: { clearInput?: boolean } = {},
+): ActionAdvanceGameState {
   return {
     type: types.ADVANCE_GAME_STATE,
     worldId,
+    clearInput: options.clearInput ?? false,
   };
 }
 
 export type ActionAdvanceGameState = {
   type: "ADVANCE_GAME_STATE";
   worldId: string;
+  clearInput: boolean;
 };
 
 export function stepBackGameState(worldId: string): ActionStepBackGameState {
@@ -128,29 +133,25 @@ export type ActionUpdateStageSettings = {
   settings: DeepPartial<Stage>;
 };
 
-export function recordKeyForGameState(worldId: string, key: string): ActionInputForGameState {
+export function recordInputForGameState(
+  worldId: string,
+  input: {
+    keys?: { [key: string]: true };
+    clicks?: { [actorId: string]: true };
+  },
+): ActionInputForGameState {
   return {
     type: types.INPUT_FOR_GAME_STATE,
     worldId,
-    keys: { [key]: true },
-    clicks: {},
-  };
-}
-
-export function recordClickForGameState(worldId: string, actorId: string): ActionInputForGameState {
-  return {
-    type: types.INPUT_FOR_GAME_STATE,
-    worldId,
-    keys: {},
-    clicks: { [actorId]: true },
+    ...input,
   };
 }
 
 export type ActionInputForGameState = {
   type: "INPUT_FOR_GAME_STATE";
   worldId: string;
-  keys: { [key: string]: true };
-  clicks: { [actorId: string]: true };
+  keys?: { [key: string]: true };
+  clicks?: { [actorId: string]: true };
 };
 
 export function createActors(
