@@ -1,4 +1,32 @@
-<!-- LAST_COMMIT: 9568abd -->
+<!-- LAST_COMMIT: 7759b31 -->
+
+## [2026-01-24]
+
+We made it easier to work on your games with a new "Save & Exit" feature that lets you save drafts and exit without losing work. You can now turn rules on and off by clicking the colored circle next to each rule - great for testing how your game works! There's also a cool new spinning clock that shows when your game is running. We fixed some annoying bugs too, like characters disappearing when you edit them and the game freezing when you delete variables.
+
+### Added
+
+- Save & Exit with draft support - save your work and exit, or exit without saving. Your draft is preserved if you reload the page (#52)
+- Enable/disable rules by clicking the traffic light circle - disabled rules are skipped during simulation and show a diagonal slash on hover (#54)
+- TickClock visual indicator that spins during playback, steps on Forward click, and shows tick count on hover (#55)
+- Drag-and-drop actors directly into actor-type variable boxes (#47)
+
+### Changed
+
+- Custom sprite dragging system that shows all selected sprites during multi-drag, displays transforms correctly on all browsers, and works outside stage boundaries (#62)
+- Keyboard input now works when game is paused - hold a key and click Forward to test key-triggered rules (#60)
+- Pixel canvas uses pointer capture for smoother drawing, fixing offset issues in scroll containers (#57)
+- Rules list drop zone extends to fill the panel, making it easier to drop rules at the end (#56)
+- Variable panel shows placeholder ("—") when multiple actors with different values are selected (#59)
+- Converted store provider and undo-redo utilities to TypeScript (#51)
+
+### Fixed
+
+- System freeze when deleting variables used in rules - now shows a warning dialog listing affected rules with option to delete anyway (#50)
+- Disappearing character bug when anchor square was outside trimmed image bounds - anchor now auto-adjusts when saving (#49)
+- Actor selection popover layout for rotated/flipped actors with non-zero anchor points (#58)
+- Selected pixels disappearing when using canvas expand/shrink - selection is now flattened first (#53)
+- Worlds list not refreshing after deleting a game (#48)
 
 ## [2025-01-01]
 
