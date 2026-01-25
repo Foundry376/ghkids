@@ -2,6 +2,7 @@ import React, { useState } from "react";
 
 import { useDispatch } from "react-redux";
 import { Button } from "reactstrap";
+import { useEditorSelector } from "../../../../hooks/redux";
 import {
   Actor,
   ActorTransform,
@@ -14,7 +15,6 @@ import {
   VariableComparator,
   WorldMinimal,
 } from "../../../../types";
-import { useEditorSelector } from "../../../../hooks/redux";
 import { pickConditionValueFromKeyboard, selectToolId } from "../../../actions/ui-actions";
 import { TOOLS } from "../../../constants/constants";
 import { AppearanceDropdown, TransformDropdown } from "../../inspector/container-pane-variables";
@@ -350,7 +350,10 @@ export const FreeformConditionValue = ({
       className={`right tool-supported dropping-${droppingValue}`}
       title="Drop a variable or appearance here to create an expression linking two variables."
       onDragOver={(e) => {
-        if (e.dataTransfer.types.includes(`variable`)) {
+        if (
+          e.dataTransfer.types.includes(`variable`) ||
+          (e.dataTransfer.types.includes("sprite") && impliedDatatype?.type === "actor")
+        ) {
           setDroppingValue(true);
           e.preventDefault();
           e.stopPropagation();

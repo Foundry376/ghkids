@@ -38,7 +38,7 @@ router.get("/worlds/:objectId", async (req, res) => {
   res.json(
     Object.assign({}, world.serialize(), {
       data: world.data,
-      unsavedData: world.unsavedData ? JSON.parse(world.unsavedData) : null,
+      unsavedData: world.unsavedData ?? null,
     }),
   );
 });
@@ -144,7 +144,7 @@ router.put("/worlds/:objectId", userFromBasicAuth, async (req, res) => {
   if (action === "save") {
     // Save: copy unsavedData to data, clear unsavedData and timestamp
     if (world.unsavedData) {
-      world.data = JSON.parse(world.unsavedData) as Record<string, unknown>;
+      world.data = world.unsavedData as Record<string, unknown>;
       world.unsavedData = null;
       world.unsavedDataUpdatedAt = null;
     } else if (req.body.data) {
@@ -167,7 +167,7 @@ router.put("/worlds/:objectId", userFromBasicAuth, async (req, res) => {
     world.name = req.body.name || world.name;
     world.thumbnail = req.body.thumbnail || world.thumbnail;
     if (req.body.data) {
-      world.unsavedData = JSON.stringify(req.body.data);
+      world.unsavedData = req.body.data;
       world.unsavedDataUpdatedAt = new Date();
     }
     // Allow updating published/description during draft save too
@@ -181,7 +181,7 @@ router.put("/worlds/:objectId", userFromBasicAuth, async (req, res) => {
   res.json(
     Object.assign({}, world.serialize(), {
       data: world.data,
-      unsavedData: world.unsavedData ? JSON.parse(world.unsavedData) : null,
+      unsavedData: world.unsavedData ?? null,
     }),
   );
 });

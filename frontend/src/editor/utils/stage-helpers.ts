@@ -55,7 +55,9 @@ export function actorIntersectsExtent(actor: Actor, characters: Characters, exte
 export function actorFilledPoints(actor: Actor, characters: Characters) {
   const character = characters[actor.characterId];
   if (!character) {
-    console.warn(`actorFilledPoints: character ${actor.characterId} not found for actor ${actor.id}`);
+    console.warn(
+      `actorFilledPoints: character ${actor.characterId} not found for actor ${actor.id}`,
+    );
     return [actor.position];
   }
   const info = character.spritesheet.appearanceInfo?.[actor.appearance];
@@ -174,8 +176,8 @@ export function resolveRuleValue(
   val: RuleValue,
   globals: Globals,
   characters: Characters,
-  actors: Stage["actors"],
-  comparator: VariableComparator,
+  stageActorForId: Stage["actors"],
+  comparator: VariableComparator, // some values behave differently depending on the comparator
 ): string | null {
   if (!val) {
     console.warn(`A rule value is missing?`);
@@ -185,7 +187,7 @@ export function resolveRuleValue(
     return val.constant;
   }
   if ("actorId" in val) {
-    const actor = actors[val.actorId];
+    const actor = stageActorForId[val.actorId];
     if (!actor) {
       console.warn(`resolveRuleValue: actor ${val.actorId} not found`);
       return null;
@@ -198,7 +200,14 @@ export function resolveRuleValue(
     return getVariableValue(actor, character, val.variableId, comparator);
   }
   if ("globalId" in val) {
-    return globals[val.globalId]?.value;
+    const value = globals[val.globalId]?.value;
+
+    // If the rule says "global X must be actor Y", "Y" is an ID within the rule.
+    // We need to map it to that actor on the stage for it to ever evaluate to true.
+    if (value && value.startsWith("actor:")) {
+      return Object.keys(stageActorForId).find((id) => stageActorForId[id].id === value) ?? value;
+    }
+    return value;
   }
   isNever(val);
   return "";
@@ -289,7 +298,11 @@ export function applyVariableOperation(existing: string, operation: MathOperatio
 
 export type RulePredicate = (rule: RuleTreeItem) => boolean;
 
-export type FindRulesResult = Array<{ rule: RuleTreeItem; parent: { rules: RuleTreeItem[] }; index: number }>;
+export type FindRulesResult = Array<{
+  rule: RuleTreeItem;
+  parent: { rules: RuleTreeItem[] };
+  index: number;
+}>;
 
 /**
  * Find all rules matching a predicate function.
@@ -594,4 +607,3 @@ export function comparatorMatches(
       isNever(comparator);
   }
 }
-
