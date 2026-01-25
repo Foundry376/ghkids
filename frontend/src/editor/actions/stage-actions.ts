@@ -45,16 +45,21 @@ export type ActionDeleteStageId = {
 
 // individual stage actions (Require world id, act on current stage in that world)
 
-export function advanceGameState(worldId: string): ActionAdvanceGameState {
+export function advanceGameState(
+  worldId: string,
+  options: { clearInput?: boolean } = {},
+): ActionAdvanceGameState {
   return {
     type: types.ADVANCE_GAME_STATE,
     worldId,
+    clearInput: options.clearInput ?? false,
   };
 }
 
 export type ActionAdvanceGameState = {
   type: "ADVANCE_GAME_STATE";
   worldId: string;
+  clearInput: boolean;
 };
 
 export function stepBackGameState(worldId: string): ActionStepBackGameState {

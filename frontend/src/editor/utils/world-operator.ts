@@ -719,7 +719,7 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
     );
   }
 
-  function tick() {
+  function tick(options: { clearInput?: boolean } = {}) {
     // read-only things
     const currentStage = getCurrentStageForWorld(previousWorld);
     if (!currentStage) {
@@ -754,25 +754,24 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
       Object.values(actorRuleDetails).some((details) => details.passed),
     );
 
-    return u(
-      {
-        input: u.constant({
-          keys: {},
-          clicks: {},
-        }),
-        stages: {
-          [stage.id]: {
-            actors: u.constant(actors),
-          },
+    const updates: Record<string, unknown> = {
+      stages: {
+        [stage.id]: {
+          actors: u.constant(actors),
         },
-        globals: u.constant(globals),
-        evaluatedRuleDetails: u.constant(evaluatedRuleDetails),
-        evaluatedTickFrames: frameAccumulator.getFrames(),
-        history: (values: HistoryItem[]) =>
-          evaluatedSomeRule ? [...values.slice(values.length - 20), historyItem] : values,
       },
-      previousWorld,
-    );
+      globals: u.constant(globals),
+      evaluatedRuleDetails: u.constant(evaluatedRuleDetails),
+      evaluatedTickFrames: frameAccumulator.getFrames(),
+      history: (values: HistoryItem[]) =>
+        evaluatedSomeRule ? [...values.slice(values.length - 20), historyItem] : values,
+    };
+
+    if (options.clearInput) {
+      updates.input = u.constant({ keys: {}, clicks: {} });
+    }
+
+    return u(updates, previousWorld);
   }
 
   function untick() {

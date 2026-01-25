@@ -35,7 +35,7 @@ const StageControls: React.FC<StageControlsProps> = ({
   const timerSpeedRef = useRef<number | null>(null);
 
   const onTick = () => {
-    dispatch(advanceGameState(world.id));
+    dispatch(advanceGameState(world.id, { clearInput: true }));
   };
 
   useEffect(() => {

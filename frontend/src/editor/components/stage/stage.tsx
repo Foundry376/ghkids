@@ -70,9 +70,11 @@ const DRAGGABLE_TOOLS = [TOOLS.IGNORE_SQUARE, TOOLS.TRASH, TOOLS.STAMP];
 
 export const STAGE_ZOOM_STEPS = [1, 0.88, 0.75, 0.63, 0.5, 0.42, 0.38];
 
-function useGlobalHeldKeys(worldId: string) {
+function useGlobalHeldKeys(worldId: string, playbackRunning: boolean) {
   const dispatch = useDispatch();
   const heldKeysRef = useRef<Set<string>>(new Set());
+  const playbackRunningRef = useRef(playbackRunning);
+  playbackRunningRef.current = playbackRunning;
 
   useEffect(() => {
     if (!worldId) {
@@ -107,7 +109,12 @@ function useGlobalHeldKeys(worldId: string) {
       const codakoKey = keyToCodakoKey(event.key);
       if (heldKeysRef.current.has(codakoKey)) {
         heldKeysRef.current.delete(codakoKey);
-        syncHeldKeys();
+        // When playing, don't sync on keyup - let the key persist until tick() clears it.
+        // This ensures quick key taps are registered even if keyup happens before next tick.
+        // When stopped, sync immediately so Forward button sees current held state.
+        if (!playbackRunningRef.current) {
+          syncHeldKeys();
+        }
       }
     };
 
@@ -128,8 +135,6 @@ function useGlobalHeldKeys(worldId: string) {
       window.removeEventListener("blur", onWindowBlur);
     };
   }, [dispatch, worldId]);
-
-  return heldKeysRef;
 }
 
 export const Stage = ({
@@ -159,8 +164,6 @@ export const Stage = ({
   const mouse = useRef<MouseStatus>({ isDown: false, visited: {} });
   const scrollEl = useRef<HTMLDivElement | null>();
   const el = useRef<HTMLDivElement | null>();
-
-  useGlobalHeldKeys(world.id);
 
   useEffect(() => {
     const autofit = () => {
@@ -199,6 +202,8 @@ export const Stage = ({
       playback: state.ui.playback,
     }),
   );
+
+  useGlobalHeldKeys(world.id, playback.running);
 
   // Helpers
 

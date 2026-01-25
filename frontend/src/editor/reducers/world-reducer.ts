@@ -46,7 +46,7 @@ export default function worldReducer(
     }
     case Types.ADVANCE_GAME_STATE: {
       const { characters } = entireState;
-      return WorldOperator(state, characters).tick();
+      return WorldOperator(state, characters).tick({ clearInput: action.clearInput });
     }
     case Types.STEP_BACK_GAME_STATE: {
       const { characters } = entireState;
