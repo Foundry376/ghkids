@@ -10,8 +10,13 @@ interface ActorSelectionPopoverProps {
   characters: Characters;
   position: { x: number; y: number }; // Screen pixel position for popover
   onSelect: (actor: Actor) => void;
-  onDragStart: (actor: Actor) => void;
   onClose: () => void;
+  onStartDrag?: (
+    actor: Actor,
+    actorIds: string[],
+    event: React.DragEvent,
+    anchorOffset: { x: number; y: number },
+  ) => void;
 }
 
 const ActorSelectionPopover: React.FC<ActorSelectionPopoverProps> = ({
@@ -19,8 +24,8 @@ const ActorSelectionPopover: React.FC<ActorSelectionPopoverProps> = ({
   characters,
   position,
   onSelect,
-  onDragStart,
   onClose,
+  onStartDrag,
 }) => {
   const popoverRef = useRef<HTMLDivElement>(null);
 
@@ -87,9 +92,18 @@ const ActorSelectionPopover: React.FC<ActorSelectionPopoverProps> = ({
                   character={character}
                   actor={{ ...actor, position: { x: bounds.offsetX, y: bounds.offsetY } }}
                   selected={false}
-                  dragActorIds={[actor.id]}
                   onMouseUp={() => onSelect(actor)}
-                  onDragStart={() => onDragStart(actor)}
+                  dragActorIds={onStartDrag ? [actor.id] : undefined}
+                  onStartDrag={
+                    onStartDrag
+                      ? (_, actorIds, event, anchorOffset) => {
+                          // Use the real actor (with original position), not the display-modified one
+                          // Don't close popover here - it would unmount the drag source element.
+                          // The popover will be closed by Stage when the drag ends.
+                          onStartDrag(actor, actorIds, event, anchorOffset);
+                        }
+                      : undefined
+                  }
                 />
               </div>
             </div>

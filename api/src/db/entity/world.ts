@@ -19,8 +19,8 @@ export class World {
   @Column({ type: "jsonb", nullable: true })
   data: Record<string, unknown> | null;
 
-  @Column({ type: "text", nullable: true })
-  unsavedData: string | null;
+  @Column({ type: "jsonb", nullable: true })
+  unsavedData: Record<string, unknown> | null;
 
   @Column({ type: "timestamptz", nullable: true })
   unsavedDataUpdatedAt: Date | null;
