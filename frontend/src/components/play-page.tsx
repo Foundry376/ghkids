@@ -44,18 +44,31 @@ const PlayPage: React.FC = () => {
     return () => document.removeEventListener("fullscreenchange", onFullscreenChange);
   }, []);
 
-  const onPlay = useCallback(() => {
-    setImmersive(true);
-    // Start playback on the editor store
+  const startPlayback = useCallback(() => {
     if (editorStoreRef.current) {
       editorStoreRef.current.dispatch(updatePlaybackState({ speed: 500, running: true }));
     }
+  }, []);
+
+  const onPlay = useCallback(() => {
+    setImmersive(true);
+
     // Attempt to enter fullscreen for a more immersive experience.
     // This silently fails on platforms that don't support it (e.g. iPhone iOS Safari).
-    if (containerRef.current?.requestFullscreen) {
-      containerRef.current.requestFullscreen().catch(() => {});
+    const canFullscreen = !!containerRef.current?.requestFullscreen;
+    if (canFullscreen) {
+      // Delay playback start so the fullscreen transition animation completes
+      // before the game begins ticking
+      containerRef.current!.requestFullscreen().then(() => {
+        setTimeout(startPlayback, 400);
+      }).catch(() => {
+        // Fullscreen rejected — start playback immediately
+        startPlayback();
+      });
+    } else {
+      startPlayback();
     }
-  }, []);
+  }, [startPlayback]);
 
   const onExitImmersive = useCallback(() => {
     // Stop playback
