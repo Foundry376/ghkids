@@ -1,4 +1,4 @@
-import React, { useCallback, useRef, useState } from "react";
+import React, { useCallback, useMemo, useRef, useState } from "react";
 import { useDispatch } from "react-redux";
 import { useGoogleReCaptcha } from "react-google-recaptcha-v3";
 import Button from "reactstrap/lib/Button";
@@ -24,7 +24,7 @@ const JoinPage: React.FC = () => {
   const { executeRecaptcha } = useGoogleReCaptcha();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const search = new URLSearchParams(location.search);
+  const search = useMemo(() => new URLSearchParams(location.search), [location.search]);
 
   const onSubmit = useCallback(
     async (event: React.FormEvent) => {

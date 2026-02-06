@@ -240,4 +240,5 @@ class TutorialContainer extends React.Component<PropsFromRedux, TutorialContaine
   }
 }
 
-export default connector(TutorialContainer);
+const ConnectedTutorialContainer = connector(TutorialContainer);
+export default ConnectedTutorialContainer;

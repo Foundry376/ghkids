@@ -1,4 +1,4 @@
-import React, { CSSProperties, useEffect, useRef, useState } from "react";
+import React, { CSSProperties, useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useDispatch } from "react-redux";
 
@@ -86,9 +86,11 @@ type SpriteDragState = {
 const DRAGGABLE_TOOLS = [TOOLS.IGNORE_SQUARE, TOOLS.TRASH, TOOLS.STAMP];
 
 // Single empty image used for hiding native drag preview
+// eslint-disable-next-line react-refresh/only-export-components
 export const EMPTY_DRAG_IMAGE = new Image();
 EMPTY_DRAG_IMAGE.src = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const STAGE_ZOOM_STEPS = [1, 0.88, 0.75, 0.63, 0.5, 0.42, 0.38];
 
 const SpriteDragPreview = ({
@@ -318,7 +320,7 @@ export const Stage = ({
     };
   };
 
-  const centerOnActor = (actorId: string): Offset | null => {
+  const centerOnActor = useCallback((actorId: string): Offset | null => {
     if (!actorId) return null;
 
     const actor = stage.actors[actorId];
@@ -332,7 +334,7 @@ export const Stage = ({
       left: `calc(-${xCenter * STAGE_CELL_SIZE}px + 50%)`,
       top: `calc(-${yCenter * STAGE_CELL_SIZE}px + 50%)`,
     };
-  };
+  }, [stage.actors]);
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
@@ -375,7 +377,7 @@ export const Stage = ({
     }
   }, [
     playback.running,
-    stage.actors,
+    centerOnActor,
     stage.width,
     stage.height,
     world.globals?.cameraFollow?.value,

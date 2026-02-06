@@ -257,7 +257,7 @@ export class PaintModel {
     let items: ClipboardItems;
     try {
       items = await navigator.clipboard.read();
-    } catch (err) {
+    } catch {
       alert(
         `Codako doesn't have permission to view your clipboard. ` +
           `Please grant permission in your browser and try again!`,

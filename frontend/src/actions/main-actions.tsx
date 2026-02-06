@@ -97,7 +97,6 @@ export function deleteWorld(id: ID) {
 }
 
 export function createWorld({ from, fork }: { from?: ID | "tutorial"; fork?: string } = {}) {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   return async function (_dispatch: Dispatch<MainActions>) {
     let qs = "";
     if (from === "tutorial") {

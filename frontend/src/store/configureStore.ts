@@ -1,5 +1,5 @@
 import { applyMiddleware, compose, createStore, Store, StoreEnhancer } from "redux";
-// @ts-ignore - no type definitions available
+// @ts-expect-error - no type definitions available
 import reduxImmutableStateInvariant from "redux-immutable-state-invariant";
 import thunk from "redux-thunk";
 

@@ -90,6 +90,7 @@ function getVariableName(
 }
 
 /** Build payload for the rule naming API with human-readable names instead of IDs */
+// eslint-disable-next-line react-refresh/only-export-components
 export function buildNamingPayload(
   recording: RecordingState,
   characters: Characters
