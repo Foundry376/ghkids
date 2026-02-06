@@ -191,7 +191,7 @@ const PositionGridItem = ({ actor, coordinate, value, onChange }: PositionGridIt
 
   return (
     <div className={`variable-box variable-set-${!isMixed}`} draggable={!isMixed} onDragStart={_onDragStart}>
-      <div className="name">{coordinate.toUpperCase()}</div>
+      <div className="name">{coordinate === "x" ? "Horizontal" : "Vertical"}</div>
       <input
         type="number"
         value={isMixed ? "" : value}
