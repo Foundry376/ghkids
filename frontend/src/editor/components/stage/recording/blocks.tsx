@@ -65,8 +65,8 @@ export const ActorVariableBlock = ({
   const getVariableLabel = () => {
     if (variableId === "transform") return "direction";
     if (variableId === "appearance") return "appearance";
-    if (variableId === "x") return "X";
-    if (variableId === "y") return "Y";
+    if (variableId === "x") return "Horizontal";
+    if (variableId === "y") return "Vertical";
     return <VariableBlock name={(variableId && character.variables[variableId]?.name) || ""} />;
   };
 
