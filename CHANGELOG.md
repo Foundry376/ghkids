@@ -1,4 +1,24 @@
-<!-- LAST_COMMIT: 7759b31 -->
+<!-- LAST_COMMIT: 2e3e030 -->
+
+## [2026-02-06]
+
+You can now control which characters appear in front of or behind other characters! Use the new "Set Character Order" option in the Library panel to drag and drop characters into the order you want. When characters overlap on the stage, clicking once selects the one on top, and clicking again lets you pick from all the characters stacked there.
+
+### Added
+
+- Character z-order system for controlling which characters draw in front of others on the stage
+- "Set Character Order" modal in the Library panel's + menu for drag-and-drop layer reordering
+- Smarter actor selection: clicking overlapping actors selects the topmost one first, with a second click showing a popover to pick from all overlapping actors
+
+### Changed
+
+- Character order modal displays top-of-list as drawn on top (most intuitive ordering)
+- Library panel now lists characters in z-order
+- Screenshots and stage rendering respect character z-order
+
+### Fixed
+
+- Select-all not working immediately after opening the paint modal
 
 ## [2026-01-24]
 
