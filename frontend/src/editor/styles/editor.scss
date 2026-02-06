@@ -1369,3 +1369,58 @@ button.btn.selected:active {
     }
   }
 }
+
+.z-order-hint {
+  font-size: 13px;
+  color: #666;
+  margin-bottom: 8px;
+}
+
+.z-order-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.z-order-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  margin-bottom: 4px;
+  background: #fff;
+  cursor: grab;
+  user-select: none;
+
+  &.dragging {
+    opacity: 0.4;
+  }
+
+  &.drop-above {
+    border-top: 2px solid #007bff;
+  }
+
+  .drag-handle {
+    color: #999;
+    font-size: 14px;
+    cursor: grab;
+  }
+
+  .character-name {
+    font-size: 14px;
+    flex: 1;
+  }
+
+  img.sprite {
+    width: 32px;
+    height: 32px;
+    object-fit: contain;
+  }
+}
+
+.z-order-drop-indicator {
+  height: 2px;
+  background: #007bff;
+  margin-bottom: 4px;
+}

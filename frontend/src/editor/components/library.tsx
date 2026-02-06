@@ -270,6 +270,10 @@ export const Library: React.FC = () => {
     dispatch(showModal(MODALS.EXPLORE_CHARACTERS));
   }, [dispatch]);
 
+  const onSetCharacterOrder = useCallback(() => {
+    dispatch(showModal(MODALS.CHARACTER_Z_ORDER));
+  }, [dispatch]);
+
   const onCreateAppearance = useCallback(() => {
     if (!ui.selectedCharacterId) return;
 
@@ -303,6 +307,8 @@ export const Library: React.FC = () => {
             <DropdownMenu right>
               <DropdownItem onClick={onCreateCharacter}>Draw new Character...</DropdownItem>
               <DropdownItem onClick={onExploreCharacters}>Explore Characters...</DropdownItem>
+              <DropdownItem divider />
+              <DropdownItem onClick={onSetCharacterOrder}>Set Character Order...</DropdownItem>
             </DropdownMenu>
           </ButtonDropdown>
         </div>
