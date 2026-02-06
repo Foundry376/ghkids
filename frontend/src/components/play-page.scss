@@ -135,6 +135,12 @@ $play-tint: #5bc0de;
     min-height: 0;
     display: flex;
     flex-direction: column;
+
+    /* Remove the editor panel chrome (white bg, shadow, margin, padding) */
+    background-color: transparent;
+    box-shadow: none;
+    margin: 0;
+    padding: 0;
   }
 
   .stages-horizontal-flex {
