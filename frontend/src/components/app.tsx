@@ -95,10 +95,11 @@ const App = () => {
 
   const isEditor = location.pathname.startsWith("/editor");
   const isLogin = location.pathname.startsWith("/login");
+  const isPlay = location.pathname.startsWith("/play");
 
-  const hidesNav = isLogin || isEditor;
-  const hidesFooter = isLogin || isEditor;
-  const unwrapped = isEditor;
+  const hidesNav = isLogin || isEditor || isPlay;
+  const hidesFooter = isLogin || isEditor || isPlay;
+  const unwrapped = isEditor || isPlay;
   const content = unwrapped ? (
     <Outlet />
   ) : (

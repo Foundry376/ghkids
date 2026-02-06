@@ -67,6 +67,7 @@ interface StageProps {
    * - "none": No actor interaction; only recording handles remain interactive.
    */
   interactionMode?: "full" | "selectable" | "none";
+  immersive?: boolean;
   style?: CSSProperties;
 }
 
@@ -234,6 +235,7 @@ export const Stage = ({
   stage,
   world,
   interactionMode = "full",
+  immersive,
   style,
 }: StageProps) => {
   const [{ top, left }, setOffset] = useState<Offset>({ top: 0, left: 0 });
@@ -265,13 +267,14 @@ export const Stage = ({
       }
       if (recordingCentered) {
         setScale(1);
-      } else if (stage.scale === "fit") {
+      } else if (immersive || stage.scale === "fit") {
         _el.style.zoom = "1"; // this needs to be here for scaling "up" to work
         const fit = Math.min(
           _scrollEl.clientWidth / (stage.width * STAGE_CELL_SIZE),
           _scrollEl.clientHeight / (stage.height * STAGE_CELL_SIZE),
         );
-        const best = STAGE_ZOOM_STEPS.find((z) => z <= fit) || fit;
+        // In immersive mode, allow scaling up beyond the predefined steps
+        const best = immersive ? fit : (STAGE_ZOOM_STEPS.find((z) => z <= fit) || fit);
         _el.style.zoom = `${best}`;
         setScale(best);
       } else {
@@ -280,8 +283,13 @@ export const Stage = ({
     };
     window.addEventListener("resize", autofit);
     autofit();
-    return () => window.removeEventListener("resize", autofit);
-  }, [stage.height, stage.scale, stage.width, recordingCentered]);
+    // Also refit on fullscreen changes
+    document.addEventListener("fullscreenchange", autofit);
+    return () => {
+      window.removeEventListener("resize", autofit);
+      document.removeEventListener("fullscreenchange", autofit);
+    };
+  }, [stage.height, stage.scale, stage.width, recordingCentered, immersive]);
 
   const dispatch = useDispatch();
   const characters = useEditorSelector((state) => state.characters);

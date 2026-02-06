@@ -50,7 +50,7 @@ function getEvaluatedSquares(
   return evaluatedRuleDetails[evalActorId]?.[ruleId]?.squares || [];
 }
 
-const StageContainer = ({ readonly }: { readonly?: boolean }) => {
+const StageContainer = ({ readonly, immersive }: { readonly?: boolean; immersive?: boolean }) => {
   const dispatch = useDispatch();
   const recording = useEditorSelector((state) => state.recording);
   const characters = useEditorSelector((state) => state.characters);
@@ -169,6 +169,7 @@ const StageContainer = ({ readonly }: { readonly?: boolean }) => {
               world={world}
               stage={current.stage}
               interactionMode={readonly ? "selectable" : "full"}
+              immersive={immersive}
             />
           )}
           {stageB || <Stage stage={0 as never} world={0 as never} style={{ flex: 0 }} />}
