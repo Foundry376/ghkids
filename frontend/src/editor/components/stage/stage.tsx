@@ -749,8 +749,18 @@ export const Stage = ({
             ),
           );
         } else {
-          if (!showPopoverIfOverlapping(TOOLS.POINTER)) {
-            dispatch(select(actor.characterId, selFor([actor.id])));
+          const overlapping = actorsAtPoint(stage.actors, characters, actor.position, characterZOrder);
+          const topActor = overlapping[overlapping.length - 1];
+          const isTopActorSelected = topActor && selected.some((a) => a.id === topActor.id);
+
+          if (overlapping.length > 1 && isTopActorSelected) {
+            setActorSelectionPopover({
+              actors: overlapping,
+              position: { x: event.clientX, y: event.clientY },
+              toolId: TOOLS.POINTER,
+            });
+          } else if (topActor) {
+            dispatch(select(topActor.characterId, selFor([topActor.id])));
           }
         }
         handled = true;

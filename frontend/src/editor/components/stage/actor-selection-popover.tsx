@@ -66,7 +66,7 @@ const ActorSelectionPopover: React.FC<ActorSelectionPopoverProps> = ({
   return (
     <div ref={popoverRef} className="actor-selection-popover" style={popoverStyle}>
       <div className="actor-selection-popover-content">
-        {actors.map((actor) => {
+        {[...actors].reverse().map((actor) => {
           const character = characters[actor.characterId];
           const { appearanceInfo } = character.spritesheet;
           const info = appearanceInfo?.[actor.appearance] || DEFAULT_APPEARANCE_INFO;
