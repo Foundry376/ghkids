@@ -140,9 +140,10 @@ const PlayPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Stage area - always rendered, fills available space */}
+      {/* Stage area - always rendered, fills available space.
+          Always pass immersive so the stage scales to fit even behind the landing overlay. */}
       <div className="play-stage-area">
-        <RootPlayer world={world} editorStoreRef={editorStoreRef} immersive={immersive} />
+        <RootPlayer world={world} editorStoreRef={editorStoreRef} immersive />
       </div>
 
       {/* Landing overlay - shown before play, fades out on play */}
