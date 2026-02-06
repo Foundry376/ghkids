@@ -1,5 +1,6 @@
-import { useMemo } from "react";
+import { MutableRefObject, useEffect, useMemo } from "react";
 import { Provider } from "react-redux";
+import { Store } from "redux";
 import u from "updeep";
 
 import { restoreInitialGameState } from "./actions/stage-actions";
@@ -11,9 +12,15 @@ import { EditorState, Game } from "../types";
 import { applyDataMigrations } from "./data-migrations";
 import "./styles/editor.scss";
 
-export const RootPlayer = (props: { world: Game }) => {
+interface RootPlayerProps {
+  world: Game;
+  editorStoreRef?: MutableRefObject<Store | null>;
+  immersive?: boolean;
+}
+
+export const RootPlayer = ({ world: gameWorld, editorStoreRef, immersive }: RootPlayerProps) => {
   const editorStore = useMemo(() => {
-    const migrated = applyDataMigrations(props.world);
+    const migrated = applyDataMigrations(gameWorld);
     const { world, characters } = migrated.data;
     const state = u({ world, characters }, initialState) as EditorState;
     const editorStore = configureStore(state);
@@ -23,12 +30,19 @@ export const RootPlayer = (props: { world: Game }) => {
       editorStore.dispatch(restoreInitialGameState(state.world.id, stageId));
     });
     return editorStore;
-  }, [props.world]);
+  }, [gameWorld]);
+
+  // Expose the editor store to the parent via ref
+  useEffect(() => {
+    if (editorStoreRef) {
+      editorStoreRef.current = editorStore;
+    }
+  }, [editorStore, editorStoreRef]);
 
   return (
     <Provider store={editorStore}>
-      <div className="stage-container">
-        <StageContainer readonly />
+      <div className={`stage-container ${immersive ? "stage-container--immersive" : ""}`}>
+        <StageContainer readonly immersive={immersive} />
       </div>
     </Provider>
   );
