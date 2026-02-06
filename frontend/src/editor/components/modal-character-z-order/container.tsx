@@ -36,7 +36,7 @@ const CharacterZOrderModal = () => {
           validOrder.push(id);
         }
       }
-      setOrder(validOrder);
+      setOrder([...validOrder].reverse());
     }
   }, [open, characters, characterZOrder]);
 
@@ -84,7 +84,7 @@ const CharacterZOrderModal = () => {
   }, [dragIndex, dropIndex]);
 
   const onDone = useCallback(() => {
-    dispatch(setCharacterZOrder(order));
+    dispatch(setCharacterZOrder([...order].reverse()));
     dispatch(dismissModal());
   }, [dispatch, order]);
 
@@ -125,7 +125,7 @@ const CharacterZOrderModal = () => {
       </div>
       <ModalBody>
         <p className="z-order-hint">
-          Characters at the bottom of the list are drawn on top. Drag to reorder.
+          Characters at the top of the list are drawn on top. Drag to reorder.
         </p>
         <div className="z-order-list" ref={listRef} onDragOver={onDragOver}>
           {order.map((id, i) => renderRow(id, i))}
