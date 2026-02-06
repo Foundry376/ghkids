@@ -82,6 +82,7 @@ const StageContainer = ({ readonly }: { readonly?: boolean }) => {
           recordingExtent={recording.extent}
           recordingCentered
           evaluatedSquares={evaluatedSquares}
+          interactionMode="none"
         />
       );
       if (recording.actions !== null) {
@@ -163,7 +164,13 @@ const StageContainer = ({ readonly }: { readonly?: boolean }) => {
     <div className="stage-container">
       <div className="panel stages">
         <div className="stages-horizontal-flex">
-          {stageA || <Stage world={world} stage={current.stage} readonly={readonly} />}
+          {stageA || (
+            <Stage
+              world={world}
+              stage={current.stage}
+              interactionMode={readonly ? "selectable" : "full"}
+            />
+          )}
           {stageB || <Stage stage={0 as never} world={0 as never} style={{ flex: 0 }} />}
         </div>
         {actions || <div className="recording-specifics" style={{ height: 0 }} />}

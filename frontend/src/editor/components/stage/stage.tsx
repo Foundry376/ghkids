@@ -61,7 +61,12 @@ interface StageProps {
   recordingExtent?: RuleExtent;
   recordingCentered?: boolean;
   evaluatedSquares?: EvaluatedSquare[];
-  readonly?: boolean;
+  /** Controls how users can interact with actors on the stage:
+   * - "full": All interactions (click, drag, selection rect, tools). Default.
+   * - "selectable": Click/select actors but no dragging (used in player).
+   * - "none": No actor interaction; only recording handles remain interactive.
+   */
+  interactionMode?: "full" | "selectable" | "none";
   style?: CSSProperties;
 }
 
@@ -226,7 +231,7 @@ export const Stage = ({
   evaluatedSquares,
   stage,
   world,
-  readonly,
+  interactionMode = "full",
   style,
 }: StageProps) => {
   const [{ top, left }, setOffset] = useState<Offset>({ top: 0, left: 0 });
@@ -749,7 +754,7 @@ export const Stage = ({
   };
 
   const onMouseDown = (event: React.MouseEvent) => {
-    if (playback.running) {
+    if (playback.running || interactionMode === "none") {
       return;
     }
     const onMouseUpAnywhere = (e: MouseEvent) => {
@@ -1039,14 +1044,16 @@ export const Stage = ({
       Math.abs(lastPosition.y - actor.position.y) > 6;
     lastActorPositions.current[actor.id] = Object.assign({}, actor.position);
 
-    const draggable = !readonly && !DRAGGABLE_TOOLS.includes(selectedToolId);
+    const draggable =
+      interactionMode === "full" && !DRAGGABLE_TOOLS.includes(selectedToolId);
+    const interactive = interactionMode !== "none";
     const animationStyle = actor.animationStyle || "linear";
     return (
       <ActorSprite
         key={actor.id}
-        selected={selected.includes(actor)}
-        onMouseUp={(event) => onMouseUpActor(actor, event)}
-        onDoubleClick={() => onSelectActor(actor)}
+        selected={interactive ? selected.includes(actor) : false}
+        onMouseUp={interactive ? (event) => onMouseUpActor(actor, event) : undefined}
+        onDoubleClick={interactive ? () => onSelectActor(actor) : undefined}
         transitionDuration={
           animationStyle === "linear" ? playback.speed / (actor.frameCount || 1) : 0
         }
