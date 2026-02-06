@@ -39,6 +39,7 @@ import {
   applyAnchorAdjustment,
   buildActorSelection,
   pointIsOutside,
+  sortActorsByZOrder,
 } from "../../utils/stage-helpers";
 
 import { useEditorSelector } from "../../../hooks/redux";
@@ -293,6 +294,7 @@ export const Stage = ({
 
   const dispatch = useDispatch();
   const characters = useEditorSelector((state) => state.characters);
+  const characterZOrder = useEditorSelector((state) => state.characterZOrder);
   const { selectedActors, selectedToolId, stampToolItem, playback } = useEditorSelector(
     (state) => ({
       selectedActors: state.ui.selectedActors,
@@ -682,7 +684,7 @@ export const Stage = ({
 
     // Helper to check for overlapping actors and show popover if needed
     const showPopoverIfOverlapping = (toolId: string): boolean => {
-      const overlapping = actorsAtPoint(stage.actors, characters, actor.position);
+      const overlapping = actorsAtPoint(stage.actors, characters, actor.position, characterZOrder);
       if (overlapping.length > 1) {
         setActorSelectionPopover({
           actors: overlapping,
@@ -747,8 +749,18 @@ export const Stage = ({
             ),
           );
         } else {
-          if (!showPopoverIfOverlapping(TOOLS.POINTER)) {
-            dispatch(select(actor.characterId, selFor([actor.id])));
+          const overlapping = actorsAtPoint(stage.actors, characters, actor.position, characterZOrder);
+          const topActor = overlapping[overlapping.length - 1];
+          const isTopActorSelected = topActor && selected.some((a) => a.id === topActor.id);
+
+          if (overlapping.length > 1 && isTopActorSelected) {
+            setActorSelectionPopover({
+              actors: overlapping,
+              position: { x: event.clientX, y: event.clientY },
+              toolId: TOOLS.POINTER,
+            });
+          } else if (topActor) {
+            dispatch(select(topActor.characterId, selFor([topActor.id])));
           }
         }
         handled = true;
@@ -823,7 +835,7 @@ export const Stage = ({
         return;
       }
 
-      const overlapping = actorsAtPoint(stage.actors, characters, { x, y });
+      const overlapping = actorsAtPoint(stage.actors, characters, { x, y }, characterZOrder);
 
       // On initial click (not drag), show popover if multiple actors overlap
       const isFirstClick = Object.keys(mouse.current.visited).length === 1;
@@ -1058,10 +1070,12 @@ export const Stage = ({
       interactionMode === "full" && !DRAGGABLE_TOOLS.includes(selectedToolId);
     const interactive = interactionMode !== "none";
     const animationStyle = actor.animationStyle || "linear";
+    const zIndex = characterZOrder.indexOf(actor.characterId);
     return (
       <ActorSprite
         key={actor.id}
         selected={interactive ? selected.includes(actor) : false}
+        zIndex={zIndex >= 0 ? zIndex : undefined}
         onMouseUp={interactive ? (event) => onMouseUpActor(actor, event) : undefined}
         onDoubleClick={interactive ? () => onSelectActor(actor) : undefined}
         transitionDuration={
@@ -1124,7 +1138,7 @@ export const Stage = ({
           }}
         />
 
-        {Object.values(stage.actors).map(renderActor)}
+        {sortActorsByZOrder(Object.values(stage.actors), characterZOrder).map(renderActor)}
 
         {recordingExtent ? renderRecordingExtent() : []}
       </div>

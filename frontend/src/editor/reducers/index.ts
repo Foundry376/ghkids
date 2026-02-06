@@ -2,6 +2,7 @@ import { EditorState } from "../../types";
 import { Actions } from "../actions";
 import * as Types from "../constants/action-types";
 import { undoRedoReducerFactory } from "../utils/undo-redo";
+import characterZOrderReducer from "./character-z-order-reducer";
 import charactersReducer from "./characters-reducer";
 import InitialState from "./initial-state";
 import recordingReducer from "./recording-reducer";
@@ -12,11 +13,12 @@ const reducerMap = {
   ui: uiReducer,
   world: worldReducer,
   characters: charactersReducer,
+  characterZOrder: characterZOrderReducer,
   recording: recordingReducer,
 };
 
 const undoRedoReducer = undoRedoReducerFactory({
-  trackedKeys: ["recording", "world", "characters", "stages"],
+  trackedKeys: ["recording", "world", "characters", "characterZOrder", "stages"],
   ignoredActions: [
     Types.ADVANCE_GAME_STATE,
     Types.STEP_BACK_GAME_STATE,

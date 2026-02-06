@@ -50,6 +50,7 @@ const ActorSprite = (props: {
   character: Character;
   actor: Actor;
   selected?: boolean;
+  zIndex?: number;
   dragActorIds?: string[];
   onClick?: (e: React.MouseEvent) => void;
   onMouseUp?: (e: React.MouseEvent) => void;
@@ -67,6 +68,7 @@ const ActorSprite = (props: {
     actor,
     character,
     selected,
+    zIndex,
     dragActorIds,
     transitionDuration: transitionDurationProp,
     skipTransition,
@@ -84,7 +86,7 @@ const ActorSprite = (props: {
         title="This character has been removed and this rule will not execute."
         style={{
           position: "absolute",
-          zIndex: selected ? 2 : undefined,
+          zIndex: selected ? 1000 : zIndex,
           transitionDuration: `${transitionDuration}ms`,
           left: actor.position.x * STAGE_CELL_SIZE,
           top: actor.position.y * STAGE_CELL_SIZE,
@@ -170,7 +172,7 @@ const ActorSprite = (props: {
       className="animated"
       style={{
         position: "absolute",
-        zIndex: selected ? 2 : undefined,
+        zIndex: selected ? 1000 : zIndex,
         transitionDuration: `${transitionDuration}ms`,
         left: (actor.position.x - info.anchor.x) * STAGE_CELL_SIZE,
         top: (actor.position.y - info.anchor.y) * STAGE_CELL_SIZE,

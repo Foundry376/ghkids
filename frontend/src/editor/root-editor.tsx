@@ -4,6 +4,7 @@ import { InspectorContainer } from "./components/inspector/container";
 import StageContainer from "./components/stage/container";
 import TutorialContainer from "./components/tutorial/container";
 
+import CharacterZOrderModal from "./components/modal-character-z-order/container";
 import ExploreCharactersContainer from "./components/modal-explore-characters/container";
 import KeypickerContainer from "./components/modal-keypicker/container";
 import PaintContainer from "./components/modal-paint/container";
@@ -36,6 +37,7 @@ const RootEditor = () => {
         <StagesContainer />
         <VideosContainer />
         <ExploreCharactersContainer />
+        <CharacterZOrderModal />
         <PublishContainer />
 
         {/**behaviors / hooks / weird stuff */}
