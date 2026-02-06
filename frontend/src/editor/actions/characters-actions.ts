@@ -179,6 +179,18 @@ export function changeCharacterAppearanceName(
   });
 }
 
+export function setCharacterZOrder(characterZOrder: string[]): ActionSetCharacterZOrder {
+  return {
+    type: types.SET_CHARACTER_Z_ORDER,
+    characterZOrder,
+  };
+}
+
+export type ActionSetCharacterZOrder = {
+  type: "SET_CHARACTER_Z_ORDER";
+  characterZOrder: string[];
+};
+
 export type CharacterActions =
   | ActionUpsertCharacter
   | ActionDeleteCharacter
@@ -186,4 +198,5 @@ export type CharacterActions =
   | ActionCreateCharacterVariable
   | ActionDeleteCharacterVariable
   | ActionCreateCharacterEventContainer
-  | ActionCreateCharacterFlowContainer;
+  | ActionCreateCharacterFlowContainer
+  | ActionSetCharacterZOrder;

@@ -395,6 +395,7 @@ export type UIState = {
 export type EditorState = {
   version: 1;
   characters: Characters;
+  characterZOrder: string[];
   world: World;
   undoStack: [];
   redoStack: [];

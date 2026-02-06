@@ -34,12 +34,25 @@ export function actorFillsPoint(actor: Actor, characters: Characters, point: Pos
   return actorFilledPoints(actor, characters).some((p) => p.x === point.x && p.y === point.y);
 }
 
+export function sortActorsByZOrder(actors: Actor[], characterZOrder: string[]): Actor[] {
+  return [...actors].sort((a, b) => {
+    const zA = characterZOrder.indexOf(a.characterId);
+    const zB = characterZOrder.indexOf(b.characterId);
+    return (zA === -1 ? -1 : zA) - (zB === -1 ? -1 : zB);
+  });
+}
+
 export function actorsAtPoint(
   actors: { [id: string]: Actor },
   characters: Characters,
   point: Position,
+  characterZOrder?: string[],
 ): Actor[] {
-  return Object.values(actors).filter((actor) => actorFillsPoint(actor, characters, point));
+  const result = Object.values(actors).filter((actor) => actorFillsPoint(actor, characters, point));
+  if (characterZOrder) {
+    return sortActorsByZOrder(result, characterZOrder);
+  }
+  return result;
 }
 
 export function actorIntersectsExtent(actor: Actor, characters: Characters, extent: RuleExtent) {
@@ -518,7 +531,7 @@ export function renderTransformedImage(
 }
 
 export function getStageScreenshot(stage: Stage, { size }: { size: number }) {
-  const { characters } = window.editorStore!.getState();
+  const { characters, characterZOrder } = window.editorStore!.getState();
 
   const scale = Math.min(size / (stage.width * 40), size / (stage.height * 40));
   const pxPerSquare = Math.round(40 * scale);
@@ -541,7 +554,7 @@ export function getStageScreenshot(stage: Stage, { size }: { size: number }) {
     context.fillRect(0, 0, canvas.width, canvas.height);
   }
 
-  Object.values(stage.actors).forEach((actor) => {
+  sortActorsByZOrder(Object.values(stage.actors), characterZOrder).forEach((actor) => {
     const i = new Image();
     const { appearances, appearanceInfo } = characters[actor.characterId].spritesheet;
     i.src = appearances[actor.appearance][0];
