@@ -208,6 +208,18 @@ $play-tint: #5bc0de;
     display: none;
   }
 
+  /* Remove the running glow border from the controls area —
+     keep it on the stage-scroll-wrap but clip so it doesn't
+     bleed into the controls bar below */
+  .stage-scroll-wrap {
+    margin-bottom: 0;
+
+    &.running-true {
+      /* Only show the glow on top and sides, not bottom */
+      clip-path: inset(-4px -4px 0 -4px);
+    }
+  }
+
   /* Hide the recording-specifics spacer */
   .recording-specifics {
     display: none;
