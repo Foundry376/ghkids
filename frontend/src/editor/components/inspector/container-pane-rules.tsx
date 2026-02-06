@@ -11,6 +11,7 @@ import { findRule } from "../../utils/stage-helpers";
 import { deepClone, makeId } from "../../utils/utils";
 import { RuleList } from "./rule-list";
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const RuleActionsContext = React.createContext<{
   onRuleMoved: (movingRuleId: string, newParentId: string | null, newParentIdx: number) => void;
   onRuleStamped: (movingRuleId: string, newParentId: string | null, newParentIdx: number) => void;

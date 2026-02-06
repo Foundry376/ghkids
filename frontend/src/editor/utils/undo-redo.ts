@@ -1,4 +1,4 @@
-// @ts-ignore - no type definitions available
+// @ts-expect-error - no type definitions available
 import { Delta, DiffPatcher } from "jsondiffpatch/src/diffpatcher";
 import { EditorState } from "../../types";
 import { deepClone } from "./utils";

@@ -1,6 +1,7 @@
 import { CSSProperties } from "react";
 import { ActorTransform, AppearanceInfo, Character } from "../../../types";
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const DEFAULT_APPEARANCE_INFO: AppearanceInfo = {
   anchor: { x: 0, y: 0 },
   width: 1,
@@ -8,6 +9,7 @@ export const DEFAULT_APPEARANCE_INFO: AppearanceInfo = {
   filled: { "0,0": true },
 };
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const SPRITE_TRANSFORM_CSS: { [key: string]: string } = {
   "0": `rotate(0deg)`,
   "90": `rotate(90deg)`,
