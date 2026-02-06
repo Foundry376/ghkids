@@ -50,6 +50,11 @@ const PlayPage: React.FC = () => {
     if (editorStoreRef.current) {
       editorStoreRef.current.dispatch(updatePlaybackState({ speed: 500, running: true }));
     }
+    // Attempt to enter fullscreen for a more immersive experience.
+    // This silently fails on platforms that don't support it (e.g. iPhone iOS Safari).
+    if (containerRef.current?.requestFullscreen) {
+      containerRef.current.requestFullscreen().catch(() => {});
+    }
   }, []);
 
   const onExitImmersive = useCallback(() => {
