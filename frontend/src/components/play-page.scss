@@ -1,0 +1,446 @@
+/* ============================================================
+   Play Page - Immersive two-phase layout
+   ============================================================ */
+
+$play-top-bar-height: 48px;
+$play-brand-green: #6db33f;
+$play-tint: #5bc0de;
+
+/* ---- Page container ---- */
+
+.play-page {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: #1a1a2e;
+  overflow: hidden;
+  position: relative;
+}
+
+@supports (height: 100dvh) {
+  .play-page {
+    height: 100dvh;
+  }
+}
+
+/* ---- Top bar ---- */
+
+.play-top-bar {
+  display: flex;
+  align-items: center;
+  height: $play-top-bar-height;
+  padding: 0 16px;
+  background: #111;
+  color: #eee;
+  z-index: 100;
+  flex-shrink: 0;
+  transition: opacity 0.3s ease;
+
+  &__brand {
+    font-weight: 700;
+    font-size: 1.15rem;
+    color: $play-brand-green;
+    text-decoration: none;
+    margin-right: 16px;
+    flex-shrink: 0;
+
+    &:hover {
+      color: lighten($play-brand-green, 10%);
+      text-decoration: none;
+    }
+  }
+
+  &__title {
+    font-size: 0.95rem;
+    color: #ccc;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+
+    a {
+      color: #eee;
+      text-decoration: none;
+      &:hover {
+        color: $play-tint;
+        text-decoration: underline;
+      }
+    }
+  }
+
+  &__sep {
+    color: #666;
+    margin: 0 4px;
+  }
+
+  &__spacer {
+    flex: 1;
+  }
+
+  &__actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+
+    .btn-outline-secondary {
+      color: #ccc;
+      border-color: #555;
+      &:hover {
+        color: #fff;
+        background: #333;
+        border-color: #777;
+      }
+    }
+  }
+}
+
+/* ---- Stage area ---- */
+
+.play-stage-area {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+
+  /* Override the editor's stage-container to fill the play area */
+  .stage-container {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+
+    &--immersive {
+      .panel.stages {
+        flex: 1;
+        min-height: 0;
+
+        .stages-horizontal-flex {
+          flex: 1;
+          min-height: 0;
+        }
+
+        .stage-scroll-wrap {
+          display: flex;
+          justify-content: center;
+          align-items: center;
+        }
+      }
+    }
+  }
+
+  .panel.stages {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+
+    /* Remove the editor panel chrome (white bg, shadow, margin, padding) */
+    background-color: transparent;
+    box-shadow: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .stages-horizontal-flex {
+    flex: 1;
+    min-height: 0;
+  }
+
+  /* Ensure the stage controls bar is always visible at the bottom */
+  .stage-controls {
+    flex-shrink: 0;
+    background: #111;
+    border-top: 1px solid #333;
+    padding: 0 12px;
+    height: 44px;
+
+    /* Override the light-themed .btn-secondary styles for dark background */
+    .btn.btn-secondary {
+      color: #ddd;
+      border-color: #555;
+      background-image: linear-gradient(#3a3a3a, #2a2a2a);
+      background-color: #333;
+
+      &:hover,
+      &:active,
+      &:focus {
+        color: #fff;
+        background-image: linear-gradient(#4a4a4a, #3a3a3a);
+        background-color: #444;
+        border-color: #666;
+      }
+
+      &.selected {
+        color: #fff;
+        background-image: none;
+        background-color: rgba(91, 192, 222, 0.3);
+        border-color: #5bc0de;
+      }
+
+      &.disabled,
+      &:disabled {
+        color: #666;
+        background-image: linear-gradient(#2a2a2a, #222);
+        border-color: #444;
+        opacity: 0.7;
+      }
+    }
+
+    /* Style the restart button label for dark theme */
+    .start-thumbnail.restart-button .label {
+      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+    }
+
+    /* Tick clock dark theme adjustments */
+    .tick-clock svg circle:first-child {
+      fill: #2a2a2a;
+      stroke: #666;
+    }
+    .tick-clock svg line {
+      stroke: #777;
+    }
+    .tick-clock .clock-hand {
+      stroke: #ccc;
+    }
+    .tick-clock svg circle:last-child {
+      fill: #ccc;
+    }
+  }
+
+  /* Hide the second (empty) stage pane in readonly play mode */
+  .stages-horizontal-flex > :nth-child(2) {
+    display: none;
+  }
+
+  /* Remove the running glow border from the controls area —
+     keep it on the stage-scroll-wrap but clip so it doesn't
+     bleed into the controls bar below */
+  .stage-scroll-wrap {
+    margin-bottom: 0;
+
+    &.running-true {
+      /* Only show the glow on top and sides, not bottom */
+      clip-path: inset(-4px -4px 0 -4px);
+    }
+  }
+
+  /* Hide the recording-specifics spacer */
+  .recording-specifics {
+    display: none;
+  }
+}
+
+/* ---- Landing overlay ---- */
+
+.play-landing {
+  position: absolute;
+  top: $play-top-bar-height;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.5s ease, visibility 0.5s ease;
+
+  &--hidden {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+  }
+
+  &__backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(10, 10, 30, 0.85);
+    backdrop-filter: blur(8px);
+  }
+
+  &__content {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 32px 24px;
+    max-width: 480px;
+    width: 100%;
+    animation: play-landing-enter 0.6s ease-out;
+  }
+
+  &__thumbnail {
+    width: 200px;
+    height: 200px;
+    border-radius: 16px;
+    overflow: hidden;
+    margin-bottom: 24px;
+    background: #333;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    border: 3px solid #444;
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      image-rendering: pixelated;
+    }
+  }
+
+  &__title {
+    color: #fff;
+    font-size: 1.75rem;
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+
+  &__meta {
+    color: #999;
+    font-size: 0.9rem;
+    margin-bottom: 12px;
+
+    a {
+      color: $play-tint;
+      text-decoration: none;
+      &:hover {
+        text-decoration: underline;
+      }
+    }
+  }
+
+  &__remix-info {
+    display: block;
+    font-size: 0.8rem;
+    margin-top: 4px;
+  }
+
+  &__description {
+    color: #bbb;
+    font-size: 0.95rem;
+    margin-bottom: 24px;
+    white-space: pre-wrap;
+    max-height: 120px;
+    overflow-y: auto;
+    line-height: 1.5;
+  }
+
+  &__play-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    background: $play-brand-green;
+    color: #fff;
+    border: none;
+    border-radius: 50px;
+    padding: 16px 48px;
+    font-size: 1.3rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+    box-shadow: 0 4px 20px rgba(109, 179, 63, 0.4);
+
+    &:hover {
+      transform: scale(1.05);
+      box-shadow: 0 6px 28px rgba(109, 179, 63, 0.55);
+      background: lighten($play-brand-green, 5%);
+    }
+
+    &:active {
+      transform: scale(0.98);
+    }
+
+    .fa {
+      font-size: 1.1rem;
+    }
+  }
+
+  &__stats {
+    display: flex;
+    gap: 20px;
+    margin-top: 20px;
+    color: #777;
+    font-size: 0.85rem;
+
+    .fa {
+      margin-right: 4px;
+    }
+  }
+}
+
+/* Landing enter animation */
+@keyframes play-landing-enter {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ---- Immersive mode overrides ---- */
+
+.play-page--immersive {
+  .play-stage-area {
+    /* Smooth transition for the stage expanding */
+    animation: play-stage-expand 0.5s ease-out;
+  }
+}
+
+@keyframes play-stage-expand {
+  from {
+    opacity: 0.7;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* ---- Fullscreen-specific ---- */
+
+.play-page:fullscreen {
+  background: #000;
+
+  .play-stage-area .stage-scroll-wrap {
+    background-color: #000 !important;
+  }
+}
+
+/* ---- Responsive ---- */
+
+@media (max-width: 600px) {
+  .play-top-bar {
+    padding: 0 8px;
+    height: 40px;
+
+    &__brand {
+      font-size: 1rem;
+      margin-right: 8px;
+    }
+
+    &__title {
+      font-size: 0.85rem;
+    }
+  }
+
+  .play-landing {
+    &__thumbnail {
+      width: 140px;
+      height: 140px;
+    }
+
+    &__title {
+      font-size: 1.3rem;
+    }
+
+    &__play-btn {
+      padding: 12px 36px;
+      font-size: 1.1rem;
+    }
+  }
+}

@@ -24,13 +24,24 @@ import { VariableGridItem } from "./variable-grid-item";
 type AppearanceGridItemProps = {
   spritesheet: Character["spritesheet"];
   actor: Actor;
+  /** When undefined, shows placeholder (mixed values across multiple actors) */
+  appearance: string | undefined;
+  /** When undefined, shows placeholder (mixed values across multiple actors) */
+  transform: ActorTransform | undefined;
   onChange: (appearanceId: string, transform: ActorTransform) => void;
 };
 
-const AppearanceGridItem = ({ actor, spritesheet, onChange }: AppearanceGridItemProps) => {
+const AppearanceGridItem = ({ actor, spritesheet, appearance, transform, onChange }: AppearanceGridItemProps) => {
   const [open, setOpen] = useState(false);
+  const isMixedAppearance = appearance === undefined;
+  const isMixedTransform = transform === undefined;
 
   const _onDragStart = (event: React.DragEvent) => {
+    // Only allow dragging if we have consistent appearance values
+    if (isMixedAppearance) {
+      event.preventDefault();
+      return;
+    }
     event.dataTransfer.dropEffect = "copy";
     event.dataTransfer.effectAllowed = "copy";
     event.dataTransfer.setData(
@@ -38,34 +49,42 @@ const AppearanceGridItem = ({ actor, spritesheet, onChange }: AppearanceGridItem
       JSON.stringify({
         variableId: "appearance",
         actorId: actor.id,
-        value: actor.appearance,
+        value: appearance,
       }),
     );
   };
 
   return (
-    <div className={`variable-box variable-set-true`} draggable onDragStart={_onDragStart}>
+    <div className={`variable-box variable-set-${!isMixedAppearance}`} draggable={!isMixedAppearance} onDragStart={_onDragStart}>
       <div className="name">Appearance</div>
-      <AppearanceDropdown
-        appearance={actor.appearance}
-        transform={actor.transform}
-        spritesheet={spritesheet}
-        onChange={(appearance) => onChange(appearance, actor.transform ?? "0")}
-      />
+      {isMixedAppearance ? (
+        <Button size="sm" style={{ width: "100%", opacity: 0.5 }} disabled>
+          —
+        </Button>
+      ) : (
+        <AppearanceDropdown
+          appearance={appearance}
+          transform={transform}
+          spritesheet={spritesheet}
+          onChange={(newAppearance) => onChange(newAppearance, transform ?? "0")}
+        />
+      )}
       <div style={{ display: "flex", marginTop: 2 }}>
-        <Button size="sm" style={{ width: 120 }} onClick={() => setOpen(true)}>
+        <Button size="sm" style={{ width: 120 }} onClick={() => setOpen(true)} disabled={isMixedAppearance && isMixedTransform}>
           Turn…
         </Button>
-        <TransformEditorModal
-          open={open}
-          appearance={actor.appearance}
-          characterId={actor.characterId}
-          value={actor.transform ?? "0"}
-          onChange={(value) => {
-            setOpen(false);
-            onChange(actor.appearance, value);
-          }}
-        />
+        {!isMixedAppearance && (
+          <TransformEditorModal
+            open={open}
+            appearance={appearance}
+            characterId={actor.characterId}
+            value={transform ?? "0"}
+            onChange={(value) => {
+              setOpen(false);
+              onChange(appearance, value);
+            }}
+          />
+        )}
       </div>
     </div>
   );
@@ -144,11 +163,20 @@ export const TransformDropdown = ({
 type PositionGridItemProps = {
   actor: Actor;
   coordinate: "x" | "y";
+  /** When undefined, shows empty input (mixed values across multiple actors) */
+  value: number | undefined;
   onChange: (value: number) => void;
 };
 
-const PositionGridItem = ({ actor, coordinate, onChange }: PositionGridItemProps) => {
+const PositionGridItem = ({ actor, coordinate, value, onChange }: PositionGridItemProps) => {
+  const isMixed = value === undefined;
+
   const _onDragStart = (event: React.DragEvent) => {
+    // Only allow dragging if we have a single consistent value
+    if (isMixed) {
+      event.preventDefault();
+      return;
+    }
     event.dataTransfer.dropEffect = "copy";
     event.dataTransfer.effectAllowed = "copy";
     event.dataTransfer.setData(
@@ -156,17 +184,18 @@ const PositionGridItem = ({ actor, coordinate, onChange }: PositionGridItemProps
       JSON.stringify({
         variableId: coordinate,
         actorId: actor.id,
-        value: String(actor.position[coordinate]),
+        value: String(value),
       }),
     );
   };
 
   return (
-    <div className={`variable-box variable-set-true`} draggable onDragStart={_onDragStart}>
-      <div className="name">{coordinate.toUpperCase()}</div>
+    <div className={`variable-box variable-set-${!isMixed}`} draggable={!isMixed} onDragStart={_onDragStart}>
+      <div className="name">{coordinate === "x" ? "Horizontal" : "Vertical"}</div>
       <input
         type="number"
-        value={actor.position[coordinate]}
+        value={isMixed ? "" : value}
+        placeholder={isMixed ? "—" : undefined}
         onChange={(e) => {
           const num = Number(e.target.value);
           if (!isNaN(num)) onChange(num);
@@ -231,13 +260,35 @@ type PendingDeleteState = {
   rulesUsingVariable: FindRulesResult;
 } | null;
 
+/**
+ * Returns the common value across all actors for a given accessor, or undefined if values differ.
+ */
+function getCommonValue<T>(actors: Actor[], getValue: (actor: Actor) => T): T | undefined {
+  if (actors.length === 0) return undefined;
+  const firstValue = getValue(actors[0]!);
+  const allSame = actors.every((a) => getValue(a) === firstValue);
+  return allSame ? firstValue : undefined;
+}
+
+/**
+ * Checks if a variable value is mixed across multiple actors.
+ * Returns true if actors have different values for the variable.
+ */
+function isVariableValueMixed(actors: Actor[], variableId: string): boolean {
+  if (actors.length <= 1) return false;
+  const firstValue = actors[0]!.variableValues[variableId];
+  return !actors.every((a) => a.variableValues[variableId] === firstValue);
+}
+
 export const ContainerPaneVariables = ({
   character,
   actor,
+  actors = [],
   world,
 }: {
   character: Character;
   actor: Actor | null;
+  actors?: Actor[];
   world: WorldMinimal;
 }) => {
   const dispatch = useDispatch();
@@ -327,6 +378,8 @@ export const ContainerPaneVariables = ({
             <AppearanceGridItem
               actor={actor}
               spritesheet={character.spritesheet}
+              appearance={getCommonValue(actors, (a) => a.appearance)}
+              transform={getCommonValue(actors, (a) => a.transform)}
               onChange={(appearance, transform) => {
                 dispatch(changeActors(selectedActors!, { appearance, transform }));
               }}
@@ -334,6 +387,7 @@ export const ContainerPaneVariables = ({
             <PositionGridItem
               actor={actor}
               coordinate="x"
+              value={getCommonValue(actors, (a) => a.position.x)}
               onChange={(x) => {
                 dispatch(changeActors(selectedActors!, { position: { ...actor.position, x } }));
               }}
@@ -341,6 +395,7 @@ export const ContainerPaneVariables = ({
             <PositionGridItem
               actor={actor}
               coordinate="y"
+              value={getCommonValue(actors, (a) => a.position.y)}
               onChange={(y) => {
                 dispatch(changeActors(selectedActors!, { position: { ...actor.position, y } }));
               }}
@@ -355,6 +410,7 @@ export const ContainerPaneVariables = ({
             key={definition.id}
             definition={definition}
             value={actorValues[definition.id]}
+            isMixed={isVariableValueMixed(actors, definition.id)}
             onClick={_onClickVar}
             onChangeDefinition={_onChangeVarDefinition}
             onChangeValue={_onChangeVarValue}
@@ -397,9 +453,11 @@ export const ContainerPaneVariables = ({
         {character ? (
           <div className="variables-section">
             <h3>
-              {actor
-                ? `${character.name} at (${actor.position.x},${actor.position.y})`
-                : `${character.name} (Defaults)`}
+              {actors.length > 1
+                ? `${character.name} (${actors.length} selected)`
+                : actor
+                  ? `${character.name} at (${actor.position.x},${actor.position.y})`
+                  : `${character.name} (Defaults)`}
             </h3>
             {_renderCharacterSection()}
           </div>

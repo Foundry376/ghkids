@@ -23,11 +23,13 @@ export const InspectorContainer = () => {
 
   const { worldId, actorIds } = ui.selectedActors ?? { worldId: null, actorIds: [] };
 
-  // find the focused actor
+  // find the focused actor(s)
   const focusedWorld =
     [recording.beforeWorld, recording.afterWorld].find((s) => s.id === worldId) || world;
   const focusedStage = getCurrentStageForWorld(focusedWorld)!;
-  const focusedActor = (focusedStage?.actors || {})[actorIds[0]!] ?? null;
+  const stageActors = focusedStage?.actors || {};
+  const focusedActors = actorIds.map((id) => stageActors[id]).filter((a): a is NonNullable<typeof a> => !!a);
+  const focusedActor = focusedActors[0] ?? null;
   const focusedCharacter = characters[ui.selectedCharacterId!] ?? null;
 
   // When you enter and exit recording mode, switch to the relevant tab
@@ -77,7 +79,7 @@ export const InspectorContainer = () => {
           <div style={{ flex: 1 }} />
           <AddButton character={focusedCharacter} actor={focusedActor} isRecording={isRecording} />
         </Nav>
-        <ContentContainer world={focusedWorld} character={focusedCharacter} actor={focusedActor} />
+        <ContentContainer world={focusedWorld} character={focusedCharacter} actor={focusedActor} actors={focusedActors} />
       </div>
     </InspectorContext.Provider>
   );

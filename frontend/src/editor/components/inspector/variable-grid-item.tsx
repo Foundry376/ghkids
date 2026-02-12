@@ -9,6 +9,7 @@ export const VariableGridItem = ({
   draggable,
   disabled,
   value,
+  isMixed = false,
   definition,
   onChangeDefinition,
   onBlurValue,
@@ -19,6 +20,8 @@ export const VariableGridItem = ({
   draggable: boolean;
   disabled: boolean;
   value: string;
+  /** When true, values differ across multiple selected actors */
+  isMixed?: boolean;
   definition: Character["variables"][0] | Global;
   onChangeValue: (id: string, value: string | undefined) => void;
   onChangeDefinition: (id: string, partial: Partial<Character["variables"][0]>) => void;
@@ -26,7 +29,7 @@ export const VariableGridItem = ({
   onClick: (id: string, event: React.MouseEvent) => void;
 }) => {
   const defaultValue = "defaultValue" in definition ? definition.defaultValue : undefined;
-  const displayValue = value !== undefined ? value : defaultValue;
+  const displayValue = isMixed ? "" : (value !== undefined ? value : defaultValue);
 
   const type =
     "type" in definition
@@ -40,7 +43,12 @@ export const VariableGridItem = ({
   const [dropping, setDropping] = useState(false);
 
   const _onDragStart = (event: React.DragEvent) => {
-    const displayValue = value !== undefined ? value : defaultValue;
+    // Don't allow dragging if values are mixed
+    if (isMixed) {
+      event.preventDefault();
+      return;
+    }
+    const dragValue = value !== undefined ? value : defaultValue;
 
     event.dataTransfer.dropEffect = "copy";
     event.dataTransfer.effectAllowed = "copy";
@@ -48,8 +56,8 @@ export const VariableGridItem = ({
       "variable",
       JSON.stringify(
         actorId
-          ? { actorId: actorId, variableId: definition.id, value: displayValue || "" }
-          : { globalId: definition.id, value: displayValue || "" },
+          ? { actorId: actorId, variableId: definition.id, value: dragValue || "" }
+          : { globalId: definition.id, value: dragValue || "" },
       ),
     );
   };
@@ -93,12 +101,13 @@ export const VariableGridItem = ({
     );
   } else {
     if (disabled) {
-      content = <div className="value">{displayValue}</div>;
+      content = <div className="value">{isMixed ? "—" : displayValue}</div>;
     } else {
       content = (
         <input
           className="value"
           value={displayValue}
+          placeholder={isMixed ? "—" : undefined}
           onChange={(e) => onChangeValue(definition.id, e.target.value)}
           onDoubleClick={(e) => e.currentTarget.select()}
           onBlur={(e) => onBlurValue(definition.id, e.target.value)}
@@ -109,9 +118,9 @@ export const VariableGridItem = ({
 
   return (
     <div
-      className={`variable-box variable-set-${value !== undefined} dropping-${dropping}`}
+      className={`variable-box variable-set-${value !== undefined && !isMixed} dropping-${dropping}`}
       onClick={(e) => onClick(definition.id, e)}
-      draggable={draggable}
+      draggable={draggable && !isMixed}
       onDragStart={_onDragStart}
       onDragOver={_onDragOver}
       onDragLeave={_onDragLeave}

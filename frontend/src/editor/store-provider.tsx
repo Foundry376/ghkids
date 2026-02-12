@@ -68,13 +68,13 @@ export default class StoreProvider extends React.Component<
   };
 
   getWorldSaveData = (): WorldSaveData => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const savedState = u(
       {
         undoStack: u.constant([]),
         redoStack: u.constant([]),
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         stages: (u as any).map({ history: u.constant([]) }),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } as any,
       this.state.editorStore.getState()
     ) as EditorState;

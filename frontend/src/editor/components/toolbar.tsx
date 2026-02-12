@@ -17,6 +17,7 @@ import { TapToEditLabel } from "./tap-to-edit-label";
 import UndoRedoControls from "./undo-redo-controls";
 
 import { EditorContext } from "../../components/editor-context";
+import { createWorld } from "../../actions/main-actions";
 import { useEditorSelector } from "../../hooks/redux";
 
 const Toolbar = () => {
@@ -92,6 +93,22 @@ const Toolbar = () => {
             <i className="fa fa-ellipsis-v" />
           </DropdownToggle>
           <DropdownMenu>
+            <DropdownItem onClick={() => save()}>Save Changes</DropdownItem>
+            <DropdownItem onClick={() => saveAndExit("/dashboard")}>
+              Save &amp; Exit
+            </DropdownItem>
+            <DropdownItem onClick={() => exitWithoutSaving("/dashboard")}>
+              Exit Without Saving
+            </DropdownItem>
+            <DropdownItem divider />
+            <DropdownItem
+              onClick={() => {
+                save().then(() => dispatch(createWorld({ from: metadata.id })));
+              }}
+            >
+              Duplicate This World
+            </DropdownItem>
+            <DropdownItem divider />
             <DropdownItem onClick={() => saveWorldAnd(`/play/${metadata.id}`)}>
               Switch to Player View...
             </DropdownItem>
@@ -121,13 +138,6 @@ const Toolbar = () => {
                 Publish Game...
               </DropdownItem>
             )}
-            <DropdownItem divider />
-            <DropdownItem onClick={() => saveAndExit("/dashboard")}>
-              Save &amp; Exit
-            </DropdownItem>
-            <DropdownItem onClick={() => exitWithoutSaving("/dashboard")}>
-              Exit Without Saving
-            </DropdownItem>
           </DropdownMenu>
         </ButtonDropdown>
         <TapToEditLabel className="world-name" value={metadata.name} onChange={onNameChange} />
@@ -136,9 +146,6 @@ const Toolbar = () => {
             Unsaved changes
           </span>
         )}
-        <Button color="primary" size="sm" onClick={() => save()}>
-          Save
-        </Button>
       </div>
     );
   };

@@ -1,12 +1,14 @@
-import React, { CSSProperties, useEffect, useRef, useState } from "react";
+import React, { CSSProperties, useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useDispatch } from "react-redux";
 
 import ActorSprite from "../sprites/actor-sprite";
-import ActorSelectionPopover from "./actor-selection-popover";
 import RecordingHandle from "../sprites/recording-handle";
 import RecordingIgnoredSprite from "../sprites/recording-ignored-sprite";
 import RecordingMaskSprite from "../sprites/recording-mask-sprite";
 import { RecordingSquareStatus } from "../sprites/recording-square-status";
+import { DEFAULT_APPEARANCE_INFO, SPRITE_TRANSFORM_CSS } from "../sprites/sprite";
+import ActorSelectionPopover from "./actor-selection-popover";
 
 import {
   setRecordingExtent,
@@ -19,8 +21,7 @@ import {
   changeActorsIndividually,
   createActors,
   deleteActors,
-  recordClickForGameState,
-  recordKeyForGameState,
+  recordInputForGameState,
 } from "../../actions/stage-actions";
 import {
   paintCharacterAppearance,
@@ -38,17 +39,19 @@ import {
   applyAnchorAdjustment,
   buildActorSelection,
   pointIsOutside,
+  sortActorsByZOrder,
 } from "../../utils/stage-helpers";
 
+import { useEditorSelector } from "../../../hooks/redux";
 import {
   Actor,
+  Character,
   EvaluatedSquare,
   Position,
   RuleExtent,
   Stage as StageType,
   WorldMinimal,
 } from "../../../types";
-import { useEditorSelector } from "../../../hooks/redux";
 import { defaultAppearanceId } from "../../utils/character-helpers";
 import { makeId } from "../../utils/utils";
 import { keyToCodakoKey } from "../modal-keypicker/keyboard";
@@ -59,7 +62,13 @@ interface StageProps {
   recordingExtent?: RuleExtent;
   recordingCentered?: boolean;
   evaluatedSquares?: EvaluatedSquare[];
-  readonly?: boolean;
+  /** Controls how users can interact with actors on the stage:
+   * - "full": All interactions (click, drag, selection rect, tools). Default.
+   * - "selectable": Click/select actors but no dragging (used in player).
+   * - "none": No actor interaction; only recording handles remain interactive.
+   */
+  interactionMode?: "full" | "selectable" | "none";
+  immersive?: boolean;
   style?: CSSProperties;
 }
 
@@ -67,9 +76,158 @@ type Offset = { top: string | number; left: string | number };
 type MouseStatus = { isDown: boolean; visited: { [posKey: string]: true } };
 type SelectionRect = { start: { top: number; left: number }; end: { top: number; left: number } };
 
+// Custom drag state for multi-sprite dragging with proper transform preview
+type SpriteDragState = {
+  actors: Actor[]; // All actors being dragged
+  anchorActorId: string; // The actor that was clicked to start the drag
+  anchorOffset: { x: number; y: number }; // Click offset within the anchor actor (in scaled px)
+  clientPx: { x: number; y: number }; // Current viewport coordinates for drag preview
+  mode: "move" | "copy"; // Whether we're moving or copying (alt key)
+};
+
 const DRAGGABLE_TOOLS = [TOOLS.IGNORE_SQUARE, TOOLS.TRASH, TOOLS.STAMP];
 
+// Single empty image used for hiding native drag preview
+// eslint-disable-next-line react-refresh/only-export-components
+export const EMPTY_DRAG_IMAGE = new Image();
+EMPTY_DRAG_IMAGE.src = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
+
+// eslint-disable-next-line react-refresh/only-export-components
 export const STAGE_ZOOM_STEPS = [1, 0.88, 0.75, 0.63, 0.5, 0.42, 0.38];
+
+const SpriteDragPreview = ({
+  spriteDrag,
+  characters,
+  scale,
+}: {
+  spriteDrag: SpriteDragState;
+  characters: { [id: string]: Character };
+  scale: number;
+}) => {
+  const anchorActor = spriteDrag.actors.find((a) => a.id === spriteDrag.anchorActorId);
+  if (!anchorActor) return null;
+
+  // Base position: cursor position minus the click offset within the anchor sprite
+  const baseX = spriteDrag.clientPx.x - spriteDrag.anchorOffset.x;
+  const baseY = spriteDrag.clientPx.y - spriteDrag.anchorOffset.y;
+
+  return (
+    <div
+      className="sprite-drag-preview"
+      style={{
+        position: "fixed",
+        left: 0,
+        top: 0,
+        pointerEvents: "none",
+        zIndex: 10000,
+      }}
+    >
+      {spriteDrag.actors.map((actor) => {
+        const character = characters[actor.characterId];
+        if (!character) return null;
+        const { appearances, appearanceInfo } = character.spritesheet;
+        const info = appearanceInfo?.[actor.appearance] || DEFAULT_APPEARANCE_INFO;
+        const data = appearances[actor.appearance]?.[0];
+        if (!data) return null;
+
+        // Position relative to anchor actor (in grid cells, converted to pixels)
+        const relX = actor.position.x - anchorActor.position.x;
+        const relY = actor.position.y - anchorActor.position.y;
+
+        const transform = actor.transform ?? "0";
+
+        return (
+          <img
+            key={actor.id}
+            src={data}
+            className="sprite"
+            style={{
+              position: "absolute",
+              left: baseX + (relX - info.anchor.x) * STAGE_CELL_SIZE * scale,
+              top: baseY + (relY - info.anchor.y) * STAGE_CELL_SIZE * scale,
+              width: info.width * STAGE_CELL_SIZE * scale,
+              height: info.height * STAGE_CELL_SIZE * scale,
+              transform: SPRITE_TRANSFORM_CSS[transform],
+              transformOrigin: `${((info.anchor.x + 0.5) / info.width) * 100}% ${((info.anchor.y + 0.5) / info.height) * 100}%`,
+              opacity: 0.85,
+              filter:
+                spriteDrag.mode === "copy"
+                  ? "drop-shadow(2px 2px 4px rgba(0,0,0,0.3))"
+                  : undefined,
+            }}
+          />
+        );
+      })}
+    </div>
+  );
+};
+
+function useGlobalHeldKeys(worldId: string, playbackRunning: boolean) {
+  const dispatch = useDispatch();
+  const heldKeysRef = useRef<Set<string>>(new Set());
+  const playbackRunningRef = useRef(playbackRunning);
+  playbackRunningRef.current = playbackRunning;
+
+  useEffect(() => {
+    if (!worldId) {
+      return;
+    }
+    const syncHeldKeys = () => {
+      const keysObj: { [key: string]: true } = {};
+      heldKeysRef.current.forEach((key) => {
+        keysObj[key] = true;
+      });
+      dispatch(recordInputForGameState(worldId, { keys: keysObj }));
+    };
+
+    const onDocumentKeyDown = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement;
+      if (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable) {
+        return;
+      }
+
+      if (event.metaKey || event.ctrlKey || event.shiftKey) {
+        return;
+      }
+
+      const codakoKey = keyToCodakoKey(event.key);
+      if (!heldKeysRef.current.has(codakoKey)) {
+        heldKeysRef.current.add(codakoKey);
+        syncHeldKeys();
+      }
+    };
+
+    const onDocumentKeyUp = (event: KeyboardEvent) => {
+      const codakoKey = keyToCodakoKey(event.key);
+      if (heldKeysRef.current.has(codakoKey)) {
+        heldKeysRef.current.delete(codakoKey);
+        // When playing, don't sync on keyup - let the key persist until tick() clears it.
+        // This ensures quick key taps are registered even if keyup happens before next tick.
+        // When stopped, sync immediately so Forward button sees current held state.
+        if (!playbackRunningRef.current) {
+          syncHeldKeys();
+        }
+      }
+    };
+
+    const onWindowBlur = () => {
+      if (heldKeysRef.current.size > 0) {
+        heldKeysRef.current.clear();
+        syncHeldKeys();
+      }
+    };
+
+    document.addEventListener("keydown", onDocumentKeyDown);
+    document.addEventListener("keyup", onDocumentKeyUp);
+    window.addEventListener("blur", onWindowBlur);
+
+    return () => {
+      document.removeEventListener("keydown", onDocumentKeyDown);
+      document.removeEventListener("keyup", onDocumentKeyUp);
+      window.removeEventListener("blur", onWindowBlur);
+    };
+  }, [dispatch, worldId]);
+}
 
 export const Stage = ({
   recordingExtent,
@@ -77,7 +235,8 @@ export const Stage = ({
   evaluatedSquares,
   stage,
   world,
-  readonly,
+  interactionMode = "full",
+  immersive,
   style,
 }: StageProps) => {
   const [{ top, left }, setOffset] = useState<Offset>({ top: 0, left: 0 });
@@ -91,6 +250,7 @@ export const Stage = ({
     position: { x: number; y: number };
     toolId: string;
   } | null>(null);
+  const [spriteDrag, setSpriteDrag] = useState<SpriteDragState | null>(null);
 
   const lastFiredExtent = useRef<string | null>(null);
   const lastActorPositions = useRef<{ [actorId: string]: Position }>({});
@@ -108,13 +268,14 @@ export const Stage = ({
       }
       if (recordingCentered) {
         setScale(1);
-      } else if (stage.scale === "fit") {
+      } else if (immersive || stage.scale === "fit") {
         _el.style.zoom = "1"; // this needs to be here for scaling "up" to work
         const fit = Math.min(
           _scrollEl.clientWidth / (stage.width * STAGE_CELL_SIZE),
           _scrollEl.clientHeight / (stage.height * STAGE_CELL_SIZE),
         );
-        const best = STAGE_ZOOM_STEPS.find((z) => z <= fit) || fit;
+        // In immersive mode, allow scaling up beyond the predefined steps
+        const best = immersive ? fit : (STAGE_ZOOM_STEPS.find((z) => z <= fit) || fit);
         _el.style.zoom = `${best}`;
         setScale(best);
       } else {
@@ -123,11 +284,17 @@ export const Stage = ({
     };
     window.addEventListener("resize", autofit);
     autofit();
-    return () => window.removeEventListener("resize", autofit);
-  }, [stage.height, stage.scale, stage.width, recordingCentered]);
+    // Also refit on fullscreen changes
+    document.addEventListener("fullscreenchange", autofit);
+    return () => {
+      window.removeEventListener("resize", autofit);
+      document.removeEventListener("fullscreenchange", autofit);
+    };
+  }, [stage.height, stage.scale, stage.width, recordingCentered, immersive]);
 
   const dispatch = useDispatch();
   const characters = useEditorSelector((state) => state.characters);
+  const characterZOrder = useEditorSelector((state) => state.characterZOrder);
   const { selectedActors, selectedToolId, stampToolItem, playback } = useEditorSelector(
     (state) => ({
       selectedActors: state.ui.selectedActors,
@@ -136,6 +303,8 @@ export const Stage = ({
       playback: state.ui.playback,
     }),
   );
+
+  useGlobalHeldKeys(world.id, playback.running);
 
   // Helpers
 
@@ -161,7 +330,7 @@ export const Stage = ({
     };
   };
 
-  const centerOnActor = (actorId: string): Offset | null => {
+  const centerOnActor = useCallback((actorId: string): Offset | null => {
     if (!actorId) return null;
 
     const actor = stage.actors[actorId];
@@ -175,7 +344,7 @@ export const Stage = ({
       left: `calc(-${xCenter * STAGE_CELL_SIZE}px + 50%)`,
       top: `calc(-${yCenter * STAGE_CELL_SIZE}px + 50%)`,
     };
-  };
+  }, [stage.actors]);
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
@@ -218,7 +387,7 @@ export const Stage = ({
     }
   }, [
     playback.running,
-    stage.actors,
+    centerOnActor,
     stage.width,
     stage.height,
     world.globals?.cameraFollow?.value,
@@ -255,8 +424,8 @@ export const Stage = ({
       }
       return;
     }
-
-    dispatch(recordKeyForGameState(world.id, keyToCodakoKey(`${event.key}`)));
+    // Note: Key tracking for game state is handled by document-level listeners
+    // in the useEffect above, so we don't need to dispatch here
   };
 
   const onDragOver = (event: React.DragEvent) => {
@@ -269,6 +438,11 @@ export const Stage = ({
   const onDrop = (event: React.DragEvent) => {
     if (event.dataTransfer.types.includes("sprite")) {
       onDropSprite(event);
+      // Clear drag preview and popover immediately on drop, before React re-renders.
+      // We can't rely on dragend because if didWrap triggers a key change,
+      // the source element unmounts before dragend fires.
+      setSpriteDrag(null);
+      setActorSelectionPopover(null);
     }
     if (event.dataTransfer.types.includes("appearance")) {
       onDropAppearance(event);
@@ -471,12 +645,46 @@ export const Stage = ({
     }
   };
 
+  // Start custom sprite drag preview (called from ActorSprite onDragStart)
+  // Native drag handles dataTransfer, we just show custom preview
+  const onStartSpriteDrag = (
+    actor: Actor,
+    actorIds: string[],
+    event: React.DragEvent,
+    anchorOffset: { x: number; y: number },
+  ) => {
+    setSpriteDrag({
+      actors: actorIds.map((id) => stage.actors[id]).filter(Boolean),
+      anchorActorId: actor.id,
+      anchorOffset,
+      clientPx: { x: event.clientX, y: event.clientY },
+      mode: event.altKey ? "copy" : "move",
+    });
+
+    // Track drag position globally via native drag events
+    const onDragOver = (e: DragEvent) => {
+      setSpriteDrag((prev) =>
+        prev
+          ? { ...prev, clientPx: { x: e.clientX, y: e.clientY }, mode: e.altKey ? "copy" : "move" }
+          : null,
+      );
+    };
+    const onDragEnd = () => {
+      document.removeEventListener("dragover", onDragOver);
+      document.removeEventListener("dragend", onDragEnd);
+      setSpriteDrag(null);
+      setActorSelectionPopover(null);
+    };
+    document.addEventListener("dragover", onDragOver);
+    document.addEventListener("dragend", onDragEnd);
+  };
+
   const onMouseUpActor = (actor: Actor, event: React.MouseEvent) => {
     let handled = false;
 
     // Helper to check for overlapping actors and show popover if needed
     const showPopoverIfOverlapping = (toolId: string): boolean => {
-      const overlapping = actorsAtPoint(stage.actors, characters, actor.position);
+      const overlapping = actorsAtPoint(stage.actors, characters, actor.position, characterZOrder);
       if (overlapping.length > 1) {
         setActorSelectionPopover({
           actors: overlapping,
@@ -527,7 +735,7 @@ export const Stage = ({
         break;
       case TOOLS.POINTER:
         if (playback.running) {
-          dispatch(recordClickForGameState(world.id, actor.id));
+          dispatch(recordInputForGameState(world.id, { clicks: { [actor.id]: true } }));
         } else if (event.shiftKey) {
           const selectedIds = selected.map((a) => a.id);
           dispatch(
@@ -541,8 +749,18 @@ export const Stage = ({
             ),
           );
         } else {
-          if (!showPopoverIfOverlapping(TOOLS.POINTER)) {
-            dispatch(select(actor.characterId, selFor([actor.id])));
+          const overlapping = actorsAtPoint(stage.actors, characters, actor.position, characterZOrder);
+          const topActor = overlapping[overlapping.length - 1];
+          const isTopActorSelected = topActor && selected.some((a) => a.id === topActor.id);
+
+          if (overlapping.length > 1 && isTopActorSelected) {
+            setActorSelectionPopover({
+              actors: overlapping,
+              position: { x: event.clientX, y: event.clientY },
+              toolId: TOOLS.POINTER,
+            });
+          } else if (topActor) {
+            dispatch(select(topActor.characterId, selFor([topActor.id])));
           }
         }
         handled = true;
@@ -558,7 +776,7 @@ export const Stage = ({
   };
 
   const onMouseDown = (event: React.MouseEvent) => {
-    if (playback.running) {
+    if (playback.running || interactionMode === "none") {
       return;
     }
     const onMouseUpAnywhere = (e: MouseEvent) => {
@@ -617,7 +835,7 @@ export const Stage = ({
         return;
       }
 
-      const overlapping = actorsAtPoint(stage.actors, characters, { x, y });
+      const overlapping = actorsAtPoint(stage.actors, characters, { x, y }, characterZOrder);
 
       // On initial click (not drag), show popover if multiple actors overlap
       const isFirstClick = Object.keys(mouse.current.visited).length === 1;
@@ -750,11 +968,6 @@ export const Stage = ({
     setActorSelectionPopover(null);
   };
 
-  const onPopoverDragStart = () => {
-    // Close the popover when drag starts - the drag will continue to the stage
-    setActorSelectionPopover(null);
-  };
-
   const onPopoverClose = () => {
     setActorSelectionPopover(null);
   };
@@ -842,8 +1055,8 @@ export const Stage = ({
   const renderActor = (actor: Actor) => {
     const character = characters[actor.characterId];
 
-    // Prevent animating when an actor wraps off one end of the stage to the other
-    // by assigning it a new react key.
+    // Detect when an actor wraps off one end of the stage to the other
+    // and skip transition animation to prevent sliding across the whole screen
     const lastPosition = lastActorPositions.current[actor.id] || {
       x: Number.NaN,
       y: Number.NaN,
@@ -853,17 +1066,22 @@ export const Stage = ({
       Math.abs(lastPosition.y - actor.position.y) > 6;
     lastActorPositions.current[actor.id] = Object.assign({}, actor.position);
 
-    const draggable = !readonly && !DRAGGABLE_TOOLS.includes(selectedToolId);
+    const draggable =
+      interactionMode === "full" && !DRAGGABLE_TOOLS.includes(selectedToolId);
+    const interactive = interactionMode !== "none";
     const animationStyle = actor.animationStyle || "linear";
+    const zIndex = characterZOrder.indexOf(actor.characterId);
     return (
       <ActorSprite
-        key={`${actor.id}-${didWrap}`}
-        selected={selected.includes(actor)}
-        onMouseUp={(event) => onMouseUpActor(actor, event)}
-        onDoubleClick={() => onSelectActor(actor)}
+        key={actor.id}
+        selected={interactive ? selected.includes(actor) : false}
+        zIndex={zIndex >= 0 ? zIndex : undefined}
+        onMouseUp={interactive ? (event) => onMouseUpActor(actor, event) : undefined}
+        onDoubleClick={interactive ? () => onSelectActor(actor) : undefined}
         transitionDuration={
           animationStyle === "linear" ? playback.speed / (actor.frameCount || 1) : 0
         }
+        skipTransition={didWrap}
         character={character}
         actor={actor}
         dragActorIds={
@@ -873,6 +1091,7 @@ export const Stage = ({
               : [actor.id]
             : undefined
         }
+        onStartDrag={draggable && !playback.running ? onStartSpriteDrag : undefined}
       />
     );
   };
@@ -919,7 +1138,7 @@ export const Stage = ({
           }}
         />
 
-        {Object.values(stage.actors).map(renderActor)}
+        {sortActorsByZOrder(Object.values(stage.actors), characterZOrder).map(renderActor)}
 
         {recordingExtent ? renderRecordingExtent() : []}
       </div>
@@ -939,14 +1158,21 @@ export const Stage = ({
           }}
         />
       ) : null}
+      {spriteDrag &&
+        createPortal(
+          <SpriteDragPreview spriteDrag={spriteDrag} characters={characters} scale={scale} />,
+          document.body,
+        )}
       {actorSelectionPopover && (
         <ActorSelectionPopover
           actors={actorSelectionPopover.actors}
           characters={characters}
           position={actorSelectionPopover.position}
           onSelect={onPopoverSelectActor}
-          onDragStart={onPopoverDragStart}
           onClose={onPopoverClose}
+          onStartDrag={
+            actorSelectionPopover.toolId === TOOLS.POINTER ? onStartSpriteDrag : undefined
+          }
         />
       )}
     </div>

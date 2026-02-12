@@ -14,23 +14,24 @@ Generate a changelog entry for all commits since the last documented change.
 
    This marker appears at the very top of the file, before any visible content.
 
-3. **Get all commits since that commit** using:
+3. **Get all commits since that commit** with full descriptions using:
 
    ```bash
-   git log <last-commit>..HEAD --oneline
+   git log <last-commit>..HEAD --format="%h%n%s%n%b%n---"
    ```
 
    If no marker exists or CHANGELOG.md is new, analyze the last 10 commits:
 
    ```bash
-   git log -10 --oneline
+   git log -10 --format="%h%n%s%n%b%n---"
    ```
+
+   This format shows the hash, title, and full body/description for each commit.
 
 4. **For each commit, analyze the changes**:
 
-   - Read the commit message/title
-   - Use `git show --stat <commit-hash>` to see which files changed
-   - For significant changes, use `git show <commit-hash>` to understand the actual code changes
+   - Read the commit title AND the full description body - descriptions often contain important context about why changes were made and how features work
+   - Use `git show --stat <commit-hash>` to see which files changed if you need more context
    - Group related commits together (e.g., multiple TypeScript conversions)
 
 5. **Generate a changelog entry** with today's date in this format:

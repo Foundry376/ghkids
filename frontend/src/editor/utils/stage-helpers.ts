@@ -34,12 +34,25 @@ export function actorFillsPoint(actor: Actor, characters: Characters, point: Pos
   return actorFilledPoints(actor, characters).some((p) => p.x === point.x && p.y === point.y);
 }
 
+export function sortActorsByZOrder(actors: Actor[], characterZOrder: string[]): Actor[] {
+  return [...actors].sort((a, b) => {
+    const zA = characterZOrder.indexOf(a.characterId);
+    const zB = characterZOrder.indexOf(b.characterId);
+    return (zA === -1 ? -1 : zA) - (zB === -1 ? -1 : zB);
+  });
+}
+
 export function actorsAtPoint(
   actors: { [id: string]: Actor },
   characters: Characters,
   point: Position,
+  characterZOrder?: string[],
 ): Actor[] {
-  return Object.values(actors).filter((actor) => actorFillsPoint(actor, characters, point));
+  const result = Object.values(actors).filter((actor) => actorFillsPoint(actor, characters, point));
+  if (characterZOrder) {
+    return sortActorsByZOrder(result, characterZOrder);
+  }
+  return result;
 }
 
 export function actorIntersectsExtent(actor: Actor, characters: Characters, extent: RuleExtent) {
@@ -55,7 +68,9 @@ export function actorIntersectsExtent(actor: Actor, characters: Characters, exte
 export function actorFilledPoints(actor: Actor, characters: Characters) {
   const character = characters[actor.characterId];
   if (!character) {
-    console.warn(`actorFilledPoints: character ${actor.characterId} not found for actor ${actor.id}`);
+    console.warn(
+      `actorFilledPoints: character ${actor.characterId} not found for actor ${actor.id}`,
+    );
     return [actor.position];
   }
   const info = character.spritesheet.appearanceInfo?.[actor.appearance];
@@ -120,6 +135,45 @@ export function pointApplyingTransform(
   return [x, y];
 }
 
+/**
+ * Calculate the visual bounds and position offset needed to render a transformed
+ * sprite within a container. When a transform (rotation/flip) is applied, the
+ * visual bounding box changes and may shift relative to the anchor point.
+ *
+ * Returns the container dimensions (in cells) and the position offset needed
+ * so the sprite's visual fits starting at (0, 0).
+ */
+export function getTransformedBounds(
+  info: { width: number; height: number; anchor: { x: number; y: number } },
+  transform: Actor["transform"],
+): { offsetX: number; offsetY: number; width: number; height: number } {
+  // Transform anchor and corners to find the bounding box
+  const [anchorX, anchorY] = pointApplyingTransform(info.anchor.x, info.anchor.y, info, transform);
+
+  // Transform all four corners and find min/max
+  const corners = [
+    [0, 0],
+    [info.width - 1, 0],
+    [0, info.height - 1],
+    [info.width - 1, info.height - 1],
+  ].map(([x, y]) => {
+    const [tx, ty] = pointApplyingTransform(x, y, info, transform);
+    return [tx - anchorX, ty - anchorY];
+  });
+
+  const minX = Math.min(...corners.map(([x]) => x));
+  const maxX = Math.max(...corners.map(([x]) => x));
+  const minY = Math.min(...corners.map(([, y]) => y));
+  const maxY = Math.max(...corners.map(([, y]) => y));
+
+  return {
+    offsetX: -minX,
+    offsetY: -minY,
+    width: maxX - minX + 1,
+    height: maxY - minY + 1,
+  };
+}
+
 export function shuffleArray<T>(input: Array<T>): Array<T> {
   const d = [...input]; // Create a copy to avoid mutating input
   for (let c = d.length - 1; c > 0; c--) {
@@ -135,8 +189,8 @@ export function resolveRuleValue(
   val: RuleValue,
   globals: Globals,
   characters: Characters,
-  actors: Stage["actors"],
-  comparator: VariableComparator,
+  stageActorForId: Stage["actors"],
+  comparator: VariableComparator, // some values behave differently depending on the comparator
 ): string | null {
   if (!val) {
     console.warn(`A rule value is missing?`);
@@ -146,7 +200,7 @@ export function resolveRuleValue(
     return val.constant;
   }
   if ("actorId" in val) {
-    const actor = actors[val.actorId];
+    const actor = stageActorForId[val.actorId];
     if (!actor) {
       console.warn(`resolveRuleValue: actor ${val.actorId} not found`);
       return null;
@@ -159,7 +213,14 @@ export function resolveRuleValue(
     return getVariableValue(actor, character, val.variableId, comparator);
   }
   if ("globalId" in val) {
-    return globals[val.globalId]?.value;
+    const value = globals[val.globalId]?.value;
+
+    // If the rule says "global X must be actor Y", "Y" is an ID within the rule.
+    // We need to map it to that actor on the stage for it to ever evaluate to true.
+    if (value && value.startsWith("actor:")) {
+      return Object.keys(stageActorForId).find((id) => stageActorForId[id].id === value) ?? value;
+    }
+    return value;
   }
   isNever(val);
   return "";
@@ -250,7 +311,11 @@ export function applyVariableOperation(existing: string, operation: MathOperatio
 
 export type RulePredicate = (rule: RuleTreeItem) => boolean;
 
-export type FindRulesResult = Array<{ rule: RuleTreeItem; parent: { rules: RuleTreeItem[] }; index: number }>;
+export type FindRulesResult = Array<{
+  rule: RuleTreeItem;
+  parent: { rules: RuleTreeItem[] };
+  index: number;
+}>;
 
 /**
  * Find all rules matching a predicate function.
@@ -466,7 +531,7 @@ export function renderTransformedImage(
 }
 
 export function getStageScreenshot(stage: Stage, { size }: { size: number }) {
-  const { characters } = window.editorStore!.getState();
+  const { characters, characterZOrder } = window.editorStore!.getState();
 
   const scale = Math.min(size / (stage.width * 40), size / (stage.height * 40));
   const pxPerSquare = Math.round(40 * scale);
@@ -489,7 +554,7 @@ export function getStageScreenshot(stage: Stage, { size }: { size: number }) {
     context.fillRect(0, 0, canvas.width, canvas.height);
   }
 
-  Object.values(stage.actors).forEach((actor) => {
+  sortActorsByZOrder(Object.values(stage.actors), characterZOrder).forEach((actor) => {
     const i = new Image();
     const { appearances, appearanceInfo } = characters[actor.characterId].spritesheet;
     i.src = appearances[actor.appearance][0];
@@ -555,4 +620,3 @@ export function comparatorMatches(
       isNever(comparator);
   }
 }
-

@@ -124,6 +124,7 @@ const CONFIRM_DELETE_CHARACTER = `Are you sure you want to delete this character
 export const Library: React.FC = () => {
   const dispatch = useDispatch();
   const characters = useEditorSelector((s) => s.characters);
+  const characterZOrder = useEditorSelector((s) => s.characterZOrder);
   const ui = useEditorSelector((s) => s.ui);
   const recordingActorId = useEditorSelector((s) => s.recording.actorId);
 
@@ -211,7 +212,10 @@ export const Library: React.FC = () => {
   const renderCharactersPanel = () => {
     return (
       <div className="item-grid" onClick={onClickCharactersBackground}>
-        {Object.keys(characters).map((id) => (
+        {(characterZOrder.length > 0
+          ? characterZOrder.filter((id) => characters[id])
+          : Object.keys(characters)
+        ).map((id) => (
           <LibraryItem
             key={id}
             dragType="sprite"
@@ -266,6 +270,10 @@ export const Library: React.FC = () => {
     dispatch(showModal(MODALS.EXPLORE_CHARACTERS));
   }, [dispatch]);
 
+  const onSetCharacterOrder = useCallback(() => {
+    dispatch(showModal(MODALS.CHARACTER_Z_ORDER));
+  }, [dispatch]);
+
   const onCreateAppearance = useCallback(() => {
     if (!ui.selectedCharacterId) return;
 
@@ -299,6 +307,8 @@ export const Library: React.FC = () => {
             <DropdownMenu right>
               <DropdownItem onClick={onCreateCharacter}>Draw new Character...</DropdownItem>
               <DropdownItem onClick={onExploreCharacters}>Explore Characters...</DropdownItem>
+              <DropdownItem divider />
+              <DropdownItem onClick={onSetCharacterOrder}>Set Character Order...</DropdownItem>
             </DropdownMenu>
           </ButtonDropdown>
         </div>

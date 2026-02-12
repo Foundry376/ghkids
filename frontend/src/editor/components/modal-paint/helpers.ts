@@ -15,8 +15,8 @@ export function forEachInRect(s: Point, e: Point, pixelCallback: PixelCallback):
   if (ey < sy) {
     [ey, sy] = [sy, ey];
   }
-  for (let x = sx; x < ex; x++) {
-    for (let y = sy; y < ey; y++) {
+  for (let x = sx; x <= ex; x++) {
+    for (let y = sy; y <= ey; y++) {
       if (pixelCallback(x, y) === "break") {
         return;
       }
@@ -29,7 +29,7 @@ export function forEachInLine(
   y0: number,
   x1: number,
   y1: number,
-  pixelCallback: (x: number, y: number) => void
+  pixelCallback: (x: number, y: number) => void,
 ): void {
   const dx = Math.abs(x1 - x0);
   const dy = Math.abs(y1 - y0);
@@ -138,7 +138,7 @@ export interface NewFrameOptions {
 
 export function getImageDataWithNewFrame(
   imageData: ImageData | null,
-  { width, height, offsetX, offsetY }: NewFrameOptions
+  { width, height, offsetX, offsetY }: NewFrameOptions,
 ): ImageData | null {
   if (!imageData) {
     return null;
@@ -160,7 +160,7 @@ export interface ImageDataFromURLOptions {
 export function getImageDataFromDataURL(
   dataURL: string,
   { maxWidth, maxHeight, fill }: ImageDataFromURLOptions = {},
-  callback: (imageData: ImageData) => void
+  callback: (imageData: ImageData) => void,
 ): void {
   const img = new Image();
   img.onload = () => {
@@ -184,7 +184,7 @@ export function getImageDataFromDataURL(
         (width - scaledWidth) / 2,
         (height - scaledHeight) / 2,
         scaledWidth,
-        scaledHeight
+        scaledHeight,
       );
       callback(tempContext.getImageData(0, 0, width, height));
     } else {
@@ -229,7 +229,7 @@ export function getFlattenedImageData({
     selectionImageData.height,
     selectionOffset.x,
     selectionOffset.y,
-    { ignoreClearPixels: true }
+    { ignoreClearPixels: true },
   );
   return nextImageData;
 }

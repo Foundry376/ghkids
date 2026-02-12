@@ -165,6 +165,7 @@ const EditorPage = () => {
       window.removeEventListener("beforeunload", _onBeforeUnload);
       _mounted.current = false;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hasUnsavedChanges]);
 
   usePageTitle(world?.name);

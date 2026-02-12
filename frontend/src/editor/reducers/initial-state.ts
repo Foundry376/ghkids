@@ -50,6 +50,7 @@ const InitialWorld: World = {
 const InitialState: EditorState = {
   version: 1,
   characters: {},
+  characterZOrder: [],
   world: InitialWorld,
   undoStack: [],
   redoStack: [],

@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function keyToCodakoKey(key: string): string {
   if (key === " ") {
     return "Space";

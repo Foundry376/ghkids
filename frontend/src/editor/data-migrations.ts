@@ -126,6 +126,11 @@ export function applyDataMigrations(game: Game): Game {
     }
     return value;
   });
+  // Synthesize characterZOrder from existing characters if missing
+  if (result.data && result.data.characters && !result.data.characterZOrder) {
+    result.data.characterZOrder = Object.keys(result.data.characters);
+  }
+
   const migrated = JSON.stringify(result);
 
   if (migrated !== nonmigrated) {

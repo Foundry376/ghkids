@@ -92,13 +92,51 @@ html {
     width: 12px;
     height: 12px;
     border-radius: 12px;
-    background-color: transparent;
+    background-color: rgba(0, 0, 0, 0.15);
     border: 1px solid rgba(0, 0, 0, 0.2);
     &.true {
       background-color: #74e535;
     }
     &.false {
       background-color: red;
+    }
+    &.disabled {
+      background-color: #ccc;
+      border-color: rgba(0, 0, 0, 0.1);
+    }
+  }
+
+  .rule-toggle-btn {
+    padding: 0;
+    cursor: pointer;
+    flex-shrink: 0;
+    pointer-events: auto;
+    position: relative;
+    transition: transform 0.1s ease, box-shadow 0.1s ease;
+
+    &::after {
+      content: "";
+      position: absolute;
+      top: 50%;
+      left: -1px;
+      width: 14px;
+      height: 2px;
+      background-color: rgba(0, 0, 0, 0.6);
+      transform: translateY(-50%) rotate(45deg);
+      opacity: 0;
+      transition: opacity 0.1s ease;
+    }
+
+    &:hover {
+      transform: scale(1.2);
+
+      &::after {
+        opacity: 1;
+      }
+    }
+
+    &:active {
+      transform: scale(1.1);
     }
   }
 
@@ -525,6 +563,36 @@ html {
       overflow: hidden;
       text-overflow: ellipsis;
     }
+
+    .tick-clock {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      vertical-align: middle;
+      margin: 0 4px;
+      transition: transform 0.15s ease;
+
+      &.pulse {
+        transform: scale(1.2);
+      }
+
+      &.running .clock-hand {
+        filter: drop-shadow(0 0 2px rgba(0, 123, 255, 0.5));
+      }
+
+      svg {
+        display: block;
+      }
+    }
+  }
+
+  @keyframes tick-clock-spin {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
   }
 
   .library-container {
@@ -609,6 +677,14 @@ html {
     .scroll-container-contents {
       position: absolute;
       width: 100%;
+      min-height: 100%;
+      display: flex;
+      flex-direction: column;
+
+      // Make the top-level rules-list fill the container for easier drop targeting
+      > .rules-list {
+        flex: 1;
+      }
     }
   }
 }
@@ -812,6 +888,7 @@ html {
 
   .actor-selection-popover-content {
     display: flex;
+    flex-direction: column;
     gap: 4px;
   }
 
@@ -949,6 +1026,21 @@ html {
         border-color: transparent transparent transparent rgba(0, 0, 0, 0.4);
       }
       &.enabled {
+        opacity: 1;
+      }
+    }
+
+    &.rule-disabled {
+      opacity: 0.5;
+
+      .scenario,
+      .header,
+      .name,
+      .conditions {
+        opacity: 0.7;
+      }
+
+      .rule-toggle-btn {
         opacity: 1;
       }
     }
@@ -1276,4 +1368,59 @@ button.btn.selected:active {
       float: right;
     }
   }
+}
+
+.z-order-hint {
+  font-size: 13px;
+  color: #666;
+  margin-bottom: 8px;
+}
+
+.z-order-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.z-order-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  margin-bottom: 4px;
+  background: #fff;
+  cursor: grab;
+  user-select: none;
+
+  &.dragging {
+    opacity: 0.4;
+  }
+
+  &.drop-above {
+    border-top: 2px solid #007bff;
+  }
+
+  .drag-handle {
+    color: #999;
+    font-size: 14px;
+    cursor: grab;
+  }
+
+  .character-name {
+    font-size: 14px;
+    flex: 1;
+  }
+
+  img.sprite {
+    width: 32px;
+    height: 32px;
+    object-fit: contain;
+  }
+}
+
+.z-order-drop-indicator {
+  height: 2px;
+  background: #007bff;
+  margin-bottom: 4px;
 }

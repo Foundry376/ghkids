@@ -2,6 +2,7 @@ import classNames from "classnames";
 import React from "react";
 import { hsvToRgb } from "./helpers";
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const ColorOptions: string[] = [];
 
 ColorOptions.push(`rgba(0,0,0,0)`);

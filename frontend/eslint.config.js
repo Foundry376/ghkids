@@ -20,15 +20,17 @@ export default tseslint.config(
     rules: {
       ...reactHooks.configs.recommended.rules,
       "react-refresh/only-export-components": ["warn", { allowConstantExport: true }],
+      "@typescript-eslint/no-unused-vars": [
+        "error",
+        { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
+      ],
     },
-    overrides: [
-      {
-        files: ["*.test.ts", "*.spec.ts"],
-        rules: {
-          "no-unused-expressions": "off",
-          "@typescript-eslint/no-unused-expressions": "off",
-        },
-      },
-    ],
+  },
+  {
+    files: ["**/*.test.ts", "**/*.spec.ts"],
+    rules: {
+      "no-unused-expressions": "off",
+      "@typescript-eslint/no-unused-expressions": "off",
+    },
   },
 );

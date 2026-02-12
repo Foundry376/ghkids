@@ -28,6 +28,7 @@ const RECAPTCHA_SITE_KEY = `6LczpzwsAAAAADQs-j6-hokHJ8JUsqZ8NZ6t3BTC`;
 
 // // Create an enhanced history that syncs navigation events with the store
 
+// eslint-disable-next-line react-refresh/only-export-components
 const AppContent = (
   <Provider store={store}>
     <BrowserRouter>{routes}</BrowserRouter>
