@@ -4,6 +4,7 @@ import { Link, useParams } from "react-router-dom";
 import Button from "reactstrap/lib/Button";
 
 import { createWorld, fetchWorld } from "../actions/main-actions";
+import { useHideRecaptchaBadge } from "../hooks/useHideRecaptchaBadge";
 import { usePageTitle } from "../hooks/usePageTitle";
 import { RootPlayer } from "../editor/root-player";
 import PageMessage from "./common/page-message";
@@ -34,6 +35,7 @@ const PlayPage: React.FC = () => {
   }, [worldId, dispatch]);
 
   usePageTitle(world?.name);
+  useHideRecaptchaBadge();
 
   // Listen for fullscreen changes
   useEffect(() => {
