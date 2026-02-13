@@ -1,21 +1,21 @@
-import React, { useEffect, useRef } from "react";
 import classNames from "classnames";
+import React, { useEffect, useRef } from "react";
 import { Dispatch } from "redux";
 
 import Button from "reactstrap/lib/Button";
 import ButtonGroup from "reactstrap/lib/ButtonGroup";
-import TickClock from "./tick-clock";
-import { updatePlaybackState } from "../../actions/ui-actions";
-import { getStageScreenshot } from "../../utils/stage-helpers";
-import { getCurrentStageForWorld } from "../../utils/selectors";
+import { World } from "../../../types";
 import {
   advanceGameState,
-  stepBackGameState,
-  saveInitialGameState,
   restoreInitialGameState,
+  saveInitialGameState,
+  stepBackGameState,
 } from "../../actions/stage-actions";
+import { updatePlaybackState } from "../../actions/ui-actions";
 import { SPEED_OPTIONS } from "../../constants/constants";
-import { World } from "../../../types";
+import { getCurrentStageForWorld } from "../../utils/selectors";
+import { getStageScreenshot } from "../../utils/stage-helpers";
+import TickClock from "./tick-clock";
 
 interface StageControlsProps {
   readonly?: boolean;
@@ -133,43 +133,35 @@ const StageControls: React.FC<StageControlsProps> = ({
             disabled={world.history && world.history.length === 0}
             onClick={() => dispatch(stepBackGameState(world.id))}
           >
-            <i className="fa fa-step-backward" /> Back
+            <i className="fa fa-step-backward" />
           </Button>
         )}{" "}
         <Button
           className={classNames({ selected: !running })}
           onClick={() => dispatch(updatePlaybackState({ speed, running: false }))}
         >
-          <i className="fa fa-stop" /> Stop
+          <i className="fa fa-stop" />
         </Button>{" "}
         <Button
           data-tutorial-id="play"
           className={classNames({ selected: running })}
           onClick={() => dispatch(updatePlaybackState({ speed, running: true }))}
         >
-          <i className="fa fa-play" /> Play
+          <i className="fa fa-play" />
         </Button>{" "}
         {!readonly && (
           <Button size="sm" onClick={() => dispatch(advanceGameState(world.id))}>
-            <i className="fa fa-step-forward" /> Forward
+            <i className="fa fa-step-forward" />
           </Button>
         )}{" "}
-        <TickClock
-          running={running}
-          speed={speed}
-          tickKey={world.evaluatedTickFrames?.[0]?.id}
-        />
-      </div>
-
-      <div style={{ flex: 1 }} />
-
-      <div className="right">
+        <TickClock running={running} speed={speed} tickKey={world.evaluatedTickFrames?.[0]?.id} />
+        <span style={{ padding: "0 8px" }}>|</span>
         <ButtonGroup>
           {Object.keys(SPEED_OPTIONS).map((name) => (
             <Button
               size="sm"
               key={name}
-              style={{ minWidth: 0 }}
+              style={{ minWidth: 0, fontSize: "1.2rem", padding: "0 8px" }}
               className={classNames({
                 selected: SPEED_OPTIONS[name as keyof typeof SPEED_OPTIONS] === speed,
               })}
@@ -182,11 +174,15 @@ const StageControls: React.FC<StageControlsProps> = ({
                 )
               }
             >
-              {name}
+              {name === "Slow" ? "🐢" : name === "Super" ? "🐇" : "•"}
             </Button>
           ))}
         </ButtonGroup>
       </div>
+
+      <div style={{ flex: 1 }} />
+
+      <div className="right"></div>
     </div>
   );
 };
