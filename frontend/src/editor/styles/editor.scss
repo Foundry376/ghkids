@@ -1450,3 +1450,103 @@ button.btn.selected:active {
   background: #007bff;
   margin-bottom: 4px;
 }
+
+// Fullscreen container and prompt overlay for mobile/tablet devices
+
+.editor-fullscreen-container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.editor-fullscreen-container:fullscreen {
+  background: url(../img/background.png) top left;
+}
+
+.editor-fullscreen-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.editor-fullscreen-overlay__backdrop {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+}
+
+.editor-fullscreen-overlay__content {
+  position: relative;
+  background: white;
+  border-radius: 12px;
+  padding: 40px;
+  max-width: 420px;
+  margin: 20px;
+  text-align: center;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+
+  h2 {
+    color: #333;
+    font-size: 24px;
+    font-weight: 600;
+    margin-bottom: 12px;
+  }
+
+  p {
+    color: #666;
+    font-size: 16px;
+    line-height: 1.5;
+    margin-bottom: 24px;
+  }
+}
+
+.editor-fullscreen-overlay__icon {
+  font-size: 48px;
+  color: $tint-color;
+  margin-bottom: 16px;
+}
+
+.editor-fullscreen-overlay__btn {
+  display: block;
+  width: 100%;
+  padding: 14px 24px;
+  font-size: 18px;
+  font-weight: 600;
+  color: white;
+  background: $tint-color;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  margin-bottom: 12px;
+  transition: background 0.15s;
+
+  &:hover {
+    background: color.adjust($tint-color, $lightness: -10%);
+  }
+}
+
+.editor-fullscreen-overlay__dismiss {
+  display: block;
+  width: 100%;
+  padding: 8px;
+  font-size: 14px;
+  color: #999;
+  background: none;
+  border: none;
+  cursor: pointer;
+
+  &:hover {
+    color: #666;
+  }
+}
