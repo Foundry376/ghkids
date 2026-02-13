@@ -18,6 +18,39 @@ import { Game } from "../types";
 import PageMessage from "./common/page-message";
 import { EditorContext } from "./editor-context";
 
+function useFullscreenPrompt() {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [showPrompt, setShowPrompt] = useState(false);
+
+  useEffect(() => {
+    const isTouchDevice = "ontouchstart" in window || navigator.maxTouchPoints > 0;
+    const canFullscreen = !!document.documentElement.requestFullscreen;
+    const alreadyDismissed = sessionStorage.getItem("editor-fullscreen-dismissed");
+    const isAlreadyFullscreen = !!document.fullscreenElement;
+
+    if (isTouchDevice && canFullscreen && !alreadyDismissed && !isAlreadyFullscreen) {
+      setShowPrompt(true);
+    }
+  }, []);
+
+  const enter = useCallback(() => {
+    if (containerRef.current?.requestFullscreen) {
+      containerRef.current.requestFullscreen().catch(() => {
+        // Fullscreen request denied — dismiss silently
+      });
+    }
+    setShowPrompt(false);
+    sessionStorage.setItem("editor-fullscreen-dismissed", "true");
+  }, []);
+
+  const dismiss = useCallback(() => {
+    setShowPrompt(false);
+    sessionStorage.setItem("editor-fullscreen-dismissed", "true");
+  }, []);
+
+  return { containerRef, showPrompt, enter, dismiss };
+}
+
 const APIAdapter = {
   load: function (me: User, worldId: string) {
     return makeRequest<Game>(`/worlds/${worldId}`).then((world) => {
@@ -113,35 +146,7 @@ const EditorPage = () => {
   const [showDraftPrompt, setShowDraftPrompt] = useState(false);
   const [draftWorld, setDraftWorld] = useState<Game | null>(null);
 
-  // Fullscreen prompt for mobile/tablet devices
-  const editorContainerRef = useRef<HTMLDivElement>(null);
-  const [showFullscreenPrompt, setShowFullscreenPrompt] = useState(false);
-
-  useEffect(() => {
-    const isTouchDevice = "ontouchstart" in window || navigator.maxTouchPoints > 0;
-    const canFullscreen = !!document.documentElement.requestFullscreen;
-    const alreadyDismissed = sessionStorage.getItem("editor-fullscreen-dismissed");
-    const isAlreadyFullscreen = !!document.fullscreenElement;
-
-    if (isTouchDevice && canFullscreen && !alreadyDismissed && !isAlreadyFullscreen) {
-      setShowFullscreenPrompt(true);
-    }
-  }, []);
-
-  const enterFullscreen = useCallback(() => {
-    if (editorContainerRef.current?.requestFullscreen) {
-      editorContainerRef.current.requestFullscreen().catch(() => {
-        // Fullscreen request denied — dismiss silently
-      });
-    }
-    setShowFullscreenPrompt(false);
-    sessionStorage.setItem("editor-fullscreen-dismissed", "true");
-  }, []);
-
-  const dismissFullscreenPrompt = useCallback(() => {
-    setShowFullscreenPrompt(false);
-    sessionStorage.setItem("editor-fullscreen-dismissed", "true");
-  }, []);
+  const fullscreen = useFullscreenPrompt();
 
   const Adapter = window.location.href.includes("localstorage") ? LocalStorageAdapter : APIAdapter;
 
@@ -440,7 +445,7 @@ const EditorPage = () => {
         hasUnsavedChanges: hasUnsavedChanges,
       }}
     >
-      <div ref={editorContainerRef} className="editor-fullscreen-container">
+      <div ref={fullscreen.containerRef} className="editor-fullscreen-container">
         {error || !loaded ? (
           <PageMessage text={error ? error : "Loading..."} />
         ) : (
@@ -485,9 +490,9 @@ const EditorPage = () => {
           </>
         )}
 
-        {showFullscreenPrompt && (
+        {fullscreen.showPrompt && (
           <div className="editor-fullscreen-overlay">
-            <div className="editor-fullscreen-overlay__backdrop" onClick={dismissFullscreenPrompt} />
+            <div className="editor-fullscreen-overlay__backdrop" onClick={fullscreen.dismiss} />
             <div className="editor-fullscreen-overlay__content">
               <div className="editor-fullscreen-overlay__icon">
                 <i className="fa fa-expand" />
@@ -497,10 +502,10 @@ const EditorPage = () => {
                 For the best editing experience on your device, we recommend using fullscreen mode to
                 maximize your workspace.
               </p>
-              <button className="editor-fullscreen-overlay__btn" onClick={enterFullscreen}>
+              <button className="editor-fullscreen-overlay__btn" onClick={fullscreen.enter}>
                 Enter Fullscreen
               </button>
-              <button className="editor-fullscreen-overlay__dismiss" onClick={dismissFullscreenPrompt}>
+              <button className="editor-fullscreen-overlay__dismiss" onClick={fullscreen.dismiss}>
                 Continue without fullscreen
               </button>
             </div>
