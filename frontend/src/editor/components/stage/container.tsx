@@ -5,6 +5,7 @@ import Stage from "./stage";
 import StageControls from "./stage-controls";
 import StageRecordingControls from "./stage-recording-controls";
 import StageRecordingTools from "./stage-recording-tools";
+import TouchKeys from "./touch-keys";
 
 import { useEffect, useRef, useState } from "react";
 import * as Types from "../../../types";
@@ -178,6 +179,7 @@ const StageContainer = ({ readonly, immersive }: { readonly?: boolean; immersive
         {controls || (
           <StageControls {...playback} dispatch={dispatch} world={world} readonly={readonly} />
         )}
+        {readonly && <TouchKeys worldId={world.id} characters={characters} />}
       </div>
       {!readonly && <Library />}
     </div>
