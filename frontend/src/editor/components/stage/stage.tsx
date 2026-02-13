@@ -775,20 +775,20 @@ export const Stage = ({
     }
   };
 
-  const onMouseDown = (event: React.MouseEvent) => {
+  const onPointerDown = (event: React.PointerEvent) => {
     if (playback.running || interactionMode === "none") {
       return;
     }
-    const onMouseUpAnywhere = (e: MouseEvent) => {
-      document.removeEventListener("mouseup", onMouseUpAnywhere);
-      document.removeEventListener("mousemove", onMouseMoveAnywhere);
+    const onPointerUpAnywhere = (e: PointerEvent) => {
+      document.removeEventListener("pointerup", onPointerUpAnywhere);
+      document.removeEventListener("pointermove", onPointerMoveAnywhere);
       onMouseUp.current?.(e);
     };
-    const onMouseMoveAnywhere = (e: MouseEvent) => {
+    const onPointerMoveAnywhere = (e: PointerEvent) => {
       onMouseMove.current?.(e);
     };
-    document.addEventListener("mouseup", onMouseUpAnywhere);
-    document.addEventListener("mousemove", onMouseMoveAnywhere);
+    document.addEventListener("pointerup", onPointerUpAnywhere);
+    document.addEventListener("pointermove", onPointerMoveAnywhere);
     mouse.current = { isDown: true, visited: {} };
 
     const isClickOnBackground = event.target === event.currentTarget;
@@ -799,9 +799,9 @@ export const Stage = ({
     }
   };
 
-  // Note: In this handler, the mouse cursor may be outside the stage
-  const onMouseMove = useRef<(event: MouseEvent) => void>();
-  onMouseMove.current = (event: MouseEvent) => {
+  // Note: In this handler, the pointer may be outside the stage
+  const onMouseMove = useRef<(event: PointerEvent) => void>();
+  onMouseMove.current = (event: PointerEvent) => {
     if (!mouse.current.isDown) {
       return;
     }
@@ -862,9 +862,9 @@ export const Stage = ({
     }
   };
 
-  // Note: In this handler, the mouse cursor may be outside the stage
-  const onMouseUp = useRef<(event: MouseEvent) => void>();
-  onMouseUp.current = (event: MouseEvent) => {
+  // Note: In this handler, the pointer may be outside the stage
+  const onMouseUp = useRef<(event: PointerEvent) => void>();
+  onMouseUp.current = (event: PointerEvent) => {
     onMouseMove.current?.(event);
 
     mouse.current = { isDown: false, visited: {} };
@@ -1076,7 +1076,7 @@ export const Stage = ({
         key={actor.id}
         selected={interactive ? selected.includes(actor) : false}
         zIndex={zIndex >= 0 ? zIndex : undefined}
-        onMouseUp={interactive ? (event) => onMouseUpActor(actor, event) : undefined}
+        onPointerUp={interactive ? (event) => onMouseUpActor(actor, event) : undefined}
         onDoubleClick={interactive ? () => onSelectActor(actor) : undefined}
         transitionDuration={
           animationStyle === "linear" ? playback.speed / (actor.frameCount || 1) : 0
@@ -1113,6 +1113,7 @@ export const Stage = ({
             width: stage.width * STAGE_CELL_SIZE,
             height: stage.height * STAGE_CELL_SIZE,
             overflow: recordingExtent ? "visible" : "hidden",
+            touchAction: "none",
             zoom: scale,
             "--outline-width": `${2.0 / scale}px`,
           } as CSSProperties
@@ -1123,7 +1124,7 @@ export const Stage = ({
         onKeyDown={onKeyDown}
         onBlur={onBlur}
         onContextMenu={onRightClickStage}
-        onMouseDown={onMouseDown}
+        onPointerDown={onPointerDown}
         tabIndex={0}
       >
         <div

@@ -188,12 +188,12 @@ export const RuleList = ({
     }
   };
 
-  const _onMouseOver = (event: React.MouseEvent<unknown>, rule: RuleTreeItem) => {
+  const _onPointerOver = (event: React.PointerEvent<unknown>, rule: RuleTreeItem) => {
     event.stopPropagation();
     setDragState({ ...dragState, hovering: rule.id });
   };
 
-  const _onMouseOut = (event: React.MouseEvent<unknown>) => {
+  const _onPointerOut = (event: React.PointerEvent<unknown>) => {
     event.stopPropagation();
     if (dragState.hovering) {
       setDragState({ ...dragState, hovering: false });
@@ -215,8 +215,8 @@ export const RuleList = ({
         onDoubleClick={(event) => _onRuleDoubleClick(event, r)}
         onDragStart={(event) => _onDragStart(event, r)}
         onDragEnd={() => _onDragEnd()}
-        onMouseOver={(event) => _onMouseOver(event, r)}
-        onMouseOut={(event) => _onMouseOut(event)}
+        onPointerOver={(event) => _onPointerOver(event, r)}
+        onPointerOut={(event) => _onPointerOut(event)}
       >
         {r.type === CONTAINER_TYPES.EVENT ? (
           <ContentEventGroup rule={r} character={character} />

@@ -30,7 +30,7 @@ const ActorSelectionPopover: React.FC<ActorSelectionPopoverProps> = ({
   const popoverRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
+    const handleClickOutside = (event: PointerEvent | MouseEvent) => {
       if (popoverRef.current && !popoverRef.current.contains(event.target as Node)) {
         onClose();
       }
@@ -44,13 +44,13 @@ const ActorSelectionPopover: React.FC<ActorSelectionPopoverProps> = ({
 
     // Delay adding listener to avoid immediate close from the triggering click
     const timeoutId = setTimeout(() => {
-      document.addEventListener("mousedown", handleClickOutside);
+      document.addEventListener("pointerdown", handleClickOutside);
       document.addEventListener("keydown", handleKeyDown);
     }, 0);
 
     return () => {
       clearTimeout(timeoutId);
-      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("pointerdown", handleClickOutside);
       document.removeEventListener("keydown", handleKeyDown);
     };
   }, [onClose]);
@@ -92,7 +92,7 @@ const ActorSelectionPopover: React.FC<ActorSelectionPopoverProps> = ({
                   character={character}
                   actor={{ ...actor, position: { x: bounds.offsetX, y: bounds.offsetY } }}
                   selected={false}
-                  onMouseUp={() => onSelect(actor)}
+                  onPointerUp={() => onSelect(actor)}
                   dragActorIds={onStartDrag ? [actor.id] : undefined}
                   onStartDrag={
                     onStartDrag

@@ -53,7 +53,7 @@ const ActorSprite = (props: {
   zIndex?: number;
   dragActorIds?: string[];
   onClick?: (e: React.MouseEvent) => void;
-  onMouseUp?: (e: React.MouseEvent) => void;
+  onPointerUp?: (e: React.PointerEvent) => void;
   onDoubleClick?: (e: React.MouseEvent) => void;
   onStartDrag?: (
     actor: Actor,
@@ -73,7 +73,7 @@ const ActorSprite = (props: {
     transitionDuration: transitionDurationProp,
     skipTransition,
     onClick,
-    onMouseUp,
+    onPointerUp,
     onDoubleClick,
     onStartDrag,
   } = props;
@@ -183,9 +183,9 @@ const ActorSprite = (props: {
         draggable={!!dragActorIds}
         data-stage-character-id={character.id}
         onDragStart={onDragStart}
-        onMouseUp={(event) => {
+        onPointerUp={(event) => {
           if (isEventInFilledSquare(event)) {
-            onMouseUp?.(event);
+            onPointerUp?.(event);
           }
         }}
         onClick={(event) => {
@@ -206,6 +206,7 @@ const ActorSprite = (props: {
           transitionProperty: "transform",
           transitionDuration: `${transitionDuration}ms`,
           pointerEvents: "auto",
+          touchAction: "none",
           cursor: dragActorIds ? "grab" : undefined,
         }}
       />
