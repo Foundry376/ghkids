@@ -593,6 +593,10 @@ html {
     justify-content: center;
     gap: 8px;
     padding: 4px 8px;
+    background: #f0f0f0;
+    border-radius: 4px;
+    margin: 2px 4px 4px;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.12);
     user-select: none;
     -webkit-user-select: none;
     touch-action: manipulation;
@@ -620,22 +624,24 @@ html {
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      min-width: 36px;
-      height: 32px;
-      padding: 0 8px;
-      border: 1px solid #999;
+      min-width: 32px;
+      height: 28px;
+      padding: 0 7px;
+      border: 1px solid #c0c0c0;
+      border-bottom-color: #aaa;
       border-radius: 4px;
-      background: #e8e8e8;
-      color: #333;
-      font-size: 14px;
+      background: linear-gradient(to bottom, #fdfdfd, #f0f0f0);
+      color: #444;
+      font-size: 13px;
       font-weight: 500;
       cursor: pointer;
       -webkit-tap-highlight-color: transparent;
-      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+      box-shadow: 0 1px 0 rgba(255, 255, 255, 0.7) inset, 0 1px 2px rgba(0, 0, 0, 0.1);
 
       &:active {
-        background: #bbb;
-        box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.2);
+        background: linear-gradient(to bottom, #e4e4e4, #d8d8d8);
+        box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.18);
+        border-color: #aaa;
       }
     }
   }
