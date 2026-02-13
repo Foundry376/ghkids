@@ -1148,6 +1148,7 @@ export const Stage = ({
           className="stage-selection-box"
           style={{
             position: "absolute",
+            zIndex: 1,
             left: Math.min(selectionRect.start.left, selectionRect.end.left),
             top: Math.min(selectionRect.start.top, selectionRect.end.top),
             width:
