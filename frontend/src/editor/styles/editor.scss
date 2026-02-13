@@ -1312,6 +1312,7 @@ button.btn.selected:active {
         .add-stage-placeholder {
           width: 160px;
           height: 104px;
+          box-sizing: content-box;
           display: flex;
           align-items: center;
           justify-content: center;
