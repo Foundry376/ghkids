@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useDispatch } from "react-redux";
 
 import { createWorld, User } from "../actions/main-actions";
@@ -112,6 +112,36 @@ const EditorPage = () => {
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [showDraftPrompt, setShowDraftPrompt] = useState(false);
   const [draftWorld, setDraftWorld] = useState<Game | null>(null);
+
+  // Fullscreen prompt for mobile/tablet devices
+  const editorContainerRef = useRef<HTMLDivElement>(null);
+  const [showFullscreenPrompt, setShowFullscreenPrompt] = useState(false);
+
+  useEffect(() => {
+    const isTouchDevice = "ontouchstart" in window || navigator.maxTouchPoints > 0;
+    const canFullscreen = !!document.documentElement.requestFullscreen;
+    const alreadyDismissed = sessionStorage.getItem("editor-fullscreen-dismissed");
+    const isAlreadyFullscreen = !!document.fullscreenElement;
+
+    if (isTouchDevice && canFullscreen && !alreadyDismissed && !isAlreadyFullscreen) {
+      setShowFullscreenPrompt(true);
+    }
+  }, []);
+
+  const enterFullscreen = useCallback(() => {
+    if (editorContainerRef.current?.requestFullscreen) {
+      editorContainerRef.current.requestFullscreen().catch(() => {
+        // Fullscreen request denied — dismiss silently
+      });
+    }
+    setShowFullscreenPrompt(false);
+    sessionStorage.setItem("editor-fullscreen-dismissed", "true");
+  }, []);
+
+  const dismissFullscreenPrompt = useCallback(() => {
+    setShowFullscreenPrompt(false);
+    sessionStorage.setItem("editor-fullscreen-dismissed", "true");
+  }, []);
 
   const Adapter = window.location.href.includes("localstorage") ? LocalStorageAdapter : APIAdapter;
 
@@ -410,49 +440,73 @@ const EditorPage = () => {
         hasUnsavedChanges: hasUnsavedChanges,
       }}
     >
-      {error || !loaded ? (
-        <PageMessage text={error ? error : "Loading..."} />
-      ) : (
-        <>
-          <Modal isOpen={showDraftPrompt} backdrop="static" centered>
-            <div className="modal-header">
-              <h4 style={{ marginBottom: 0 }}>Unsaved Draft Found</h4>
-            </div>
-            <ModalBody>
-              <p>
-                We found an unsaved draft from your last session. Would you like to continue working
-                on the draft or revert to the last saved version?
-              </p>
-              <div style={{ display: "flex", gap: "12px", justifyContent: "flex-end" }}>
-                <Button color="secondary" onClick={revertToSaved}>
-                  Revert to Saved
-                </Button>
-                <Button color="primary" onClick={loadDraft}>
-                  Load Draft
-                </Button>
+      <div ref={editorContainerRef} className="editor-fullscreen-container">
+        {error || !loaded ? (
+          <PageMessage text={error ? error : "Loading..."} />
+        ) : (
+          <>
+            <Modal isOpen={showDraftPrompt} backdrop="static" centered>
+              <div className="modal-header">
+                <h4 style={{ marginBottom: 0 }}>Unsaved Draft Found</h4>
               </div>
-            </ModalBody>
-          </Modal>
-          {world && (
-            <StoreProvider
-              key={`${world.id}${retry}`}
-              world={world}
-              onWorldChanged={() => {
-                // Auto-save to unsavedData after 5 seconds, but not if we're committing
-                if (!_isCommitting.current) {
-                  setHasUnsavedChanges(true);
-                  saveDraftSoon();
-                }
-              }}
-              ref={(r) => {
-                storeProvider.current = r;
-              }}
-            >
-              <RootEditor />
-            </StoreProvider>
-          )}
-        </>
-      )}
+              <ModalBody>
+                <p>
+                  We found an unsaved draft from your last session. Would you like to continue
+                  working on the draft or revert to the last saved version?
+                </p>
+                <div style={{ display: "flex", gap: "12px", justifyContent: "flex-end" }}>
+                  <Button color="secondary" onClick={revertToSaved}>
+                    Revert to Saved
+                  </Button>
+                  <Button color="primary" onClick={loadDraft}>
+                    Load Draft
+                  </Button>
+                </div>
+              </ModalBody>
+            </Modal>
+            {world && (
+              <StoreProvider
+                key={`${world.id}${retry}`}
+                world={world}
+                onWorldChanged={() => {
+                  // Auto-save to unsavedData after 5 seconds, but not if we're committing
+                  if (!_isCommitting.current) {
+                    setHasUnsavedChanges(true);
+                    saveDraftSoon();
+                  }
+                }}
+                ref={(r) => {
+                  storeProvider.current = r;
+                }}
+              >
+                <RootEditor />
+              </StoreProvider>
+            )}
+          </>
+        )}
+
+        {showFullscreenPrompt && (
+          <div className="editor-fullscreen-overlay">
+            <div className="editor-fullscreen-overlay__backdrop" onClick={dismissFullscreenPrompt} />
+            <div className="editor-fullscreen-overlay__content">
+              <div className="editor-fullscreen-overlay__icon">
+                <i className="fa fa-expand" />
+              </div>
+              <h2>Use Fullscreen Mode</h2>
+              <p>
+                For the best editing experience on your device, we recommend using fullscreen mode to
+                maximize your workspace.
+              </p>
+              <button className="editor-fullscreen-overlay__btn" onClick={enterFullscreen}>
+                Enter Fullscreen
+              </button>
+              <button className="editor-fullscreen-overlay__dismiss" onClick={dismissFullscreenPrompt}>
+                Continue without fullscreen
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
     </EditorContext.Provider>
   );
 };
