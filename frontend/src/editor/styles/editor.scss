@@ -678,6 +678,7 @@ html {
       .header {
         display: flex;
         flex-shrink: 0;
+        gap: 4px;
         h2 {
           flex: 1;
         }
