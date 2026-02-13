@@ -29,6 +29,7 @@ import {
   selectToolId,
   selectToolItem,
 } from "../../actions/ui-actions";
+import { setCharacterZOrder } from "../../actions/characters-actions";
 
 import { STAGE_CELL_SIZE, TOOLS } from "../../constants/constants";
 import { extentIgnoredPositions } from "../../utils/recording-helpers";
@@ -973,6 +974,10 @@ export const Stage = ({
     setActorSelectionPopover(null);
   };
 
+  const onPopoverReorder = (newZOrder: string[]) => {
+    dispatch(setCharacterZOrder(newZOrder));
+  };
+
   const renderRecordingExtent = () => {
     const { width, height } = stage;
     if (!recordingExtent) {
@@ -1168,9 +1173,11 @@ export const Stage = ({
         <ActorSelectionPopover
           actors={actorSelectionPopover.actors}
           characters={characters}
+          characterZOrder={characterZOrder}
           position={actorSelectionPopover.position}
           onSelect={onPopoverSelectActor}
           onClose={onPopoverClose}
+          onReorder={onPopoverReorder}
           onStartDrag={
             actorSelectionPopover.toolId === TOOLS.POINTER ? onStartSpriteDrag : undefined
           }
