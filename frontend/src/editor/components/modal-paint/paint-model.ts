@@ -55,6 +55,8 @@ export interface PaintState {
   visibleVariables: Record<string, boolean>;
   isGeneratingSprite: boolean;
   spriteDescription: string;
+  isEditingSprite: boolean;
+  spriteEditDescription: string;
   dropdownOpen: boolean;
   spriteName: string;
 }
@@ -76,6 +78,8 @@ const INITIAL_STATE: PaintState = {
   visibleVariables: {},
   isGeneratingSprite: false,
   spriteDescription: "",
+  isEditingSprite: false,
+  spriteEditDescription: "",
   dropdownOpen: false,
   spriteName: "",
 };
@@ -260,7 +264,11 @@ export class PaintModel {
     } catch {
       alert(
         `Codako doesn't have permission to view your clipboard. ` +
+<<<<<<< Updated upstream
           `Please grant permission in your browser and try again!`,
+=======
+        `Please grant permission in your browser and try again!`
+>>>>>>> Stashed changes
       );
       return;
     }
@@ -530,6 +538,10 @@ export class PaintModel {
     this.setState({ spriteDescription: description });
   }
 
+  setSpriteEditDescription(description: string): void {
+    this.setState({ spriteEditDescription: description });
+  }
+
   // --- AI Sprite Generation ---
 
   async generateSprite(): Promise<void> {
@@ -599,6 +611,223 @@ export class PaintModel {
         selectionImageData: null,
       });
     }, 500);
+  }
+
+  // --- AI Sprite Editing ---
+
+  async editSprite(): Promise<void> {
+    const { imageData, spriteEditDescription } = this.state;
+    if (!imageData || !spriteEditDescription.trim()) {
+      console.log("[editSprite] Missing imageData or description", { imageData: !!imageData, description: spriteEditDescription });
+      return;
+    }
+
+    console.log("[editSprite] Starting edit", {
+      originalSize: `${imageData.width}x${imageData.height}`,
+      description: spriteEditDescription,
+    });
+
+    // Get current image as data URL
+    const currentImageDataURL = getDataURLFromImageData(imageData);
+    if (!currentImageDataURL) {
+      console.error("[editSprite] Failed to get data URL from imageData");
+      return;
+    }
+
+    // OpenAI image edit API requires square images of exactly 1024x1024
+    // We need to scale the sprite to 1024x1024 square, then scale back
+    const targetSize = 1024;
+    const canvasWidth = imageData.width;
+    const canvasHeight = imageData.height;
+
+    const keyColor = { r: 254, g: 247, b: 231 }; // off-white background key, replaces transparent background
+
+    // Create a temporary canvas to scale the image to exactly 1024x1024 square
+    // OpenAI requires exactly 1024x1024 square images
+    const tempCanvas = document.createElement("canvas");
+    tempCanvas.width = targetSize;
+    tempCanvas.height = targetSize;
+    const tempCtx = tempCanvas.getContext("2d")!;
+    // Preserve crisp pixel edges when scaling up
+    tempCtx.imageSmoothingEnabled = false;
+
+    // Fill with a key background color so we can restore transparency later
+    tempCtx.fillStyle = `rgb(${keyColor.r}, ${keyColor.g}, ${keyColor.b})`;
+    tempCtx.fillRect(0, 0, targetSize, targetSize);
+
+    // Calculate scaling to fit within square while maintaining aspect ratio (contain)
+    // This ensures no cropping, but may have transparent padding
+    const scale = Math.min(targetSize / canvasWidth, targetSize / canvasHeight);
+    const scaledWidth = canvasWidth * scale;
+    const scaledHeight = canvasHeight * scale;
+    const offsetX = (targetSize - scaledWidth) / 2;
+    const offsetY = (targetSize - scaledHeight) / 2;
+
+    console.log("[editSprite] Scaling image", {
+      original: `${canvasWidth}x${canvasHeight}`,
+      scale,
+      scaled: `${scaledWidth}x${scaledHeight}`,
+      offset: `${offsetX},${offsetY}`,
+      target: `${targetSize}x${targetSize}`,
+    });
+
+    // Draw the sprite centered in the square canvas
+    const img = new Image();
+    img.src = currentImageDataURL;
+
+    await new Promise<void>((resolve, reject) => {
+      img.onerror = (err) => {
+        console.error("[editSprite] Error loading image:", err);
+        reject(err);
+      };
+      img.onload = () => {
+        tempCtx.drawImage(img, offsetX, offsetY, scaledWidth, scaledHeight);
+        console.log("[editSprite] Image drawn to canvas with transparent background");
+        resolve();
+      };
+    });
+
+    // Get the scaled square image as data URL
+    const scaledImageDataURL = tempCanvas.toDataURL("image/png");
+    console.log("[editSprite] Scaled image data URL length:", scaledImageDataURL.length);
+
+    console.log("[editSprite] Key background color set", keyColor);
+
+    // Verify the canvas is exactly 1024x1024
+    if (tempCanvas.width !== targetSize || tempCanvas.height !== targetSize) {
+      console.error("[editSprite] Canvas size mismatch!", {
+        width: tempCanvas.width,
+        height: tempCanvas.height,
+        expected: targetSize,
+      });
+    } else {
+      console.log("[editSprite] Canvas verified as 1024x1024");
+    }
+
+    this.setState({ isEditingSprite: true });
+
+    try {
+      const prompt = [
+        "Keep the background solid off-white (RGB 254,247,231).",
+        spriteEditDescription.trim(),
+      ]
+        .filter(Boolean)
+        .join(" ");
+
+      console.log("[editSprite] Sending request to API (no mask, keyed background)", {
+        prompt,
+        promptVersion: "v3-simple-offwhite",
+      });
+      const data = await makeRequest<{ imageUrl?: string; error?: string }>(
+        "/edit-sprite",
+        {
+          method: "POST",
+          json: {
+            imageData: scaledImageDataURL,
+            prompt,
+          },
+        }
+      );
+
+      console.log("[editSprite] Received response", { hasImageUrl: !!data.imageUrl, error: data.error });
+
+      if (data.imageUrl) {
+        console.log("[editSprite] Processing edited image");
+
+        // Load the edited image and scale it back to original dimensions
+        const editedImg = new Image();
+        editedImg.src = data.imageUrl;
+
+        await new Promise<void>((resolve, reject) => {
+          editedImg.onerror = (err) => {
+            console.error("[editSprite] Error loading edited image:", err);
+            reject(err);
+          };
+          editedImg.onload = () => {
+            console.log("[editSprite] Edited image loaded", {
+              editedSize: `${editedImg.width}x${editedImg.height}`,
+              targetSize: `${canvasWidth}x${canvasHeight}`,
+              originalScaled: `${scaledWidth}x${scaledHeight}`,
+              originalOffset: `${offsetX},${offsetY}`,
+            });
+
+            // The edited image is 1024x1024 with the sprite centered and keyed padding
+            // We need to extract the sprite area (same bounds as when we scaled up) and scale it back
+
+            // Create a temporary canvas to extract the sprite area
+            const extractCanvas = document.createElement("canvas");
+            extractCanvas.width = scaledWidth;
+            extractCanvas.height = scaledHeight;
+            const extractCtx = extractCanvas.getContext("2d")!;
+            extractCtx.imageSmoothingEnabled = false;
+
+            // Extract the sprite area from the edited image (same position as when we placed it)
+            extractCtx.drawImage(
+              editedImg,
+              offsetX, offsetY, scaledWidth, scaledHeight, // Source: sprite area in 1024x1024
+              0, 0, scaledWidth, scaledHeight // Destination: full extract canvas
+            );
+
+            // Now scale the extracted sprite back to original canvas dimensions
+            const finalCanvas = document.createElement("canvas");
+            finalCanvas.width = canvasWidth;
+            finalCanvas.height = canvasHeight;
+            const finalCtx = finalCanvas.getContext("2d")!;
+            finalCtx.imageSmoothingEnabled = false; // Use nearest neighbor for pixel art
+
+            // Clear canvas with transparent background
+            finalCtx.clearRect(0, 0, canvasWidth, canvasHeight);
+
+            // Scale the extracted sprite back to original size
+            finalCtx.drawImage(extractCanvas, 0, 0, canvasWidth, canvasHeight);
+
+            // Get the final image data
+            const editImageData = finalCtx.getImageData(0, 0, canvasWidth, canvasHeight);
+
+            // Convert key background color to transparent
+            const tolerance = 8;
+            for (let y = 0; y < canvasHeight; y++) {
+              for (let x = 0; x < canvasWidth; x++) {
+                const idx = (y * canvasWidth + x) * 4;
+                const r = editImageData.data[idx];
+                const g = editImageData.data[idx + 1];
+                const b = editImageData.data[idx + 2];
+                const isKey =
+                  Math.abs(r - keyColor.r) <= tolerance &&
+                  Math.abs(g - keyColor.g) <= tolerance &&
+                  Math.abs(b - keyColor.b) <= tolerance;
+                if (isKey) {
+                  editImageData.data[idx + 3] = 0;
+                }
+              }
+            }
+
+            // Convert to PixelImageData and replace the current image
+            CreatePixelImageData.call(editImageData as PixelImageData);
+
+            console.log("[editSprite] Applying edited image directly to canvas", {
+              finalSize: `${editImageData.width}x${editImageData.height}`,
+            });
+
+            // Directly replace the imageData (not as a selection)
+            this.setStateWithCheckpoint({
+              imageData: editImageData as PixelImageData,
+              selectionImageData: null,
+              selectionOffset: { x: 0, y: 0 },
+            });
+
+            console.log("[editSprite] Edit complete - image replaced");
+            resolve();
+          };
+        });
+      } else {
+        console.error("[editSprite] Failed to edit sprite:", data.error);
+      }
+    } catch (error) {
+      console.error("[editSprite] Error editing sprite:", error);
+    } finally {
+      this.setState({ isEditingSprite: false });
+    }
   }
 
   // --- Keyboard Handling ---

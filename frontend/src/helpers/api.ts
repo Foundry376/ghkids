@@ -2,11 +2,11 @@
 import * as types from "../constants/action-types";
 
 // Use the production backend for development:
-const API_ROOT = window.location.host.includes("staging")
-  ? `https://staging.codako.org`
-  : `https://www.codako.org`;
+// const API_ROOT = window.location.host.includes("staging")
+//   ? `https://staging.codako.org`
+//   : `https://www.codako.org`;
 //
-// const API_ROOT = window.location.host.includes("codako") ? `` : `http://localhost:8080`;
+const API_ROOT = window.location.host.includes("codako") ? `` : `http://localhost:8080`;
 
 export async function makeRequest<T>(
   path: string,
