@@ -1267,7 +1267,6 @@ button.btn.selected:active {
   .bar {
     display: flex;
 
-    .add,
     .remove {
       width: 28px;
       height: 28px;
@@ -1293,9 +1292,35 @@ button.btn.selected:active {
       background-color: gray;
       vertical-align: top;
       padding: 2px;
+      cursor: pointer;
       &.selected {
         border: 2px solid color.adjust($tint-color, $lightness: 10%);
         background-color: $tint-color;
+      }
+      &.add-stage {
+        background-color: transparent;
+        border: 2px dashed #aaa;
+        &:hover {
+          border-color: $tint-color;
+          .add-stage-placeholder {
+            color: $tint-color;
+          }
+          h3 {
+            color: $tint-color;
+          }
+        }
+        .add-stage-placeholder {
+          width: 160px;
+          height: 104px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: #aaa;
+          font-size: 32px;
+        }
+        h3 {
+          color: #aaa;
+        }
       }
       img {
         width: 160px;

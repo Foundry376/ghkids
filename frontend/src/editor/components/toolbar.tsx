@@ -12,7 +12,6 @@ import DropdownToggle from "reactstrap/lib/DropdownToggle";
 import * as actions from "../actions/ui-actions";
 import { updateWorldMetadata } from "../actions/world-actions";
 import { MODALS, TOOLS } from "../constants/constants";
-import { getCurrentStage } from "../utils/selectors";
 import { TapToEditLabel } from "./tap-to-edit-label";
 import UndoRedoControls from "./undo-redo-controls";
 
@@ -23,7 +22,6 @@ import { useEditorSelector } from "../../hooks/redux";
 const Toolbar = () => {
   const dispatch = useDispatch();
   const selectedToolId = useEditorSelector((state) => state.ui.selectedToolId);
-  const stageName = useEditorSelector((state) => getCurrentStage(state)?.name);
   const metadata = useEditorSelector((state) => state.world.metadata);
   const isInTutorial = useEditorSelector((state) => state.ui.tutorial.stepIndex === 0);
 
@@ -167,7 +165,7 @@ const Toolbar = () => {
           className="dropdown-toggle"
         >
           <img src={new URL("../img/sidebar_choose_background.png", import.meta.url).href} />
-          <span className="title">{stageName || "Untitled Stage"}</span>
+          <span className="title">Stage Settings</span>
         </Button>
       </div>
     </div>
