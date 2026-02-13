@@ -330,7 +330,8 @@ const EditorPage = () => {
       _saveTimeout.current = null;
     }
     if (_savePromise.current) {
-      return _savePromise.current;
+      // Wait for in-flight save (e.g. draft) to complete, then perform the full save
+      return _savePromise.current.then(() => save());
     }
 
     _isCommitting.current = true; // Prevent auto-save during commit
