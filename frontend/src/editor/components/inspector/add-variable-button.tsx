@@ -27,7 +27,7 @@ const VariablesAddButton = ({ character }: { character: Character; actor: Actor 
       toggle={() => setOpen(!open)}
     >
       <DropdownToggle caret>
-        <i className="fa fa-inbox" /> Add
+        <i className="fa fa-plus" />
       </DropdownToggle>
       <DropdownMenu right>
         <DropdownItem disabled={!character} onClick={_onCreateVar}>
