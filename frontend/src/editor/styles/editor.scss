@@ -587,7 +587,7 @@ html {
   }
 
   .touch-keys {
-    display: flex;
+    display: none;
     flex-direction: row;
     align-items: center;
     justify-content: center;
@@ -595,11 +595,15 @@ html {
     padding: 4px 8px;
     background: #f0f0f0;
     border-radius: 4px;
-    margin: 2px 4px 4px;
+    margin: 2px 0 0;
     box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.12);
     user-select: none;
     -webkit-user-select: none;
     touch-action: manipulation;
+
+    @media (pointer: coarse) {
+      display: flex;
+    }
 
     &__group {
       display: flex;
