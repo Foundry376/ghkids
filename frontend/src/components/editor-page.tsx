@@ -25,10 +25,9 @@ function useFullscreenPrompt() {
   useEffect(() => {
     const isTouchDevice = "ontouchstart" in window || navigator.maxTouchPoints > 0;
     const canFullscreen = !!document.documentElement.requestFullscreen;
-    const alreadyDismissed = sessionStorage.getItem("editor-fullscreen-dismissed");
     const isAlreadyFullscreen = !!document.fullscreenElement;
 
-    if (isTouchDevice && canFullscreen && !alreadyDismissed && !isAlreadyFullscreen) {
+    if (isTouchDevice && canFullscreen && !isAlreadyFullscreen) {
       setShowPrompt(true);
     }
   }, []);
@@ -40,12 +39,10 @@ function useFullscreenPrompt() {
       });
     }
     setShowPrompt(false);
-    sessionStorage.setItem("editor-fullscreen-dismissed", "true");
   }, []);
 
   const dismiss = useCallback(() => {
     setShowPrompt(false);
-    sessionStorage.setItem("editor-fullscreen-dismissed", "true");
   }, []);
 
   return { containerRef, showPrompt, enter, dismiss };
