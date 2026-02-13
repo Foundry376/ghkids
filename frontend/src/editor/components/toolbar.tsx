@@ -154,7 +154,7 @@ const Toolbar = () => {
 
       <div style={{ display: "flex", alignItems: "center" }}>
         <div className="button-group">
-          {[TOOLS.POINTER, TOOLS.STAMP, TOOLS.TRASH, TOOLS.RECORD, TOOLS.PAINT].map(renderTool)}
+          {[TOOLS.POINTER, TOOLS.CREATE_CHARACTER, TOOLS.STAMP, TOOLS.TRASH, TOOLS.RECORD, TOOLS.PAINT].map(renderTool)}
         </div>
         <UndoRedoControls />
       </div>
