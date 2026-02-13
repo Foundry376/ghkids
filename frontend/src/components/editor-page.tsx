@@ -322,7 +322,7 @@ const EditorPage = () => {
     }, 5000);
   };
 
-  const save = () => {
+  const save = (): Promise<void> => {
     if (!storeProvider.current) {
       return Promise.resolve();
     }

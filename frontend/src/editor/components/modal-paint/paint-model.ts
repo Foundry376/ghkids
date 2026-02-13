@@ -264,11 +264,7 @@ export class PaintModel {
     } catch {
       alert(
         `Codako doesn't have permission to view your clipboard. ` +
-<<<<<<< Updated upstream
           `Please grant permission in your browser and try again!`,
-=======
-        `Please grant permission in your browser and try again!`
->>>>>>> Stashed changes
       );
       return;
     }
