@@ -769,7 +769,7 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
       evaluatedRuleDetails: u.constant(evaluatedRuleDetails),
       evaluatedTickFrames: frameAccumulator.getFrames(),
       history: (values: HistoryItem[]) =>
-        evaluatedSomeRule ? [...values.slice(values.length - 20), historyItem] : values,
+        evaluatedSomeRule ? [...values.slice(values.length - 500), historyItem] : values,
     };
 
     if (options.clearInput) {

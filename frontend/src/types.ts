@@ -377,6 +377,7 @@ export type UIState = {
   playback: {
     speed: number;
     running: boolean;
+    runningDirection: "forward" | "rewind";
   };
   keypicker: {
     open: boolean | null;
