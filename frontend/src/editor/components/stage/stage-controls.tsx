@@ -1,21 +1,21 @@
-import React, { useEffect, useRef } from "react";
 import classNames from "classnames";
+import React, { useEffect, useRef } from "react";
 import { Dispatch } from "redux";
 
 import Button from "reactstrap/lib/Button";
 import ButtonGroup from "reactstrap/lib/ButtonGroup";
-import TickClock from "./tick-clock";
-import { updatePlaybackState } from "../../actions/ui-actions";
-import { getStageScreenshot } from "../../utils/stage-helpers";
-import { getCurrentStageForWorld } from "../../utils/selectors";
+import { World } from "../../../types";
 import {
   advanceGameState,
-  stepBackGameState,
-  saveInitialGameState,
   restoreInitialGameState,
+  saveInitialGameState,
+  stepBackGameState,
 } from "../../actions/stage-actions";
+import { updatePlaybackState } from "../../actions/ui-actions";
 import { SPEED_OPTIONS } from "../../constants/constants";
-import { World } from "../../../types";
+import { getCurrentStageForWorld } from "../../utils/selectors";
+import { getStageScreenshot } from "../../utils/stage-helpers";
+import TickClock from "./tick-clock";
 
 interface StageControlsProps {
   readonly?: boolean;
@@ -70,11 +70,10 @@ const StageControls: React.FC<StageControlsProps> = ({
 
   // Auto-stop rewinding when history is exhausted
   useEffect(() => {
-    if (rewinding && world.history && world.history.length === 0) {
+    if (rewinding && world.history?.length === 0) {
       dispatch(updatePlaybackState({ speed, running: false }));
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rewinding, world.history?.length]);
+  }, [dispatch, rewinding, speed, world.history?.length]);
 
   const onRestoreInitialGameState = () => {
     const stage = getCurrentStageForWorld(world);
@@ -160,11 +159,11 @@ const StageControls: React.FC<StageControlsProps> = ({
               dispatch(
                 rewinding
                   ? updatePlaybackState({ speed, running: false })
-                  : updatePlaybackState({ speed, running: true, runningDirection: "rewind" })
+                  : updatePlaybackState({ speed, running: true, runningDirection: "rewind" }),
               )
             }
           >
-            <i className="fa fa-backward" /> Rewind
+            <i className="fa fa-backward" />
           </Button>
         )}{" "}
         <Button
@@ -187,11 +186,7 @@ const StageControls: React.FC<StageControlsProps> = ({
             <i className="fa fa-step-forward" /> Forward
           </Button>
         )}{" "}
-        <TickClock
-          running={running}
-          speed={speed}
-          tickKey={world.evaluatedTickFrames?.[0]?.id}
-        />
+        <TickClock running={running} speed={speed} tickKey={world.evaluatedTickFrames?.[0]?.id} />
       </div>
 
       <div style={{ flex: 1 }} />
