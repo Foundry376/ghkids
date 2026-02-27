@@ -148,7 +148,7 @@ const StageControls: React.FC<StageControlsProps> = ({
             disabled={world.history && world.history.length === 0}
             onClick={() => dispatch(stepBackGameState(world.id))}
           >
-            <i className="fa fa-step-backward" /> Back
+            <i className="fa fa-step-backward" />
           </Button>
         )}{" "}
         {!readonly && (
@@ -170,7 +170,7 @@ const StageControls: React.FC<StageControlsProps> = ({
           className={classNames({ selected: !running })}
           onClick={() => dispatch(updatePlaybackState({ speed, running: false }))}
         >
-          <i className="fa fa-stop" /> Stop
+          <i className="fa fa-stop" />
         </Button>{" "}
         <Button
           data-tutorial-id="play"
@@ -179,11 +179,11 @@ const StageControls: React.FC<StageControlsProps> = ({
             dispatch(updatePlaybackState({ speed, running: true, runningDirection: "forward" }))
           }
         >
-          <i className="fa fa-play" /> Play
+          <i className="fa fa-play" />
         </Button>{" "}
         {!readonly && (
           <Button size="sm" onClick={() => dispatch(advanceGameState(world.id))}>
-            <i className="fa fa-step-forward" /> Forward
+            <i className="fa fa-step-forward" />
           </Button>
         )}{" "}
         <TickClock running={running} speed={speed} tickKey={world.evaluatedTickFrames?.[0]?.id} />
@@ -197,7 +197,7 @@ const StageControls: React.FC<StageControlsProps> = ({
             <Button
               size="sm"
               key={name}
-              style={{ minWidth: 0 }}
+              style={{ minWidth: 0, fontSize: "1.2rem", padding: "0 8px" }}
               className={classNames({
                 selected: SPEED_OPTIONS[name as keyof typeof SPEED_OPTIONS] === speed,
               })}
@@ -210,11 +210,15 @@ const StageControls: React.FC<StageControlsProps> = ({
                 )
               }
             >
-              {name}
+              {name === "Slow" ? "🐢" : name === "Super" ? "🐇" : "•"}
             </Button>
           ))}
         </ButtonGroup>
       </div>
+
+      <div style={{ flex: 1 }} />
+
+      <div className="right"></div>
     </div>
   );
 };
