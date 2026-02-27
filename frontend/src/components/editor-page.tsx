@@ -420,6 +420,33 @@ const EditorPage = () => {
     }
   };
 
+  const discardChanges = async () => {
+    if (!hasUnsavedChanges) return;
+
+    // Clear any pending saves
+    if (_saveTimeout.current) {
+      clearTimeout(_saveTimeout.current);
+      _saveTimeout.current = null;
+    }
+
+    // Discard the draft
+    try {
+      await Adapter.save(me, worldId, {}, "discard");
+    } catch {
+      // Ignore errors when discarding
+    }
+
+    // Reload the world from saved data
+    try {
+      const loaded = applyDataMigrations(await Adapter.load(me, worldId));
+      setWorld(loaded);
+      setRetry((prev) => prev + 1);
+      setHasUnsavedChanges(false);
+    } catch (e: any) {
+      alert(`Unable to reload world: ${e.message}`);
+    }
+  };
+
   const revertToSaved = () => {
     // Clear unsavedData and load from data
     Adapter.save(me, worldId, {}, "discard").catch(() => {
@@ -442,6 +469,7 @@ const EditorPage = () => {
         saveDraft: saveDraft,
         saveAndExit: saveAndExit,
         exitWithoutSaving: exitWithoutSaving,
+        discardChanges: discardChanges,
         hasUnsavedChanges: hasUnsavedChanges,
       }}
     >

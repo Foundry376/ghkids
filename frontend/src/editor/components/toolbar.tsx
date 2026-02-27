@@ -32,6 +32,7 @@ const Toolbar = () => {
     save,
     saveAndExit,
     exitWithoutSaving,
+    discardChanges,
     hasUnsavedChanges,
   } = useContext(EditorContext);
   const [open, setOpen] = useState(false);
@@ -97,6 +98,9 @@ const Toolbar = () => {
             </DropdownItem>
             <DropdownItem onClick={() => exitWithoutSaving("/dashboard")}>
               Exit Without Saving
+            </DropdownItem>
+            <DropdownItem disabled={!hasUnsavedChanges} onClick={() => discardChanges()}>
+              Discard Unsaved Changes
             </DropdownItem>
             <DropdownItem divider />
             <DropdownItem
