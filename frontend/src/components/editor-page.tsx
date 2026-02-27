@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useDispatch } from "react-redux";
 
 import { createWorld, User } from "../actions/main-actions";
@@ -7,6 +7,7 @@ import RootEditor from "../editor/root-editor";
 import StoreProvider from "../editor/store-provider";
 import { deepClone } from "../editor/utils/utils";
 import { makeRequest } from "../helpers/api";
+import { useHideRecaptchaBadge } from "../hooks/useHideRecaptchaBadge";
 import { usePageTitle } from "../hooks/usePageTitle";
 
 import { useParams } from "react-router";
@@ -17,6 +18,36 @@ import { useAppSelector } from "../hooks/redux";
 import { Game } from "../types";
 import PageMessage from "./common/page-message";
 import { EditorContext } from "./editor-context";
+
+function useFullscreenPrompt() {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [showPrompt, setShowPrompt] = useState(false);
+
+  useEffect(() => {
+    const isTouchDevice = "ontouchstart" in window || navigator.maxTouchPoints > 0;
+    const canFullscreen = !!document.documentElement.requestFullscreen;
+    const isAlreadyFullscreen = !!document.fullscreenElement;
+
+    if (isTouchDevice && canFullscreen && !isAlreadyFullscreen) {
+      setShowPrompt(true);
+    }
+  }, []);
+
+  const enter = useCallback(() => {
+    if (containerRef.current?.requestFullscreen) {
+      containerRef.current.requestFullscreen().catch(() => {
+        // Fullscreen request denied — dismiss silently
+      });
+    }
+    setShowPrompt(false);
+  }, []);
+
+  const dismiss = useCallback(() => {
+    setShowPrompt(false);
+  }, []);
+
+  return { containerRef, showPrompt, enter, dismiss };
+}
 
 const APIAdapter = {
   load: function (me: User, worldId: string) {
@@ -113,6 +144,8 @@ const EditorPage = () => {
   const [showDraftPrompt, setShowDraftPrompt] = useState(false);
   const [draftWorld, setDraftWorld] = useState<Game | null>(null);
 
+  const fullscreen = useFullscreenPrompt();
+
   const Adapter = window.location.href.includes("localstorage") ? LocalStorageAdapter : APIAdapter;
 
   useEffect(() => {
@@ -169,6 +202,7 @@ const EditorPage = () => {
   }, [hasUnsavedChanges]);
 
   usePageTitle(world?.name);
+  useHideRecaptchaBadge();
 
   useEffect(() => {
     const load = async () => {
@@ -288,7 +322,7 @@ const EditorPage = () => {
     }, 5000);
   };
 
-  const save = () => {
+  const save = (): Promise<void> => {
     if (!storeProvider.current) {
       return Promise.resolve();
     }
@@ -298,7 +332,8 @@ const EditorPage = () => {
       _saveTimeout.current = null;
     }
     if (_savePromise.current) {
-      return _savePromise.current;
+      // Wait for in-flight save (e.g. draft) to complete, then perform the full save
+      return _savePromise.current.then(() => save());
     }
 
     _isCommitting.current = true; // Prevent auto-save during commit
@@ -410,49 +445,73 @@ const EditorPage = () => {
         hasUnsavedChanges: hasUnsavedChanges,
       }}
     >
-      {error || !loaded ? (
-        <PageMessage text={error ? error : "Loading..."} />
-      ) : (
-        <>
-          <Modal isOpen={showDraftPrompt} backdrop="static" centered>
-            <div className="modal-header">
-              <h4 style={{ marginBottom: 0 }}>Unsaved Draft Found</h4>
-            </div>
-            <ModalBody>
-              <p>
-                We found an unsaved draft from your last session. Would you like to continue working
-                on the draft or revert to the last saved version?
-              </p>
-              <div style={{ display: "flex", gap: "12px", justifyContent: "flex-end" }}>
-                <Button color="secondary" onClick={revertToSaved}>
-                  Revert to Saved
-                </Button>
-                <Button color="primary" onClick={loadDraft}>
-                  Load Draft
-                </Button>
+      <div ref={fullscreen.containerRef} className="editor-fullscreen-container">
+        {error || !loaded ? (
+          <PageMessage text={error ? error : "Loading..."} />
+        ) : (
+          <>
+            <Modal isOpen={showDraftPrompt} backdrop="static" centered>
+              <div className="modal-header">
+                <h4 style={{ marginBottom: 0 }}>Unsaved Draft Found</h4>
               </div>
-            </ModalBody>
-          </Modal>
-          {world && (
-            <StoreProvider
-              key={`${world.id}${retry}`}
-              world={world}
-              onWorldChanged={() => {
-                // Auto-save to unsavedData after 5 seconds, but not if we're committing
-                if (!_isCommitting.current) {
-                  setHasUnsavedChanges(true);
-                  saveDraftSoon();
-                }
-              }}
-              ref={(r) => {
-                storeProvider.current = r;
-              }}
-            >
-              <RootEditor />
-            </StoreProvider>
-          )}
-        </>
-      )}
+              <ModalBody>
+                <p>
+                  We found an unsaved draft from your last session. Would you like to continue
+                  working on the draft or revert to the last saved version?
+                </p>
+                <div style={{ display: "flex", gap: "12px", justifyContent: "flex-end" }}>
+                  <Button color="secondary" onClick={revertToSaved}>
+                    Revert to Saved
+                  </Button>
+                  <Button color="primary" onClick={loadDraft}>
+                    Load Draft
+                  </Button>
+                </div>
+              </ModalBody>
+            </Modal>
+            {world && (
+              <StoreProvider
+                key={`${world.id}${retry}`}
+                world={world}
+                onWorldChanged={() => {
+                  // Auto-save to unsavedData after 5 seconds, but not if we're committing
+                  if (!_isCommitting.current) {
+                    setHasUnsavedChanges(true);
+                    saveDraftSoon();
+                  }
+                }}
+                ref={(r) => {
+                  storeProvider.current = r;
+                }}
+              >
+                <RootEditor />
+              </StoreProvider>
+            )}
+          </>
+        )}
+
+        {fullscreen.showPrompt && (
+          <div className="editor-fullscreen-overlay">
+            <div className="editor-fullscreen-overlay__backdrop" onClick={fullscreen.dismiss} />
+            <div className="editor-fullscreen-overlay__content">
+              <div className="editor-fullscreen-overlay__icon">
+                <i className="fa fa-expand" />
+              </div>
+              <h2>Use Fullscreen Mode</h2>
+              <p>
+                For the best editing experience on your device, we recommend using fullscreen mode to
+                maximize your workspace.
+              </p>
+              <button className="editor-fullscreen-overlay__btn" onClick={fullscreen.enter}>
+                Enter Fullscreen
+              </button>
+              <button className="editor-fullscreen-overlay__dismiss" onClick={fullscreen.dismiss}>
+                Continue without fullscreen
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
     </EditorContext.Provider>
   );
 };

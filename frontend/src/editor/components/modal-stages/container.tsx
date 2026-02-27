@@ -92,11 +92,14 @@ export const StagesContainer = () => {
                 <h3>{s.name || "Untitled"}</h3>
               </div>
             ))}
+            <div className="stage-item add-stage" onClick={_onAddStage}>
+              <div className="add-stage-placeholder">
+                <i className="fa fa-plus" />
+              </div>
+              <h3>Add Stage</h3>
+            </div>
           </div>
           <div className="bar">
-            <Button className="add" onClick={_onAddStage}>
-              <i className="fa fa-plus" />
-            </Button>
             <Button className="remove" disabled={stagesArray.length <= 1} onClick={_onRemoveStage}>
               <i className="fa fa-minus" />
             </Button>

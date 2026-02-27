@@ -60,10 +60,12 @@ describe("FrameAccumulator", () => {
   });
 
   describe("getFrames", () => {
-    it("should return empty array when no changes", () => {
+    it("should return initial frame when no changes", () => {
       const actors = { actor1: makeActor("actor1", 0, 0) };
       const accumulator = new FrameAccumulator(actors);
-      expect(accumulator.getFrames()).to.deep.equal([]);
+      const frames = accumulator.getFrames();
+      expect(frames).to.have.length(1);
+      expect(frames[0].actors).to.deep.equal(actors);
     });
 
     it("should return single frame for single actor single change", () => {

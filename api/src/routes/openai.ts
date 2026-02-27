@@ -4,6 +4,7 @@ import fs from "fs";
 import https from "https";
 import multer from "multer";
 import OpenAI from "openai";
+import { toFile } from "openai/uploads";
 import { userFromBasicAuth } from "src/middleware";
 
 // Initialize OpenAI API client
@@ -164,6 +165,132 @@ router.post("/generate-sprite-name", userFromBasicAuth, (req, res) => {
       console.error("Error generating sprite name:", error);
       res.status(500).json({ error: "Failed to generate sprite name" });
     });
+});
+
+router.post("/edit-sprite", userFromBasicAuth, async (req, res) => {
+  try {
+    openai = openai || new OpenAI({});
+    const { imageData, maskData, prompt } = req.body;
+
+    console.log("[edit-sprite API] Received request", {
+      hasImageData: !!imageData,
+      hasMaskData: !!maskData,
+      imageDataLength: imageData?.length,
+      maskDataLength: maskData?.length,
+      imageDataPrefix: imageData?.substring(0, 50),
+      prompt,
+    });
+
+    if (!imageData || !prompt) {
+      console.error("[edit-sprite API] Missing required fields");
+      res.status(400).json({ error: "Missing image data or prompt" });
+      return;
+    }
+
+    // Extract base64 data for image
+    let base64Data = imageData;
+    if (imageData.startsWith("data:")) {
+      base64Data = imageData.split(",", 2)[1];
+      console.log("[edit-sprite API] Extracted base64 from image data URL");
+    }
+
+    // Convert base64 to buffer
+    const imageBuffer = Buffer.from(base64Data, "base64");
+    console.log("[edit-sprite API] Image buffer size:", imageBuffer.length, "bytes");
+
+    // Verify it's a valid PNG (PNG files start with PNG signature)
+    const pngSignature = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+    const isPNG = imageBuffer.subarray(0, 8).equals(pngSignature);
+    console.log("[edit-sprite API] Image format check:", {
+      isPNG,
+      firstBytes: Array.from(imageBuffer.subarray(0, 8)).map(b => `0x${b.toString(16)}`).join(" "),
+    });
+
+    if (!isPNG) {
+      console.warn("[edit-sprite API] Warning: Image may not be valid PNG format");
+    }
+
+    // Prepare image and mask files for OpenAI SDK
+    const imageFile = await toFile(imageBuffer, "sprite.png", { type: "image/png" });
+
+    let maskFile: Awaited<ReturnType<typeof toFile>> | undefined;
+    if (maskData) {
+      let maskBase64 = maskData;
+      if (maskData.startsWith("data:")) {
+        maskBase64 = maskData.split(",", 2)[1];
+      }
+      const maskBuffer = Buffer.from(maskBase64, "base64");
+      console.log("[edit-sprite API] Mask buffer size:", maskBuffer.length, "bytes");
+
+      const isMaskPNG = maskBuffer.subarray(0, 8).equals(pngSignature);
+      console.log("[edit-sprite API] Mask format check:", { isPNG: isMaskPNG });
+
+      maskFile = await toFile(maskBuffer, "mask.png", { type: "image/png" });
+    }
+
+    console.log("[edit-sprite API] Sending request to OpenAI (gpt-image-1)", {
+      model: "gpt-image-1",
+      hasMask: !!maskFile,
+      size: "1024x1024",
+    });
+
+    const response = await openai.images.edit({
+      model: "gpt-image-1",
+      image: imageFile,
+      mask: maskFile,
+      prompt,
+      size: "1024x1024",
+    });
+
+    console.log("[edit-sprite API] OpenAI response received", {
+      hasData: !!response,
+      dataKeys: response ? Object.keys(response) : [],
+      hasImageData: !!response.data?.[0]?.b64_json,
+    });
+
+    let editedImageBase64 = response.data?.[0]?.b64_json;
+
+    if (!editedImageBase64 && response.data?.[0]?.url) {
+      const imageUrl = response.data[0].url;
+      console.log("[edit-sprite API] Falling back to URL response", { imageUrl });
+      editedImageBase64 = await new Promise<string>((resolve, reject) => {
+        https
+          .get(imageUrl, (imageResponse) => {
+            const data: Buffer[] = [];
+            imageResponse.on("data", (chunk) => data.push(chunk));
+            imageResponse.on("end", () => resolve(Buffer.concat(data).toString("base64")));
+          })
+          .on("error", (err) => reject(err));
+      });
+    }
+
+    if (!editedImageBase64) {
+      console.error("[edit-sprite API] No edited image in response", {
+        responseData: JSON.stringify(response.data).substring(0, 500),
+      });
+      res.status(500).json({ error: "Failed to retrieve edited image" });
+      return;
+    }
+
+    console.log("[edit-sprite API] Edited image received", {
+      base64Length: editedImageBase64.length,
+    });
+
+    const imageUrl = `data:image/png;base64,${editedImageBase64}`;
+
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Content-Type", "application/json");
+    res.json({ imageUrl });
+  } catch (error: any) {
+    console.error("[edit-sprite API] Error editing sprite:", error);
+    console.error("[edit-sprite API] Error details:", {
+      message: error.message,
+      response: error.response?.data,
+      status: error.response?.status,
+    });
+    const errorMessage = error.response?.data?.error?.message || error.message || "Failed to edit sprite";
+    res.status(500).json({ error: errorMessage });
+  }
 });
 
 router.post("/generate-rule-name", userFromBasicAuth, async (req, res) => {

@@ -1,4 +1,27 @@
-<!-- LAST_COMMIT: 2e3e030 -->
+<!-- LAST_COMMIT: d2e3a78 -->
+
+## [2026-02-13]
+
+Games are now much better on iPads and phones! You'll see on-screen arrow keys and buttons so you can play games that use keyboard controls even without a real keyboard. There's also a prompt to go fullscreen so you have more room to build. We added AI-powered image editing for sprites, fixed some tricky bugs, and tidied up the stage settings.
+
+### Added
+
+- On-screen touch keyboard for mobile and tablet devices — games with key press rules now show tap-friendly buttons so you can play on iPad (#75)
+- Fullscreen mode prompt on touch devices to maximize workspace in the editor and player (#72)
+- AI-powered sprite image editing via `gpt-image-1` in the appearance editor (#70)
+- Prominent "Add Stage" placeholder card in the stage list, making it easier to discover how to add new stages (#71)
+
+### Changed
+
+- Stage toolbar button renamed to "Stage Settings" for clarity (#71)
+- reCAPTCHA badge hidden on editor and play pages to avoid overlapping controls (#77)
+
+### Fixed
+
+- Actor disambiguation dropdown showing wrong options when clicking non-anchor squares of multi-square actors (#76)
+- Player view sometimes loading stale data when a draft save was still in progress (#74)
+- Game clock not advancing when no rules fire during a tick (#73)
+- Build errors (#d2e3a78)
 
 ## [2026-02-06]
 

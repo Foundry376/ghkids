@@ -149,16 +149,16 @@ const StageControls: React.FC<StageControlsProps> = ({
         >
           <i className="fa fa-play" /> Play
         </Button>{" "}
-        <TickClock
-          running={running}
-          speed={speed}
-          tickKey={world.evaluatedTickFrames?.[0]?.id}
-        />{" "}
         {!readonly && (
           <Button size="sm" onClick={() => dispatch(advanceGameState(world.id))}>
             <i className="fa fa-step-forward" /> Forward
           </Button>
-        )}
+        )}{" "}
+        <TickClock
+          running={running}
+          speed={speed}
+          tickKey={world.evaluatedTickFrames?.[0]?.id}
+        />
       </div>
 
       <div style={{ flex: 1 }} />

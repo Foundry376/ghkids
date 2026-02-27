@@ -298,19 +298,24 @@ export const Library: React.FC = () => {
           <ButtonDropdown
             size="sm"
             isOpen={characterDropdownOpen}
-            data-tutorial-id="characters-add-button"
             toggle={toggleCharacterDropdown}
           >
             <DropdownToggle caret>
-              <i className="fa fa-plus" />
+              More
             </DropdownToggle>
             <DropdownMenu right>
-              <DropdownItem onClick={onCreateCharacter}>Draw new Character...</DropdownItem>
               <DropdownItem onClick={onExploreCharacters}>Explore Characters...</DropdownItem>
               <DropdownItem divider />
               <DropdownItem onClick={onSetCharacterOrder}>Set Character Order...</DropdownItem>
             </DropdownMenu>
           </ButtonDropdown>
+          <Button
+            size="sm"
+            data-tutorial-id="characters-add-button"
+            onClick={onCreateCharacter}
+          >
+            <i className="fa fa-plus" />
+          </Button>
         </div>
         {renderCharactersPanel()}
       </div>

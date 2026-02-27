@@ -108,6 +108,11 @@ const PaintContainer: React.FC = () => {
   // Event handlers - simple delegation to model
   const handleKeyDown = useCallback(
     (event: React.KeyboardEvent) => {
+      // Don't intercept keyboard events if user is typing in an input field
+      const target = event.target as HTMLElement;
+      if (target.tagName === "INPUT" || target.tagName === "TEXTAREA") {
+        return;
+      }
       if (model.handleKeyDown(event.nativeEvent)) {
         event.preventDefault();
         event.stopPropagation();
@@ -198,7 +203,7 @@ const PaintContainer: React.FC = () => {
 
   // Get current state from model
   const state = model.getState();
-  const { imageData, tool, toolSize, color, undoStack, redoStack } = state;
+  const { imageData, tool, toolSize, color, undoStack, redoStack, spriteEditDescription, isEditingSprite } = state;
 
   const handleOpened = useCallback(() => {
     focusRef.current?.focus();
@@ -450,6 +455,34 @@ const PaintContainer: React.FC = () => {
               ) : (
                 <span>
                   <i className="fa fa-magic" /> Draw with AI
+                </span>
+              )}
+            </Button>
+          </div>
+          <div
+            className="ai-sprite-editor"
+            style={{ display: "flex", alignItems: "center", gap: 8 }}
+          >
+            <input
+              type="text"
+              style={{ flex: 1 }}
+              placeholder="Edit appearance (e.g., 'make it red', 'add a hat')..."
+              value={spriteEditDescription || ""}
+              onChange={(e) => model.setSpriteEditDescription(e.target.value)}
+              disabled={state.isGeneratingSprite || isEditingSprite || !imageData}
+            />
+            <Button 
+              size="sm" 
+              onClick={() => model.editSprite()} 
+              disabled={state.isGeneratingSprite || isEditingSprite || !imageData || !spriteEditDescription?.trim()}
+            >
+              {isEditingSprite ? (
+                <span>
+                  <i className="fa fa-spinner fa-spin" /> Editing...
+                </span>
+              ) : (
+                <span>
+                  <i className="fa fa-edit" /> Edit with AI
                 </span>
               )}
             </Button>

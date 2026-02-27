@@ -54,6 +54,13 @@ export class FrameAccumulator {
       current.id = this.initial.id + frameIndex;
       frameIndex++;
     }
+
+    // Always return at least the initial frame so that the tick clock
+    // receives a new unique tickKey on every tick, even when no rules fire.
+    if (frames.length === 0) {
+      frames.push(this.initial);
+    }
+
     return frames;
   }
 }

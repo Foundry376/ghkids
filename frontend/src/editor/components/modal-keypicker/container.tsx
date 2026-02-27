@@ -41,7 +41,7 @@ export const KeypickerContainer = () => {
         key: replaceConditionKey || makeId("condition"),
         enabled: true,
         left: { globalId: "keypress" },
-        comparator: "contains",
+        comparator: "=",
         right: { constant: key },
       }),
     );

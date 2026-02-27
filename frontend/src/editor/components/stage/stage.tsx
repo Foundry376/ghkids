@@ -683,8 +683,9 @@ export const Stage = ({
     let handled = false;
 
     // Helper to check for overlapping actors and show popover if needed
+    const clickedPosition = getPositionForEvent(event);
     const showPopoverIfOverlapping = (toolId: string): boolean => {
-      const overlapping = actorsAtPoint(stage.actors, characters, actor.position, characterZOrder);
+      const overlapping = actorsAtPoint(stage.actors, characters, clickedPosition, characterZOrder);
       if (overlapping.length > 1) {
         setActorSelectionPopover({
           actors: overlapping,
@@ -749,7 +750,7 @@ export const Stage = ({
             ),
           );
         } else {
-          const overlapping = actorsAtPoint(stage.actors, characters, actor.position, characterZOrder);
+          const overlapping = actorsAtPoint(stage.actors, characters, clickedPosition, characterZOrder);
           const topActor = overlapping[overlapping.length - 1];
           const isTopActorSelected = topActor && selected.some((a) => a.id === topActor.id);
 
@@ -1147,6 +1148,7 @@ export const Stage = ({
           className="stage-selection-box"
           style={{
             position: "absolute",
+            zIndex: 1,
             left: Math.min(selectionRect.start.left, selectionRect.end.left),
             top: Math.min(selectionRect.start.top, selectionRect.end.top),
             width:

@@ -50,7 +50,7 @@ const RuleAddButton = ({
       toggle={() => setOpen(!open)}
     >
       <DropdownToggle caret disabled={!character || isRecording}>
-        <i className="fa fa-tasks" /> Add
+        <i className="fa fa-plus" />
       </DropdownToggle>
       <DropdownMenu right>
         <DropdownItem onClick={_onCreateRule}>
