@@ -65,6 +65,7 @@ const InitialState: EditorState = {
     playback: {
       speed: 500,
       running: false,
+      runningDirection: "forward" as const,
     },
     keypicker: {
       open: false,

@@ -17,4 +17,7 @@ export default defineConfig({
   server: {
     open: true,
   },
+  test: {
+    globals: true,
+  },
 });

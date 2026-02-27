@@ -23,6 +23,7 @@ interface StageControlsProps {
   dispatch: Dispatch;
   speed: number;
   running: boolean;
+  runningDirection: "forward" | "rewind";
 }
 
 const StageControls: React.FC<StageControlsProps> = ({
@@ -31,12 +32,19 @@ const StageControls: React.FC<StageControlsProps> = ({
   dispatch,
   speed,
   running,
+  runningDirection,
 }) => {
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const timerSpeedRef = useRef<number | null>(null);
 
+  const rewinding = running && runningDirection === "rewind";
+
   const onTick = () => {
-    dispatch(advanceGameState(world.id, { clearInput: true }));
+    if (runningDirection === "rewind") {
+      dispatch(stepBackGameState(world.id));
+    } else {
+      dispatch(advanceGameState(world.id, { clearInput: true }));
+    }
   };
 
   useEffect(() => {
@@ -58,7 +66,14 @@ const StageControls: React.FC<StageControlsProps> = ({
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [running, speed, world.id]);
+  }, [running, runningDirection, speed, world.id]);
+
+  // Auto-stop rewinding when history is exhausted
+  useEffect(() => {
+    if (rewinding && world.history?.length === 0) {
+      dispatch(updatePlaybackState({ speed, running: false }));
+    }
+  }, [dispatch, rewinding, speed, world.history?.length]);
 
   const onRestoreInitialGameState = () => {
     const stage = getCurrentStageForWorld(world);
@@ -136,6 +151,21 @@ const StageControls: React.FC<StageControlsProps> = ({
             <i className="fa fa-step-backward" />
           </Button>
         )}{" "}
+        {!readonly && (
+          <Button
+            className={classNames({ selected: rewinding })}
+            disabled={!rewinding && world.history && world.history.length === 0}
+            onClick={() =>
+              dispatch(
+                rewinding
+                  ? updatePlaybackState({ speed, running: false })
+                  : updatePlaybackState({ speed, running: true, runningDirection: "rewind" }),
+              )
+            }
+          >
+            <i className="fa fa-backward" />
+          </Button>
+        )}{" "}
         <Button
           className={classNames({ selected: !running })}
           onClick={() => dispatch(updatePlaybackState({ speed, running: false }))}
@@ -144,8 +174,10 @@ const StageControls: React.FC<StageControlsProps> = ({
         </Button>{" "}
         <Button
           data-tutorial-id="play"
-          className={classNames({ selected: running })}
-          onClick={() => dispatch(updatePlaybackState({ speed, running: true }))}
+          className={classNames({ selected: running && runningDirection === "forward" })}
+          onClick={() =>
+            dispatch(updatePlaybackState({ speed, running: true, runningDirection: "forward" }))
+          }
         >
           <i className="fa fa-play" />
         </Button>{" "}
@@ -155,7 +187,11 @@ const StageControls: React.FC<StageControlsProps> = ({
           </Button>
         )}{" "}
         <TickClock running={running} speed={speed} tickKey={world.evaluatedTickFrames?.[0]?.id} />
-        <span style={{ padding: "0 8px" }}>|</span>
+      </div>
+
+      <div style={{ flex: 1 }} />
+
+      <div className="right">
         <ButtonGroup>
           {Object.keys(SPEED_OPTIONS).map((name) => (
             <Button
