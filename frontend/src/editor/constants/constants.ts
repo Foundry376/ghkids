@@ -28,6 +28,7 @@ export enum TOOLS {
   TRASH = "trash",
   RECORD = "record",
   PAINT = "paint",
+  CREATE_CHARACTER = "create-character",
 
   // Used in the recording flow
   IGNORE_SQUARE = "ignore-square",

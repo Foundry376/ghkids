@@ -16,6 +16,7 @@ import {
   toggleSquareIgnored,
   upsertRecordingCondition,
 } from "../../actions/recording-actions";
+import { createCharacter } from "../../actions/characters-actions";
 import {
   changeActors,
   changeActorsIndividually,
@@ -85,7 +86,7 @@ type SpriteDragState = {
   mode: "move" | "copy"; // Whether we're moving or copying (alt key)
 };
 
-const DRAGGABLE_TOOLS = [TOOLS.IGNORE_SQUARE, TOOLS.TRASH, TOOLS.STAMP];
+const DRAGGABLE_TOOLS = [TOOLS.IGNORE_SQUARE, TOOLS.TRASH, TOOLS.STAMP, TOOLS.CREATE_CHARACTER];
 
 // Single empty image used for hiding native drag preview
 // eslint-disable-next-line react-refresh/only-export-components
@@ -861,6 +862,17 @@ export const Stage = ({
         }
       }
     }
+    if (selectedToolId === TOOLS.CREATE_CHARACTER) {
+      const newCharacterId = makeId("character");
+      const action = createCharacter(newCharacterId);
+      dispatch(action);
+      dispatch(
+        createActors(world.id, stage.id, [
+          { character: action.values as Character, initialValues: { position: { x, y } } },
+        ]),
+      );
+      dispatch(paintCharacterAppearance(newCharacterId, "idle"));
+    }
   };
 
   // Note: In this handler, the mouse cursor may be outside the stage
@@ -909,7 +921,8 @@ export const Stage = ({
         TOOLS.TRASH === selectedToolId ||
         TOOLS.STAMP === selectedToolId ||
         TOOLS.RECORD === selectedToolId ||
-        TOOLS.PAINT === selectedToolId
+        TOOLS.PAINT === selectedToolId ||
+        TOOLS.CREATE_CHARACTER === selectedToolId
       ) {
         dispatch(selectToolId(TOOLS.POINTER));
       }

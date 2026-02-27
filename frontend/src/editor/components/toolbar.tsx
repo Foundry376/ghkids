@@ -15,8 +15,8 @@ import { MODALS, TOOLS } from "../constants/constants";
 import { TapToEditLabel } from "./tap-to-edit-label";
 import UndoRedoControls from "./undo-redo-controls";
 
-import { EditorContext } from "../../components/editor-context";
 import { createWorld } from "../../actions/main-actions";
+import { EditorContext } from "../../components/editor-context";
 import { useEditorSelector } from "../../hooks/redux";
 
 const Toolbar = () => {
@@ -92,9 +92,7 @@ const Toolbar = () => {
           </DropdownToggle>
           <DropdownMenu>
             <DropdownItem onClick={() => save()}>Save Changes</DropdownItem>
-            <DropdownItem onClick={() => saveAndExit("/dashboard")}>
-              Save &amp; Exit
-            </DropdownItem>
+            <DropdownItem onClick={() => saveAndExit("/dashboard")}>Save &amp; Exit</DropdownItem>
             <DropdownItem onClick={() => exitWithoutSaving("/dashboard")}>
               Exit Without Saving
             </DropdownItem>
@@ -153,9 +151,11 @@ const Toolbar = () => {
       <div style={{ flex: 1, textAlign: "left" }}>{renderLeft()}</div>
 
       <div style={{ display: "flex", alignItems: "center" }}>
+        <div className="button-group">{[TOOLS.POINTER].map(renderTool)}</div>
         <div className="button-group">
-          {[TOOLS.POINTER, TOOLS.STAMP, TOOLS.TRASH, TOOLS.RECORD, TOOLS.PAINT].map(renderTool)}
+          {[TOOLS.CREATE_CHARACTER, TOOLS.PAINT, TOOLS.RECORD].map(renderTool)}
         </div>
+        <div className="button-group">{[TOOLS.STAMP, TOOLS.TRASH].map(renderTool)}</div>
         <UndoRedoControls />
       </div>
 

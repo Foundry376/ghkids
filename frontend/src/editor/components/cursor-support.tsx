@@ -13,6 +13,7 @@ const IMAGES = {
   IGNORE_SQUARE: new URL("../img/cursor_ignored_square.png", import.meta.url).href,
   CURSOR_STAMP_RULE: new URL("../img/cursor_stamp_rule.png", import.meta.url).href,
   ADD_CLICK_CONDITION: new URL("../img/cursor_add_click_condition.png", import.meta.url).href,
+  CREATE_CHARACTER: new URL("../img/cursor_create_character.png", import.meta.url).href,
 };
 
 /** All our normal cursors are done via css ala `tool-stamp`, `tool-record`.
@@ -113,6 +114,8 @@ export const StampCursorSupport = () => {
       cursorEl.setAttribute("src", IMAGES.IGNORE_SQUARE);
     } else if (selectedToolId == TOOLS.ADD_CLICK_CONDITION) {
       cursorEl.setAttribute("src", IMAGES.ADD_CLICK_CONDITION);
+    } else if (selectedToolId == TOOLS.CREATE_CHARACTER) {
+      cursorEl.setAttribute("src", IMAGES.CREATE_CHARACTER);
     } else {
       cursorEl.style.display = "none";
       cursorEl.removeAttribute("src");
