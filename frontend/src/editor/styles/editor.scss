@@ -959,6 +959,8 @@ html {
 
   .actor-option {
     cursor: pointer;
+    display: flex;
+    align-items: center;
     border: 2px solid transparent;
     border-radius: 4px;
     background: #f5f5f5;
@@ -971,9 +973,36 @@ html {
       background: rgba(0, 123, 255, 0.1);
     }
 
+    &.reorder-dragging {
+      opacity: 0.4;
+    }
+
+    &.reorder-drop-above {
+      border-top: 2px solid #007bff;
+    }
+
     img {
       pointer-events: auto;
     }
+
+    .reorder-handle {
+      color: #999;
+      font-size: 12px;
+      padding: 0 4px;
+      cursor: grab;
+      user-select: none;
+      flex-shrink: 0;
+
+      &:hover {
+        color: #555;
+      }
+    }
+  }
+
+  .reorder-drop-indicator {
+    height: 2px;
+    background: #007bff;
+    margin-top: 2px;
   }
 }
 
