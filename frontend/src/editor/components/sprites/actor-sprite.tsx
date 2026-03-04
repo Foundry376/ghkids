@@ -1,6 +1,11 @@
 import { Actor, Character } from "../../../types";
 import { STAGE_CELL_SIZE } from "../../constants/constants";
-import { getTransformedBounds, pointApplyingTransform } from "../../utils/stage-helpers";
+import {
+  getTransformedBounds,
+  INVERSE_TRANSFORMS,
+  pointApplyingTransform,
+  transformSwapsDimensions,
+} from "../../utils/stage-helpers";
 import VariableOverlay from "../modal-paint/variable-overlay";
 import { EMPTY_DRAG_IMAGE } from "../stage/stage";
 import { DEFAULT_APPEARANCE_INFO, SPRITE_TRANSFORM_CSS } from "./sprite";
@@ -107,11 +112,19 @@ const ActorSprite = (props: {
     }
     const { top, left } = event.target.getBoundingClientRect();
 
+    // getBoundingClientRect() returns the visual bounds after CSS transforms,
+    // so cell coordinates here are in the transformed visual space. We need
+    // to apply the inverse transform to map back to the original sprite space
+    // for the info.filled lookup.
+    const transform = actor.transform ?? "0";
+    const swapped = transformSwapsDimensions(transform);
+    const visualDims = swapped ? { width: info.height, height: info.width } : info;
+
     const [cellX, cellY] = pointApplyingTransform(
       Math.floor((event.clientX - left) / 40),
       Math.floor((event.clientY - top) / 40),
-      info,
-      actor.transform,
+      visualDims,
+      INVERSE_TRANSFORMS[transform],
     );
     if (info && !info.filled[`${cellX},${cellY}`]) {
       event.preventDefault();
