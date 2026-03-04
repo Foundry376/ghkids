@@ -265,7 +265,7 @@ export function getVariableValue(
 }
 
 // Inverse transforms in D4 symmetry group
-const INVERSE_TRANSFORMS: { [key in ActorTransform]: ActorTransform } = {
+export const INVERSE_TRANSFORMS: { [key in ActorTransform]: ActorTransform } = {
   "0": "0",
   "90": "270",
   "180": "180",
