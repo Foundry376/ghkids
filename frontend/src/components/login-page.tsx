@@ -8,6 +8,7 @@ import Row from "reactstrap/lib/Row";
 
 import { login } from "../actions/main-actions";
 import { useAppSelector } from "../hooks/redux";
+import PasswordInput from "./password-input";
 
 const LoginPage: React.FC = () => {
   const usernameRef = useRef<HTMLInputElement>(null);
@@ -78,11 +79,10 @@ const LoginPage: React.FC = () => {
               </div>
               <div className="form-group">
                 <label htmlFor="password">Password:</label>
-                <input
+                <PasswordInput
                   className="form-control"
                   id="password"
                   ref={passRef}
-                  type="password"
                   autoComplete="password"
                 />
               </div>
