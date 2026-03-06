@@ -272,7 +272,7 @@ function buildActionsFromStageActions(
             };
           }
 
-          if ("transform" in values && existing.transform !== values.transform) {
+          if ("transform" in values && (existing.transform ?? "0") !== (values.transform ?? "0")) {
             return {
               type: "transform",
               actorId: actorId,
