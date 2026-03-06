@@ -22,7 +22,7 @@ export const userFromBasicAuth = async (
     const hash = crypto.createHmac("sha512", user.passwordSalt);
     hash.update(password);
     if (user.passwordHash !== hash.digest("hex")) {
-      return res.status(401).json({ message: `The API key you passed is not active.` });
+      return res.status(401).json({ message: `The password you entered is incorrect.` });
     }
     req.user = user;
   }
