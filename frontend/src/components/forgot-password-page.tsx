@@ -50,7 +50,6 @@ const ForgotPasswordPage: React.FC = () => {
                   If an account with that email exists, we've sent a password reset link. Please
                   check your inbox.
                 </p>
-                <Link to="/login">Back to login</Link>
               </div>
             ) : (
               <>
