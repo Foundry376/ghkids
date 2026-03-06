@@ -7,7 +7,9 @@ import { User } from "src/db/entity/user";
 const FROM_EMAIL = process.env.SES_FROM_EMAIL || "noreply@codako.org";
 const FROM_NAME = process.env.SES_FROM_NAME || "Codako";
 
-const ses = new SESClient({});
+const ses = new SESClient({
+  region: process.env.AWS_REGION || "us-east-1",
+});
 
 const templateCache = new Map<string, HandlebarsTemplateDelegate>();
 
