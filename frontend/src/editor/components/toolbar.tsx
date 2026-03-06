@@ -32,6 +32,7 @@ const Toolbar = () => {
     save,
     saveAndExit,
     exitWithoutSaving,
+    revertToSaved,
     hasUnsavedChanges,
   } = useContext(EditorContext);
   const [open, setOpen] = useState(false);
@@ -96,6 +97,17 @@ const Toolbar = () => {
             <DropdownItem onClick={() => exitWithoutSaving("/dashboard")}>
               Exit Without Saving
             </DropdownItem>
+            {hasUnsavedChanges && (
+              <DropdownItem
+                onClick={() => {
+                  if (confirm("Revert all unsaved changes and return to the last saved version?")) {
+                    revertToSaved();
+                  }
+                }}
+              >
+                Revert Unsaved Changes
+              </DropdownItem>
+            )}
             <DropdownItem divider />
             <DropdownItem
               onClick={() => {

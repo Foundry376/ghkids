@@ -442,6 +442,7 @@ const EditorPage = () => {
         saveDraft: saveDraft,
         saveAndExit: saveAndExit,
         exitWithoutSaving: exitWithoutSaving,
+        revertToSaved: revertToSaved,
         hasUnsavedChanges: hasUnsavedChanges,
       }}
     >

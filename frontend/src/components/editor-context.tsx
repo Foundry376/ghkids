@@ -9,6 +9,7 @@ export const EditorContext = React.createContext<{
   saveDraft: () => Promise<any>;
   saveAndExit: (dest: string) => void;
   exitWithoutSaving: (dest: string) => void;
+  revertToSaved: () => void;
   hasUnsavedChanges: boolean;
 }>({
   usingLocalStorage: false,
@@ -18,5 +19,6 @@ export const EditorContext = React.createContext<{
   saveDraft: () => Promise.resolve(),
   saveAndExit: () => new Error(),
   exitWithoutSaving: () => new Error(),
+  revertToSaved: () => new Error(),
   hasUnsavedChanges: false,
 });
