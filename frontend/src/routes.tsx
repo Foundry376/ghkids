@@ -5,6 +5,7 @@ import DashboardPage from "./components/dashboard-page";
 import EditorPage from "./components/editor-page";
 import ExplorePage from "./components/explore-page";
 import FAQPage from "./components/faq-page";
+import ForgotPasswordPage from "./components/forgot-password-page";
 import HomePage from "./components/home-page";
 import JoinPage from "./components/join-page";
 import JoinSendWorldsPage from "./components/join-send-worlds-page";
@@ -12,6 +13,7 @@ import LoginPage from "./components/login-page";
 import NotFoundPage from "./components/not-found-page";
 import PlayPage from "./components/play-page";
 import ProfilePage from "./components/profile-page";
+import ResetPasswordPage from "./components/reset-password-page";
 
 export default (
   <Routes>
@@ -21,6 +23,8 @@ export default (
       <Route path="faq" element={<FAQPage />} />
       <Route path="changelog" element={<ChangelogPage />} />
       <Route path="login" element={<LoginPage />} />
+      <Route path="forgot-password" element={<ForgotPasswordPage />} />
+      <Route path="reset-password" element={<ResetPasswordPage />} />
       <Route path="join" element={<JoinPage />} />
       <Route path="join-send-world" element={<JoinSendWorldsPage />} />
 

@@ -1,9 +1,12 @@
 import express from "express";
 import crypto from "node:crypto";
 import { AppDataSource } from "src/db/data-source";
+import { sendPasswordResetEmail } from "src/connectors/email";
 import { User } from "src/db/entity/user";
 import { userFromBasicAuth } from "src/middleware";
 import { logger } from "src/logger";
+
+const APP_URL = process.env.APP_URL || "https://www.codako.org";
 
 const router = express.Router();
 
@@ -114,6 +117,56 @@ router.post("/users", async (req, res) => {
       res.status(400).json({ message: `${err}` });
     }
   }
+});
+
+router.post("/users/forgot-password", async (req, res) => {
+  const { email } = req.body;
+  if (!email) {
+    return res.status(400).json({ message: "Email is required." });
+  }
+
+  const user = await AppDataSource.getRepository(User).findOneBy({ email: email.toLowerCase() });
+
+  // Always return success to avoid leaking whether an email exists
+  if (!user) {
+    return res.json({ message: "If an account with that email exists, we've sent a password reset link." });
+  }
+
+  const token = crypto.randomBytes(32).toString("hex");
+  const expiry = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
+  user.passwordResetToken = token;
+  user.passwordResetExpiry = expiry;
+  await AppDataSource.getRepository(User).save(user);
+
+  const resetUrl = `${APP_URL}/reset-password?token=${token}`;
+  await sendPasswordResetEmail(user, resetUrl);
+
+  res.json({ message: "If an account with that email exists, we've sent a password reset link." });
+});
+
+router.post("/users/reset-password", async (req, res) => {
+  const { token, password } = req.body;
+  if (!token || !password) {
+    return res.status(400).json({ message: "Token and password are required." });
+  }
+
+  const user = await AppDataSource.getRepository(User).findOneBy({ passwordResetToken: token });
+  if (!user || !user.passwordResetExpiry || user.passwordResetExpiry < new Date()) {
+    return res.status(400).json({ message: "This reset link is invalid or has expired." });
+  }
+
+  const passwordSalt = `${Math.round(new Date().valueOf() * Math.random())}`;
+  const hash = crypto.createHmac("sha512", passwordSalt);
+  hash.update(password);
+
+  user.passwordHash = hash.digest("hex");
+  user.passwordSalt = passwordSalt;
+  user.passwordResetToken = null;
+  user.passwordResetExpiry = null;
+  await AppDataSource.getRepository(User).save(user);
+
+  res.json({ message: "Your password has been reset. You can now log in." });
 });
 
 export default router;
