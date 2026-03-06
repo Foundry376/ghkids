@@ -6,6 +6,7 @@ import Container from "reactstrap/lib/Container";
 import Row from "reactstrap/lib/Row";
 
 import { makeRequest } from "../helpers/api";
+import PasswordInput from "./password-input";
 
 const ResetPasswordPage: React.FC = () => {
   const location = useLocation();
@@ -94,22 +95,20 @@ const ResetPasswordPage: React.FC = () => {
                 <form className="card-body" onSubmit={onSubmit}>
                   <div className="form-group">
                     <label htmlFor="password">New password:</label>
-                    <input
+                    <PasswordInput
                       className="form-control"
                       id="password"
                       ref={passRef}
-                      type="password"
                       autoFocus
                       autoComplete="new-password"
                     />
                   </div>
                   <div className="form-group">
                     <label htmlFor="confirm-password">Confirm new password:</label>
-                    <input
+                    <PasswordInput
                       className="form-control"
                       id="confirm-password"
                       ref={confirmRef}
-                      type="password"
                       autoComplete="new-password"
                     />
                   </div>
