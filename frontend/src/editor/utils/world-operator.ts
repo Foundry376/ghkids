@@ -1,4 +1,5 @@
 import u from "updeep";
+import { diff as historyDiffFn, unpatch as historyUnpatch } from "./history-diff";
 import {
   Actor,
   ActorTransform,
@@ -11,6 +12,7 @@ import {
   FrameInput,
   Globals,
   HistoryItem,
+  HistorySnapshot,
   Position,
   PositionRelativeToWorld,
   Rule,
@@ -734,7 +736,7 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
     stage = currentStage;
     input = previousWorld.input;
 
-    const historyItem: HistoryItem = {
+    const beforeSnapshot: HistorySnapshot = {
       input: previousWorld.input,
       globals: previousWorld.globals,
       evaluatedRuleDetails: previousWorld.evaluatedRuleDetails,
@@ -759,6 +761,25 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
       Object.values(actorRuleDetails).some((details) => details.passed),
     );
 
+    const afterSnapshot: HistorySnapshot = {
+      input: options.clearInput ? { keys: {}, clicks: {} } : previousWorld.input,
+      globals,
+      evaluatedRuleDetails,
+      stages: {
+        [stage.id]: {
+          actors,
+        },
+      },
+    };
+
+    // Compute a compact diff (delta) instead of storing a full snapshot.
+    // The delta records only what changed between before and after, and can
+    // be used with unpatch() to reconstruct the before state.
+    const historyDelta = historyDiffFn(
+      beforeSnapshot as unknown as Record<string, unknown>,
+      afterSnapshot as unknown as Record<string, unknown>,
+    );
+
     const updates: Record<string, unknown> = {
       stages: {
         [stage.id]: {
@@ -769,7 +790,9 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
       evaluatedRuleDetails: u.constant(evaluatedRuleDetails),
       evaluatedTickFrames: frameAccumulator.getFrames(),
       history: (values: HistoryItem[]) =>
-        evaluatedSomeRule ? [...values.slice(values.length - 20), historyItem] : values,
+        evaluatedSomeRule && historyDelta
+          ? [...values.slice(values.length - 500), historyDelta]
+          : values,
     };
 
     if (options.clearInput) {
@@ -784,23 +807,40 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
       throw new Error("This world does not have history state.");
     }
     const history = previousWorld.history as HistoryItem[];
-    const historyItem = history[history.length - 1];
-    if (!historyItem) {
+    const delta = history[history.length - 1];
+    if (!delta) {
       return previousWorld;
     }
 
-    const historyStageKey = Object.keys(historyItem.stages)[0];
+    // Reconstruct the previous state by applying the reverse diff to the current state.
+    const currentStage = getCurrentStageForWorld(previousWorld)!;
+    const currentSnapshot: HistorySnapshot = {
+      input: previousWorld.input,
+      globals: previousWorld.globals,
+      evaluatedRuleDetails: previousWorld.evaluatedRuleDetails,
+      stages: {
+        [currentStage.id]: {
+          actors: currentStage.actors,
+        },
+      },
+    };
+
+    const previousSnapshot = historyUnpatch(
+      currentSnapshot as unknown as Record<string, unknown>,
+      delta,
+    ) as unknown as HistorySnapshot;
+    const stageKey = Object.keys(previousSnapshot.stages)[0];
 
     return u(
       {
-        input: u.constant(historyItem.input),
-        globals: u.constant(historyItem.globals),
+        input: u.constant(previousSnapshot.input),
+        globals: u.constant(previousSnapshot.globals),
         stages: {
-          [historyStageKey]: {
-            actors: u.constant(historyItem.stages[historyStageKey].actors),
+          [stageKey]: {
+            actors: u.constant(previousSnapshot.stages[stageKey].actors),
           },
         },
-        evaluatedRuleDetails: u.constant(historyItem.evaluatedRuleDetails),
+        evaluatedRuleDetails: u.constant(previousSnapshot.evaluatedRuleDetails),
         evaluatedTickFrames: [],
         history: history.slice(0, history.length - 1),
       },

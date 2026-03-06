@@ -334,12 +334,15 @@ export type Globals = {
   [globalId: string]: Global;
 };
 
-export type HistoryItem = {
+export type HistorySnapshot = {
   input: FrameInput;
   globals: Globals;
   evaluatedRuleDetails: EvaluatedRuleDetailsMap;
   stages: { [stageId: string]: Pick<Stage, "actors"> };
 };
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type HistoryItem = Record<string, any>; // jsondiffpatch delta
 
 export type WorldMinimal = {
   id: WORLDS;
@@ -377,6 +380,7 @@ export type UIState = {
   playback: {
     speed: number;
     running: boolean;
+    runningDirection: "forward" | "rewind";
   };
   keypicker: {
     open: boolean | null;

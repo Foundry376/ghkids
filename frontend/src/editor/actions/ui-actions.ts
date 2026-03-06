@@ -39,7 +39,7 @@ export function select(
 }
 
 export function updatePlaybackState(
-  values: EditorState["ui"]["playback"],
+  values: DeepPartial<EditorState["ui"]["playback"]>,
 ): ActionUpdatePlaybackState {
   return {
     type: types.UPDATE_PLAYBACK_STATE,
