@@ -89,6 +89,9 @@ const LoginPage: React.FC = () => {
               <Button block color="primary" type="submit">
                 Login
               </Button>
+              <div style={{ textAlign: "center", marginTop: 10 }}>
+                <Link to="/forgot-password">Forgot your password?</Link>
+              </div>
             </form>
           </div>
           <div className="card" style={{ marginTop: 20 }}>

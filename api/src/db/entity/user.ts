@@ -41,6 +41,12 @@ export class User {
   @UpdateDateColumn({ type: "timestamp", default: () => "NOW()" })
   updatedAt: Date;
 
+  @Column({ type: "varchar", nullable: true })
+  passwordResetToken: string | null;
+
+  @Column({ type: "timestamp", nullable: true })
+  passwordResetExpiry: Date | null;
+
   @Column({
     type: "jsonb",
     default: DEFAULT_NOTIFICATION_SETTINGS,

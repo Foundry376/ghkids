@@ -106,6 +106,13 @@ export async function sendTemplateEmail(
   });
 }
 
+export async function sendPasswordResetEmail(
+  recipient: User,
+  resetUrl: string,
+): Promise<boolean> {
+  return sendTemplateEmail(recipient, "password-reset", "Reset your Codako password", { resetUrl });
+}
+
 export interface ForkEmailData {
   forkerUsername: string;
   worldName: string;
