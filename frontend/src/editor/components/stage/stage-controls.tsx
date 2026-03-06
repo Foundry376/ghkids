@@ -8,13 +8,11 @@ import { World } from "../../../types";
 import {
   advanceGameState,
   restoreInitialGameState,
-  saveInitialGameState,
   stepBackGameState,
 } from "../../actions/stage-actions";
 import { updatePlaybackState } from "../../actions/ui-actions";
 import { SPEED_OPTIONS } from "../../constants/constants";
 import { getCurrentStageForWorld } from "../../utils/selectors";
-import { getStageScreenshot } from "../../utils/stage-helpers";
 import TickClock from "./tick-clock";
 
 interface StageControlsProps {
@@ -84,21 +82,6 @@ const StageControls: React.FC<StageControlsProps> = ({
     }
   };
 
-  const onSaveInitialGameState = () => {
-    const stage = getCurrentStageForWorld(world);
-    if (!stage) return;
-
-    const thumbnail = getStageScreenshot(stage, { size: 160 });
-    if (!thumbnail) return;
-
-    dispatch(
-      saveInitialGameState(world.id, stage.id, {
-        actors: stage.actors,
-        thumbnail,
-      }),
-    );
-  };
-
   const renderRestartControl = () => {
     const stage = getCurrentStageForWorld(world);
     const startThumbnail = stage?.startThumbnail ?? "";
@@ -115,20 +98,11 @@ const StageControls: React.FC<StageControlsProps> = ({
   };
 
   const renderInitialStateControls = () => {
-    const stage = getCurrentStageForWorld(world);
-    const startThumbnail = stage?.startThumbnail ?? "";
-
     return (
       <div className="left">
-        <div className="start-thumbnail">
-          <img src={startThumbnail} />
-        </div>
         <div className="start-buttons">
-          <Button size="sm" onClick={onRestoreInitialGameState}>
-            <i className="fa fa-arrow-up" />
-          </Button>
-          <Button size="sm" onClick={onSaveInitialGameState}>
-            <i className="fa fa-arrow-down" />
+          <Button size="sm" title="Restore Initial Game State" onClick={onRestoreInitialGameState}>
+            <i className="fa fa-undo" />
           </Button>
         </div>
       </div>
