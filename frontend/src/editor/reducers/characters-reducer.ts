@@ -133,6 +133,9 @@ export default function charactersReducer(
     }
 
     case Types.FINISH_RECORDING: {
+      if (!state[recording.characterId!]) {
+        return state;
+      }
       const rules = deepClone(state[recording.characterId!].rules);
 
       // locate the main actor in the recording to "re-center" the extent to it
