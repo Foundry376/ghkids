@@ -73,7 +73,9 @@ export default function charactersReducer(
 
     case Types.CREATE_CHARACTER_EVENT_CONTAINER: {
       const { characterId, eventType, eventCode, id } = action;
-
+      if (!state[characterId]) {
+        return state;
+      }
       let rules: RuleTreeItem[] = deepClone(state[characterId].rules);
       const hasSameAlready = rules.some(
         (r) => "event" in r && r.event === eventType && r.code === eventCode,
@@ -110,6 +112,9 @@ export default function charactersReducer(
 
     case Types.CREATE_CHARACTER_FLOW_CONTAINER: {
       const { characterId, id } = action;
+      if (!state[characterId]) {
+        return state;
+      }
       const rules = deepClone(state[characterId].rules);
 
       const idleContainer = rules.find(
