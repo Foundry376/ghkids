@@ -315,7 +315,7 @@ export const Stage = ({
 
   const selected =
     selectedActors && selectedActors?.worldId === world.id && selectedActors?.stageId === stage.id
-      ? selectedActors.actorIds.map((a) => stage.actors[a])
+      ? selectedActors.actorIds.map((a) => stage.actors[a]).filter(Boolean)
       : [];
 
   const centerOnExtent = () => {
