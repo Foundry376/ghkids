@@ -307,7 +307,7 @@ const EditorPage = () => {
         alert(
           `Codako was unable to save changes to your world. Your internet connection may be offline. \n(Detail: ${e.message})`,
         );
-        throw new Error(e);
+        throw e;
       });
 
     return _savePromise.current;
@@ -359,7 +359,7 @@ const EditorPage = () => {
         alert(
           `Codako was unable to save changes to your world. Your internet connection may be offline. \n(Detail: ${e.message})`,
         );
-        throw new Error(e);
+        throw e;
       });
 
     return _savePromise.current;
