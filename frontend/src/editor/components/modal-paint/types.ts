@@ -105,8 +105,6 @@ export interface PaintState extends PixelToolState {
   redoStack: PaintCheckpoint[];
   showVariables: boolean;
   visibleVariables: Record<string, boolean>;
-  isGeneratingSprite: boolean;
-  spriteDescription: string;
   dropdownOpen: boolean;
   spriteName: string;
 }

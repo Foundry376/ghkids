@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useReducer, useRef } from "react";
+import React, { useCallback, useEffect, useReducer, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import Button from "reactstrap/lib/Button";
 import ButtonDropdown from "reactstrap/lib/ButtonDropdown";
@@ -15,6 +15,7 @@ import { Actor, Character, Characters, EditorState } from "../../../types";
 import { upsertCharacter } from "../../actions/characters-actions";
 import { paintCharacterAppearance } from "../../actions/ui-actions";
 
+import AIModal from "./ai-modal";
 import { PaintModel, TOOLS_LIST } from "./paint-model";
 import PixelCanvas from "./pixel-canvas";
 import PixelColorPicker from "./pixel-color-picker";
@@ -201,9 +202,11 @@ const PaintContainer: React.FC = () => {
     }
   }, [model, character, appearanceId]);
 
+  const [aiModalOpen, setAiModalOpen] = useState(false);
+
   // Get current state from model
   const state = model.getState();
-  const { imageData, tool, toolSize, color, undoStack, redoStack, spriteEditDescription, isEditingSprite } = state;
+  const { imageData, tool, toolSize, color, undoStack, redoStack } = state;
 
   const handleOpened = useCallback(() => {
     focusRef.current?.focus();
@@ -431,62 +434,9 @@ const PaintContainer: React.FC = () => {
           </div>
         </ModalBody>
         <ModalFooter>
-          <div
-            className="ai-sprite-generator"
-            style={{ display: "flex", alignItems: "center", gap: 8 }}
-          >
-            <input
-              type="text"
-              style={{ flex: 1 }}
-              placeholder="Describe your sprite..."
-              value={state.spriteDescription || ""}
-              onChange={(e) => model.setSpriteDescription(e.target.value)}
-              disabled={state.isGeneratingSprite}
-            />
-            <Button
-              size="sm"
-              onClick={() => model.generateSprite()}
-              disabled={state.isGeneratingSprite}
-            >
-              {state.isGeneratingSprite ? (
-                <span>
-                  <i className="fa fa-spinner fa-spin" /> Drawing...
-                </span>
-              ) : (
-                <span>
-                  <i className="fa fa-magic" /> Draw with AI
-                </span>
-              )}
-            </Button>
-          </div>
-          <div
-            className="ai-sprite-editor"
-            style={{ display: "flex", alignItems: "center", gap: 8 }}
-          >
-            <input
-              type="text"
-              style={{ flex: 1 }}
-              placeholder="Edit appearance (e.g., 'make it red', 'add a hat')..."
-              value={spriteEditDescription || ""}
-              onChange={(e) => model.setSpriteEditDescription(e.target.value)}
-              disabled={state.isGeneratingSprite || isEditingSprite || !imageData}
-            />
-            <Button 
-              size="sm" 
-              onClick={() => model.editSprite()} 
-              disabled={state.isGeneratingSprite || isEditingSprite || !imageData || !spriteEditDescription?.trim()}
-            >
-              {isEditingSprite ? (
-                <span>
-                  <i className="fa fa-spinner fa-spin" /> Editing...
-                </span>
-              ) : (
-                <span>
-                  <i className="fa fa-edit" /> Edit with AI
-                </span>
-              )}
-            </Button>
-          </div>
+          <Button onClick={() => setAiModalOpen(true)}>
+            <i className="fa fa-magic" style={{ color: "#7b5ea7" }} /> Draw with AI
+          </Button>
           <div style={{ flex: 1 }} />
           <Button key="cancel" onClick={handleClose}>
             Close without Saving
@@ -501,6 +451,7 @@ const PaintContainer: React.FC = () => {
           </Button>
         </ModalFooter>
       </div>
+      <AIModal model={model} isOpen={aiModalOpen} onClose={() => setAiModalOpen(false)} />
     </Modal>
   );
 };
