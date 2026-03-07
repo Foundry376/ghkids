@@ -117,7 +117,11 @@ const LocalStorageAdapter = {
       if (json.thumbnail) _value.thumbnail = json.thumbnail;
       _value.unsavedDataUpdatedAt = new Date().toISOString();
     }
-    window.localStorage.setItem(worldId, JSON.stringify(_value));
+    try {
+      window.localStorage.setItem(worldId, JSON.stringify(_value));
+    } catch (e) {
+      console.warn("Failed to save world to localStorage (quota exceeded):", e);
+    }
     return Promise.resolve(_value);
   },
 };
