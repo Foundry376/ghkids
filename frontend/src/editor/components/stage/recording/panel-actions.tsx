@@ -144,7 +144,7 @@ export const RecordingActions = (props: { characters: Characters; recording: Rec
                   return;
                 }
                 let value: RuleValue = a.value;
-                if ("constant" in a.value) {
+                if (a.value && "constant" in a.value) {
                   const v = a.value.constant;
                   if (operation === "add") {
                     const table = RELATIVE_TRANSFORMS[actor.transform ?? "0"];
