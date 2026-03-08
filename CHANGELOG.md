@@ -1,4 +1,38 @@
-<!-- LAST_COMMIT: d2e3a78 -->
+<!-- LAST_COMMIT: fcb7c39d34043a10cec838d883429a95af31e572 -->
+
+## [2026-03-07]
+
+The stage now fills all available space in the editor and automatically zooms to fit — no more tiny stage surrounded by empty grey! We also added a "rewind" button so you can play your game backwards, and fixed a bunch of crashes that could happen when deleting characters while recording rules. Password reset by email is now working too.
+
+### Added
+
+- Stage now fills all available editor space and auto-zooms to fit, just like the player view
+- Rewind button in stage controls — hold it to play your game in reverse, step-by-step through history (#87)
+- History is now stored as compact diffs instead of full snapshots, allowing up to 500 steps of undo (~96% smaller memory footprint) (#87)
+- Create-character tool on the toolbar — click anywhere on the stage to place a brand new character (#83)
+- Password reset via email — "Forgot your password?" link on the login page (#90)
+- Show/hide password toggle button on login, join, and reset password pages (#92)
+
+### Changed
+
+- AI sprite editing moved into a modal for a cleaner look
+- Library "+" button now directly creates a new character; "More" menu contains Explore Characters and Set Character Order (#78)
+- "Add" buttons in the Rules/Variables sidebar now use "+" icons for consistency (#86)
+- TickClock moved to the right of the Forward button in stage controls (#82)
+- Key Pressed conditions now default to "=" comparator instead of "contains" (#80)
+
+### Fixed
+
+- Crash when deleting a character while a recording was in progress for that character (#0460a97, #3c03fff)
+- Selected actors for a deleted character remaining selected when viewing a different character (#e87c5b6)
+- Stage crashes (undefined actor) after undo/redo or character deletion (#26b6db1)
+- Drag-selection box appearing beneath actors on stage — now renders on top (#81)
+- Transformed multi-cell actors becoming unclickable (#88)
+- Actor transform: conditions like "rotation = 0" now match actors with no rotation set (#94)
+- Saving failing silently when localStorage is full — now shows a console warning (#4aad333)
+- Duplicate "Back to login" link on the password reset success page (#95)
+- Password reset emails not sending due to missing AWS region (#91)
+- Password reset email button showing white text on white background in some email clients (#93)
 
 ## [2026-02-13]
 

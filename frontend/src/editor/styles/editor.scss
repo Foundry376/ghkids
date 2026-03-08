@@ -70,11 +70,11 @@ html {
   }
 }
 
-.editor-wrap {
-  width: 100%;
+.editor-main-row {
+  flex: 1;
+  min-height: 0;
   display: flex;
-  flex-direction: column;
-  max-height: 100%;
+  flex-direction: row;
 }
 
 .editor {
@@ -86,6 +86,8 @@ html {
   padding: 10px;
   touch-action: pan-x pan-y;
   position: relative;
+  display: flex;
+  flex-direction: column;
 
   .circle {
     display: inline-block;
@@ -167,12 +169,6 @@ html {
     padding: 0.15rem 0.5rem;
   }
 
-  .editor-horizontal-flex {
-    display: flex;
-    flex-direction: row;
-    justify-content: center;
-  }
-
   h2 {
     color: #555;
     font-weight: 600;
@@ -186,7 +182,7 @@ html {
     order: 0;
     height: 50px;
     padding: 4px;
-    flex: 1;
+    flex-shrink: 0;
     display: flex;
     flex-direction: row;
 
@@ -269,12 +265,14 @@ html {
 .stage-container {
   order: 1;
   min-height: 0;
+  flex: 1;
+  min-width: 0;
 
   display: flex;
   flex-direction: column;
-  min-width: 600px;
 
   .panel.stages {
+    flex: 1;
     display: flex;
     flex-direction: column;
     user-select: none;
@@ -293,6 +291,9 @@ html {
       margin-bottom: 4px;
       position: relative;
       background-color: #222;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       transition:
         box-shadow 200ms,
         flex 400ms ease-out;
@@ -314,6 +315,7 @@ html {
         background-color: $stage-default-background;
         position: relative;
         outline: 0;
+        flex-shrink: 0;
         transition:
           top 400ms ease-out,
           left 400ms ease-out;
@@ -662,7 +664,7 @@ html {
   .library-container {
     display: flex;
     flex-direction: row;
-    flex-grow: 1;
+    flex-shrink: 0;
     min-height: 130px;
     max-height: 170px;
 
