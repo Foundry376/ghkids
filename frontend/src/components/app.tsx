@@ -51,7 +51,16 @@ const App = () => {
                     </Link>
                   </li>,
                   <li className="nav-item" key="logout">
-                    <a className="nav-link" href="#" onClick={() => dispatch(logout())}>
+                    <a
+                      className="nav-link"
+                      href="#"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        if (window.confirm("Are you sure you want to log out of Codako?")) {
+                          dispatch(logout());
+                        }
+                      }}
+                    >
                       Log Out ({me.username})
                     </a>
                   </li>,
