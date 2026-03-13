@@ -22,28 +22,24 @@ const RootEditor = () => {
 
   return (
     <div className={`editor tool-${selectedToolId}`}>
-      <div className="editor-wrap">
-        <div className="editor-horizontal-flex">
-          <Toolbar />
-        </div>
-        <div className="editor-horizontal-flex" style={{ flex: 1, minHeight: 0 }}>
-          <StageContainer />
-          <InspectorContainer />
-        </div>
-
-        <TutorialContainer />
-        <PaintContainer />
-        <KeypickerContainer />
-        <StagesContainer />
-        <VideosContainer />
-        <ExploreCharactersContainer />
-        <CharacterZOrderModal />
-        <PublishContainer />
-
-        {/**behaviors / hooks / weird stuff */}
-        <StageImagesLoader />
-        <StampCursorSupport />
+      <Toolbar />
+      <div className="editor-main-row">
+        <StageContainer immersive />
+        <InspectorContainer />
       </div>
+
+      <TutorialContainer />
+      <PaintContainer />
+      <KeypickerContainer />
+      <StagesContainer />
+      <VideosContainer />
+      <ExploreCharactersContainer />
+      <CharacterZOrderModal />
+      <PublishContainer />
+
+      {/**behaviors / hooks / weird stuff */}
+      <StageImagesLoader />
+      <StampCursorSupport />
     </div>
   );
 };

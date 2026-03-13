@@ -73,7 +73,9 @@ export default function charactersReducer(
 
     case Types.CREATE_CHARACTER_EVENT_CONTAINER: {
       const { characterId, eventType, eventCode, id } = action;
-
+      if (!state[characterId]) {
+        return state;
+      }
       let rules: RuleTreeItem[] = deepClone(state[characterId].rules);
       const hasSameAlready = rules.some(
         (r) => "event" in r && r.event === eventType && r.code === eventCode,
@@ -110,6 +112,9 @@ export default function charactersReducer(
 
     case Types.CREATE_CHARACTER_FLOW_CONTAINER: {
       const { characterId, id } = action;
+      if (!state[characterId]) {
+        return state;
+      }
       const rules = deepClone(state[characterId].rules);
 
       const idleContainer = rules.find(
@@ -128,6 +133,9 @@ export default function charactersReducer(
     }
 
     case Types.FINISH_RECORDING: {
+      if (!state[recording.characterId!]) {
+        return state;
+      }
       const rules = deepClone(state[recording.characterId!].rules);
 
       // locate the main actor in the recording to "re-center" the extent to it
@@ -148,6 +156,7 @@ export default function charactersReducer(
             return state;
           }
           const check: RuleTreeFlowItemCheck = Object.assign({}, existingRule.check, {
+            mainActorId: recordedRule.mainActorId,
             conditions: recordedRule.conditions,
             actors: recordedRule.actors,
             extent: recordedRule.extent,

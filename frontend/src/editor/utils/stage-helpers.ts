@@ -247,7 +247,7 @@ export function getVariableValue(
     return character.spritesheet.appearanceNames[actor.appearance];
   }
   if (id === "transform") {
-    return actor.transform ?? null;
+    return actor.transform ?? "0";
   }
   if (id === "x") {
     return String(actor.position.x);

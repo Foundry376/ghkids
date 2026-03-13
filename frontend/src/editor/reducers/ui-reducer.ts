@@ -62,11 +62,30 @@ export default function uiReducer(
       return state;
     }
     case Types.DELETE_CHARACTER: {
-      if (state.selectedCharacterId === action.characterId) {
-        return Object.assign({}, state, {
-          selectedCharacterId: null,
-          selectedActors: null,
-        });
+      let selectedCharacterId = state.selectedCharacterId;
+      let selectedActors = state.selectedActors;
+
+      if (selectedCharacterId === action.characterId) {
+        selectedCharacterId = null;
+        selectedActors = null;
+      }
+
+      // Also filter any selected actors that belong to the deleted character,
+      // even if a different character is the "selected" one in the inspector.
+      if (selectedActors) {
+        const stage = entireState.world.stages[selectedActors.stageId];
+        if (stage) {
+          const filteredIds = selectedActors.actorIds.filter(
+            (id) => stage.actors[id]?.characterId !== action.characterId,
+          );
+          if (filteredIds.length !== selectedActors.actorIds.length) {
+            selectedActors = filteredIds.length > 0 ? { ...selectedActors, actorIds: filteredIds } : null;
+          }
+        }
+      }
+
+      if (selectedCharacterId !== state.selectedCharacterId || selectedActors !== state.selectedActors) {
+        return Object.assign({}, state, { selectedCharacterId, selectedActors });
       }
       return state;
     }

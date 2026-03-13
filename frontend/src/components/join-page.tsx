@@ -9,6 +9,7 @@ import Row from "reactstrap/lib/Row";
 import { useLocation } from "react-router";
 import { register } from "../actions/main-actions";
 import { useAppSelector } from "../hooks/redux";
+import PasswordInput from "./password-input";
 
 interface NetworkError extends Error {
   statusCode?: number;
@@ -125,14 +126,13 @@ const JoinPage: React.FC = () => {
               </div>
               <div className="form-group">
                 <label htmlFor="password">Password</label>
-                <input
+                <PasswordInput
                   autoComplete="password"
                   autoCorrect="off"
                   autoCapitalize="off"
                   className="form-control"
                   id="password"
                   ref={passRef}
-                  type="password"
                 />
                 <small className="form-text text-muted">
                   Remember it - don't tell anyone else!

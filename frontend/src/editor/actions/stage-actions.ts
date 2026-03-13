@@ -74,6 +74,18 @@ export type ActionStepBackGameState = {
   worldId: string;
 };
 
+export function rewindAllGameState(worldId: string): ActionRewindAllGameState {
+  return {
+    type: types.REWIND_ALL_GAME_STATE,
+    worldId,
+  };
+}
+
+export type ActionRewindAllGameState = {
+  type: "REWIND_ALL_GAME_STATE";
+  worldId: string;
+};
+
 export function saveInitialGameState(
   worldId: string,
   stageId: string,
@@ -238,6 +250,7 @@ export type StageActions =
   | ActionUpsertActor
   | ActionAdvanceGameState
   | ActionStepBackGameState
+  | ActionRewindAllGameState
   | ActionSaveInitialGameState
   | ActionRestoreInitialGameState
   | ActionUpdateStageSettings

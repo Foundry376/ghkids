@@ -159,6 +159,48 @@ function recordingReducer(
     case Types.EDIT_RULE_RECORDING: {
       return u(stateForEditingRule(RECORDING_PHASE.RECORD, action.rule, entireState), nextState);
     }
+    case Types.SETUP_CHECK_RECORDING_FOR_ACTOR: {
+      // Initial creation of a precondition check with a selected actor on the
+      // world stage. Uses the full world as beforeWorld so the user can expand
+      // the extent to see surrounding actors.
+      const stage = getCurrentStageForWorld(world);
+      const actor = stage?.actors[action.actorId];
+      if (actor) {
+        const filled = actorFilledPoints(actor, characters);
+        return u(
+          {
+            ruleId: action.check.id,
+            characterId: actor.characterId,
+            phase: RECORDING_PHASE.RECORD,
+            actorId: actor.id,
+            actions: u.constant(null),
+            conditions: u.constant([
+              {
+                left: { actorId: actor.id, variableId: "appearance" },
+                right: { constant: actor.appearance },
+                enabled: true,
+                comparator: "=",
+                key: "main-actor-appearance",
+              },
+            ]),
+            beforeWorld: u.constant(u({ id: WORLDS.BEFORE }, world)),
+            extent: u.constant({
+              xmin: Math.min(...filled.map((f) => f.x)),
+              xmax: Math.max(...filled.map((f) => f.x)),
+              ymin: Math.min(...filled.map((f) => f.y)),
+              ymax: Math.max(...filled.map((f) => f.y)),
+              ignored: {},
+            }),
+          },
+          nextState,
+        );
+      }
+      // Fallback: if actor not found, use the standard editing path
+      return u(
+        stateForEditingRule(RECORDING_PHASE.RECORD, action.check, entireState),
+        nextState,
+      );
+    }
     case Types.FINISH_RECORDING: {
       return Object.assign({}, initialState.recording);
     }
@@ -217,6 +259,13 @@ function recordingReducer(
       const ignored = nextState.extent.ignored[key] ? u.omit(key) : { [key]: true };
       return u({ extent: { ignored } }, nextState);
     }
+    case Types.DELETE_CHARACTER: {
+      // Cancel recording if the character being recorded is the one deleted.
+      if (nextState.characterId === action.characterId) {
+        return Object.assign({}, initialState.recording);
+      }
+      return nextState;
+    }
     default:
       return nextState;
   }
@@ -272,7 +321,7 @@ function buildActionsFromStageActions(
             };
           }
 
-          if ("transform" in values && existing.transform !== values.transform) {
+          if ("transform" in values && (existing.transform ?? "0") !== (values.transform ?? "0")) {
             return {
               type: "transform",
               actorId: actorId,

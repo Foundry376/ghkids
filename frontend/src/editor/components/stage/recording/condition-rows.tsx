@@ -88,7 +88,7 @@ export const FreeformConditionRow = ({
     }
     if (variableIds.includes("appearance")) {
       const actorId = "actorId" in left ? left.actorId : "actorId" in right ? right.actorId : null;
-      const character = actorId && characters[actors[actorId].characterId];
+      const character = actorId && actors[actorId] && characters[actors[actorId].characterId];
       if (character) {
         return { type: "appearance", character };
       }
