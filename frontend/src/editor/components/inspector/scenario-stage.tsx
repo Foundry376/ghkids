@@ -6,6 +6,7 @@ import React from "react";
 import { Rule, RuleTreeFlowItemCheck, WorldMinimal } from "../../../types";
 import { extentIgnoredPositions } from "../../utils/recording-helpers";
 import { getCurrentStageForWorld } from "../../utils/selectors";
+import { sortActorsByZOrder } from "../../utils/stage-helpers";
 import RecordingIgnoredSprite from "../sprites/recording-ignored-sprite";
 
 export const ScenarioStage = React.memo(
@@ -20,7 +21,7 @@ export const ScenarioStage = React.memo(
     maxWidth: number;
     maxHeight: number;
   }) => {
-    const { world, characters } = window.editorStore!.getState();
+    const { world, characters, characterZOrder } = window.editorStore!.getState();
 
     const { xmin, xmax, ymin, ymax } = rule.extent;
     const width = (xmax - xmin + 1) * STAGE_CELL_SIZE;
@@ -37,11 +38,12 @@ export const ScenarioStage = React.memo(
     }
     return (
       <div className="scenario-stage" style={{ width, height, zoom }}>
-        {Object.keys(ruleStage.actors).map((id) => (
+        {sortActorsByZOrder(Object.values(ruleStage.actors), characterZOrder).map((actor) => (
           <ActorSprite
-            key={id}
-            character={characters[ruleStage.actors[id].characterId]}
-            actor={ruleStage.actors[id]}
+            key={actor.id}
+            character={characters[actor.characterId]}
+            actor={actor}
+            zIndex={characterZOrder.indexOf(actor.characterId)}
           />
         ))}
         {extentIgnoredPositions(rule.extent).map(({ x, y }) => (
