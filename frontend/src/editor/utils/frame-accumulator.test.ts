@@ -145,7 +145,7 @@ describe("FrameAccumulator", () => {
       expect(frames[1].actors["actor1"]).to.be.undefined;
     });
 
-    it("should set frameCount on each actor version", () => {
+    it("should set frameCount to total frame count for all actors", () => {
       const actors = { actor1: makeActor("actor1", 0, 0) };
       const accumulator = new FrameAccumulator(actors);
 
@@ -157,6 +157,23 @@ describe("FrameAccumulator", () => {
       expect(frames[0].actors["actor1"].frameCount).to.equal(3);
       expect(frames[1].actors["actor1"].frameCount).to.equal(3);
       expect(frames[2].actors["actor1"].frameCount).to.equal(3);
+    });
+
+    it("should set frameCount to max across all actors, not per-actor", () => {
+      const actors = {
+        actor1: makeActor("actor1", 0, 0),
+        actor2: makeActor("actor2", 5, 5),
+      };
+      const accumulator = new FrameAccumulator(actors);
+
+      // actor1 has 3 changes, actor2 has 1 change — frameCount should be 3 for both
+      accumulator.push({ ...makeActor("actor1", 1, 0), actionIdx: 0 });
+      accumulator.push({ ...makeActor("actor1", 2, 0), actionIdx: 1 });
+      accumulator.push({ ...makeActor("actor1", 3, 0), actionIdx: 2 });
+      accumulator.push({ ...makeActor("actor2", 6, 5), actionIdx: 0 });
+
+      const frames = accumulator.getFrames();
+      expect(frames[0].actors["actor2"].frameCount).to.equal(3);
     });
 
     it("should generate unique frame IDs", () => {
@@ -196,6 +213,49 @@ describe("FrameAccumulator", () => {
       expect(frames).to.have.length(1);
       expect(frames[0].actors["actor2"]).to.exist;
       expect(frames[0].actors["actor2"].position).to.deep.equal({ x: 3, y: 3 });
+    });
+
+    it("should spread changes evenly for actors with different repeat counts", () => {
+      const actors = {
+        a3: makeActor("a3", 0, 0),
+        a4: makeActor("a4", 0, 1),
+        a5: makeActor("a5", 0, 2),
+      };
+      const accumulator = new FrameAccumulator(actors);
+
+      // a5 has 5 changes, a4 has 4, a3 has 3
+      for (let i = 1; i <= 5; i++) accumulator.push({ ...makeActor("a5", i, 2), actionIdx: i - 1 });
+      for (let i = 1; i <= 4; i++) accumulator.push({ ...makeActor("a4", i, 1), actionIdx: i - 1 });
+      for (let i = 1; i <= 3; i++) accumulator.push({ ...makeActor("a3", i, 0), actionIdx: i - 1 });
+
+      const frames = accumulator.getFrames();
+      expect(frames).to.have.length(5);
+
+      // a5 changes every frame: 1,2,3,4,5
+      expect(frames[0].actors["a5"].position.x).to.equal(1);
+      expect(frames[1].actors["a5"].position.x).to.equal(2);
+      expect(frames[2].actors["a5"].position.x).to.equal(3);
+      expect(frames[3].actors["a5"].position.x).to.equal(4);
+      expect(frames[4].actors["a5"].position.x).to.equal(5);
+
+      // a3 changes at frames 0, 2, 4 (evenly spread): 1, then hold, 2, then hold, 3
+      expect(frames[0].actors["a3"].position.x).to.equal(1);
+      expect(frames[1].actors["a3"].position.x).to.equal(1); // held
+      expect(frames[2].actors["a3"].position.x).to.equal(2);
+      expect(frames[3].actors["a3"].position.x).to.equal(2); // held
+      expect(frames[4].actors["a3"].position.x).to.equal(3);
+
+      // a4 changes at frames 0, 1, 3, 4 (round-distributed): 1, 2, hold, 3, 4
+      expect(frames[0].actors["a4"].position.x).to.equal(1);
+      expect(frames[1].actors["a4"].position.x).to.equal(2);
+      expect(frames[2].actors["a4"].position.x).to.equal(2); // held
+      expect(frames[3].actors["a4"].position.x).to.equal(3);
+      expect(frames[4].actors["a4"].position.x).to.equal(4);
+
+      // All actors should have frameCount = 5
+      expect(frames[0].actors["a3"].frameCount).to.equal(5);
+      expect(frames[0].actors["a4"].frameCount).to.equal(5);
+      expect(frames[0].actors["a5"].frameCount).to.equal(5);
     });
 
     it("should preserve animationStyle on frame actors", () => {
