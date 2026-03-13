@@ -187,6 +187,9 @@ router.put("/worlds/:objectId", userFromBasicAuth, async (req, res) => {
 });
 
 router.delete("/worlds/:objectId", userFromBasicAuth, async (req, res) => {
+  if (!req.user) {
+    return res.status(401).json({ message: "Authentication required." });
+  }
   const { objectId } = req.params;
 
   const world = await AppDataSource.getRepository(World).findOneBy({
