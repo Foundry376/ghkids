@@ -70,11 +70,11 @@ html {
   }
 }
 
-.editor-wrap {
-  width: 100%;
+.editor-main-row {
+  flex: 1;
+  min-height: 0;
   display: flex;
-  flex-direction: column;
-  max-height: 100%;
+  flex-direction: row;
 }
 
 .editor {
@@ -86,6 +86,8 @@ html {
   padding: 10px;
   touch-action: pan-x pan-y;
   position: relative;
+  display: flex;
+  flex-direction: column;
 
   .circle {
     display: inline-block;
@@ -167,12 +169,6 @@ html {
     padding: 0.15rem 0.5rem;
   }
 
-  .editor-horizontal-flex {
-    display: flex;
-    flex-direction: row;
-    justify-content: center;
-  }
-
   h2 {
     color: #555;
     font-weight: 600;
@@ -186,7 +182,7 @@ html {
     order: 0;
     height: 50px;
     padding: 4px;
-    flex: 1;
+    flex-shrink: 0;
     display: flex;
     flex-direction: row;
 
@@ -269,12 +265,14 @@ html {
 .stage-container {
   order: 1;
   min-height: 0;
+  flex: 1;
+  min-width: 0;
 
   display: flex;
   flex-direction: column;
-  min-width: 600px;
 
   .panel.stages {
+    flex: 1;
     display: flex;
     flex-direction: column;
     user-select: none;
@@ -293,6 +291,9 @@ html {
       margin-bottom: 4px;
       position: relative;
       background-color: #222;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       transition:
         box-shadow 200ms,
         flex 400ms ease-out;
@@ -314,6 +315,7 @@ html {
         background-color: $stage-default-background;
         position: relative;
         outline: 0;
+        flex-shrink: 0;
         transition:
           top 400ms ease-out,
           left 400ms ease-out;
@@ -662,7 +664,7 @@ html {
   .library-container {
     display: flex;
     flex-direction: row;
-    flex-grow: 1;
+    flex-shrink: 0;
     min-height: 130px;
     max-height: 170px;
 
@@ -760,6 +762,219 @@ html {
     background-clip: padding-box;
   }
 }
+
+// ─── AI Sprite Modal ──────────────────────────────────────────────────────────
+
+.modal-dialog.ai-sprite-modal {
+  max-width: 460px;
+  margin-top: 120px;
+
+  .modal-body {
+    min-height: 220px;
+    padding: 24px;
+  }
+
+  // ── Prompt step ──
+
+  .ai-prompt-step {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+
+    > p {
+      margin: 0;
+      font-size: 15px;
+      color: #444;
+    }
+
+    .ai-description-input {
+      font-size: 15px;
+      padding: 10px 12px;
+    }
+
+    .ai-action-buttons {
+      display: flex;
+      flex-direction: row;
+      gap: 10px;
+    }
+
+    .ai-action-btn {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      padding: 14px 12px;
+      height: auto;
+      white-space: normal;
+      text-align: center;
+
+      .ai-action-btn__icon {
+        font-size: 22px;
+        display: block;
+      }
+
+      .ai-action-btn__text {
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+
+        strong {
+          display: block;
+          font-size: 13px;
+        }
+
+        span {
+          display: block;
+          font-size: 11px;
+          font-weight: normal;
+          opacity: 0.75;
+        }
+      }
+    }
+  }
+
+  // ── Loading step ──
+
+  .ai-loading-step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    padding: 16px 0 8px;
+
+    .ai-sparkle-animation {
+      position: relative;
+      width: 110px;
+      height: 110px;
+
+      .sparkle-center {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        font-size: 44px;
+        color: #7b5ea7;
+        animation: ai-wand-pulse 2s ease-in-out infinite;
+        filter: drop-shadow(0 0 6px rgba(123, 94, 167, 0.4));
+      }
+
+      .sparkle {
+        position: absolute;
+        top: calc(50% - 8px);
+        left: calc(50% - 8px);
+        width: 16px;
+        height: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 13px;
+        color: #f5a623;
+        animation: ai-orbit 2.4s linear infinite;
+
+        &.sparkle-0 { animation-delay: 0s; color: #f5a623; }
+        &.sparkle-1 { animation-delay: -0.4s; color: #e85d9b; font-size: 10px; }
+        &.sparkle-2 { animation-delay: -0.8s; color: #5bc8f5; }
+        &.sparkle-3 { animation-delay: -1.2s; color: #f5a623; font-size: 10px; }
+        &.sparkle-4 { animation-delay: -1.6s; color: #7ed957; }
+        &.sparkle-5 { animation-delay: -2.0s; color: #e85d9b; font-size: 10px; }
+      }
+    }
+
+    .ai-loading-message {
+      margin: 0;
+      width: 100%;
+      font-size: 18px;
+      font-weight: 600;
+      color: #7b5ea7;
+      text-align: center;
+      animation: ai-text-pulse 2s ease-in-out infinite;
+    }
+
+    .ai-loading-sub {
+      margin: 0;
+      width: 100%;
+      font-size: 13px;
+      color: #999;
+      text-align: center;
+    }
+  }
+
+  // ── Result step ──
+
+  .ai-result-step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 18px;
+
+    .ai-result-label {
+      margin: 0;
+      font-size: 16px;
+      font-weight: 600;
+      color: #444;
+    }
+
+    .ai-result-preview-wrap {
+      background: repeating-conic-gradient(#ddd 0% 25%, #fff 0% 50%) 0 0 / 16px 16px;
+      border: 2px solid #ddd;
+      border-radius: 10px;
+      padding: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 120px;
+      min-height: 120px;
+    }
+
+    .ai-result-preview {
+      display: block;
+      max-width: 260px;
+      max-height: 260px;
+      min-width: 80px;
+      min-height: 80px;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+    }
+
+    .ai-result-buttons {
+      display: flex;
+      gap: 12px;
+
+      .btn {
+        min-width: 120px;
+      }
+    }
+  }
+}
+
+@keyframes ai-orbit {
+  from {
+    transform: rotate(0deg) translateX(46px) rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg) translateX(46px) rotate(-360deg);
+  }
+}
+
+@keyframes ai-wand-pulse {
+  0%, 100% {
+    transform: translate(-50%, -50%) scale(1);
+    filter: drop-shadow(0 0 4px rgba(123, 94, 167, 0.3));
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(1.12);
+    filter: drop-shadow(0 0 14px rgba(123, 94, 167, 0.7));
+  }
+}
+
+@keyframes ai-text-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 .modal-dialog.paint {
   user-select: none;

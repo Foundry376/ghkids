@@ -117,7 +117,11 @@ const LocalStorageAdapter = {
       if (json.thumbnail) _value.thumbnail = json.thumbnail;
       _value.unsavedDataUpdatedAt = new Date().toISOString();
     }
-    window.localStorage.setItem(worldId, JSON.stringify(_value));
+    try {
+      window.localStorage.setItem(worldId, JSON.stringify(_value));
+    } catch (e) {
+      console.warn("Failed to save world to localStorage (quota exceeded):", e);
+    }
     return Promise.resolve(_value);
   },
 };
@@ -307,7 +311,7 @@ const EditorPage = () => {
         alert(
           `Codako was unable to save changes to your world. Your internet connection may be offline. \n(Detail: ${e.message})`,
         );
-        throw new Error(e);
+        throw e;
       });
 
     return _savePromise.current;
@@ -359,7 +363,7 @@ const EditorPage = () => {
         alert(
           `Codako was unable to save changes to your world. Your internet connection may be offline. \n(Detail: ${e.message})`,
         );
-        throw new Error(e);
+        throw e;
       });
 
     return _savePromise.current;

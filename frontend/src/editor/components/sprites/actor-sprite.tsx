@@ -110,19 +110,19 @@ const ActorSprite = (props: {
     if (!(event.target instanceof HTMLElement)) {
       return false;
     }
-    const { top, left } = event.target.getBoundingClientRect();
-
-    // getBoundingClientRect() returns the visual bounds after CSS transforms,
-    // so cell coordinates here are in the transformed visual space. We need
-    // to apply the inverse transform to map back to the original sprite space
-    // for the info.filled lookup.
+    // getBoundingClientRect() returns the visual bounds after CSS transforms AND
+    // CSS zoom from the parent stage. We compute the visual size of one cell from
+    // the element's actual rendered size so the math is correct at any zoom level.
+    const { top, left, width, height } = event.target.getBoundingClientRect();
     const transform = actor.transform ?? "0";
     const swapped = transformSwapsDimensions(transform);
     const visualDims = swapped ? { width: info.height, height: info.width } : info;
+    const cellWidth = width / visualDims.width;
+    const cellHeight = height / visualDims.height;
 
     const [cellX, cellY] = pointApplyingTransform(
-      Math.floor((event.clientX - left) / 40),
-      Math.floor((event.clientY - top) / 40),
+      Math.floor((event.clientX - left) / cellWidth),
+      Math.floor((event.clientY - top) / cellHeight),
       visualDims,
       INVERSE_TRANSFORMS[transform],
     );

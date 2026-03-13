@@ -31,14 +31,13 @@ export const RecordingActions = (props: { characters: Characters; recording: Rec
   const beforeStage = getCurrentStageForWorld(beforeWorld);
   let afterStage = deepClone(beforeStage);
 
-  // In a saved rule the main actor is at 0,0, but when recording on the stage
-  // the extent and the position are relative to the "current" game world.
-  const mainActorBeforePosition = beforeStage!.actors[recording.actorId!].position;
-
   const _renderAction = (a: RuleAction, onChange: (a: RuleAction) => void) => {
-    if (!beforeStage || !afterStage) {
+    if (!beforeStage || !afterStage || !beforeStage.actors[recording.actorId!]) {
       return;
     }
+    // In a saved rule the main actor is at 0,0, but when recording on the stage
+    // the extent and the position are relative to the "current" game world.
+    const mainActorBeforePosition = beforeStage.actors[recording.actorId!].position;
     if ("actorId" in a && a.actorId) {
       if (a.type === "create") {
         return (
@@ -144,7 +143,7 @@ export const RecordingActions = (props: { characters: Characters; recording: Rec
                   return;
                 }
                 let value: RuleValue = a.value;
-                if ("constant" in a.value) {
+                if (a.value && "constant" in a.value) {
                   const v = a.value.constant;
                   if (operation === "add") {
                     const table = RELATIVE_TRANSFORMS[actor.transform ?? "0"];

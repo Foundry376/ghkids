@@ -217,6 +217,13 @@ function recordingReducer(
       const ignored = nextState.extent.ignored[key] ? u.omit(key) : { [key]: true };
       return u({ extent: { ignored } }, nextState);
     }
+    case Types.DELETE_CHARACTER: {
+      // Cancel recording if the character being recorded is the one deleted.
+      if (nextState.characterId === action.characterId) {
+        return Object.assign({}, initialState.recording);
+      }
+      return nextState;
+    }
     default:
       return nextState;
   }
@@ -272,7 +279,7 @@ function buildActionsFromStageActions(
             };
           }
 
-          if ("transform" in values && existing.transform !== values.transform) {
+          if ("transform" in values && (existing.transform ?? "0") !== (values.transform ?? "0")) {
             return {
               type: "transform",
               actorId: actorId,

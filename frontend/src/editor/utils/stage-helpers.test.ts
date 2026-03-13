@@ -766,9 +766,9 @@ describe("stage-helpers", () => {
         expect(getVariableValue(actor, character, "transform", "=")).to.equal("90");
       });
 
-      it("should return null for actor without transform", () => {
+      it("should return '0' for actor without transform", () => {
         const actorNoTransform = { ...actor, transform: undefined };
-        expect(getVariableValue(actorNoTransform, character, "transform", "=")).to.be.null;
+        expect(getVariableValue(actorNoTransform, character, "transform", "=")).to.equal("0");
       });
     });
 
