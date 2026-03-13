@@ -100,12 +100,12 @@ const Toolbar = () => {
             {hasUnsavedChanges && (
               <DropdownItem
                 onClick={() => {
-                  if (confirm("Revert all unsaved changes and return to the last saved version?")) {
+                  if (confirm("Discard all unsaved changes and return to the last saved version?")) {
                     revertToSaved();
                   }
                 }}
               >
-                Revert Unsaved Changes
+                Discard Unsaved Changes
               </DropdownItem>
             )}
             <DropdownItem divider />

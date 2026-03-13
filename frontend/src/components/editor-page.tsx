@@ -345,6 +345,8 @@ const EditorPage = () => {
         // After commit, clear unsaved changes flag since everything is now saved
         setHasUnsavedChanges(false);
         _savePromise.current = null;
+        // Update world to reflect the saved state so revertToSaved returns to this point
+        setWorld((prev) => (prev ? { ...prev, data: json.data } : prev));
         // Keep the flag for a short time to prevent immediate re-triggering
         setTimeout(() => {
           _isCommitting.current = false;
