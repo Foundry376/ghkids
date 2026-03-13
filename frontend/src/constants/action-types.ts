@@ -2,3 +2,4 @@ export const NETWORK_ACTIVITY = "NETWORK_ACTIVITY";
 export const SET_ME = "SET_ME";
 export const UPSERT_PROFILE = "UPSERT_PROFILE";
 export const UPSERT_WORLDS = "UPSERT_WORLDS";
+export const REMOVE_WORLD = "REMOVE_WORLD";
