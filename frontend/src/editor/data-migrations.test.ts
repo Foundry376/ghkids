@@ -105,8 +105,7 @@ describe("data-migrations", () => {
                 height: 10,
                 wrapX: false,
                 wrapY: false,
-                startThumbnail: "",
-                startActors: {},
+
               },
             },
             globals: {
@@ -160,8 +159,7 @@ describe("data-migrations", () => {
                 height: 10,
                 wrapX: false,
                 wrapY: false,
-                startThumbnail: "",
-                startActors: {},
+
               },
             },
             globals: {
@@ -519,8 +517,7 @@ describe("data-migrations", () => {
                 height: 10,
                 wrapX: false,
                 wrapY: false,
-                startThumbnail: "",
-                startActors: {},
+
               },
             },
             globals: {

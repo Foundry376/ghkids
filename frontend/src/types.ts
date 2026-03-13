@@ -207,11 +207,9 @@ export type Stage = {
   wrapX: boolean;
   wrapY: boolean;
   scale?: number | "fit";
-  startThumbnail: ImageData;
   tutorial_name?: string;
   tutorial_step?: number;
   world?: string;
-  startActors: { [actorId: string]: Actor };
 };
 
 export type AppearanceInfo = {

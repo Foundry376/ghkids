@@ -122,8 +122,6 @@ export function makeStage(
     height: 10,
     wrapX: false,
     wrapY: false,
-    startThumbnail: "",
-    startActors: {},
     ...overrides,
   };
 }

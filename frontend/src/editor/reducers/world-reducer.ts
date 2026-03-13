@@ -63,7 +63,6 @@ export default function worldReducer(
     case Types.UPSERT_ACTORS:
     case Types.DELETE_ACTORS:
     case Types.DELETE_CHARACTER:
-    case Types.RESTORE_INITIAL_GAME_STATE:
       return u(
         {
           history: u.constant([]),
