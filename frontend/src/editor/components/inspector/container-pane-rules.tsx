@@ -15,7 +15,7 @@ import { RuleList } from "./rule-list";
 export const RuleActionsContext = React.createContext<{
   onRuleMoved: (movingRuleId: string, newParentId: string | null, newParentIdx: number) => void;
   onRuleStamped: (movingRuleId: string, newParentId: string | null, newParentIdx: number) => void;
-  onRuleReRecord: (rule: Rule | RuleTreeFlowItemCheck) => void;
+  onRuleReRecord: (rule: Rule | RuleTreeFlowItemCheck, actorId?: string) => void;
   onRuleChanged: (ruleId: string, changes: Partial<RuleTreeItem>) => void;
   onRuleDeleted: (ruleId: string, event: React.MouseEvent<unknown>) => void;
 }>(new Error() as never);
@@ -85,8 +85,8 @@ export const ContainerPaneRules = ({ character }: { character: Character | null 
     step();
   };
 
-  const _onRuleReRecord = (rule: Rule | RuleTreeFlowItemCheck) => {
-    dispatch(editRuleRecording({ characterId: character.id, rule: rule }));
+  const _onRuleReRecord = (rule: Rule | RuleTreeFlowItemCheck, actorId?: string) => {
+    dispatch(editRuleRecording({ characterId: character.id, rule: rule, actorId }));
   };
 
   const _onRuleMoved = (movingRuleId: string, newParentId: string | null, newParentIdx: number) => {

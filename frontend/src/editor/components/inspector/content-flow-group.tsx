@@ -4,6 +4,7 @@ import { RuleList } from "./rule-list";
 import { RuleStateCircle } from "./rule-state-circle";
 
 import { Character, RuleTreeFlowItem, RuleTreeFlowItemCheck } from "../../../types";
+import { useEditorSelector } from "../../../hooks/redux";
 import { defaultAppearanceId } from "../../utils/character-helpers";
 import { FLOW_BEHAVIORS } from "../../utils/world-constants";
 import { isCollapsePersisted, persistCollapsedState } from "./collapse-state-storage";
@@ -21,6 +22,7 @@ export const ContentFlowGroup = ({
   const [checkCollapsed, setCheckCollapsed] = useState(isCollapsePersisted(rule.id));
   const [collapsed, setCollapsed] = useState(isCollapsePersisted(rule.id));
   const { onRuleChanged, onRuleReRecord } = useContext(RuleActionsContext);
+  const selectedActors = useEditorSelector((s) => s.ui.selectedActors);
 
   const _onNameChange = (name: string) => {
     onRuleChanged(rule.id, { name });
@@ -65,7 +67,9 @@ export const ContentFlowGroup = ({
       },
     };
     onRuleChanged(rule.id, { check });
-    onRuleReRecord(check);
+    const worldActorId =
+      selectedActors?.worldId === "root" ? selectedActors.actorIds[0] : undefined;
+    onRuleReRecord(check, worldActorId);
   };
   const variables = Object.values(character.variables);
 

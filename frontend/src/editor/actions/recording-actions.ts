@@ -53,9 +53,11 @@ export type ActionSetupRecordingForCharacter = {
 export function editRuleRecording({
   characterId,
   rule,
+  actorId,
 }: {
   characterId: string;
   rule: Rule | RuleTreeFlowItemCheck;
+  actorId?: string;
 }) {
   return (dispatch: Dispatch<Actions>) => {
     dispatch(stopPlayback());
@@ -63,6 +65,7 @@ export function editRuleRecording({
       type: types.EDIT_RULE_RECORDING,
       characterId,
       rule,
+      actorId,
     });
   };
 }
@@ -71,6 +74,7 @@ export type ActionEditRuleRecording = {
   type: "EDIT_RULE_RECORDING";
   characterId: string;
   rule: Rule | RuleTreeFlowItemCheck;
+  actorId?: string;
 };
 
 export function cancelRecording(): ActionCancelRecording {
