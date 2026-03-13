@@ -37,14 +37,24 @@ const PlayPage: React.FC = () => {
   usePageTitle(world?.name);
   useHideRecaptchaBadge();
 
-  // Listen for fullscreen changes
+  // Listen for fullscreen changes — when the user exits fullscreen via the
+  // browser (Escape key, Safari controls, etc.), also leave immersive mode so
+  // the landing overlay with navigation links reappears.
   useEffect(() => {
     const onFullscreenChange = () => {
-      setIsFullscreen(!!document.fullscreenElement);
+      const nowFullscreen = !!document.fullscreenElement;
+      setIsFullscreen(nowFullscreen);
+      if (!nowFullscreen && immersive) {
+        // Fullscreen was exited externally — return to landing view
+        if (editorStoreRef.current) {
+          editorStoreRef.current.dispatch(updatePlaybackState({ speed: 500, running: false }));
+        }
+        setImmersive(false);
+      }
     };
     document.addEventListener("fullscreenchange", onFullscreenChange);
     return () => document.removeEventListener("fullscreenchange", onFullscreenChange);
-  }, []);
+  }, [immersive]);
 
   const startPlayback = useCallback(() => {
     if (editorStoreRef.current) {
