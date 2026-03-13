@@ -1,5 +1,5 @@
 import { DeepPartial, Dispatch } from "redux";
-import { Actor, ActorSelection, Character } from "../../types";
+import { Actor, ActorSelection, Character, Stage } from "../../types";
 import * as types from "../constants/action-types";
 
 import { Actions } from ".";
