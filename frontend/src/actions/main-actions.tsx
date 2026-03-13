@@ -84,14 +84,12 @@ export function fetchWorld(id: ID) {
 }
 
 export function deleteWorld(id: ID) {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return function (dispatch: any) {
+  return function (dispatch: Dispatch<MainActions>) {
     if (
       window.confirm("Are you sure you want to delete this world? This action cannot be undone.")
     ) {
-      makeRequest(`/worlds/${id}`, { method: "DELETE" }).then(() => {
-        dispatch(fetchWorldsForUser("me"));
-      });
+      dispatch({ type: types.REMOVE_WORLD, id });
+      makeRequest(`/worlds/${id}`, { method: "DELETE" });
     }
   };
 }
@@ -172,8 +170,13 @@ export type ActionUpsertWorlds = {
   type: "UPSERT_WORLDS";
   worlds: Game[];
 };
+export type ActionRemoveWorld = {
+  type: "REMOVE_WORLD";
+  id: ID;
+};
 export type MainActions =
   | ActionSetMe
   | ActionNetworkActivity
   | ActionUpsertProfile
-  | ActionUpsertWorlds;
+  | ActionUpsertWorlds
+  | ActionRemoveWorld;
