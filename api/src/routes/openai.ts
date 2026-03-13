@@ -1,4 +1,5 @@
 import { GetObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import crypto from "node:crypto";
 import express from "express";
 import fs from "fs";
 import https from "https";
@@ -473,8 +474,7 @@ Output: "Roll Ball"
 });
 
 router.get("/generate-background", userFromBasicAuth, async (req, res) => {
-  const prompt = (req.query.prompt as string) || "A fantasy game background scene"; // Default prompt if none provided
-  const filename = (req.query.filename as string) || "background"; // Default filename if none provided
+  const prompt = (req.query.prompt as string) || "A fantasy game background scene";
   openai = openai || new OpenAI({});
 
   try {
@@ -506,7 +506,7 @@ router.get("/generate-background", userFromBasicAuth, async (req, res) => {
 
     try {
       // Upload the image to S3
-      const publicUrl = await uploadImageToS3(imageBuffer, filename, "image/png");
+      const publicUrl = await uploadImageToS3(req.user.id, imageBuffer, "image/png");
 
       console.log("Uploaded to S3:", publicUrl);
 
@@ -554,24 +554,12 @@ const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-router.post("/upload-image", upload.single("image") as any, async (req, res) => {
+router.post("/upload-image", userFromBasicAuth, upload.single("image") as any, async (req, res) => {
   try {
     const file = req.file;
     if (!file) return res.status(400).json({ error: "No file uploaded" });
 
-    const { buffer, originalname } = file;
-    const key = `backgrounds/${originalname}`;
-
-    await getS3().send(
-      new PutObjectCommand({
-        Bucket: getBucket(),
-        Key: key,
-        Body: buffer,
-        ContentType: file.mimetype,
-      }),
-    );
-
-    const publicUrl = `/backgrounds/${encodeURIComponent(originalname)}`;
+    const publicUrl = await uploadImageToS3(req.user.id, file.buffer, file.mimetype);
     res.json({ publicUrl });
   } catch (error) {
     console.error("Error uploading image:", error);
@@ -580,9 +568,9 @@ router.post("/upload-image", upload.single("image") as any, async (req, res) => 
 });
 
 // Proxy endpoint to serve background images from S3 (keeps bucket private)
-router.get("/backgrounds/:key", async (req, res) => {
+router.get("/backgrounds/:userId/:key", async (req, res) => {
   try {
-    const key = `backgrounds/${req.params.key}`;
+    const key = `backgrounds/${req.params.userId}/${req.params.key}`;
     const result = await getS3().send(
       new GetObjectCommand({
         Bucket: getBucket(),
@@ -615,14 +603,21 @@ router.get("/backgrounds/:key", async (req, res) => {
   }
 });
 
-// Function to upload image to S3
-const uploadImageToS3 = async (imageBuffer: Buffer, filename: string, mimetype: string) => {
-  const uploadFilename =
-    filename.endsWith(".png") || filename.endsWith(".jpg") || filename.endsWith(".jpeg")
-      ? filename
-      : `${filename}.png`;
+// Map MIME types to file extensions
+const extForMime = (mimetype: string) => {
+  if (mimetype === "image/jpeg" || mimetype === "image/jpg") return ".jpg";
+  if (mimetype === "image/webp") return ".webp";
+  if (mimetype === "image/gif") return ".gif";
+  return ".png";
+};
 
-  const key = `backgrounds/${uploadFilename}`;
+// Function to upload image to S3
+const uploadImageToS3 = async (userId: string, imageBuffer: Buffer, mimetype: string) => {
+  const ext = extForMime(mimetype);
+  const uuid = crypto.randomUUID();
+  const filename = `${uuid}${ext}`;
+
+  const key = `backgrounds/${userId}/${filename}`;
   console.log(`Uploading to S3: ${key} (${imageBuffer.length} bytes)`);
 
   await getS3().send(
@@ -635,7 +630,7 @@ const uploadImageToS3 = async (imageBuffer: Buffer, filename: string, mimetype: 
   );
 
   // Return the proxy URL (not a direct S3 URL)
-  return `/backgrounds/${encodeURIComponent(uploadFilename)}`;
+  return `/backgrounds/${encodeURIComponent(userId)}/${filename}`;
 };
 
 export default router;

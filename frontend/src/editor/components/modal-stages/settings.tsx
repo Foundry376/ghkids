@@ -18,8 +18,6 @@ export const StageSettings = ({
   const [isGenerating, setGenerating] = useState(false);
 
   const _onGenerateBackground = async () => {
-    const stageName = stage.name.replace(/\s+/g, "_"); // Replace spaces with underscores
-
     if (!backgroundPrompt) {
       alert("Please enter a description for the background");
       return;
@@ -28,9 +26,8 @@ export const StageSettings = ({
     setGenerating(true);
     try {
       // First generate the image with OpenAI
-      const fileName = `${Date.now()}-${stageName}-background`;
       const data = await makeRequest<{ imageUrl?: string; error?: string }>(
-        `/generate-background?prompt=${encodeURIComponent(backgroundPrompt)}&filename=${encodeURIComponent(fileName)}`,
+        `/generate-background?prompt=${encodeURIComponent(backgroundPrompt)}`,
       );
       if (data.imageUrl) {
         // onChange({ background: `url(${data.imageUrl})` });
