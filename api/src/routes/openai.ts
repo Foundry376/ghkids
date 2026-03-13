@@ -1,10 +1,11 @@
-import { createClient } from "@supabase/supabase-js";
+import { GetObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import express from "express";
 import fs from "fs";
 import https from "https";
 import multer from "multer";
 import OpenAI from "openai";
 import { toFile } from "openai/uploads";
+import { Readable } from "stream";
 import { userFromBasicAuth } from "src/middleware";
 
 // Initialize OpenAI API client
@@ -504,10 +505,10 @@ router.get("/generate-background", userFromBasicAuth, async (req, res) => {
     console.log(`Downloaded image: ${imageBuffer.length} bytes`);
 
     try {
-      // Upload the image to Supabase
-      const publicUrl = await uploadImageToSupabase(imageBuffer, filename, "image/png");
+      // Upload the image to S3
+      const publicUrl = await uploadImageToS3(imageBuffer, filename, "image/png");
 
-      console.log("Uploaded to Supabase:", publicUrl);
+      console.log("Uploaded to S3:", publicUrl);
 
       // Set CORS headers
       res.setHeader("Access-Control-Allow-Origin", "*");
@@ -527,20 +528,25 @@ router.get("/generate-background", userFromBasicAuth, async (req, res) => {
   }
 });
 
-// Initialize Supabase client lazily to avoid issues with missing env vars at module load
-let _supabase: ReturnType<typeof createClient> | null = null;
-const getSupabase = () => {
-  if (!_supabase) {
-    const supabaseUrl = process.env.SUPABASE_URL;
-    const supabaseKey = process.env.SUPABASE_KEY;
-    if (!supabaseUrl || !supabaseKey) {
+// Initialize S3 client lazily
+let _s3: S3Client | null = null;
+const getS3 = () => {
+  if (!_s3) {
+    const region = process.env.AWS_REGION;
+    const bucket = process.env.AWS_BUCKET_NAME;
+    if (!region || !bucket) {
       throw new Error(
-        `Supabase not configured: SUPABASE_URL=${supabaseUrl ? "set" : "MISSING"}, SUPABASE_KEY=${supabaseKey ? "set" : "MISSING"}`,
+        `S3 not configured: AWS_REGION=${region ? "set" : "MISSING"}, AWS_BUCKET_NAME=${bucket ? "set" : "MISSING"}`,
       );
     }
-    _supabase = createClient(supabaseUrl, supabaseKey);
+    _s3 = new S3Client({ region });
   }
-  return _supabase;
+  return _s3;
+};
+const getBucket = () => {
+  const bucket = process.env.AWS_BUCKET_NAME;
+  if (!bucket) throw new Error("AWS_BUCKET_NAME is not set");
+  return bucket;
 };
 
 // Configure multer for file uploads
@@ -554,25 +560,18 @@ router.post("/upload-image", upload.single("image") as any, async (req, res) => 
     if (!file) return res.status(400).json({ error: "No file uploaded" });
 
     const { buffer, originalname } = file;
+    const key = `backgrounds/${originalname}`;
 
-    // Upload the image to Supabase Storage
-    const sb = getSupabase();
-    const { data, error } = await sb.storage
-      .from("background-images")
-      .upload(`backgrounds/${originalname}`, buffer, {
-        contentType: file.mimetype,
-        upsert: true,
-      });
+    await getS3().send(
+      new PutObjectCommand({
+        Bucket: getBucket(),
+        Key: key,
+        Body: buffer,
+        ContentType: file.mimetype,
+      }),
+    );
 
-    if (error) {
-      return res.status(400).json({ error: error.message });
-    }
-
-    // Get the public URL of the uploaded image
-    const publicUrl = sb.storage
-      .from("background-images")
-      .getPublicUrl(data.path).data.publicUrl;
-
+    const publicUrl = `/backgrounds/${encodeURIComponent(originalname)}`;
     res.json({ publicUrl });
   } catch (error) {
     console.error("Error uploading image:", error);
@@ -580,47 +579,63 @@ router.post("/upload-image", upload.single("image") as any, async (req, res) => 
   }
 });
 
-// Function to upload image to Supabase
-const uploadImageToSupabase = async (imageBuffer: Buffer, filename: string, mimetype: string) => {
-  // Ensure filename has proper extension
+// Proxy endpoint to serve background images from S3 (keeps bucket private)
+router.get("/backgrounds/:key", async (req, res) => {
+  try {
+    const key = `backgrounds/${req.params.key}`;
+    const result = await getS3().send(
+      new GetObjectCommand({
+        Bucket: getBucket(),
+        Key: key,
+      }),
+    );
+
+    res.setHeader("Content-Type", result.ContentType || "image/png");
+    res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+
+    const body = result.Body;
+    if (body instanceof Readable) {
+      body.pipe(res);
+    } else {
+      // Body is a ReadableStream or Blob in some environments
+      const chunks: Buffer[] = [];
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      for await (const chunk of body as any) {
+        chunks.push(Buffer.from(chunk));
+      }
+      res.send(Buffer.concat(chunks));
+    }
+  } catch (err: any) {
+    if (err.name === "NoSuchKey") {
+      res.status(404).json({ error: "Image not found" });
+    } else {
+      console.error("Error serving background image:", err);
+      res.status(500).json({ error: "Failed to retrieve image" });
+    }
+  }
+});
+
+// Function to upload image to S3
+const uploadImageToS3 = async (imageBuffer: Buffer, filename: string, mimetype: string) => {
   const uploadFilename =
     filename.endsWith(".png") || filename.endsWith(".jpg") || filename.endsWith(".jpeg")
       ? filename
       : `${filename}.png`;
 
-  try {
-    const sb = getSupabase();
-    console.log(`Uploading to Supabase: backgrounds/${uploadFilename} (${imageBuffer.length} bytes)`);
+  const key = `backgrounds/${uploadFilename}`;
+  console.log(`Uploading to S3: ${key} (${imageBuffer.length} bytes)`);
 
-    const { data, error } = await sb.storage
-      .from("background-images")
-      .upload(`backgrounds/${uploadFilename}`, imageBuffer, {
-        contentType: mimetype,
-        upsert: true,
-      });
+  await getS3().send(
+    new PutObjectCommand({
+      Bucket: getBucket(),
+      Key: key,
+      Body: imageBuffer,
+      ContentType: mimetype,
+    }),
+  );
 
-    if (error) {
-      console.error("Supabase Upload Error:", error.message, "cause" in error ? error : "");
-      throw new Error(error.message);
-    }
-
-    // Get the public URL
-    const { data: publicUrlData } = sb.storage
-      .from("background-images")
-      .getPublicUrl(data.path);
-
-    return publicUrlData.publicUrl;
-  } catch (err: any) {
-    // Log the full error cause chain for debugging
-    console.error("Error uploading to Supabase:", err.message);
-    if (err.cause) {
-      console.error("  Caused by:", err.cause);
-      if (err.cause?.cause) {
-        console.error("  Root cause:", err.cause.cause);
-      }
-    }
-    throw err;
-  }
+  // Return the proxy URL (not a direct S3 URL)
+  return `/backgrounds/${encodeURIComponent(uploadFilename)}`;
 };
 
 export default router;

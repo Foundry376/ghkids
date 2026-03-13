@@ -7,14 +7,14 @@
     "start": "node dist/server.js",
     "build": "rm -rf dist && tsc",
     "lint": "prettier -c ./src/**.ts && eslint ./src --ext .ts",
-    "test": "NODE_ENV=test SUPABASE_URL=http://localhost SUPABASE_KEY=test mocha",
+    "test": "NODE_ENV=test AWS_REGION=us-east-1 AWS_BUCKET_NAME=test mocha",
     "typeorm": "if test \"$NODE_ENV\" != \"production\" ; then yarn build ; fi && node --require dotenv/config --require module-alias/register --require source-map-support/register ./node_modules/typeorm/cli.js -d ./dist/data-source.js",
     "validate": "npm ls"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1008.0",
     "@aws-sdk/client-ses": "^3.705.0",
     "@date-fns/tz": "^1.2.0",
-    "@supabase/supabase-js": "^2.48.1",
     "@types/cors": "^2.8.12",
     "@types/sinon": "^17.0.3",
     "@types/winston": "^2.4.4",
