@@ -156,6 +156,7 @@ export default function charactersReducer(
             return state;
           }
           const check: RuleTreeFlowItemCheck = Object.assign({}, existingRule.check, {
+            mainActorId: recordedRule.mainActorId,
             conditions: recordedRule.conditions,
             actors: recordedRule.actors,
             extent: recordedRule.extent,
