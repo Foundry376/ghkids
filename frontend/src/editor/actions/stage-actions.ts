@@ -1,5 +1,5 @@
 import { DeepPartial, Dispatch } from "redux";
-import { Actor, ActorSelection, Character, Stage } from "../../types";
+import { Actor, ActorSelection, Character } from "../../types";
 import * as types from "../constants/action-types";
 
 import { Actions } from ".";
@@ -86,44 +86,6 @@ export type ActionRewindAllGameState = {
   worldId: string;
 };
 
-export function saveInitialGameState(
-  worldId: string,
-  stageId: string,
-  { thumbnail, actors }: { thumbnail: string; actors: Stage["actors"] },
-): ActionSaveInitialGameState {
-  return {
-    type: types.SAVE_INITIAL_GAME_STATE,
-    worldId,
-    stageId,
-    thumbnail,
-    actors,
-  };
-}
-
-export type ActionSaveInitialGameState = {
-  type: "SAVE_INITIAL_GAME_STATE";
-  worldId: string;
-  stageId: string;
-  thumbnail: string;
-  actors: Stage["actors"];
-};
-
-export function restoreInitialGameState(
-  worldId: string,
-  stageId: string,
-): ActionRestoreInitialGameState {
-  return {
-    type: types.RESTORE_INITIAL_GAME_STATE,
-    worldId,
-    stageId,
-  };
-}
-
-export type ActionRestoreInitialGameState = {
-  type: "RESTORE_INITIAL_GAME_STATE";
-  worldId: string;
-  stageId: string;
-};
 
 export function updateStageSettings(
   worldId: string,
@@ -251,7 +213,5 @@ export type StageActions =
   | ActionAdvanceGameState
   | ActionStepBackGameState
   | ActionRewindAllGameState
-  | ActionSaveInitialGameState
-  | ActionRestoreInitialGameState
   | ActionUpdateStageSettings
   | ActionInputForGameState;
