@@ -8,6 +8,7 @@ import { World } from "../../../types";
 import {
   advanceGameState,
   restoreInitialGameState,
+  rewindAllGameState,
   saveInitialGameState,
   stepBackGameState,
 } from "../../actions/stage-actions";
@@ -142,6 +143,25 @@ const StageControls: React.FC<StageControlsProps> = ({
       <div style={{ flex: 1 }} />
 
       <div className="center" data-tutorial-id="controls">
+        {!readonly && (
+          <Button
+            size="sm"
+            disabled={world.history && world.history.length === 0}
+            onClick={() => dispatch(rewindAllGameState(world.id))}
+          >
+            <svg
+              width="12"
+              height="12"
+              viewBox="0 0 12 12"
+              fill="currentColor"
+              style={{ verticalAlign: "middle" }}
+            >
+              <rect x="0" y="1" width="2" height="10" />
+              <polygon points="7,1 7,11 2,6" />
+              <polygon points="12,1 12,11 7,6" />
+            </svg>
+          </Button>
+        )}{" "}
         {!readonly && (
           <Button
             size="sm"
