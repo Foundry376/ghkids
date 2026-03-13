@@ -157,44 +157,49 @@ function recordingReducer(
       return u(stateForEditingRule(RECORDING_PHASE.RECORD, initialRule, entireState), nextState);
     }
     case Types.EDIT_RULE_RECORDING: {
-      // When an actorId is provided (selected actor on the world stage),
-      // use the full world as the beforeWorld so the user can see surrounding
-      // actors and expand the extent. This applies to precondition checks.
-      if (action.actorId) {
-        const stage = getCurrentStageForWorld(world);
-        const actor = stage?.actors[action.actorId];
-        if (actor) {
-          const filled = actorFilledPoints(actor, characters);
-          return u(
-            {
-              ruleId: action.rule.id,
-              characterId: actor.characterId,
-              phase: RECORDING_PHASE.RECORD,
-              actorId: actor.id,
-              actions: u.constant("actions" in action.rule ? action.rule.actions : null),
-              conditions: u.constant([
-                {
-                  left: { actorId: actor.id, variableId: "appearance" },
-                  right: { constant: actor.appearance },
-                  enabled: true,
-                  comparator: "=",
-                  key: "main-actor-appearance",
-                },
-              ]),
-              beforeWorld: u.constant(u({ id: WORLDS.BEFORE }, world)),
-              extent: u.constant({
-                xmin: Math.min(...filled.map((f) => f.x)),
-                xmax: Math.max(...filled.map((f) => f.x)),
-                ymin: Math.min(...filled.map((f) => f.y)),
-                ymax: Math.max(...filled.map((f) => f.y)),
-                ignored: {},
-              }),
-            },
-            nextState,
-          );
-        }
-      }
       return u(stateForEditingRule(RECORDING_PHASE.RECORD, action.rule, entireState), nextState);
+    }
+    case Types.SETUP_CHECK_RECORDING_FOR_ACTOR: {
+      // Initial creation of a precondition check with a selected actor on the
+      // world stage. Uses the full world as beforeWorld so the user can expand
+      // the extent to see surrounding actors.
+      const stage = getCurrentStageForWorld(world);
+      const actor = stage?.actors[action.actorId];
+      if (actor) {
+        const filled = actorFilledPoints(actor, characters);
+        return u(
+          {
+            ruleId: action.check.id,
+            characterId: actor.characterId,
+            phase: RECORDING_PHASE.RECORD,
+            actorId: actor.id,
+            actions: u.constant(null),
+            conditions: u.constant([
+              {
+                left: { actorId: actor.id, variableId: "appearance" },
+                right: { constant: actor.appearance },
+                enabled: true,
+                comparator: "=",
+                key: "main-actor-appearance",
+              },
+            ]),
+            beforeWorld: u.constant(u({ id: WORLDS.BEFORE }, world)),
+            extent: u.constant({
+              xmin: Math.min(...filled.map((f) => f.x)),
+              xmax: Math.max(...filled.map((f) => f.x)),
+              ymin: Math.min(...filled.map((f) => f.y)),
+              ymax: Math.max(...filled.map((f) => f.y)),
+              ignored: {},
+            }),
+          },
+          nextState,
+        );
+      }
+      // Fallback: if actor not found, use the standard editing path
+      return u(
+        stateForEditingRule(RECORDING_PHASE.RECORD, action.check, entireState),
+        nextState,
+      );
     }
     case Types.FINISH_RECORDING: {
       return Object.assign({}, initialState.recording);

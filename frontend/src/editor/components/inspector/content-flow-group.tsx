@@ -1,10 +1,12 @@
 import { useContext, useState } from "react";
+import { useDispatch } from "react-redux";
 import { TapToEditLabel } from "../tap-to-edit-label";
 import { RuleList } from "./rule-list";
 import { RuleStateCircle } from "./rule-state-circle";
 
 import { Character, RuleTreeFlowItem, RuleTreeFlowItemCheck } from "../../../types";
 import { useEditorSelector } from "../../../hooks/redux";
+import { setupCheckRecordingForActor } from "../../actions/recording-actions";
 import { defaultAppearanceId } from "../../utils/character-helpers";
 import { FLOW_BEHAVIORS } from "../../utils/world-constants";
 import { isCollapsePersisted, persistCollapsedState } from "./collapse-state-storage";
@@ -23,6 +25,7 @@ export const ContentFlowGroup = ({
   const [collapsed, setCollapsed] = useState(isCollapsePersisted(rule.id));
   const { onRuleChanged, onRuleReRecord } = useContext(RuleActionsContext);
   const selectedActors = useEditorSelector((s) => s.ui.selectedActors);
+  const dispatch = useDispatch();
 
   const _onNameChange = (name: string) => {
     onRuleChanged(rule.id, { name });
@@ -69,7 +72,11 @@ export const ContentFlowGroup = ({
     onRuleChanged(rule.id, { check });
     const worldActorId =
       selectedActors?.worldId === "root" ? selectedActors.actorIds[0] : undefined;
-    onRuleReRecord(check, worldActorId);
+    if (worldActorId) {
+      dispatch(setupCheckRecordingForActor({ check, actorId: worldActorId }));
+    } else {
+      onRuleReRecord(check);
+    }
   };
   const variables = Object.values(character.variables);
 
