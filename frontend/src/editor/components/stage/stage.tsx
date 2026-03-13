@@ -813,7 +813,10 @@ export const Stage = ({
   };
 
   const onMouseDown = (event: React.MouseEvent) => {
-    if (playback.running || interactionMode === "none") {
+    if (playback.running) {
+      return;
+    }
+    if (interactionMode === "none" && selectedToolId !== TOOLS.IGNORE_SQUARE) {
       return;
     }
     const onMouseUpAnywhere = (e: MouseEvent) => {
@@ -957,7 +960,8 @@ export const Stage = ({
         TOOLS.STAMP === selectedToolId ||
         TOOLS.RECORD === selectedToolId ||
         TOOLS.PAINT === selectedToolId ||
-        TOOLS.CREATE_CHARACTER === selectedToolId
+        TOOLS.CREATE_CHARACTER === selectedToolId ||
+        TOOLS.IGNORE_SQUARE === selectedToolId
       ) {
         dispatch(selectToolId(TOOLS.POINTER));
       }
