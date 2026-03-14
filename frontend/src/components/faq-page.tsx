@@ -1,7 +1,5 @@
+import { Col, Container, Row } from "reactstrap";
 import React from "react";
-import Col from "reactstrap/lib/Col";
-import Container from "reactstrap/lib/Container";
-import Row from "reactstrap/lib/Row";
 
 const FAQPage: React.FC = () => {
   return (

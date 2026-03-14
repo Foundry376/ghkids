@@ -1,10 +1,7 @@
+import { ButtonDropdown, DropdownItem, DropdownMenu, DropdownToggle } from "reactstrap";
 import { useState } from "react";
 import { connect } from "react-redux";
 
-import ButtonDropdown from "reactstrap/lib/ButtonDropdown";
-import DropdownItem from "reactstrap/lib/DropdownItem";
-import DropdownMenu from "reactstrap/lib/DropdownMenu";
-import DropdownToggle from "reactstrap/lib/DropdownToggle";
 import { EditorState, World } from "../../../types";
 import { getStages } from "../../utils/selectors";
 

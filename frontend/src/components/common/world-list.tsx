@@ -1,5 +1,5 @@
+import { Container } from "reactstrap";
 import React from "react";
-import Container from "reactstrap/lib/Container";
 import { Game } from "../../types";
 import PageMessage from "./page-message";
 import WorldCard from "./world-card";

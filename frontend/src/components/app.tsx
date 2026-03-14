@@ -1,7 +1,7 @@
+import { Button } from "reactstrap";
 import * as Sentry from "@sentry/react";
 import { useDispatch } from "react-redux";
 import { Link, Outlet, useLocation } from "react-router-dom";
-import Button from "reactstrap/lib/Button";
 
 import { logout } from "../actions/main-actions";
 import { useAppSelector } from "../hooks/redux";

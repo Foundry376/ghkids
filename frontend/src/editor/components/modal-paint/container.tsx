@@ -1,13 +1,6 @@
+import { Button, ButtonDropdown, DropdownItem, DropdownMenu, DropdownToggle, Modal, ModalBody, ModalFooter } from "reactstrap";
 import React, { useCallback, useEffect, useReducer, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import Button from "reactstrap/lib/Button";
-import ButtonDropdown from "reactstrap/lib/ButtonDropdown";
-import DropdownItem from "reactstrap/lib/DropdownItem";
-import DropdownMenu from "reactstrap/lib/DropdownMenu";
-import DropdownToggle from "reactstrap/lib/DropdownToggle";
-import Modal from "reactstrap/lib/Modal";
-import ModalBody from "reactstrap/lib/ModalBody";
-import ModalFooter from "reactstrap/lib/ModalFooter";
 
 import { makeRequest } from "../../../helpers/api";
 import { Actor, Character, Characters, EditorState } from "../../../types";

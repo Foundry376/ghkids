@@ -1,9 +1,7 @@
 import { useDispatch } from "react-redux";
 import { Link } from "react-router-dom";
-import Button from "reactstrap/lib/Button";
-
 import { useState } from "react";
-import { Modal, ModalBody } from "reactstrap";
+import { Button, Modal, ModalBody } from "reactstrap";
 import { createWorld } from "../actions/main-actions";
 import { useAppSelector } from "../hooks/redux";
 

@@ -114,7 +114,9 @@ html {
     flex-shrink: 0;
     pointer-events: auto;
     position: relative;
-    transition: transform 0.1s ease, box-shadow 0.1s ease;
+    transition:
+      transform 0.1s ease,
+      box-shadow 0.1s ease;
 
     &::after {
       content: "";
@@ -642,7 +644,9 @@ html {
       font-weight: 500;
       cursor: pointer;
       -webkit-tap-highlight-color: transparent;
-      box-shadow: 0 1px 0 rgba(255, 255, 255, 0.7) inset, 0 1px 2px rgba(0, 0, 0, 0.1);
+      box-shadow:
+        0 1px 0 rgba(255, 255, 255, 0.7) inset,
+        0 1px 2px rgba(0, 0, 0, 0.1);
 
       &:active {
         background: linear-gradient(to bottom, #e4e4e4, #d8d8d8);
@@ -688,6 +692,7 @@ html {
     }
 
     .item-grid {
+      min-height: 83px;
       display: flex;
       flex-direction: row;
       flex-wrap: wrap;
@@ -873,12 +878,33 @@ html {
         color: #f5a623;
         animation: ai-orbit 2.4s linear infinite;
 
-        &.sparkle-0 { animation-delay: 0s; color: #f5a623; }
-        &.sparkle-1 { animation-delay: -0.4s; color: #e85d9b; font-size: 10px; }
-        &.sparkle-2 { animation-delay: -0.8s; color: #5bc8f5; }
-        &.sparkle-3 { animation-delay: -1.2s; color: #f5a623; font-size: 10px; }
-        &.sparkle-4 { animation-delay: -1.6s; color: #7ed957; }
-        &.sparkle-5 { animation-delay: -2.0s; color: #e85d9b; font-size: 10px; }
+        &.sparkle-0 {
+          animation-delay: 0s;
+          color: #f5a623;
+        }
+        &.sparkle-1 {
+          animation-delay: -0.4s;
+          color: #e85d9b;
+          font-size: 10px;
+        }
+        &.sparkle-2 {
+          animation-delay: -0.8s;
+          color: #5bc8f5;
+        }
+        &.sparkle-3 {
+          animation-delay: -1.2s;
+          color: #f5a623;
+          font-size: 10px;
+        }
+        &.sparkle-4 {
+          animation-delay: -1.6s;
+          color: #7ed957;
+        }
+        &.sparkle-5 {
+          animation-delay: -2s;
+          color: #e85d9b;
+          font-size: 10px;
+        }
       }
     }
 
@@ -959,7 +985,8 @@ html {
 }
 
 @keyframes ai-wand-pulse {
-  0%, 100% {
+  0%,
+  100% {
     transform: translate(-50%, -50%) scale(1);
     filter: drop-shadow(0 0 4px rgba(123, 94, 167, 0.3));
   }
@@ -970,8 +997,13 @@ html {
 }
 
 @keyframes ai-text-pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.6; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

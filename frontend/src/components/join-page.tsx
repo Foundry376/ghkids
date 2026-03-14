@@ -1,10 +1,7 @@
+import { Button, Col, Container, Row } from "reactstrap";
 import React, { useCallback, useMemo, useRef, useState } from "react";
 import { useDispatch } from "react-redux";
 import { useGoogleReCaptcha } from "react-google-recaptcha-v3";
-import Button from "reactstrap/lib/Button";
-import Col from "reactstrap/lib/Col";
-import Container from "reactstrap/lib/Container";
-import Row from "reactstrap/lib/Row";
 
 import { useLocation } from "react-router";
 import { register } from "../actions/main-actions";

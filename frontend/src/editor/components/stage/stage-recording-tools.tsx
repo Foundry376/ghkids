@@ -1,7 +1,7 @@
+import { Button } from "reactstrap";
 import { useDispatch } from "react-redux";
 
 import classNames from "classnames";
-import Button from "reactstrap/lib/Button";
 import { useEditorSelector } from "../../../hooks/redux";
 import { pickConditionValueFromKeyboard, selectToolId } from "../../actions/ui-actions";
 import { TOOLS } from "../../constants/constants";

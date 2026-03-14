@@ -1,7 +1,7 @@
+import { Button } from "reactstrap";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useDispatch } from "react-redux";
 import { Link, useParams } from "react-router-dom";
-import Button from "reactstrap/lib/Button";
 
 import { createWorld, fetchWorld } from "../actions/main-actions";
 import { useHideRecaptchaBadge } from "../hooks/useHideRecaptchaBadge";

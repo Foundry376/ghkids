@@ -1,9 +1,6 @@
+import { Button, Col, Container, Row } from "reactstrap";
 import React, { useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import Button from "reactstrap/lib/Button";
-import Col from "reactstrap/lib/Col";
-import Container from "reactstrap/lib/Container";
-import Row from "reactstrap/lib/Row";
 
 import { makeRequest } from "../helpers/api";
 

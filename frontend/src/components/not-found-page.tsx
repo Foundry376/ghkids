@@ -1,6 +1,6 @@
+import { Container } from "reactstrap";
 import React from "react";
 import { Link } from "react-router-dom";
-import Container from "reactstrap/lib/Container";
 
 const NotFoundPage: React.FC = () => {
   return (

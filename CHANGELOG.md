@@ -1,4 +1,29 @@
-<!-- LAST_COMMIT: fcb7c39d34043a10cec838d883429a95af31e572 -->
+<!-- LAST_COMMIT: 876b6d6c4b8fbc044e6cedcd428ba79f3c404404 -->
+
+## [2026-03-13]
+
+You can now add new character appearances (sprites) right from within the editor, and there's a brand-new "Rewind All" button that takes your simulation straight back to the very beginning with one click. We also added a "Discard Unsaved Changes" option so you can undo all your edits since the last save, and a confirmation step before logging out so you don't lose your work by accident. Plus, a bunch of bug fixes!
+
+### Added
+
+- Add new appearances (sprites) directly in the editor with automatic naming (#97)
+- "Rewind All" button in stage controls that jumps straight to the beginning of the simulation (#106)
+- "Discard Unsaved Changes" option to revert the editor back to the last saved state (#96)
+- Confirmation dialog before logging out to prevent accidental logouts (#102)
+- When creating a rule condition with an actor selected on stage, the recording now opens with the full world as context — useful for seeing surrounding actors like roads and walls (#101)
+
+### Changed
+
+- Home page tagline updated to "video game construction set for ages 6 and up" — no age ceiling, since Codako is great for older students and teachers too (#103)
+- Removed unused initial game state save/restore code — the UI for it had already been removed (#107)
+
+### Fixed
+
+- Deleting a game now immediately removes it from your games list (#105)
+- Pressing Escape or using browser controls to exit fullscreen now correctly returns to the home/navigation view (#104)
+- Rule thumbnails in the rules panel now show characters in the correct front-to-back order (#98)
+- Ignored square tool now returns to the pointer tool after placing a square, and works correctly on the "before" side of a recording (#100)
+- Chrome occasionally triggering unwanted side panels when dragging recording extent handles (#99)
 
 ## [2026-03-07]
 

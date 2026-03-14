@@ -1,13 +1,8 @@
+import { Button, ButtonDropdown, DropdownItem, DropdownMenu, DropdownToggle } from "reactstrap";
 import classNames from "classnames";
 import { useContext, useState } from "react";
 import { useDispatch } from "react-redux";
 import { Link } from "react-router-dom";
-
-import Button from "reactstrap/lib/Button";
-import ButtonDropdown from "reactstrap/lib/ButtonDropdown";
-import DropdownItem from "reactstrap/lib/DropdownItem";
-import DropdownMenu from "reactstrap/lib/DropdownMenu";
-import DropdownToggle from "reactstrap/lib/DropdownToggle";
 
 import * as actions from "../actions/ui-actions";
 import { updateWorldMetadata } from "../actions/world-actions";
@@ -86,7 +81,7 @@ const Toolbar = () => {
     }
 
     return (
-      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+      <div style={{ display: "flex", alignItems: "center" }}>
         <ButtonDropdown data-tutorial-id="main-menu" isOpen={open} toggle={() => setOpen(!open)}>
           <DropdownToggle>
             <i className="fa fa-ellipsis-v" />
@@ -100,7 +95,9 @@ const Toolbar = () => {
             {hasUnsavedChanges && (
               <DropdownItem
                 onClick={() => {
-                  if (confirm("Discard all unsaved changes and return to the last saved version?")) {
+                  if (
+                    confirm("Discard all unsaved changes and return to the last saved version?")
+                  ) {
                     revertToSaved();
                   }
                 }}
@@ -150,9 +147,7 @@ const Toolbar = () => {
         </ButtonDropdown>
         <TapToEditLabel className="world-name" value={metadata.name} onChange={onNameChange} />
         {hasUnsavedChanges && (
-          <span style={{ fontSize: "12px", color: "#ff9800", marginLeft: "8px" }}>
-            Unsaved changes
-          </span>
+          <i className="fa fa-circle" style={{ fontSize: "16px", color: "#ff9800", marginLeft: "8px" }} title="Unsaved changes" />
         )}
       </div>
     );

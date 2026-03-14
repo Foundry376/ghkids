@@ -11,8 +11,7 @@ import { useHideRecaptchaBadge } from "../hooks/useHideRecaptchaBadge";
 import { usePageTitle } from "../hooks/usePageTitle";
 
 import { useParams } from "react-router";
-import { Modal, ModalBody } from "reactstrap";
-import Button from "reactstrap/lib/Button";
+import { Button, Modal, ModalBody } from "reactstrap";
 import { applyDataMigrations } from "../editor/data-migrations";
 import { useAppSelector } from "../hooks/redux";
 import { Game } from "../types";

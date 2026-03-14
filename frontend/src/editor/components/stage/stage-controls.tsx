@@ -1,9 +1,8 @@
+import { Button, ButtonGroup } from "reactstrap";
 import classNames from "classnames";
 import React, { useEffect, useRef } from "react";
 import { Dispatch } from "redux";
 
-import Button from "reactstrap/lib/Button";
-import ButtonGroup from "reactstrap/lib/ButtonGroup";
 import { World } from "../../../types";
 import {
   advanceGameState,
@@ -74,6 +73,8 @@ const StageControls: React.FC<StageControlsProps> = ({
 
   return (
     <div className="stage-controls">
+      <div className="left" style={{ width: 122 }} />
+
       <div style={{ flex: 1 }} />
 
       <div className="center" data-tutorial-id="controls">
@@ -145,7 +146,7 @@ const StageControls: React.FC<StageControlsProps> = ({
 
       <div style={{ flex: 1 }} />
 
-      <div className="right">
+      <div className="right" style={{ width: 122 }}>
         <ButtonGroup>
           {Object.keys(SPEED_OPTIONS).map((name) => (
             <Button
@@ -169,10 +170,6 @@ const StageControls: React.FC<StageControlsProps> = ({
           ))}
         </ButtonGroup>
       </div>
-
-      <div style={{ flex: 1 }} />
-
-      <div className="right"></div>
     </div>
   );
 };

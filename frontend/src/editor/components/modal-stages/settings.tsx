@@ -1,5 +1,5 @@
+import { Button } from "reactstrap";
 import { useState } from "react";
-import Button from "reactstrap/lib/Button";
 import { makeRequest } from "../../../helpers/api";
 import { Stage } from "../../../types";
 import { STAGE_CELL_SIZE } from "../../constants/constants";

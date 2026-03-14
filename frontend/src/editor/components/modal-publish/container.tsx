@@ -1,9 +1,6 @@
+import { Button, Modal, ModalBody, ModalFooter } from "reactstrap";
 import { useContext, useEffect, useState } from "react";
 import { useDispatch } from "react-redux";
-import Button from "reactstrap/lib/Button";
-import Modal from "reactstrap/lib/Modal";
-import ModalBody from "reactstrap/lib/ModalBody";
-import ModalFooter from "reactstrap/lib/ModalFooter";
 
 import { useEditorSelector } from "../../../hooks/redux";
 import { updateWorldMetadata } from "../../actions/world-actions";

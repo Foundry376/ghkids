@@ -1,9 +1,6 @@
+import { Button, Modal, ModalBody, ModalFooter } from "reactstrap";
 import { useEffect, useState } from "react";
 import { useDispatch } from "react-redux";
-import Button from "reactstrap/lib/Button";
-import Modal from "reactstrap/lib/Modal";
-import ModalBody from "reactstrap/lib/ModalBody";
-import ModalFooter from "reactstrap/lib/ModalFooter";
 
 import { makeRequest } from "../../../helpers/api";
 import { Character } from "../../../types";

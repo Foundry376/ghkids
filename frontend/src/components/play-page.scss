@@ -1,6 +1,7 @@
 /* ============================================================
    Play Page - Immersive two-phase layout
    ============================================================ */
+@use "sass:color";
 
 $play-top-bar-height: 48px;
 $play-brand-green: #6db33f;
@@ -45,7 +46,7 @@ $play-tint: #5bc0de;
     flex-shrink: 0;
 
     &:hover {
-      color: lighten($play-brand-green, 10%);
+      color: color.adjust($play-brand-green, $lightness: 10%);
       text-decoration: none;
     }
   }
@@ -346,7 +347,7 @@ $play-tint: #5bc0de;
     &:hover {
       transform: scale(1.05);
       box-shadow: 0 6px 28px rgba(109, 179, 63, 0.55);
-      background: lighten($play-brand-green, 5%);
+      background: color.adjust($play-brand-green, $lightness: 5%);
     }
 
     &:active {

@@ -1,8 +1,5 @@
+import { Button, Modal, ModalBody, ModalHeader } from "reactstrap";
 import React, { useEffect, useRef, useState } from "react";
-import Button from "reactstrap/lib/Button";
-import Modal from "reactstrap/lib/Modal";
-import ModalBody from "reactstrap/lib/ModalBody";
-import ModalHeader from "reactstrap/lib/ModalHeader";
 
 import { getDataURLFromImageData } from "./helpers";
 import { PaintModel } from "./paint-model";
