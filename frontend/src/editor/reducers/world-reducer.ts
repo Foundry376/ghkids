@@ -3,7 +3,7 @@ import u from "updeep";
 
 import stageCollectionReducer from "./stage-collection-reducer";
 
-import { EditorState, WorldMinimal } from "../../types";
+import { EditorState, World, WorldMinimal } from "../../types";
 import { Actions } from "../actions";
 import * as Types from "../constants/action-types";
 import WorldOperator from "../utils/world-operator";
@@ -54,9 +54,9 @@ export default function worldReducer(
     }
     case Types.REWIND_ALL_GAME_STATE: {
       const { characters } = entireState;
-      let current = state;
+      let current = state as World;
       while (current.history && current.history.length > 0) {
-        current = WorldOperator(current, characters).untick();
+        current = WorldOperator(current, characters).untick() as World;
       }
       return current;
     }
