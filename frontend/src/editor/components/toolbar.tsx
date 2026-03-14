@@ -87,38 +87,53 @@ const Toolbar = () => {
             <i className="fa fa-ellipsis-v" />
           </DropdownToggle>
           <DropdownMenu>
-            <DropdownItem onClick={() => save()}>Save Changes</DropdownItem>
-            <DropdownItem onClick={() => saveAndExit("/dashboard")}>Save &amp; Exit</DropdownItem>
-            <DropdownItem onClick={() => exitWithoutSaving("/dashboard")}>
+            <DropdownItem onClick={() => save()}>
+              <i className="fa fa-floppy-o fa-fw" style={{ marginRight: 8 }} />
+              Save Changes
+              {hasUnsavedChanges && <i className="fa fa-circle" style={{ fontSize: "8px", color: "#ff9800", marginLeft: 8, verticalAlign: "middle" }} />}
+            </DropdownItem>
+            <DropdownItem onClick={() => saveAndExit("/dashboard")}>
+              <i className="fa fa-sign-out fa-fw fa-flip-horizontal" style={{ marginRight: 8 }} />
+              Save &amp; Exit
+            </DropdownItem>
+            <DropdownItem
+              onClick={() => {
+                if (window.confirm("Exit without saving? Your unsaved changes will be lost.")) {
+                  exitWithoutSaving("/dashboard");
+                }
+              }}
+            >
+              <i className="fa fa-fw" style={{ marginRight: 8 }} />
               Exit Without Saving
             </DropdownItem>
-            {hasUnsavedChanges && (
-              <DropdownItem
-                onClick={() => {
-                  if (
-                    confirm("Discard all unsaved changes and return to the last saved version?")
-                  ) {
-                    revertToSaved();
-                  }
-                }}
-              >
-                Discard Unsaved Changes
-              </DropdownItem>
-            )}
+            <DropdownItem
+              disabled={!hasUnsavedChanges}
+              onClick={() => {
+                if (window.confirm("Discard all unsaved changes and return to the last saved version?")) {
+                  revertToSaved();
+                }
+              }}
+            >
+              <i className="fa fa-fw" style={{ marginRight: 8 }} />
+              Discard Unsaved Changes
+            </DropdownItem>
             <DropdownItem divider />
             <DropdownItem
               onClick={() => {
                 save().then(() => dispatch(createWorld({ from: metadata.id })));
               }}
             >
+              <i className="fa fa-fw" style={{ marginRight: 8 }} />
               Duplicate This World
             </DropdownItem>
             <DropdownItem divider />
             <DropdownItem onClick={() => saveWorldAnd(`/play/${metadata.id}`)}>
+              <i className="fa fa-play fa-fw" style={{ marginRight: 8 }} />
               Switch to Player View...
             </DropdownItem>
             <DropdownItem divider />
             <DropdownItem onClick={() => dispatch(actions.showModal(MODALS.VIDEOS))}>
+              <i className="fa fa-fw" style={{ marginRight: 8 }} />
               Tips &amp; Tricks Videos...
             </DropdownItem>
             {!isInTutorial && (
@@ -128,18 +143,19 @@ const Toolbar = () => {
                   saveWorldAnd("tutorial");
                 }}
               >
+                <i className="fa fa-fw" style={{ marginRight: 8 }} />
                 Start Tutorial...
               </DropdownItem>
             )}
             <DropdownItem divider />
             {metadata.published ? (
               <DropdownItem onClick={onUnpublish}>
-                <i className="fa fa-eye-slash" style={{ marginRight: 8 }} />
+                <i className="fa fa-eye-slash fa-fw" style={{ marginRight: 8 }} />
                 Unpublish Game
               </DropdownItem>
             ) : (
               <DropdownItem onClick={() => dispatch(actions.showModal(MODALS.PUBLISH))}>
-                <i className="fa fa-globe" style={{ marginRight: 8 }} />
+                <i className="fa fa-globe fa-fw" style={{ marginRight: 8 }} />
                 Publish Game...
               </DropdownItem>
             )}
@@ -163,10 +179,10 @@ const Toolbar = () => {
           {[TOOLS.CREATE_CHARACTER, TOOLS.PAINT, TOOLS.RECORD].map(renderTool)}
         </div>
         <div className="button-group">{[TOOLS.STAMP, TOOLS.TRASH].map(renderTool)}</div>
-        <UndoRedoControls />
       </div>
 
-      <div style={{ flex: 1, textAlign: "right" }}>
+      <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "flex-end" }}>
+        <UndoRedoControls />
         <Button
           onClick={() => dispatch(actions.showModal(MODALS.STAGES))}
           className="dropdown-toggle"

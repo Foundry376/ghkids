@@ -360,9 +360,17 @@ export const Stage = ({
     const { xmin, ymin, xmax, ymax } = recordingExtent;
     const xCenter = xmin + 0.5 + (xmax - xmin) / 2.0;
     const yCenter = ymin + 0.5 + (ymax - ymin) / 2.0;
+
+    // The flex container always positions the stage at (containerSize - stageSize) / 2
+    // (which is negative when the stage overflows). The container dimensions cancel out:
+    //   naturalEdge + offset + center * cellPx = containerSize / 2
+    //   (containerSize - stageSize) / 2 + offset + center * cellPx = containerSize / 2
+    //   offset = stageSize / 2 - center * cellPx
+    // So we only need the stage dimensions — no need to read the container size.
+    const cellPx = STAGE_CELL_SIZE * scale;
     return {
-      left: `calc(-${xCenter * STAGE_CELL_SIZE}px + 50%)`,
-      top: `calc(-${yCenter * STAGE_CELL_SIZE}px + 50%)`,
+      left: (stage.width / 2 - xCenter) * cellPx,
+      top: (stage.height / 2 - yCenter) * cellPx,
     };
   };
 
