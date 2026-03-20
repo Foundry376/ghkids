@@ -332,13 +332,18 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
         for (let y = rule.extent.ymin; y <= rule.extent.ymax; y++) {
           const ignoreExtraActors = rule.extent.ignored[`${x},${y}`];
 
+          // Square coordinates are 0-based relative to the extent origin so that
+          // the overlay renderer can position them with extentXMin + sq.x/y.
+          const sx = x - rule.extent.xmin;
+          const sy = y - rule.extent.ymin;
+
           // Ben Note: `actorFillsPoint` is not "wrapping-aware". If adding the x,y offset
           // causes wrapping, we need to consider actors extending into the offscreen
           // (non-existent) tile and actors at the wrapped tile position.
           const unwrappedStagePos = pointByAdding(me.position, { x, y });
           const wrappedStagePos = wrappedPosition(unwrappedStagePos);
           if (wrappedStagePos === null) {
-            squares.push({ x, y, passed: false, reason: "offscreen" });
+            squares.push({ x: sx, y: sy, passed: false, reason: "offscreen" });
             if (!failedAt) failedAt = "extent-square";
             continue; // Continue to collect all square results
           }
@@ -354,8 +359,8 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
           );
           if (stageActorsAtPos.length !== ruleActorsAtPos.length && !ignoreExtraActors) {
             squares.push({
-              x,
-              y,
+              x: sx,
+              y: sy,
               passed: false,
               reason: "actor-count-mismatch",
               expectedActorCount: ruleActorsAtPos.length,
@@ -400,11 +405,11 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
           }
 
           if (squarePassed) {
-            squares.push({ x, y, passed: true, reason: "ok" });
+            squares.push({ x: sx, y: sy, passed: true, reason: "ok" });
           } else {
             squares.push({
-              x,
-              y,
+              x: sx,
+              y: sy,
               passed: false,
               reason: "actor-match-failed",
               expectedActorCount: ruleActorsAtPos.length,
