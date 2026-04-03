@@ -1,8 +1,6 @@
+import { Nav, NavItem, NavLink } from "reactstrap";
 import classNames from "classnames";
 import { useEffect, useState } from "react";
-import Nav from "reactstrap/lib/Nav";
-import NavItem from "reactstrap/lib/NavItem";
-import NavLink from "reactstrap/lib/NavLink";
 
 import AddRuleButton from "./add-rule-button";
 import AddVariableButton from "./add-variable-button";

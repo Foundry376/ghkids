@@ -1,9 +1,7 @@
 import { useDispatch } from "react-redux";
 import { Link } from "react-router-dom";
-import Button from "reactstrap/lib/Button";
-
 import { useState } from "react";
-import { Modal, ModalBody } from "reactstrap";
+import { Button, Modal, ModalBody } from "reactstrap";
 import { createWorld } from "../actions/main-actions";
 import { useAppSelector } from "../hooks/redux";
 
@@ -51,7 +49,7 @@ const HomePage = () => {
             <div className="col-md-12">
               <h2>Create your own games!</h2>
               <div>
-                <p>Codako is a game programming tool designed for young learners ages 6-14.</p>
+                <p>Codako is a video game construction set designed for young learners ages 6 and up.</p>
                 <br />
                 {me ? (
                   <div style={{ display: "inline-flex", gap: 16, margin: "auto" }}>

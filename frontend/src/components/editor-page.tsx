@@ -11,8 +11,7 @@ import { useHideRecaptchaBadge } from "../hooks/useHideRecaptchaBadge";
 import { usePageTitle } from "../hooks/usePageTitle";
 
 import { useParams } from "react-router";
-import { Modal, ModalBody } from "reactstrap";
-import Button from "reactstrap/lib/Button";
+import { Button, Modal, ModalBody } from "reactstrap";
 import { applyDataMigrations } from "../editor/data-migrations";
 import { useAppSelector } from "../hooks/redux";
 import { Game } from "../types";
@@ -349,6 +348,8 @@ const EditorPage = () => {
         // After commit, clear unsaved changes flag since everything is now saved
         setHasUnsavedChanges(false);
         _savePromise.current = null;
+        // Update world to reflect the saved state so revertToSaved returns to this point
+        setWorld((prev) => (prev ? { ...prev, data: json.data } : prev));
         // Keep the flag for a short time to prevent immediate re-triggering
         setTimeout(() => {
           _isCommitting.current = false;
@@ -446,6 +447,7 @@ const EditorPage = () => {
         saveDraft: saveDraft,
         saveAndExit: saveAndExit,
         exitWithoutSaving: exitWithoutSaving,
+        revertToSaved: revertToSaved,
         hasUnsavedChanges: hasUnsavedChanges,
       }}
     >

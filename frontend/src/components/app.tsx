@@ -1,7 +1,7 @@
+import { Button } from "reactstrap";
 import * as Sentry from "@sentry/react";
 import { useDispatch } from "react-redux";
 import { Link, Outlet, useLocation } from "react-router-dom";
-import Button from "reactstrap/lib/Button";
 
 import { logout } from "../actions/main-actions";
 import { useAppSelector } from "../hooks/redux";
@@ -51,7 +51,16 @@ const App = () => {
                     </Link>
                   </li>,
                   <li className="nav-item" key="logout">
-                    <a className="nav-link" href="#" onClick={() => dispatch(logout())}>
+                    <a
+                      className="nav-link"
+                      href="#"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        if (window.confirm("Are you sure you want to log out of Codako?")) {
+                          dispatch(logout());
+                        }
+                      }}
+                    >
                       Log Out ({me.username})
                     </a>
                   </li>,

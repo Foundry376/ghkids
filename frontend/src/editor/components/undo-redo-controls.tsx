@@ -1,6 +1,6 @@
+import { Button } from "reactstrap";
 import { useCallback, useEffect } from "react";
 import { useDispatch } from "react-redux";
-import Button from "reactstrap/lib/Button";
 import { undo, redo } from "../utils/undo-redo";
 import { useEditorSelector } from "../../hooks/redux";
 

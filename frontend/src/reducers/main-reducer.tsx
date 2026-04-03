@@ -25,6 +25,13 @@ export default function mainReducer(state: MainState, action: MainActions) {
         worlds: hash,
       });
     }
+    case Types.REMOVE_WORLD: {
+      const hash = Object.assign({}, state.worlds);
+      delete hash[action.id];
+      return Object.assign({}, state, {
+        worlds: hash,
+      });
+    }
     case Types.NETWORK_ACTIVITY: {
       return Object.assign({}, state, {
         network: {

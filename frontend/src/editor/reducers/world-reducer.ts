@@ -3,7 +3,7 @@ import u from "updeep";
 
 import stageCollectionReducer from "./stage-collection-reducer";
 
-import { EditorState, WorldMinimal } from "../../types";
+import { EditorState, World, WorldMinimal } from "../../types";
 import { Actions } from "../actions";
 import * as Types from "../constants/action-types";
 import WorldOperator from "../utils/world-operator";
@@ -52,10 +52,17 @@ export default function worldReducer(
       const { characters } = entireState;
       return WorldOperator(state, characters).untick();
     }
+    case Types.REWIND_ALL_GAME_STATE: {
+      const { characters } = entireState;
+      let current = state as World;
+      while (current.history && current.history.length > 0) {
+        current = WorldOperator(current, characters).untick() as World;
+      }
+      return current;
+    }
     case Types.UPSERT_ACTORS:
     case Types.DELETE_ACTORS:
     case Types.DELETE_CHARACTER:
-    case Types.RESTORE_INITIAL_GAME_STATE:
       return u(
         {
           history: u.constant([]),

@@ -1,20 +1,16 @@
+import { Button, ButtonGroup } from "reactstrap";
 import classNames from "classnames";
 import React, { useEffect, useRef } from "react";
 import { Dispatch } from "redux";
 
-import Button from "reactstrap/lib/Button";
-import ButtonGroup from "reactstrap/lib/ButtonGroup";
 import { World } from "../../../types";
 import {
   advanceGameState,
-  restoreInitialGameState,
-  saveInitialGameState,
+  rewindAllGameState,
   stepBackGameState,
 } from "../../actions/stage-actions";
 import { updatePlaybackState } from "../../actions/ui-actions";
 import { SPEED_OPTIONS } from "../../constants/constants";
-import { getCurrentStageForWorld } from "../../utils/selectors";
-import { getStageScreenshot } from "../../utils/stage-helpers";
 import TickClock from "./tick-clock";
 
 interface StageControlsProps {
@@ -75,73 +71,32 @@ const StageControls: React.FC<StageControlsProps> = ({
     }
   }, [dispatch, rewinding, speed, world.history?.length]);
 
-  const onRestoreInitialGameState = () => {
-    const stage = getCurrentStageForWorld(world);
-    if (!stage) return;
-
-    if (window.confirm("Are you sure you want to reset the stage to the saved `Start` state?")) {
-      dispatch(restoreInitialGameState(world.id, stage.id));
-    }
-  };
-
-  const onSaveInitialGameState = () => {
-    const stage = getCurrentStageForWorld(world);
-    if (!stage) return;
-
-    const thumbnail = getStageScreenshot(stage, { size: 160 });
-    if (!thumbnail) return;
-
-    dispatch(
-      saveInitialGameState(world.id, stage.id, {
-        actors: stage.actors,
-        thumbnail,
-      }),
-    );
-  };
-
-  const renderRestartControl = () => {
-    const stage = getCurrentStageForWorld(world);
-    const startThumbnail = stage?.startThumbnail ?? "";
-    return (
-      <div className="left">
-        <div className="start-thumbnail restart-button" onClick={onRestoreInitialGameState}>
-          <img src={startThumbnail} />
-          <div className="label">
-            <i className="fa fa-fast-backward" /> Restart
-          </div>
-        </div>
-      </div>
-    );
-  };
-
-  const renderInitialStateControls = () => {
-    const stage = getCurrentStageForWorld(world);
-    const startThumbnail = stage?.startThumbnail ?? "";
-
-    return (
-      <div className="left">
-        <div className="start-thumbnail">
-          <img src={startThumbnail} />
-        </div>
-        <div className="start-buttons">
-          <Button size="sm" onClick={onRestoreInitialGameState}>
-            <i className="fa fa-arrow-up" />
-          </Button>
-          <Button size="sm" onClick={onSaveInitialGameState}>
-            <i className="fa fa-arrow-down" />
-          </Button>
-        </div>
-      </div>
-    );
-  };
-
   return (
     <div className="stage-controls">
-      {readonly ? renderRestartControl() : renderInitialStateControls()}
+      <div className="left" style={{ width: 122 }} />
 
       <div style={{ flex: 1 }} />
 
       <div className="center" data-tutorial-id="controls">
+        {!readonly && (
+          <Button
+            size="sm"
+            disabled={world.history && world.history.length === 0}
+            onClick={() => dispatch(rewindAllGameState(world.id))}
+          >
+            <svg
+              width="12"
+              height="12"
+              viewBox="0 0 12 12"
+              fill="currentColor"
+              style={{ verticalAlign: "middle" }}
+            >
+              <rect x="0" y="1" width="2" height="10" />
+              <polygon points="7,1 7,11 2,6" />
+              <polygon points="12,1 12,11 7,6" />
+            </svg>
+          </Button>
+        )}{" "}
         {!readonly && (
           <Button
             size="sm"
@@ -191,7 +146,7 @@ const StageControls: React.FC<StageControlsProps> = ({
 
       <div style={{ flex: 1 }} />
 
-      <div className="right">
+      <div className="right" style={{ width: 122 }}>
         <ButtonGroup>
           {Object.keys(SPEED_OPTIONS).map((name) => (
             <Button
@@ -215,10 +170,6 @@ const StageControls: React.FC<StageControlsProps> = ({
           ))}
         </ButtonGroup>
       </div>
-
-      <div style={{ flex: 1 }} />
-
-      <div className="right"></div>
     </div>
   );
 };

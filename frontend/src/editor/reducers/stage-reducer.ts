@@ -36,26 +36,6 @@ export default function stageReducer(state: Stage, action: Actions) {
     case Types.UPDATE_STAGE_SETTINGS: {
       return u(action.settings, state);
     }
-    case Types.SAVE_INITIAL_GAME_STATE: {
-      return u(
-        {
-          startThumbnail: action.thumbnail,
-          startActors: u.constant(action.actors),
-        },
-        state,
-      );
-    }
-    case Types.RESTORE_INITIAL_GAME_STATE: {
-      if (!state.startActors || Object.keys(state.startActors).length === 0) {
-        return state;
-      }
-      return u(
-        {
-          actors: u.constant(state.startActors),
-        },
-        state,
-      );
-    }
     default:
       return state;
   }

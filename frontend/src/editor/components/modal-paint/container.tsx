@@ -1,19 +1,14 @@
+import { Button, ButtonDropdown, DropdownItem, DropdownMenu, DropdownToggle, Modal, ModalBody, ModalFooter } from "reactstrap";
 import React, { useCallback, useEffect, useReducer, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import Button from "reactstrap/lib/Button";
-import ButtonDropdown from "reactstrap/lib/ButtonDropdown";
-import DropdownItem from "reactstrap/lib/DropdownItem";
-import DropdownMenu from "reactstrap/lib/DropdownMenu";
-import DropdownToggle from "reactstrap/lib/DropdownToggle";
-import Modal from "reactstrap/lib/Modal";
-import ModalBody from "reactstrap/lib/ModalBody";
-import ModalFooter from "reactstrap/lib/ModalFooter";
 
 import { makeRequest } from "../../../helpers/api";
 import { Actor, Character, Characters, EditorState } from "../../../types";
 
-import { upsertCharacter } from "../../actions/characters-actions";
+import { changeCharacterAppearanceName, createCharacterAppearance, upsertCharacter } from "../../actions/characters-actions";
 import { paintCharacterAppearance } from "../../actions/ui-actions";
+import { defaultAppearanceId } from "../../utils/character-helpers";
+import { makeId } from "../../utils/utils";
 
 import AIModal from "./ai-modal";
 import { PaintModel, TOOLS_LIST } from "./paint-model";
@@ -121,6 +116,15 @@ const PaintContainer: React.FC = () => {
     },
     [model],
   );
+
+  const handleAddAppearance = useCallback(() => {
+    if (!characterId || !character) return;
+    const { spritesheet } = character;
+    const existingData = spritesheet.appearances[defaultAppearanceId(spritesheet)];
+    const newAppearanceId = makeId("appearance");
+    reduxDispatch(createCharacterAppearance(characterId, newAppearanceId, existingData ? existingData[0] : null));
+    reduxDispatch(paintCharacterAppearance(characterId, newAppearanceId));
+  }, [characterId, character, reduxDispatch]);
 
   const handleClose = useCallback(() => {
     reduxDispatch(paintCharacterAppearance(null));
@@ -231,7 +235,30 @@ const PaintContainer: React.FC = () => {
           onFocus={(event) => (event.target.parentNode as HTMLElement)?.focus()}
         />
         <div className="modal-header" style={{ display: "flex", alignItems: "center" }}>
-          <h4 style={{ flex: 1 }}>Edit Appearance</h4>
+          <input
+            style={{ flex: 1, fontSize: "1.25rem", fontWeight: 500, border: "none", background: "transparent", outline: "none", borderBottom: "1px solid transparent", width: "100%" }}
+            value={character?.spritesheet.appearanceNames?.[appearanceId ?? ""] ?? ""}
+            placeholder="Appearance Name"
+            onFocus={(e) => (e.target.style.borderBottomColor = "#aaa")}
+            onBlur={(e) => {
+              e.target.style.borderBottomColor = "transparent";
+              if (characterId && appearanceId) {
+                reduxDispatch(changeCharacterAppearanceName(characterId, appearanceId, e.target.value));
+              }
+            }}
+            onChange={(e) => {
+              if (characterId && appearanceId) {
+                reduxDispatch(changeCharacterAppearanceName(characterId, appearanceId, e.target.value));
+              }
+            }}
+          />
+          <Button
+            title="Add Appearance"
+            className="icon"
+            onClick={handleAddAppearance}
+          >
+            <i className="fa fa-plus" />
+          </Button>
           <Button
             title="Undo"
             className="icon"

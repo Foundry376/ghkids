@@ -1,9 +1,6 @@
+import { ButtonDropdown, DropdownItem, DropdownMenu, DropdownToggle } from "reactstrap";
 import { useState } from "react";
 
-import ButtonDropdown from "reactstrap/lib/ButtonDropdown";
-import DropdownItem from "reactstrap/lib/DropdownItem";
-import DropdownMenu from "reactstrap/lib/DropdownMenu";
-import DropdownToggle from "reactstrap/lib/DropdownToggle";
 
 import { useDispatch } from "react-redux";
 import { Actor, Character } from "../../../types";

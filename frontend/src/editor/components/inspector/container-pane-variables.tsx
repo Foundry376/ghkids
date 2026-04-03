@@ -1,12 +1,8 @@
 import React, { useState } from "react";
 
-import ButtonDropdown from "reactstrap/lib/ButtonDropdown";
-import DropdownItem from "reactstrap/lib/DropdownItem";
-import DropdownMenu from "reactstrap/lib/DropdownMenu";
-import DropdownToggle from "reactstrap/lib/DropdownToggle";
 
 import { useDispatch } from "react-redux";
-import { Button, Modal, ModalBody, ModalFooter, ModalHeader } from "reactstrap";
+import { Button, ButtonDropdown, DropdownItem, DropdownMenu, DropdownToggle, Modal, ModalBody, ModalFooter, ModalHeader } from "reactstrap";
 import { DeepPartial } from "redux";
 import { Actor, ActorTransform, Character, Global, RuleTreeItem, WorldMinimal } from "../../../types";
 import { useEditorSelector } from "../../../hooks/redux";

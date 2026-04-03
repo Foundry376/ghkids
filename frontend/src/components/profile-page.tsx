@@ -1,8 +1,6 @@
+import { Col, Container, Row } from "reactstrap";
 import { useEffect } from "react";
 import { useDispatch } from "react-redux";
-import Col from "reactstrap/lib/Col";
-import Container from "reactstrap/lib/Container";
-import Row from "reactstrap/lib/Row";
 import {
   createWorld,
   deleteWorld,

@@ -73,6 +73,29 @@ export type ActionEditRuleRecording = {
   rule: Rule | RuleTreeFlowItemCheck;
 };
 
+export function setupCheckRecordingForActor({
+  check,
+  actorId,
+}: {
+  check: RuleTreeFlowItemCheck;
+  actorId: string;
+}) {
+  return (dispatch: Dispatch<Actions>) => {
+    dispatch(stopPlayback());
+    dispatch({
+      type: types.SETUP_CHECK_RECORDING_FOR_ACTOR,
+      check,
+      actorId,
+    });
+  };
+}
+
+export type ActionSetupCheckRecordingForActor = {
+  type: "SETUP_CHECK_RECORDING_FOR_ACTOR";
+  check: RuleTreeFlowItemCheck;
+  actorId: string;
+};
+
 export function cancelRecording(): ActionCancelRecording {
   return {
     type: types.CANCEL_RECORDING,
@@ -151,6 +174,7 @@ export type RecordingActions =
   | ActionSetupRecordingForActor
   | ActionSetupRecordingForCharacter
   | ActionEditRuleRecording
+  | ActionSetupCheckRecordingForActor
   | ActionCancelRecording
   | ActionFinishRecording
   | ActionSetRecordingExtent

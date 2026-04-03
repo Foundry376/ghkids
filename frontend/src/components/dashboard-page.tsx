@@ -1,9 +1,6 @@
+import { Button, Col, Container, Row } from "reactstrap";
 import React, { useEffect } from "react";
 import { useDispatch } from "react-redux";
-import Button from "reactstrap/lib/Button";
-import Col from "reactstrap/lib/Col";
-import Container from "reactstrap/lib/Container";
-import Row from "reactstrap/lib/Row";
 
 import { createWorld, deleteWorld, fetchWorldsForUser } from "../actions/main-actions";
 import { useAppSelector } from "../hooks/redux";

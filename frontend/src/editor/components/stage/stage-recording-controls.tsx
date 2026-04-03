@@ -1,7 +1,7 @@
+import { Button } from "reactstrap";
 import React from "react";
 import { Dispatch } from "redux";
 
-import Button from "reactstrap/lib/Button";
 import { makeRequest } from "../../../helpers/api";
 import { cancelRecording, finishRecording } from "../../actions/recording-actions";
 import { RECORDING_PHASE } from "../../constants/constants";

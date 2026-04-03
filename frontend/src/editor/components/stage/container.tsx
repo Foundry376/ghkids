@@ -83,7 +83,7 @@ const StageContainer = ({ readonly, immersive }: { readonly?: boolean; immersive
           recordingExtent={recording.extent}
           recordingCentered
           evaluatedSquares={evaluatedSquares}
-          interactionMode="none"
+          interactionMode={recording.actions === null ? "full" : "none"}
         />
       );
       if (recording.actions !== null) {

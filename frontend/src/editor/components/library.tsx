@@ -1,12 +1,8 @@
+import { Button, ButtonDropdown, DropdownItem, DropdownMenu, DropdownToggle } from "reactstrap";
 import classNames from "classnames";
 import React, { useCallback, useState } from "react";
 import { useDispatch } from "react-redux";
 
-import Button from "reactstrap/lib/Button";
-import ButtonDropdown from "reactstrap/lib/ButtonDropdown";
-import DropdownItem from "reactstrap/lib/DropdownItem";
-import DropdownMenu from "reactstrap/lib/DropdownMenu";
-import DropdownToggle from "reactstrap/lib/DropdownToggle";
 
 import { MODALS, TOOLS } from "../constants/constants";
 

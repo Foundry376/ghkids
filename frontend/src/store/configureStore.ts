@@ -1,6 +1,9 @@
 import { applyMiddleware, compose, createStore, Store, StoreEnhancer } from "redux";
 // @ts-expect-error - no type definitions available
-import reduxImmutableStateInvariant from "redux-immutable-state-invariant";
+import reduxImmutableStateInvariantModule from "redux-immutable-state-invariant";
+// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+const reduxImmutableStateInvariant =
+  reduxImmutableStateInvariantModule.default ?? reduxImmutableStateInvariantModule;
 import thunk from "redux-thunk";
 
 import { sessionStorageMiddleware } from "../helpers/session-storage";

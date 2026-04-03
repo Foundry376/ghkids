@@ -1,7 +1,5 @@
+import { Col, Container, Row } from "reactstrap";
 import React, { useEffect, useState } from "react";
-import Col from "reactstrap/lib/Col";
-import Container from "reactstrap/lib/Container";
-import Row from "reactstrap/lib/Row";
 
 import { makeRequest } from "../helpers/api";
 import { usePageTitle } from "../hooks/usePageTitle";

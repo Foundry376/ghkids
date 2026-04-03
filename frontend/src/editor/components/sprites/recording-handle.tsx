@@ -14,18 +14,20 @@ const RecordingHandle = ({ side, position }: { side: string; position: Position 
   };
 
   return (
-    <img
+    <div
       draggable
       data-stage-handle={side}
       onDragStart={onDragStart}
       className={`handle-${side}`}
-      src={new URL(`../../img/tiles/handle_${side}.png`, import.meta.url).href}
       style={{
         position: "absolute",
         width: STAGE_CELL_SIZE,
         height: STAGE_CELL_SIZE,
         left: position.x * STAGE_CELL_SIZE,
         top: position.y * STAGE_CELL_SIZE,
+        backgroundImage: `url(${new URL(`../../img/tiles/handle_${side}.png`, import.meta.url).href})`,
+        backgroundSize: "contain",
+        backgroundRepeat: "no-repeat",
       }}
     />
   );

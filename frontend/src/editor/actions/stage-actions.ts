@@ -74,44 +74,18 @@ export type ActionStepBackGameState = {
   worldId: string;
 };
 
-export function saveInitialGameState(
-  worldId: string,
-  stageId: string,
-  { thumbnail, actors }: { thumbnail: string; actors: Stage["actors"] },
-): ActionSaveInitialGameState {
+export function rewindAllGameState(worldId: string): ActionRewindAllGameState {
   return {
-    type: types.SAVE_INITIAL_GAME_STATE,
+    type: types.REWIND_ALL_GAME_STATE,
     worldId,
-    stageId,
-    thumbnail,
-    actors,
   };
 }
 
-export type ActionSaveInitialGameState = {
-  type: "SAVE_INITIAL_GAME_STATE";
+export type ActionRewindAllGameState = {
+  type: "REWIND_ALL_GAME_STATE";
   worldId: string;
-  stageId: string;
-  thumbnail: string;
-  actors: Stage["actors"];
 };
 
-export function restoreInitialGameState(
-  worldId: string,
-  stageId: string,
-): ActionRestoreInitialGameState {
-  return {
-    type: types.RESTORE_INITIAL_GAME_STATE,
-    worldId,
-    stageId,
-  };
-}
-
-export type ActionRestoreInitialGameState = {
-  type: "RESTORE_INITIAL_GAME_STATE";
-  worldId: string;
-  stageId: string;
-};
 
 export function updateStageSettings(
   worldId: string,
@@ -238,7 +212,6 @@ export type StageActions =
   | ActionUpsertActor
   | ActionAdvanceGameState
   | ActionStepBackGameState
-  | ActionSaveInitialGameState
-  | ActionRestoreInitialGameState
+  | ActionRewindAllGameState
   | ActionUpdateStageSettings
   | ActionInputForGameState;
