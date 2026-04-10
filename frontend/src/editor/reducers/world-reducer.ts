@@ -37,7 +37,20 @@ export default function worldReducer(
     case Types.INPUT_FOR_GAME_STATE: {
       const inputUpdates: { keys?: unknown; clicks?: unknown } = {};
       if (action.keys !== undefined) {
-        inputUpdates.keys = u.constant(action.keys);
+        const next = { ...state.input.keys };
+        for (const key of Object.keys(next)) {
+          if (!action.keys[key]) {
+            if (next[key] === "pressed") {
+              next[key] = "released";
+            } else if (next[key] === "repeating") {
+              delete next[key];
+            }
+          }
+        }
+        for (const key of Object.keys(action.keys)) {
+          next[key] = "pressed";
+        }
+        inputUpdates.keys = u.constant(next);
       }
       if (action.clicks !== undefined) {
         inputUpdates.clicks = action.clicks;

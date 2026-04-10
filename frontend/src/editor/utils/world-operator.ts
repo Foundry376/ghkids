@@ -801,7 +801,14 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
     };
 
     if (options.clearInput) {
-      updates.input = u.constant({ keys: {}, clicks: {} });
+      updates.input = u.constant({
+        keys: Object.fromEntries(
+          Object.entries(input.keys)
+            .filter(([_, v]) => v !== "released")
+            .map(([key, _]) => [key, "repeating"]),
+        ),
+        clicks: {},
+      });
     }
 
     return u(updates, previousWorld);

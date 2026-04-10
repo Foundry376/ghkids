@@ -75,27 +75,48 @@ const StageContainer = ({ readonly, immersive }: { readonly?: boolean; immersive
         selectedActors,
       );
 
-      stageA = (
-        <Stage
-          style={{ marginRight: 2 }}
-          world={recording.beforeWorld}
-          stage={getCurrentStageForWorld(recording.beforeWorld)!}
-          recordingExtent={recording.extent}
-          recordingCentered
-          evaluatedSquares={evaluatedSquares}
-          interactionMode={recording.actions === null ? "full" : "none"}
-        />
-      );
-      if (recording.actions !== null) {
-        stageB = (
+      const isCreatingNewRule = !recording.ruleId && recording.actions !== null;
+
+      if (isCreatingNewRule) {
+        // New rule: the "before" world is just the current stage the user was already
+        // looking at, so showing it again in a small panel adds no value. Show only the
+        // "after" stage full-width so there's no jarring visual split.
+        // keepZoom prevents the zoom reset to 1 so the stage stays at its current
+        // zoom level; recordingCentered still pans (animated) to center the extent.
+        stageA = (
           <Stage
-            style={{ marginLeft: 2 }}
             world={recording.afterWorld}
             stage={getCurrentStageForWorld(recording.afterWorld)!}
             recordingExtent={recording.extent}
             recordingCentered
+            keepZoom
           />
         );
+      } else {
+        // Editing an existing rule: show the before state (read-only) on the left so the
+        // user can see the stored rule pattern, and the after state on the right.
+        stageA = (
+          <Stage
+            style={{ marginRight: 2 }}
+            world={recording.beforeWorld}
+            stage={getCurrentStageForWorld(recording.beforeWorld)!}
+            recordingExtent={recording.extent}
+            recordingCentered
+            evaluatedSquares={evaluatedSquares}
+            interactionMode={recording.actions === null ? "full" : "none"}
+          />
+        );
+        if (recording.actions !== null) {
+          stageB = (
+            <Stage
+              style={{ marginLeft: 2 }}
+              world={recording.afterWorld}
+              stage={getCurrentStageForWorld(recording.afterWorld)!}
+              recordingExtent={recording.extent}
+              recordingCentered
+            />
+          );
+        }
       }
       actions = (
         <div className="recording-specifics">

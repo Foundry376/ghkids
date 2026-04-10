@@ -147,10 +147,13 @@ const PaintContainer: React.FC = () => {
     let generatedSpriteName = "";
     if (character.name === "Untitled") {
       try {
-        const nameResp = await makeRequest<{ name?: string }>("/generate-sprite-name", {
-          method: "POST",
-          json: { imageData: saveData.imageDataURL },
-        });
+        const nameResp = await Promise.race([
+          makeRequest<{ name?: string }>("/generate-sprite-name", {
+            method: "POST",
+            json: { imageData: saveData.imageDataURL },
+          }),
+          new Promise<null>((resolve) => setTimeout(() => resolve(null), 1500)),
+        ]);
         if (nameResp?.name) {
           generatedSpriteName = nameResp.name;
         }

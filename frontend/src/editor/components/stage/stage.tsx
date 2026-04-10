@@ -70,6 +70,10 @@ interface StageProps {
    */
   interactionMode?: "full" | "selectable" | "none";
   immersive?: boolean;
+  /** When true, recordingCentered pans to the extent but does NOT reset the zoom
+   * level to 1. Use when entering recording mode from an already-visible stage so
+   * the user doesn't experience a jarring zoom-out. */
+  keepZoom?: boolean;
   style?: CSSProperties;
 }
 
@@ -91,7 +95,8 @@ const DRAGGABLE_TOOLS = [TOOLS.IGNORE_SQUARE, TOOLS.TRASH, TOOLS.STAMP, TOOLS.CR
 // Single empty image used for hiding native drag preview
 // eslint-disable-next-line react-refresh/only-export-components
 export const EMPTY_DRAG_IMAGE = new Image();
-EMPTY_DRAG_IMAGE.src = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
+EMPTY_DRAG_IMAGE.src =
+  "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
 
 // eslint-disable-next-line react-refresh/only-export-components
 export const STAGE_ZOOM_STEPS = [1, 0.88, 0.75, 0.63, 0.5, 0.42, 0.38];
@@ -152,9 +157,7 @@ const SpriteDragPreview = ({
               transformOrigin: `${((info.anchor.x + 0.5) / info.width) * 100}% ${((info.anchor.y + 0.5) / info.height) * 100}%`,
               opacity: 0.85,
               filter:
-                spriteDrag.mode === "copy"
-                  ? "drop-shadow(2px 2px 4px rgba(0,0,0,0.3))"
-                  : undefined,
+                spriteDrag.mode === "copy" ? "drop-shadow(2px 2px 4px rgba(0,0,0,0.3))" : undefined,
             }}
           />
         );
@@ -163,11 +166,9 @@ const SpriteDragPreview = ({
   );
 };
 
-function useGlobalHeldKeys(worldId: string, playbackRunning: boolean) {
+function useGlobalHeldKeys(worldId: string) {
   const dispatch = useDispatch();
   const heldKeysRef = useRef<Set<string>>(new Set());
-  const playbackRunningRef = useRef(playbackRunning);
-  playbackRunningRef.current = playbackRunning;
 
   useEffect(() => {
     if (!worldId) {
@@ -178,6 +179,7 @@ function useGlobalHeldKeys(worldId: string, playbackRunning: boolean) {
       heldKeysRef.current.forEach((key) => {
         keysObj[key] = true;
       });
+      console.log(keysObj);
       dispatch(recordInputForGameState(worldId, { keys: keysObj }));
     };
 
@@ -202,12 +204,7 @@ function useGlobalHeldKeys(worldId: string, playbackRunning: boolean) {
       const codakoKey = keyToCodakoKey(event.key);
       if (heldKeysRef.current.has(codakoKey)) {
         heldKeysRef.current.delete(codakoKey);
-        // When playing, don't sync on keyup - let the key persist until tick() clears it.
-        // This ensures quick key taps are registered even if keyup happens before next tick.
-        // When stopped, sync immediately so Forward button sees current held state.
-        if (!playbackRunningRef.current) {
-          syncHeldKeys();
-        }
+        syncHeldKeys();
       }
     };
 
@@ -221,7 +218,6 @@ function useGlobalHeldKeys(worldId: string, playbackRunning: boolean) {
     document.addEventListener("keydown", onDocumentKeyDown);
     document.addEventListener("keyup", onDocumentKeyUp);
     window.addEventListener("blur", onWindowBlur);
-
     return () => {
       document.removeEventListener("keydown", onDocumentKeyDown);
       document.removeEventListener("keyup", onDocumentKeyUp);
@@ -238,6 +234,7 @@ export const Stage = ({
   world,
   interactionMode = "full",
   immersive,
+  keepZoom,
   style,
 }: StageProps) => {
   const [{ top, left }, setOffset] = useState<Offset>({ top: 0, left: 0 });
@@ -255,10 +252,6 @@ export const Stage = ({
 
   const lastFiredExtent = useRef<string | null>(null);
   const lastActorPositions = useRef<{ [actorId: string]: Position }>({});
-  // Centering offset: when the stage is smaller than the scroll wrap (fit/immersive mode),
-  // it is centered via CSS flex. This state tracks that offset so the selection box
-  // (which is position:absolute in the scroll wrap) can be positioned correctly.
-  const [centeringOffset, setCenteringOffset] = useState({ left: 0, top: 0 });
 
   const mouse = useRef<MouseStatus>({ isDown: false, visited: {} });
   const scrollEl = useRef<HTMLDivElement | null>();
@@ -272,10 +265,20 @@ export const Stage = ({
         return;
       }
       if (recordingCentered) {
-        setScale(1);
-        setCenteringOffset({ left: 0, top: 0 });
-        _scrollEl.style.justifyContent = "";
-        _scrollEl.style.alignItems = "";
+        if (!keepZoom) {
+          setScale(1);
+          _scrollEl.style.justifyContent = "";
+          _scrollEl.style.alignItems = "";
+        } else {
+          // keepZoom: scale stays the same; adjust flex alignment so the stage
+          // doesn't overflow-center on axes that exceed the scroll-wrap.
+          const stageW = stage.width * STAGE_CELL_SIZE * scale;
+          const stageH = stage.height * STAGE_CELL_SIZE * scale;
+          const overflowsX = stageW > _scrollEl.clientWidth;
+          const overflowsY = stageH > _scrollEl.clientHeight;
+          _scrollEl.style.justifyContent = overflowsX ? "flex-start" : "";
+          _scrollEl.style.alignItems = overflowsY ? "flex-start" : "";
+        }
       } else if (immersive || stage.scale === "fit") {
         _el.style.zoom = "1"; // this needs to be here for scaling "up" to work
         const fit = Math.min(
@@ -288,7 +291,7 @@ export const Stage = ({
         const minZoom = immersive && stage.scale !== "fit" ? (stage.scale ?? 1) : 0;
         const best = immersive
           ? Math.max(minZoom, fit)
-          : (STAGE_ZOOM_STEPS.find((z) => z <= fit) || fit);
+          : STAGE_ZOOM_STEPS.find((z) => z <= fit) || fit;
         _el.style.zoom = `${best}`;
         setScale(best);
 
@@ -300,13 +303,8 @@ export const Stage = ({
         const overflowsY = stageH > _scrollEl.clientHeight;
         _scrollEl.style.justifyContent = overflowsX ? "flex-start" : "";
         _scrollEl.style.alignItems = overflowsY ? "flex-start" : "";
-        setCenteringOffset({
-          left: overflowsX ? 0 : Math.max(0, (_scrollEl.clientWidth - stageW) / 2),
-          top: overflowsY ? 0 : Math.max(0, (_scrollEl.clientHeight - stageH) / 2),
-        });
       } else {
         setScale(stage.scale ?? 1);
-        setCenteringOffset({ left: 0, top: 0 });
         _scrollEl.style.justifyContent = "";
         _scrollEl.style.alignItems = "";
       }
@@ -326,7 +324,7 @@ export const Stage = ({
       window.removeEventListener("resize", autofit);
       document.removeEventListener("fullscreenchange", autofit);
     };
-  }, [stage.height, stage.scale, stage.width, recordingCentered, immersive]);
+  }, [stage.height, stage.scale, stage.width, recordingCentered, immersive, keepZoom]);
 
   const dispatch = useDispatch();
   const characters = useEditorSelector((state) => state.characters);
@@ -340,7 +338,7 @@ export const Stage = ({
     }),
   );
 
-  useGlobalHeldKeys(world.id, playback.running);
+  useGlobalHeldKeys(world.id);
 
   // Helpers
 
@@ -374,21 +372,24 @@ export const Stage = ({
     };
   };
 
-  const centerOnActor = useCallback((actorId: string): Offset | null => {
-    if (!actorId) return null;
+  const centerOnActor = useCallback(
+    (actorId: string): Offset | null => {
+      if (!actorId) return null;
 
-    const actor = stage.actors[actorId];
-    if (!actor) return null;
+      const actor = stage.actors[actorId];
+      if (!actor) return null;
 
-    // Calculate actor center position (add 0.5 to center on the cell)
-    const xCenter = actor.position.x + 0.5;
-    const yCenter = actor.position.y + 0.5;
+      // Calculate actor center position (add 0.5 to center on the cell)
+      const xCenter = actor.position.x + 0.5;
+      const yCenter = actor.position.y + 0.5;
 
-    return {
-      left: `calc(-${xCenter * STAGE_CELL_SIZE}px + 50%)`,
-      top: `calc(-${yCenter * STAGE_CELL_SIZE}px + 50%)`,
-    };
-  }, [stage.actors]);
+      return {
+        left: `calc(-${xCenter * STAGE_CELL_SIZE}px + 50%)`,
+        top: `calc(-${yCenter * STAGE_CELL_SIZE}px + 50%)`,
+      };
+    },
+    [stage.actors],
+  );
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
@@ -503,8 +504,8 @@ export const Stage = ({
       .pop();
     const stageOffset = el.current!.getBoundingClientRect();
     const position = {
-      x: (event.clientX - stageOffset.left) / STAGE_CELL_SIZE,
-      y: (event.clientY - stageOffset.top) / STAGE_CELL_SIZE,
+      x: (event.clientX - stageOffset.left) / STAGE_CELL_SIZE / scale,
+      y: (event.clientY - stageOffset.top) / STAGE_CELL_SIZE / scale,
     };
 
     // expand the extent of the recording rule to reflect this new extent
@@ -794,7 +795,12 @@ export const Stage = ({
             ),
           );
         } else {
-          const overlapping = actorsAtPoint(stage.actors, characters, clickedPosition, characterZOrder);
+          const overlapping = actorsAtPoint(
+            stage.actors,
+            characters,
+            clickedPosition,
+            characterZOrder,
+          );
           const topActor = overlapping[overlapping.length - 1];
           const isTopActorSelected = topActor && selected.some((a) => a.id === topActor.id);
 
@@ -1127,8 +1133,7 @@ export const Stage = ({
       Math.abs(lastPosition.y - actor.position.y) > 6;
     lastActorPositions.current[actor.id] = Object.assign({}, actor.position);
 
-    const draggable =
-      interactionMode === "full" && !DRAGGABLE_TOOLS.includes(selectedToolId);
+    const draggable = interactionMode === "full" && !DRAGGABLE_TOOLS.includes(selectedToolId);
     const interactive = interactionMode !== "none";
     const animationStyle = actor.animationStyle || "linear";
     const zIndex = characterZOrder.indexOf(actor.characterId);
@@ -1176,6 +1181,7 @@ export const Stage = ({
             overflow: recordingExtent ? "visible" : "hidden",
             zoom: scale,
             "--outline-width": `${2.0 / scale}px`,
+            transition: recordingCentered ? "top 0.3s ease, left 0.3s ease" : undefined,
           } as CSSProperties
         }
         className="stage"
@@ -1203,23 +1209,28 @@ export const Stage = ({
 
         {recordingExtent ? renderRecordingExtent() : []}
       </div>
-      {selectionRect ? (
-        <div
-          className="stage-selection-box"
-          style={{
-            position: "absolute",
-            zIndex: 1,
-            left: centeringOffset.left + Math.min(selectionRect.start.left, selectionRect.end.left),
-            top: centeringOffset.top + Math.min(selectionRect.start.top, selectionRect.end.top),
-            width:
-              Math.max(selectionRect.start.left, selectionRect.end.left) -
-              Math.min(selectionRect.start.left, selectionRect.end.left),
-            height:
-              Math.max(selectionRect.start.top, selectionRect.end.top) -
-              Math.min(selectionRect.start.top, selectionRect.end.top),
-          }}
-        />
-      ) : null}
+      {selectionRect && el.current && scrollEl.current ? (() => {
+        // Compute the stage's position within the scroll-wrap directly from the DOM.
+        // This is more reliable than reconstructing it from centeringOffset + pan state,
+        // and correctly handles zoom, scroll, and any other layout factors.
+        const stageRect = el.current.getBoundingClientRect();
+        const wrapRect = scrollEl.current.getBoundingClientRect();
+        const stageLeft = stageRect.left - wrapRect.left + scrollEl.current.scrollLeft;
+        const stageTop = stageRect.top - wrapRect.top + scrollEl.current.scrollTop;
+        return (
+          <div
+            className="stage-selection-box"
+            style={{
+              position: "absolute",
+              zIndex: 1,
+              left: stageLeft + Math.min(selectionRect.start.left, selectionRect.end.left),
+              top: stageTop + Math.min(selectionRect.start.top, selectionRect.end.top),
+              width: Math.abs(selectionRect.end.left - selectionRect.start.left),
+              height: Math.abs(selectionRect.end.top - selectionRect.start.top),
+            }}
+          />
+        );
+      })() : null}
       {spriteDrag &&
         createPortal(
           <SpriteDragPreview spriteDrag={spriteDrag} characters={characters} scale={scale} />,

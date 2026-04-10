@@ -196,10 +196,7 @@ function recordingReducer(
         );
       }
       // Fallback: if actor not found, use the standard editing path
-      return u(
-        stateForEditingRule(RECORDING_PHASE.RECORD, action.check, entireState),
-        nextState,
-      );
+      return u(stateForEditingRule(RECORDING_PHASE.RECORD, action.check, entireState), nextState);
     }
     case Types.FINISH_RECORDING: {
       return Object.assign({}, initialState.recording);
@@ -345,6 +342,16 @@ function buildActionsFromStageActions(
         type: "delete",
         actorId,
       }));
+    }
+    case Types.UPSERT_GLOBAL: {
+      return [
+        {
+          type: "global",
+          operation: "set",
+          global: action.globalId,
+          value: { constant: action.changes.value ?? "" },
+        },
+      ];
     }
     default:
       return null;
