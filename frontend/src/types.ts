@@ -25,7 +25,10 @@ export type PositionRelativeToMainActor = {
   y: number;
 };
 
-export type FrameInput = { keys: { [key: string]: true }; clicks: { [actorId: string]: true } };
+export type FrameInput = {
+  keys: { [key: string]: "pressed" | "repeating" | "released" }; // true, key is down. False, key was down but will cleared after frame advances
+  clicks: { [actorId: string]: true };
+};
 
 export type MathOperation = "add" | "set" | "subtract";
 

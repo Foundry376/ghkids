@@ -1,4 +1,5 @@
 import { getCurrentStageForWorld } from "../../../utils/selectors";
+import ConnectedStagePicker from "../../inspector/connected-stage-picker";
 
 import classNames from "classnames";
 import React, { useState } from "react";
@@ -184,9 +185,11 @@ export const RecordingActions = (props: { characters: Characters; recording: Rec
             Set
             <VariableBlock name={"Current Stage"} />
             to
-            <code>
-              {beforeWorld.stages[a.value.constant] && beforeWorld.stages[a.value.constant].name}
-            </code>
+            <ConnectedStagePicker
+              value={a.value.constant}
+              disabled={false}
+              onChange={(e) => onChange({ ...a, value: { constant: e.target.value } })}
+            />
           </>
         );
       }
