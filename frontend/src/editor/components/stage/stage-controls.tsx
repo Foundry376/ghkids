@@ -85,7 +85,7 @@ const StageControls: React.FC<StageControlsProps> = ({
             disabled={world.history && world.history.length === 0}
             onClick={() => dispatch(rewindAllGameState(world.id))}
           >
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor">
+            <svg width="18" height="18" viewBox="0 0 14 14" fill="currentColor">
               <rect x="0" y="1" width="2.5" height="12" />
               <polygon points="12,1 12,13 3,7" />
             </svg>
@@ -104,7 +104,7 @@ const StageControls: React.FC<StageControlsProps> = ({
               )
             }
           >
-            <svg width="12" height="14" viewBox="0 0 12 14" fill="currentColor">
+            <svg width="16" height="18" viewBox="0 0 12 14" fill="currentColor">
               <polygon points="12,1 12,13 0,7" />
             </svg>
           </button>
@@ -116,7 +116,7 @@ const StageControls: React.FC<StageControlsProps> = ({
             disabled={world.history && world.history.length === 0}
             onClick={() => dispatch(stepBackGameState(world.id))}
           >
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor">
+            <svg width="18" height="18" viewBox="0 0 14 14" fill="currentColor">
               <polygon points="12,1 12,13 2,7" />
               <rect x="0" y="1" width="2.5" height="12" />
             </svg>
@@ -127,7 +127,7 @@ const StageControls: React.FC<StageControlsProps> = ({
           className={classNames("transport-btn transport-red", { selected: !running })}
           onClick={() => dispatch(updatePlaybackState({ speed, running: false }))}
         >
-          <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
+          <svg width="14" height="14" viewBox="0 0 12 12" fill="currentColor">
             <rect x="0" y="0" width="12" height="12" rx="1" />
           </svg>
         </button>
@@ -137,7 +137,7 @@ const StageControls: React.FC<StageControlsProps> = ({
             className="transport-btn transport-yellow"
             onClick={() => dispatch(advanceGameState(world.id))}
           >
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor">
+            <svg width="18" height="18" viewBox="0 0 14 14" fill="currentColor">
               <polygon points="2,1 2,13 12,7" />
               <rect x="11.5" y="1" width="2.5" height="12" />
             </svg>
@@ -153,7 +153,7 @@ const StageControls: React.FC<StageControlsProps> = ({
             dispatch(updatePlaybackState({ speed, running: true, runningDirection: "forward" }))
           }
         >
-          <svg width="12" height="14" viewBox="0 0 12 14" fill="currentColor">
+          <svg width="16" height="18" viewBox="0 0 12 14" fill="currentColor">
             <polygon points="0,1 0,13 12,7" />
           </svg>
         </button>
