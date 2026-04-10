@@ -77,38 +77,24 @@ const StageControls: React.FC<StageControlsProps> = ({
 
       <div style={{ flex: 1 }} />
 
-      <div className="center" data-tutorial-id="controls">
+      <div className={classNames("center transport-controls", { "is-playing": running })} data-tutorial-id="controls">
+        {/* Reset - green, farthest left: most change backward */}
         {!readonly && (
           <Button
-            size="sm"
+            className="transport-btn transport-green"
             disabled={world.history && world.history.length === 0}
             onClick={() => dispatch(rewindAllGameState(world.id))}
           >
-            <svg
-              width="12"
-              height="12"
-              viewBox="0 0 12 12"
-              fill="currentColor"
-              style={{ verticalAlign: "middle" }}
-            >
-              <rect x="0" y="1" width="2" height="10" />
-              <polygon points="7,1 7,11 2,6" />
-              <polygon points="12,1 12,11 7,6" />
+            <svg width="18" height="18" viewBox="0 0 14 14" fill="currentColor">
+              <rect x="0" y="1" width="2.5" height="12" />
+              <polygon points="12,1 12,13 3,7" />
             </svg>
           </Button>
-        )}{" "}
+        )}
+        {/* Rewind - green, continuous backward play */}
         {!readonly && (
           <Button
-            size="sm"
-            disabled={world.history && world.history.length === 0}
-            onClick={() => dispatch(stepBackGameState(world.id))}
-          >
-            <i className="fa fa-step-backward" />
-          </Button>
-        )}{" "}
-        {!readonly && (
-          <Button
-            className={classNames({ selected: rewinding })}
+            className={classNames("transport-btn transport-green", { selected: rewinding })}
             disabled={!rewinding && world.history && world.history.length === 0}
             onClick={() =>
               dispatch(
@@ -118,29 +104,60 @@ const StageControls: React.FC<StageControlsProps> = ({
               )
             }
           >
-            <i className="fa fa-backward" />
+            <svg width="16" height="18" viewBox="0 0 12 14" fill="currentColor">
+              <polygon points="12,1 12,13 0,7" />
+            </svg>
           </Button>
-        )}{" "}
+        )}
+        {/* Step Backward - yellow, one tick back */}
+        {!readonly && (
+          <Button
+            className="transport-btn transport-yellow"
+            disabled={world.history && world.history.length === 0}
+            onClick={() => dispatch(stepBackGameState(world.id))}
+          >
+            <svg width="18" height="18" viewBox="0 0 14 14" fill="currentColor">
+              <polygon points="12,1 12,13 2,7" />
+              <rect x="0" y="1" width="2.5" height="12" />
+            </svg>
+          </Button>
+        )}
+        {/* Stop - red, center */}
         <Button
-          className={classNames({ selected: !running })}
+          className={classNames("transport-btn transport-red", { selected: !running })}
           onClick={() => dispatch(updatePlaybackState({ speed, running: false }))}
         >
-          <i className="fa fa-stop" />
-        </Button>{" "}
+          <svg width="14" height="14" viewBox="0 0 12 12" fill="currentColor">
+            <rect x="0" y="0" width="12" height="12" rx="1" />
+          </svg>
+        </Button>
+        {/* Step Forward - yellow, one tick forward */}
+        {!readonly && (
+          <Button
+            className="transport-btn transport-yellow"
+            onClick={() => dispatch(advanceGameState(world.id))}
+          >
+            <svg width="18" height="18" viewBox="0 0 14 14" fill="currentColor">
+              <polygon points="2,1 2,13 12,7" />
+              <rect x="11.5" y="1" width="2.5" height="12" />
+            </svg>
+          </Button>
+        )}
+        {/* Play - green, continuous forward play */}
         <Button
           data-tutorial-id="play"
-          className={classNames({ selected: running && runningDirection === "forward" })}
+          className={classNames("transport-btn transport-green", {
+            selected: running && runningDirection === "forward",
+          })}
           onClick={() =>
             dispatch(updatePlaybackState({ speed, running: true, runningDirection: "forward" }))
           }
         >
-          <i className="fa fa-play" />
-        </Button>{" "}
-        {!readonly && (
-          <Button size="sm" onClick={() => dispatch(advanceGameState(world.id))}>
-            <i className="fa fa-step-forward" />
-          </Button>
-        )}{" "}
+          <svg width="16" height="18" viewBox="0 0 12 14" fill="currentColor">
+            <polygon points="0,1 0,13 12,7" />
+          </svg>
+        </Button>
+        {/* Clock */}
         <TickClock running={running} speed={speed} tickKey={world.evaluatedTickFrames?.[0]?.id} />
       </div>
 
