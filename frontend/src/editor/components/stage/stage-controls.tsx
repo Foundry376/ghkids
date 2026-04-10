@@ -77,7 +77,7 @@ const StageControls: React.FC<StageControlsProps> = ({
 
       <div style={{ flex: 1 }} />
 
-      <div className="center transport-controls" data-tutorial-id="controls">
+      <div className={classNames("center transport-controls", { "is-playing": running })} data-tutorial-id="controls">
         {/* Reset - green, farthest left: most change backward */}
         {!readonly && (
           <button
