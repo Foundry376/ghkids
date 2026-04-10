@@ -516,38 +516,34 @@ html {
 
       // When playing/rewinding, dim non-active buttons
       &.is-playing .transport-btn:not(.selected) {
-        opacity: 0.4;
+        opacity: 0.45;
 
         &:not(:disabled):hover {
-          opacity: 0.7;
+          opacity: 0.8;
         }
       }
     }
 
-    .transport-btn {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 36px;
-      height: 32px;
-      border: none;
-      border-radius: 3px;
-      cursor: pointer;
-      padding: 0;
+    .transport-btn.btn {
+      padding: 2px 6px;
       transition: opacity 0.15s ease;
-      background: transparent;
-
-      &:disabled {
-        opacity: 0.25;
-        cursor: default;
-      }
-
-      &:not(:disabled):hover {
-        opacity: 0.7;
-      }
 
       svg {
         display: block;
+      }
+
+      // Color-specific selected states (override the global tint-color selected style)
+      &.transport-green.selected {
+        background-image: linear-gradient(#2eac1c, #1e7a13);
+        color: white;
+      }
+      &.transport-yellow.selected {
+        background-image: linear-gradient(#c8a80e, #9a820a);
+        color: white;
+      }
+      &.transport-red.selected {
+        background-image: linear-gradient(#d42a2a, #a11e1e);
+        color: white;
       }
     }
 

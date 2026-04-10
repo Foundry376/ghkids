@@ -80,7 +80,7 @@ const StageControls: React.FC<StageControlsProps> = ({
       <div className={classNames("center transport-controls", { "is-playing": running })} data-tutorial-id="controls">
         {/* Reset - green, farthest left: most change backward */}
         {!readonly && (
-          <button
+          <Button
             className="transport-btn transport-green"
             disabled={world.history && world.history.length === 0}
             onClick={() => dispatch(rewindAllGameState(world.id))}
@@ -89,11 +89,11 @@ const StageControls: React.FC<StageControlsProps> = ({
               <rect x="0" y="1" width="2.5" height="12" />
               <polygon points="12,1 12,13 3,7" />
             </svg>
-          </button>
+          </Button>
         )}
         {/* Rewind - green, continuous backward play */}
         {!readonly && (
-          <button
+          <Button
             className={classNames("transport-btn transport-green", { selected: rewinding })}
             disabled={!rewinding && world.history && world.history.length === 0}
             onClick={() =>
@@ -107,11 +107,11 @@ const StageControls: React.FC<StageControlsProps> = ({
             <svg width="16" height="18" viewBox="0 0 12 14" fill="currentColor">
               <polygon points="12,1 12,13 0,7" />
             </svg>
-          </button>
+          </Button>
         )}
         {/* Step Backward - yellow, one tick back */}
         {!readonly && (
-          <button
+          <Button
             className="transport-btn transport-yellow"
             disabled={world.history && world.history.length === 0}
             onClick={() => dispatch(stepBackGameState(world.id))}
@@ -120,20 +120,20 @@ const StageControls: React.FC<StageControlsProps> = ({
               <polygon points="12,1 12,13 2,7" />
               <rect x="0" y="1" width="2.5" height="12" />
             </svg>
-          </button>
+          </Button>
         )}
         {/* Stop - red, center */}
-        <button
+        <Button
           className={classNames("transport-btn transport-red", { selected: !running })}
           onClick={() => dispatch(updatePlaybackState({ speed, running: false }))}
         >
           <svg width="14" height="14" viewBox="0 0 12 12" fill="currentColor">
             <rect x="0" y="0" width="12" height="12" rx="1" />
           </svg>
-        </button>
+        </Button>
         {/* Step Forward - yellow, one tick forward */}
         {!readonly && (
-          <button
+          <Button
             className="transport-btn transport-yellow"
             onClick={() => dispatch(advanceGameState(world.id))}
           >
@@ -141,10 +141,10 @@ const StageControls: React.FC<StageControlsProps> = ({
               <polygon points="2,1 2,13 12,7" />
               <rect x="11.5" y="1" width="2.5" height="12" />
             </svg>
-          </button>
+          </Button>
         )}
         {/* Play - green, continuous forward play */}
-        <button
+        <Button
           data-tutorial-id="play"
           className={classNames("transport-btn transport-green", {
             selected: running && runningDirection === "forward",
@@ -156,7 +156,7 @@ const StageControls: React.FC<StageControlsProps> = ({
           <svg width="16" height="18" viewBox="0 0 12 14" fill="currentColor">
             <polygon points="0,1 0,13 12,7" />
           </svg>
-        </button>
+        </Button>
         {/* Clock */}
         <TickClock running={running} speed={speed} tickKey={world.evaluatedTickFrames?.[0]?.id} />
       </div>
