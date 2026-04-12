@@ -1108,10 +1108,17 @@ export const Stage = ({
         : stage.background
       : "";
 
-  // linear gradient to blur cover the background image
-  const backgroundCSS = `url('/src/editor/img/board-grid.png') top left / ${STAGE_CELL_SIZE}px,
-    linear-gradient(rgba(255,255,255,0.5), rgba(255,255,255,0.5)),
-    ${backgroundValue}${backgroundValue?.includes("url(") ? " 50% 50% / cover" : ""}`;
+  const isImageBackground = backgroundValue?.includes("url(");
+  // For image backgrounds, optionally apply a white overlay to dim the image.
+  // For solid color backgrounds the overlay is never applied.
+  const applyFade = isImageBackground && stage.backgroundFade !== false;
+  const backgroundCSS = [
+    `url('/src/editor/img/board-grid.png') top left / ${STAGE_CELL_SIZE}px`,
+    applyFade ? `linear-gradient(rgba(255,255,255,0.5), rgba(255,255,255,0.5))` : null,
+    `${backgroundValue}${isImageBackground ? " 50% 50% / cover" : ""}`,
+  ]
+    .filter(Boolean)
+    .join(",\n    ");
 
   const renderActor = (actor: Actor) => {
     const character = characters[actor.characterId];
@@ -1195,7 +1202,7 @@ export const Stage = ({
             height: stage.height * STAGE_CELL_SIZE,
             background: backgroundCSS,
             pointerEvents: "none",
-            filter: "brightness(0.8) saturate(0.8)",
+            filter: applyFade ? "brightness(0.8) saturate(0.8)" : undefined,
           }}
         />
 
