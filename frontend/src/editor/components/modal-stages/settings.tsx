@@ -28,6 +28,9 @@ export const StageSettings = ({
   const [backgroundPrompt, setBackgroundPrompt] = useState("");
   const [isGenerating, setGenerating] = useState(false);
   const [isUploading, setUploading] = useState(false);
+  const [savedImageUrl, setSavedImageUrl] = useState(
+    (/url\((.*)\)/.exec(stage.background) || [])[1]?.replace(/^['"]|['"]$/g, "") ?? "",
+  );
 
   // Unsplash picker state
   const [showPicker, setShowPicker] = useState(false);
@@ -56,6 +59,7 @@ export const StageSettings = ({
       });
       const data = await resp.json();
       if (data.publicUrl) {
+        setSavedImageUrl(data.publicUrl);
         onChange({ background: `url(${data.publicUrl})` });
       } else {
         alert("Failed to upload image. Please try again.");
@@ -86,6 +90,7 @@ export const StageSettings = ({
   };
 
   const _onSelectImage = (photo: UnsplashResult) => {
+    setSavedImageUrl(photo.fullUrl);
     onChange({ background: `url(${photo.fullUrl})` });
     // Required by Unsplash ToS — fire and forget
     makeRequest(`/trigger-unsplash-download?url=${encodeURIComponent(photo.downloadLocation)}`).catch(
@@ -124,6 +129,7 @@ export const StageSettings = ({
         // });
 
         // Use the permanent URL from our storage
+        setSavedImageUrl(data.imageUrl);
         onChange({
           background: `url(${data.imageUrl})`,
         });
@@ -244,9 +250,14 @@ export const StageSettings = ({
               <button
                 key={mode}
                 type="button"
-                onClick={() =>
-                  onChange({ background: mode === "Color" ? DEFAULT_COLOR : "url(/Layer0_2.png)" })
-                }
+                onClick={() => {
+                  if (mode === "Color") {
+                    if (backgroundAsURL) setSavedImageUrl(displayURL || cleanedURL);
+                    onChange({ background: DEFAULT_COLOR });
+                  } else {
+                    onChange({ background: savedImageUrl ? `url(${savedImageUrl})` : "url(/Layer0_2.png)" });
+                  }
+                }}
                 style={{
                   padding: "6px 18px",
                   borderRadius: 6,
@@ -325,16 +336,78 @@ export const StageSettings = ({
                 />
               )}
               <input
+                key={savedImageUrl}
                 type="text"
                 className="form-control"
                 placeholder="Paste an image URL..."
                 style={{ flex: 1, fontSize: 13 }}
-                defaultValue={displayURL}
+                defaultValue={savedImageUrl || displayURL}
                 onBlur={(e) => {
-                  if (e.target.value) onChange({ background: `url(${e.target.value})` });
+                  if (e.target.value) {
+                    setSavedImageUrl(e.target.value);
+                    onChange({ background: `url(${e.target.value})` });
+                  }
                 }}
               />
             </div>
+
+            {/* Fade toggle */}
+            <label
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 8,
+                cursor: "pointer",
+                userSelect: "none",
+                fontSize: 13,
+                color: "#444",
+              }}
+            >
+              <span
+                style={{
+                  position: "relative",
+                  display: "inline-block",
+                  width: 36,
+                  height: 20,
+                  flexShrink: 0,
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={stage.backgroundFade !== false}
+                  onChange={(e) => onChange({ backgroundFade: e.target.checked })}
+                  style={{ opacity: 0, width: 0, height: 0, position: "absolute" }}
+                />
+                <span
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    borderRadius: 20,
+                    background: stage.backgroundFade !== false ? "#7c3aed" : "#ccc",
+                    transition: "background 0.2s",
+                  }}
+                />
+                <span
+                  style={{
+                    position: "absolute",
+                    top: 2,
+                    left: stage.backgroundFade !== false ? 18 : 2,
+                    width: 16,
+                    height: 16,
+                    borderRadius: "50%",
+                    background: "#fff",
+                    boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
+                    transition: "left 0.2s",
+                  }}
+                />
+              </span>
+              <span>
+                <span style={{ fontWeight: 500 }}>Dim background</span>
+                <span style={{ color: "#888", marginLeft: 5 }}>
+                  {stage.backgroundFade !== false ? "On" : "Off"}
+                </span>
+              </span>
+            </label>
 
             {/* Action row */}
             <div style={{ display: "flex", gap: 8 }}>
