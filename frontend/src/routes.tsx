@@ -1,4 +1,5 @@
 import { Route, Routes } from "react-router-dom";
+import AcademyPage from "./components/academy-page";
 import App from "./components/app";
 import ChangelogPage from "./components/changelog-page";
 import DashboardPage from "./components/dashboard-page";
@@ -20,6 +21,7 @@ export default (
     <Route path="/" element={<App />}>
       <Route path="/" element={<HomePage />} />
       <Route path="explore" element={<ExplorePage />} />
+      <Route path="academy" element={<AcademyPage />} />
       <Route path="faq" element={<FAQPage />} />
       <Route path="changelog" element={<ChangelogPage />} />
       <Route path="login" element={<LoginPage />} />

@@ -53,6 +53,7 @@ app.use("/", require("./routes/users").default);
 app.use("/", require("./routes/worlds").default);
 app.use("/", require("./routes/characters").default);
 app.use("/", require("./routes/openai").default);
+app.use("/", require("./routes/youtube").default);
 
 if (process.env.NODE_ENV !== "production") {
   app.use("/", require("./routes/testing").default);

@@ -154,6 +154,127 @@ body {
   }
 }
 
+.academy {
+  .academy-hero {
+    padding: 30px 0 20px;
+    border-bottom: 1px solid #e5e5e5;
+    margin-bottom: 30px;
+    h2 {
+      margin-bottom: 10px;
+    }
+    p {
+      color: #666;
+      max-width: 720px;
+      margin-bottom: 0;
+    }
+  }
+
+  .academy-section {
+    padding: 30px 0;
+    border-bottom: 1px solid #eee;
+    &:last-child {
+      border-bottom: none;
+    }
+  }
+
+  .academy-world-card {
+    h4 {
+      margin-top: 14px;
+      margin-bottom: 6px;
+    }
+    p {
+      color: #555;
+      font-size: 0.95em;
+    }
+  }
+
+  .academy-world-thumbnail {
+    width: 100%;
+    height: 170px;
+    object-fit: cover;
+    border-radius: 4px;
+    background: #ddd;
+    display: block;
+  }
+  .academy-world-thumbnail-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #888;
+    font-size: 14px;
+    text-align: center;
+    padding: 10px;
+  }
+
+  .academy-video-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+  }
+  @media (max-width: 768px) {
+    .academy-video-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .academy-video-card {
+    display: block;
+    color: inherit;
+    text-decoration: none;
+    transition: transform 0.15s ease;
+
+    &:hover {
+      text-decoration: none;
+      color: inherit;
+      transform: translateY(-2px);
+      .academy-video-play {
+        opacity: 1;
+      }
+    }
+  }
+
+  .academy-video-thumb-wrap {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    background: #000;
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .academy-video-thumb {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  .academy-video-play {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.85;
+    transition: opacity 0.15s ease;
+    pointer-events: none;
+  }
+
+  .academy-video-title {
+    margin-top: 8px;
+    font-weight: 600;
+    font-size: 0.95em;
+    line-height: 1.3;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .academy-video-author {
+    font-size: 0.85em;
+    color: #777;
+    margin-top: 2px;
+  }
+}
+
 .faq,
 .changelog {
   padding-top: 40px;

@@ -36,6 +36,11 @@ const App = () => {
               </Link>
             </li>
             <li className="nav-item">
+              <Link className="nav-link" to="/academy">
+                Academy
+              </Link>
+            </li>
+            <li className="nav-item">
               <Link className="nav-link" to="/changelog">
                 Changelog
               </Link>
