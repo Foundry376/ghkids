@@ -7,6 +7,7 @@ import { Link } from "react-router-dom";
 import * as actions from "../actions/ui-actions";
 import { updateWorldMetadata } from "../actions/world-actions";
 import { MODALS, TOOLS } from "../constants/constants";
+import StageSwitcher from "./stage-switcher";
 import { TapToEditLabel } from "./tap-to-edit-label";
 import UndoRedoControls from "./undo-redo-controls";
 
@@ -183,13 +184,7 @@ const Toolbar = () => {
 
       <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "flex-end" }}>
         <UndoRedoControls />
-        <Button
-          onClick={() => dispatch(actions.showModal(MODALS.STAGES))}
-          className="dropdown-toggle"
-        >
-          <img src={new URL("../img/sidebar_choose_background.png", import.meta.url).href} />
-          <span className="title">Stage Settings</span>
-        </Button>
+        <StageSwitcher />
       </div>
     </div>
   );
