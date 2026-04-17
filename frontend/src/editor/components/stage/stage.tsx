@@ -253,6 +253,10 @@ export const Stage = ({
     toolId: string;
   } | null>(null);
   const [spriteDrag, setSpriteDrag] = useState<SpriteDragState | null>(null);
+  const [doorDestDrag, setDoorDestDrag] = useState<{
+    actorId: string;
+    position: Position;
+  } | null>(null);
 
   const lastFiredExtent = useRef<string | null>(null);
   const lastActorPositions = useRef<{ [actorId: string]: Position }>({});
@@ -1034,6 +1038,93 @@ export const Stage = ({
     setActorSelectionPopover(null);
   };
 
+  const onStartDoorDestDrag = (actor: Actor, initial: Position, event: React.MouseEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    const clampToStage = (p: Position): Position => ({
+      x: Math.max(0, Math.min(stage.width - 1, p.x)),
+      y: Math.max(0, Math.min(stage.height - 1, p.y)),
+    });
+
+    setDoorDestDrag({ actorId: actor.id, position: initial });
+
+    const onMoveDoc = (e: MouseEvent) => {
+      const next = clampToStage(getPositionForEvent(e));
+      setDoorDestDrag({ actorId: actor.id, position: next });
+    };
+    const onUpDoc = (e: MouseEvent) => {
+      document.removeEventListener("mousemove", onMoveDoc);
+      document.removeEventListener("mouseup", onUpDoc);
+      const next = clampToStage(getPositionForEvent(e));
+      dispatch(
+        changeActors(selFor([actor.id]), {
+          variableValues: {
+            [DOOR_VARIABLE_IDS.destinationX]: String(next.x),
+            [DOOR_VARIABLE_IDS.destinationY]: String(next.y),
+          },
+        }),
+      );
+      setDoorDestDrag(null);
+    };
+    document.addEventListener("mousemove", onMoveDoc);
+    document.addEventListener("mouseup", onUpDoc);
+  };
+
+  const renderDoorDestinations = () => {
+    if (playback.running) return null;
+
+    return selected
+      .map((actor) => {
+        const character = characters[actor.characterId];
+        if (character?.kind !== "door") return null;
+
+        const defaults = character.variables;
+        const destXRaw =
+          actor.variableValues[DOOR_VARIABLE_IDS.destinationX] ??
+          defaults[DOOR_VARIABLE_IDS.destinationX]?.defaultValue;
+        const destYRaw =
+          actor.variableValues[DOOR_VARIABLE_IDS.destinationY] ??
+          defaults[DOOR_VARIABLE_IDS.destinationY]?.defaultValue;
+        const destStageId =
+          actor.variableValues[DOOR_VARIABLE_IDS.destinationStage] ??
+          defaults[DOOR_VARIABLE_IDS.destinationStage]?.defaultValue ??
+          "";
+
+        const destX = Number(destXRaw);
+        const destY = Number(destYRaw);
+        if (!Number.isFinite(destX) || !Number.isFinite(destY)) return null;
+
+        // Only draw the destination box when it points to this stage.
+        if (destStageId && destStageId !== stage.id) return null;
+
+        const active = doorDestDrag?.actorId === actor.id;
+        const pos = active ? doorDestDrag!.position : { x: destX, y: destY };
+
+        return (
+          <div
+            key={`door-dest-${actor.id}`}
+            className="door-destination-box"
+            onMouseDown={(e) => onStartDoorDestDrag(actor, { x: destX, y: destY }, e)}
+            style={{
+              position: "absolute",
+              left: pos.x * STAGE_CELL_SIZE,
+              top: pos.y * STAGE_CELL_SIZE,
+              width: STAGE_CELL_SIZE,
+              height: STAGE_CELL_SIZE,
+              border: "2px dashed #ff9500",
+              boxShadow: "0 0 0 1px rgba(255,149,0,0.4) inset",
+              backgroundColor: active ? "rgba(255,149,0,0.15)" : "transparent",
+              cursor: "grab",
+              pointerEvents: "auto",
+              zIndex: 999,
+            }}
+          />
+        );
+      })
+      .filter(Boolean);
+  };
+
   const renderRecordingExtent = () => {
     const { width, height } = stage;
     if (!recordingExtent) {
@@ -1202,48 +1293,7 @@ export const Stage = ({
 
         {sortActorsByZOrder(Object.values(stage.actors), characterZOrder).map(renderActor)}
 
-        {selected
-          .map((actor) => {
-            const character = characters[actor.characterId];
-            if (character?.kind !== "door") return null;
-
-            const destXRaw =
-              actor.variableValues[DOOR_VARIABLE_IDS.destinationX] ??
-              character.variables[DOOR_VARIABLE_IDS.destinationX]?.defaultValue;
-            const destYRaw =
-              actor.variableValues[DOOR_VARIABLE_IDS.destinationY] ??
-              character.variables[DOOR_VARIABLE_IDS.destinationY]?.defaultValue;
-            const destStageId =
-              actor.variableValues[DOOR_VARIABLE_IDS.destinationStage] ??
-              character.variables[DOOR_VARIABLE_IDS.destinationStage]?.defaultValue ??
-              "";
-
-            const destX = Number(destXRaw);
-            const destY = Number(destYRaw);
-            if (!Number.isFinite(destX) || !Number.isFinite(destY)) return null;
-
-            // Only draw the destination box when it points to this stage.
-            if (destStageId && destStageId !== stage.id) return null;
-
-            return (
-              <div
-                key={`door-dest-${actor.id}`}
-                className="door-destination-box"
-                style={{
-                  position: "absolute",
-                  left: destX * STAGE_CELL_SIZE,
-                  top: destY * STAGE_CELL_SIZE,
-                  width: STAGE_CELL_SIZE,
-                  height: STAGE_CELL_SIZE,
-                  border: "2px dashed #ff9500",
-                  boxShadow: "0 0 0 1px rgba(255,149,0,0.4) inset",
-                  pointerEvents: "none",
-                  zIndex: 999,
-                }}
-              />
-            );
-          })
-          .filter(Boolean)}
+        {renderDoorDestinations()}
 
         {recordingExtent ? renderRecordingExtent() : []}
       </div>
