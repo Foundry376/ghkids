@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useDispatch } from "react-redux";
 
 import { useEditorSelector } from "../../../hooks/redux";
+import { createCharacterEventContainer } from "../../actions/characters-actions";
 import { upsertRecordingCondition } from "../../actions/recording-actions";
 import { pickConditionValueFromKeyboard } from "../../actions/ui-actions";
 import { makeId } from "../../utils/utils";
@@ -10,7 +11,7 @@ import Keyboard, { keyToCodakoKey } from "./keyboard";
 
 export const KeypickerContainer = () => {
   const dispatch = useDispatch();
-  const { open, initialKey, replaceConditionKey } = useEditorSelector(
+  const { open, initialKey, replaceConditionKey, purpose, characterId } = useEditorSelector(
     (state) => state.ui.keypicker,
   );
 
@@ -33,6 +34,18 @@ export const KeypickerContainer = () => {
     }
 
     dispatch(pickConditionValueFromKeyboard(false, null, null));
+
+    if (purpose === "event-container" && characterId) {
+      dispatch(
+        createCharacterEventContainer(characterId, {
+          id: makeId("rule"),
+          eventType: "key",
+          eventCode: key,
+        }),
+      );
+      return;
+    }
+
     dispatch(
       upsertRecordingCondition({
         key: replaceConditionKey || makeId("condition"),

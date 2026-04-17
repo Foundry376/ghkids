@@ -94,6 +94,22 @@ export function pickConditionValueFromKeyboard(
       open,
       initialKey,
       replaceConditionKey,
+      purpose: "condition",
+      characterId: null,
+    });
+  };
+}
+
+export function pickKeyForEventContainer(open: boolean, characterId: string | null) {
+  return (dispatch: Dispatch<Actions>) => {
+    dispatch(stopPlayback());
+    dispatch({
+      type: types.UPDATE_KEYPICKER_STATE,
+      open,
+      initialKey: null,
+      replaceConditionKey: null,
+      purpose: "event-container",
+      characterId,
     });
   };
 }
@@ -155,6 +171,8 @@ export type ActionUpdateKeypickerState = {
   open: boolean;
   initialKey: string | null;
   replaceConditionKey: string | null;
+  purpose: "condition" | "event-container";
+  characterId: string | null;
 };
 
 export type ActionUpdateTutorialState = {

@@ -71,6 +71,8 @@ const InitialState: EditorState = {
       open: false,
       initialKey: null,
       replaceConditionKey: null,
+      purpose: "condition" as const,
+      characterId: null,
     },
     paint: {
       characterId: null,
