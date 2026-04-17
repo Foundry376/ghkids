@@ -1,4 +1,5 @@
 import { Character, Characters, Position, WorldMinimal } from "../../types";
+import { getVariableValue } from "./stage-helpers";
 
 export const DOOR_VARIABLE_IDS = {
   destinationX: "door-dest-x",
@@ -55,16 +56,10 @@ export function collectDoorsByDestinationStage(
       const character = characters[actor.characterId];
       if (character?.kind !== "door") continue;
 
-      const destXRaw =
-        actor.variableValues[DOOR_VARIABLE_IDS.destinationX] ??
-        character.variables[DOOR_VARIABLE_IDS.destinationX]?.defaultValue;
-      const destYRaw =
-        actor.variableValues[DOOR_VARIABLE_IDS.destinationY] ??
-        character.variables[DOOR_VARIABLE_IDS.destinationY]?.defaultValue;
+      const destXRaw = getVariableValue(actor, character, DOOR_VARIABLE_IDS.destinationX, "=");
+      const destYRaw = getVariableValue(actor, character, DOOR_VARIABLE_IDS.destinationY, "=");
       const destStageId =
-        actor.variableValues[DOOR_VARIABLE_IDS.destinationStage] ??
-        character.variables[DOOR_VARIABLE_IDS.destinationStage]?.defaultValue ??
-        "";
+        getVariableValue(actor, character, DOOR_VARIABLE_IDS.destinationStage, "=") ?? "";
 
       const destX = Number(destXRaw);
       const destY = Number(destYRaw);
