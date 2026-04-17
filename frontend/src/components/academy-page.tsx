@@ -1,6 +1,6 @@
-import { Col, Container, Row } from "reactstrap";
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { Col, Container, Row } from "reactstrap";
 
 import { makeRequest } from "../helpers/api";
 import { usePageTitle } from "../hooks/usePageTitle";
@@ -24,7 +24,7 @@ const AcademyPage: React.FC = () => {
       <Row>
         <Col md={12}>
           <div className="academy-hero">
-            <h2>Codako Academy</h2>
+            <h2>Codako Academy [Coming Soon!]</h2>
             <p>
               Watch short video tutorials that walk you through building games in Codako. Each
               series is based on a sample game world you can play, fork, and learn from.
