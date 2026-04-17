@@ -43,7 +43,7 @@ const RuleAddButton = ({
     dispatch(createCharacterFlowContainer(character.id, { id }));
   };
 
-  const _onCreateClickContainer = () => {
+  const _onCreateFlowContainerWithClick = () => {
     dispatch(
       createCharacterEventContainer(character.id, {
         id: makeId("rule"),
@@ -53,7 +53,7 @@ const RuleAddButton = ({
     );
   };
 
-  const _onCreateKeyContainer = () => {
+  const _onCreateFlowContainerWithKeyPress = () => {
     dispatch(pickKeyForEventContainer(true, character.id));
   };
 
@@ -72,13 +72,13 @@ const RuleAddButton = ({
         </DropdownItem>
         <DropdownItem divider />
         <DropdownItem onClick={_onCreateFlowContainer}>
-          <span className="badge rule-flow" /> Add Rule Container
+          <span className="badge rule-flow" /> Add Container
         </DropdownItem>
-        <DropdownItem onClick={_onCreateClickContainer}>
-          <span className="badge rule-flow" /> Add Click Rule Container
+        <DropdownItem onClick={_onCreateFlowContainerWithClick}>
+          <span className="badge rule-flow" /> Add Click Container
         </DropdownItem>
-        <DropdownItem onClick={_onCreateKeyContainer}>
-          <span className="badge rule-flow" /> Add Key Rule Container
+        <DropdownItem onClick={_onCreateFlowContainerWithKeyPress}>
+          <span className="badge rule-flow" /> Add Key Press Container
         </DropdownItem>
       </DropdownMenu>
     </ButtonDropdown>
