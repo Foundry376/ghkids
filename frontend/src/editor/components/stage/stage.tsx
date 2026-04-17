@@ -44,6 +44,7 @@ import {
   actorsAtPoint,
   applyAnchorAdjustment,
   buildActorSelection,
+  getVariableValue,
   pointIsOutside,
   sortActorsByZOrder,
 } from "../../utils/stage-helpers";
@@ -1112,17 +1113,10 @@ export const Stage = ({
       const character = characters[actor.characterId];
       if (character?.kind !== "door") continue;
 
-      const defaults = character.variables;
-      const destXRaw =
-        actor.variableValues[DOOR_VARIABLE_IDS.destinationX] ??
-        defaults[DOOR_VARIABLE_IDS.destinationX]?.defaultValue;
-      const destYRaw =
-        actor.variableValues[DOOR_VARIABLE_IDS.destinationY] ??
-        defaults[DOOR_VARIABLE_IDS.destinationY]?.defaultValue;
+      const destXRaw = getVariableValue(actor, character, DOOR_VARIABLE_IDS.destinationX, "=");
+      const destYRaw = getVariableValue(actor, character, DOOR_VARIABLE_IDS.destinationY, "=");
       const destStageId =
-        actor.variableValues[DOOR_VARIABLE_IDS.destinationStage] ??
-        defaults[DOOR_VARIABLE_IDS.destinationStage]?.defaultValue ??
-        "";
+        getVariableValue(actor, character, DOOR_VARIABLE_IDS.destinationStage, "=") ?? "";
 
       const destX = Number(destXRaw);
       const destY = Number(destYRaw);
