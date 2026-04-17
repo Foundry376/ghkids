@@ -99,7 +99,7 @@ export type RuleTreeEventItem = {
   type: "group-event";
   rules: RuleTreeItem[];
   event: "idle" | "key" | "click";
-  code?: number; // used for key event
+  code?: number | string; // used for key event (legacy numeric keyCode or codako key name)
   id: string;
   enabled?: boolean;
 };
@@ -384,6 +384,8 @@ export type UIState = {
     open: boolean | null;
     replaceConditionKey: string | null;
     initialKey: string | null;
+    purpose?: "condition" | "event-container";
+    characterId?: string | null;
   };
   paint: {
     characterId: string | null;

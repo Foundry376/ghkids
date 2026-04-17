@@ -1,6 +1,17 @@
-export function nameForKey(code: number) {
+export function nameForKey(code: number | string | undefined) {
   if (!code) {
     return "";
+  }
+  if (typeof code === "string") {
+    return (
+      {
+        Space: "Space Bar",
+        ArrowLeft: "Left Arrow",
+        ArrowRight: "Right Arrow",
+        ArrowUp: "Up Arrow",
+        ArrowDown: "Down Arrow",
+      }[code] || code
+    );
   }
   return (
     {
