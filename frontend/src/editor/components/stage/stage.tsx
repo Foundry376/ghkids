@@ -32,7 +32,7 @@ import {
 } from "../../actions/ui-actions";
 
 import { STAGE_CELL_SIZE, TOOLS } from "../../constants/constants";
-import { DOOR_VARIABLE_IDS } from "../../utils/door-constants";
+import { computeDoorDefaultDestination, DOOR_VARIABLE_IDS } from "../../utils/door-constants";
 import { extentIgnoredPositions } from "../../utils/recording-helpers";
 import {
   actorFilledPoints,
@@ -670,6 +670,16 @@ export const Stage = ({
     if (positionContainsCloneAlready) {
       return;
     }
+
+    if (character.kind === "door") {
+      const dest = computeDoorDefaultDestination(newActor.position, stage.width);
+      newActor.variableValues = {
+        ...(newActor.variableValues ?? {}),
+        [DOOR_VARIABLE_IDS.destinationX]: String(dest.x),
+        [DOOR_VARIABLE_IDS.destinationY]: String(dest.y),
+      };
+    }
+
     dispatch(createActors(world.id, stage.id, [{ character, initialValues: newActor }]));
   };
 
