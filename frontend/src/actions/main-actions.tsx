@@ -94,13 +94,20 @@ export function deleteWorld(id: ID) {
   };
 }
 
-export function createWorld({ from, fork }: { from?: ID | "tutorial"; fork?: string } = {}) {
+export function createWorld({
+  from,
+  fork,
+  initialBackground,
+}: { from?: ID | "tutorial"; fork?: string; initialBackground?: string } = {}) {
   return async function (_dispatch: Dispatch<MainActions>) {
     let qs = "";
     if (from === "tutorial") {
       qs = "tutorial=base";
     } else if (fork) {
       qs = "tutorial=fork";
+    }
+    if (initialBackground) {
+      qs += (qs ? "&" : "") + `bg=${encodeURIComponent(initialBackground)}`;
     }
 
     if (window.store.getState().me) {

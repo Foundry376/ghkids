@@ -1,13 +1,15 @@
-import { Button, Col, Container, Row } from "reactstrap";
-import React, { useEffect } from "react";
+import { Button, Col, Container, Modal, ModalBody, Row } from "reactstrap";
+import React, { useEffect, useState } from "react";
 import { useDispatch } from "react-redux";
 
 import { createWorld, deleteWorld, fetchWorldsForUser } from "../actions/main-actions";
 import { useAppSelector } from "../hooks/redux";
 import WorldList from "./common/world-list";
+import { PresetBackgroundPicker } from "./common/preset-background-picker";
 
 const DashboardPage: React.FC = () => {
   const dispatch = useDispatch();
+  const [showingBackgroundPicker, setShowingBackgroundPicker] = useState(false);
   const worlds = useAppSelector((state) => {
     if (!state.worlds || !state.me) return undefined;
     return Object.values(state.worlds)
@@ -28,6 +30,17 @@ const DashboardPage: React.FC = () => {
 
   return (
     <Container style={{ marginTop: 30 }} className="dashboard">
+      <Modal isOpen={showingBackgroundPicker} backdrop centered size="lg" toggle={() => setShowingBackgroundPicker(false)}>
+        <div className="modal-header">
+          <h4 style={{ marginBottom: 0 }}>Pick a background</h4>
+        </div>
+        <ModalBody>
+          <PresetBackgroundPicker
+            onSelect={(bg) => { setShowingBackgroundPicker(false); dispatch(createWorld({ initialBackground: bg })); }}
+            onSkip={() => { setShowingBackgroundPicker(false); dispatch(createWorld()); }}
+          />
+        </ModalBody>
+      </Modal>
       <Row>
         <Col md={9}>
           {showTutorialPrompt && (
@@ -67,7 +80,7 @@ const DashboardPage: React.FC = () => {
               <Button
                 size="sm"
                 color={showTutorialPrompt ? undefined : "success"}
-                onClick={() => dispatch(createWorld())}
+                onClick={() => setShowingBackgroundPicker(true)}
               >
                 New Game
               </Button>

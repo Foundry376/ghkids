@@ -543,9 +543,58 @@ const supabaseUrl = process.env.SUPABASE_URL!;
 const supabaseKey = process.env.SUPABASE_KEY!;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-// Configure multer for file uploads
+// Configure multer for file uploads — 5 MB limit
 const storage = multer.memoryStorage();
-const upload = multer({ storage });
+const upload = multer({ storage, limits: { fileSize: 5 * 1024 * 1024 } });
+
+// Unsplash image search
+router.get("/search-images", async (req, res) => {
+  const query = req.query.query as string;
+  if (!query) return res.status(400).json({ error: "query is required" });
+
+  const accessKey = process.env.UNSPLASH_ACCESS_KEY;
+  if (!accessKey) return res.status(500).json({ error: "Unsplash API key not configured" });
+
+  try {
+    const response = await fetch(
+      `https://api.unsplash.com/search/photos?query=${encodeURIComponent(query)}&per_page=20&orientation=landscape`,
+      { headers: { Authorization: `Client-ID ${accessKey}` } },
+    );
+    if (!response.ok) throw new Error(`Unsplash API error: ${response.status}`);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const data = (await response.json()) as { results: any[] };
+
+    const results = data.results.map((photo) => ({
+      id: photo.id,
+      thumbUrl: photo.urls.small,
+      fullUrl: photo.urls.regular,
+      downloadLocation: photo.links.download_location,
+      photographer: photo.user.name,
+      photographerUrl: photo.user.links.html,
+    }));
+
+    res.json({ results });
+  } catch (error) {
+    console.error("Unsplash search error:", error);
+    res.status(500).json({ error: "Failed to search images" });
+  }
+});
+
+// Trigger Unsplash download (required by Unsplash ToS when an image is used)
+router.get("/trigger-unsplash-download", async (req, res) => {
+  const downloadLocation = req.query.url as string;
+  if (!downloadLocation) return res.status(400).json({ error: "url is required" });
+
+  const accessKey = process.env.UNSPLASH_ACCESS_KEY;
+  try {
+    if (accessKey) {
+      await fetch(downloadLocation, { headers: { Authorization: `Client-ID ${accessKey}` } });
+    }
+  } catch {
+    // Non-critical — don't fail the user request
+  }
+  res.json({ ok: true });
+});
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 router.post("/upload-image", upload.single("image") as any, async (req, res) => {

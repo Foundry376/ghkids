@@ -202,6 +202,7 @@ export type Stage = {
   name: string;
   actors: { [actorId: string]: Actor };
   background: ImageData | string;
+  backgroundFade?: boolean;
   width: number;
   height: number;
   wrapX: boolean;
