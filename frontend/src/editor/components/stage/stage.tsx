@@ -32,6 +32,7 @@ import {
 } from "../../actions/ui-actions";
 
 import { STAGE_CELL_SIZE, TOOLS } from "../../constants/constants";
+import { DOOR_VARIABLE_IDS } from "../../utils/door-constants";
 import { extentIgnoredPositions } from "../../utils/recording-helpers";
 import {
   actorFilledPoints,
@@ -1200,6 +1201,49 @@ export const Stage = ({
         />
 
         {sortActorsByZOrder(Object.values(stage.actors), characterZOrder).map(renderActor)}
+
+        {selected
+          .map((actor) => {
+            const character = characters[actor.characterId];
+            if (character?.kind !== "door") return null;
+
+            const destXRaw =
+              actor.variableValues[DOOR_VARIABLE_IDS.destinationX] ??
+              character.variables[DOOR_VARIABLE_IDS.destinationX]?.defaultValue;
+            const destYRaw =
+              actor.variableValues[DOOR_VARIABLE_IDS.destinationY] ??
+              character.variables[DOOR_VARIABLE_IDS.destinationY]?.defaultValue;
+            const destStageId =
+              actor.variableValues[DOOR_VARIABLE_IDS.destinationStage] ??
+              character.variables[DOOR_VARIABLE_IDS.destinationStage]?.defaultValue ??
+              "";
+
+            const destX = Number(destXRaw);
+            const destY = Number(destYRaw);
+            if (!Number.isFinite(destX) || !Number.isFinite(destY)) return null;
+
+            // Only draw the destination box when it points to this stage.
+            if (destStageId && destStageId !== stage.id) return null;
+
+            return (
+              <div
+                key={`door-dest-${actor.id}`}
+                className="door-destination-box"
+                style={{
+                  position: "absolute",
+                  left: destX * STAGE_CELL_SIZE,
+                  top: destY * STAGE_CELL_SIZE,
+                  width: STAGE_CELL_SIZE,
+                  height: STAGE_CELL_SIZE,
+                  border: "2px dashed #ff9500",
+                  boxShadow: "0 0 0 1px rgba(255,149,0,0.4) inset",
+                  pointerEvents: "none",
+                  zIndex: 999,
+                }}
+              />
+            );
+          })
+          .filter(Boolean)}
 
         {recordingExtent ? renderRecordingExtent() : []}
       </div>
