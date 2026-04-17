@@ -17,14 +17,14 @@ type VideoMetadata = {
 const youtubeWatchUrl = (videoId: string) => `https://www.youtube.com/watch?v=${videoId}`;
 
 const AcademyPage: React.FC = () => {
-  usePageTitle("Kodako Academy");
+  usePageTitle("Codako Academy");
 
   return (
     <Container style={{ marginTop: 30, marginBottom: 60 }} className="academy">
       <Row>
         <Col md={12}>
           <div className="academy-hero">
-            <h2>Kodako Academy</h2>
+            <h2>Codako Academy</h2>
             <p>
               Watch short video tutorials that walk you through building games in Codako. Each
               series is based on a sample game world you can play, fork, and learn from.

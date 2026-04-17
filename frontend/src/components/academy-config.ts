@@ -11,7 +11,7 @@ export type AcademySection = {
 };
 
 /**
- * Static configuration for the Kodako Academy page.
+ * Static configuration for the Codako Academy page.
  *
  * Each section corresponds to a tutorial world and lists the YouTube videos
  * that teach concepts using that world. Video metadata (title, thumbnail) is
