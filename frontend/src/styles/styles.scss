@@ -188,6 +188,12 @@ body {
     }
   }
 
+  @media (max-width: 768px) {
+    .academy-world-card {
+      margin-bottom: 20px;
+    }
+  }
+
   .academy-world-thumbnail {
     width: 100%;
     height: 170px;
