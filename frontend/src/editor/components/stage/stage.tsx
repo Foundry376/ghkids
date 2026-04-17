@@ -1059,27 +1059,36 @@ export const Stage = ({
     setActorSelectionPopover(null);
   };
 
-  const onStartDoorDestDrag = (actor: Actor, initial: Position, event: React.MouseEvent) => {
+  const onStartDoorDestDrag = (
+    actorId: string,
+    sourceStageId: string,
+    initial: Position,
+    event: React.MouseEvent,
+  ) => {
     event.preventDefault();
     event.stopPropagation();
 
+    // The destination must land on THIS stage (the one being rendered)
+    // regardless of which stage hosts the source door actor.
     const clampToStage = (p: Position): Position => ({
       x: Math.max(0, Math.min(stage.width - 1, p.x)),
       y: Math.max(0, Math.min(stage.height - 1, p.y)),
     });
 
-    setDoorDestDrag({ actorId: actor.id, position: initial });
+    setDoorDestDrag({ actorId, position: initial });
 
     const onMoveDoc = (e: MouseEvent) => {
       const next = clampToStage(getPositionForEvent(e));
-      setDoorDestDrag({ actorId: actor.id, position: next });
+      setDoorDestDrag({ actorId, position: next });
     };
     const onUpDoc = (e: MouseEvent) => {
       document.removeEventListener("mousemove", onMoveDoc);
       document.removeEventListener("mouseup", onUpDoc);
       const next = clampToStage(getPositionForEvent(e));
+      // Important: target the stage that owns the source door actor — for
+      // incoming cross-stage doors this is NOT the stage we're rendering.
       dispatch(
-        changeActors(selFor([actor.id]), {
+        changeActors(buildActorSelection(world.id, sourceStageId, [actorId]), {
           variableValues: {
             [DOOR_VARIABLE_IDS.destinationX]: String(next.x),
             [DOOR_VARIABLE_IDS.destinationY]: String(next.y),
@@ -1129,7 +1138,9 @@ export const Stage = ({
         <div
           key={`door-dest-${actor.id}`}
           className="door-destination-box"
-          onMouseDown={(e) => onStartDoorDestDrag(actor, { x: destX, y: destY }, e)}
+          onMouseDown={(e) =>
+            onStartDoorDestDrag(actor.id, stage.id, { x: destX, y: destY }, e)
+          }
           style={{
             position: "absolute",
             left: pos.x * STAGE_CELL_SIZE,
@@ -1148,23 +1159,37 @@ export const Stage = ({
     }
 
     // Remote-source: destinations for doors on OTHER stages that point here.
-    // Always visible (not gated on selection) and non-interactive — the
-    // source actor lives on another stage, so editing happens there.
+    // Always visible (not gated on selection) and draggable — dispatching
+    // edits to the source stage id so the source door's variables move.
     for (const incoming of doorsPointingHere ?? []) {
+      const active = doorDestDrag?.actorId === incoming.sourceActorId;
+      const pos = active
+        ? doorDestDrag!.position
+        : { x: incoming.destX, y: incoming.destY };
       nodes.push(
         <div
           key={`door-dest-incoming-${incoming.sourceStageId}-${incoming.sourceActorId}`}
           className="door-destination-box door-destination-box-incoming"
           title="Destination of a door on another stage"
+          onMouseDown={(e) =>
+            onStartDoorDestDrag(
+              incoming.sourceActorId,
+              incoming.sourceStageId,
+              { x: incoming.destX, y: incoming.destY },
+              e,
+            )
+          }
           style={{
             position: "absolute",
-            left: incoming.destX * STAGE_CELL_SIZE,
-            top: incoming.destY * STAGE_CELL_SIZE,
+            left: pos.x * STAGE_CELL_SIZE,
+            top: pos.y * STAGE_CELL_SIZE,
             width: STAGE_CELL_SIZE,
             height: STAGE_CELL_SIZE,
             border: "2px dotted #2a7cff",
             boxShadow: "0 0 0 1px rgba(42,124,255,0.4) inset",
-            pointerEvents: "none",
+            backgroundColor: active ? "rgba(42,124,255,0.15)" : "transparent",
+            cursor: "grab",
+            pointerEvents: "auto",
             zIndex: 998,
           }}
         />,
