@@ -4,43 +4,65 @@ import { useState } from "react";
 import { Button, Modal, ModalBody } from "reactstrap";
 import { createWorld } from "../actions/main-actions";
 import { useAppSelector } from "../hooks/redux";
+import { PresetBackgroundPicker } from "./common/preset-background-picker";
 
 const HomePage = () => {
   const dispatch = useDispatch();
   const [showingNew, setShowingNew] = useState(false);
+  const [pickingBackground, setPickingBackground] = useState(false);
 
   const me = useAppSelector((root) => root.me);
 
   return (
     <div>
-      <Modal isOpen={showingNew} backdrop centered toggle={() => setShowingNew(false)}>
+      <Modal isOpen={showingNew} backdrop centered size="lg" toggle={() => { setShowingNew(false); setPickingBackground(false); }}>
         <div className="modal-header">
-          <h4 style={{ marginBottom: 0 }}>Create your first game!</h4>
+          <h4 style={{ marginBottom: 0 }}>
+            {pickingBackground ? (
+              <span>
+                <button
+                  type="button"
+                  onClick={() => setPickingBackground(false)}
+                  style={{ background: "none", border: "none", cursor: "pointer", marginRight: 8, padding: 0, color: "#666" }}
+                >
+                  ←
+                </button>
+                Pick a background
+              </span>
+            ) : "Create your first game!"}
+          </h4>
         </div>
         <ModalBody>
-          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-            <Button onClick={() => dispatch(createWorld({ from: "tutorial" }))}>
-              <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-                <img src={new URL("../img/new-game-tutorial.png", import.meta.url).href} />
-                <div style={{ textAlign: "left", height: 72 }}>
-                  <strong>Tutorial Stage (Recommended)</strong>
-                  <p>
-                    Learn how to use Codako's drag-and-drop interface to create characters,
-                    appearances, and rules.
-                  </p>
+          {!pickingBackground ? (
+            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+              <Button onClick={() => dispatch(createWorld({ from: "tutorial" }))}>
+                <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+                  <img src={new URL("../img/new-game-tutorial.png", import.meta.url).href} />
+                  <div style={{ textAlign: "left", height: 72 }}>
+                    <strong>Tutorial Stage (Recommended)</strong>
+                    <p>
+                      Learn how to use Codako's drag-and-drop interface to create characters,
+                      appearances, and rules.
+                    </p>
+                  </div>
                 </div>
-              </div>
-            </Button>
-            <Button onClick={() => dispatch(createWorld())}>
-              <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-                <img src={new URL("../img/new-game-empty.png", import.meta.url).href} />
-                <div style={{ textAlign: "left", height: 72 }}>
-                  <strong>Blank Stage</strong>
-                  <p>Start from scratch, add characters and design your own game world!</p>
+              </Button>
+              <Button onClick={() => setPickingBackground(true)}>
+                <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+                  <img src={new URL("../img/new-game-empty.png", import.meta.url).href} />
+                  <div style={{ textAlign: "left", height: 72 }}>
+                    <strong>Blank Stage</strong>
+                    <p>Start from scratch, add characters and design your own game world!</p>
+                  </div>
                 </div>
-              </div>
-            </Button>
-          </div>
+              </Button>
+            </div>
+          ) : (
+            <PresetBackgroundPicker
+              onSelect={(bg) => dispatch(createWorld({ initialBackground: bg }))}
+              onSkip={() => dispatch(createWorld())}
+            />
+          )}
         </ModalBody>
       </Modal>
       <div className="hero">

@@ -1114,7 +1114,7 @@ export const Stage = ({
   const applyFade = isImageBackground && stage.backgroundFade !== false;
   const backgroundCSS = [
     `url('/src/editor/img/board-grid.png') top left / ${STAGE_CELL_SIZE}px`,
-    applyFade ? `linear-gradient(rgba(255,255,255,0.5), rgba(255,255,255,0.5))` : null,
+    applyFade ? `linear-gradient(rgba(255,255,255,0.25), rgba(255,255,255,0.25))` : null,
     `${backgroundValue}${isImageBackground ? " 50% 50% / cover" : ""}`,
   ]
     .filter(Boolean)
@@ -1202,7 +1202,7 @@ export const Stage = ({
             height: stage.height * STAGE_CELL_SIZE,
             background: backgroundCSS,
             pointerEvents: "none",
-            filter: applyFade ? "brightness(0.8) saturate(0.8)" : undefined,
+            filter: applyFade ? "brightness(0.9) saturate(0.9)" : undefined,
           }}
         />
 

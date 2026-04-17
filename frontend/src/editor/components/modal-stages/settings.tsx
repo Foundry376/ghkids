@@ -169,7 +169,7 @@ export const StageSettings = ({
           onBlur={(e) => onChange({ name: e.target.value })}
         />
       </fieldset>
-      <fieldset className="form-group" style={{ marginTop: 32 }}>
+      <fieldset className="form-group" style={{ marginTop: 12 }}>
         <legend className="col-form-legend">Size</legend>
         <div style={{ display: "flex", flexDirection: "row", alignItems: "center" }}>
           <input
@@ -230,7 +230,7 @@ export const StageSettings = ({
           <div className="form-check" style={{ flex: 1 }}></div>
         </div>
       </fieldset>
-      <fieldset className="form-group" style={{ marginTop: 32 }}>
+      <fieldset className="form-group" style={{ marginTop: 12 }}>
         <legend className="col-form-legend">Background</legend>
 
         {/* Mode toggle */}

@@ -48,6 +48,11 @@ export default class StoreProvider extends React.Component<
   getStateForStore = (world: Game): StoreProviderState => {
     const { data, name, id, published, description } = world;
 
+    const bgParam = new URLSearchParams(window.location.search).get("bg");
+    const baseState = !data && bgParam
+      ? u({ world: { stages: { "5233a60cfd685f755e000002": { background: `url(${bgParam})` } } } }, initialData)
+      : data || initialData;
+
     const fullState = u(
       {
         world: {
@@ -55,7 +60,7 @@ export default class StoreProvider extends React.Component<
           metadata: { name, id, published: published || false, description: description || null },
         },
       },
-      data || initialData
+      baseState
     ) as EditorState;
 
     const store = (window.editorStore = configureStore(fullState));
