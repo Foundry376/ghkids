@@ -7,11 +7,12 @@ import StageRecordingControls from "./stage-recording-controls";
 import StageRecordingTools from "./stage-recording-tools";
 import TouchKeys from "./touch-keys";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import * as Types from "../../../types";
 import { EvaluatedRuleDetailsMap, EvaluatedSquare, UIState } from "../../../types";
 import { useEditorSelector } from "../../../hooks/redux";
 import { RECORDING_PHASE } from "../../constants/constants";
+import { collectDoorsByDestinationStage } from "../../utils/door-constants";
 import { getCurrentStageForWorld } from "../../utils/selectors";
 import { Library } from "../library";
 
@@ -133,6 +134,12 @@ const StageContainer = ({ readonly, immersive }: { readonly?: boolean; immersive
   const [current, setCurrent] = useState<{ stage: Types.Stage; frameId?: number }>({ stage });
   const intervalRef = useRef<number>();
 
+  const doorsByDestStage = useMemo(
+    () => collectDoorsByDestinationStage(world, characters),
+    [world, characters],
+  );
+  const incomingDoors = stage ? (doorsByDestStage[stage.id] ?? []) : [];
+
   useEffect(() => {
     if (world.evaluatedTickFrames) {
       const frames = world.evaluatedTickFrames;
@@ -171,6 +178,7 @@ const StageContainer = ({ readonly, immersive }: { readonly?: boolean; immersive
               stage={current.stage}
               interactionMode={readonly ? "selectable" : "full"}
               immersive={immersive}
+              doorsPointingHere={incomingDoors}
             />
           )}
           {stageB || <Stage stage={0 as never} world={0 as never} style={{ flex: 0 }} />}

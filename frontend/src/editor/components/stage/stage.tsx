@@ -32,7 +32,11 @@ import {
 } from "../../actions/ui-actions";
 
 import { STAGE_CELL_SIZE, TOOLS } from "../../constants/constants";
-import { computeDoorDefaultDestination, DOOR_VARIABLE_IDS } from "../../utils/door-constants";
+import {
+  computeDoorDefaultDestination,
+  DOOR_VARIABLE_IDS,
+  IncomingDoorDestination,
+} from "../../utils/door-constants";
 import { extentIgnoredPositions } from "../../utils/recording-helpers";
 import {
   actorFilledPoints,
@@ -72,6 +76,12 @@ interface StageProps {
   interactionMode?: "full" | "selectable" | "none";
   immersive?: boolean;
   style?: CSSProperties;
+  /**
+   * Door actors on other stages whose destination points to this stage.
+   * Rendered as read-only indicators so users can see incoming teleports
+   * without navigating back to the source stage.
+   */
+  doorsPointingHere?: IncomingDoorDestination[];
 }
 
 type Offset = { top: string | number; left: string | number };
@@ -240,6 +250,7 @@ export const Stage = ({
   interactionMode = "full",
   immersive,
   style,
+  doorsPointingHere,
 }: StageProps) => {
   const [{ top, left }, setOffset] = useState<Offset>({ top: 0, left: 0 });
   const [scale, setScale] = useState(
@@ -1084,55 +1095,83 @@ export const Stage = ({
   const renderDoorDestinations = () => {
     if (playback.running) return null;
 
-    return selected
-      .map((actor) => {
-        const character = characters[actor.characterId];
-        if (character?.kind !== "door") return null;
+    const nodes: React.ReactNode[] = [];
 
-        const defaults = character.variables;
-        const destXRaw =
-          actor.variableValues[DOOR_VARIABLE_IDS.destinationX] ??
-          defaults[DOOR_VARIABLE_IDS.destinationX]?.defaultValue;
-        const destYRaw =
-          actor.variableValues[DOOR_VARIABLE_IDS.destinationY] ??
-          defaults[DOOR_VARIABLE_IDS.destinationY]?.defaultValue;
-        const destStageId =
-          actor.variableValues[DOOR_VARIABLE_IDS.destinationStage] ??
-          defaults[DOOR_VARIABLE_IDS.destinationStage]?.defaultValue ??
-          "";
+    // Local-source: destinations for selected door actors on THIS stage.
+    // These are interactive — users can drag them to edit X/Y.
+    for (const actor of selected) {
+      const character = characters[actor.characterId];
+      if (character?.kind !== "door") continue;
 
-        const destX = Number(destXRaw);
-        const destY = Number(destYRaw);
-        if (!Number.isFinite(destX) || !Number.isFinite(destY)) return null;
+      const defaults = character.variables;
+      const destXRaw =
+        actor.variableValues[DOOR_VARIABLE_IDS.destinationX] ??
+        defaults[DOOR_VARIABLE_IDS.destinationX]?.defaultValue;
+      const destYRaw =
+        actor.variableValues[DOOR_VARIABLE_IDS.destinationY] ??
+        defaults[DOOR_VARIABLE_IDS.destinationY]?.defaultValue;
+      const destStageId =
+        actor.variableValues[DOOR_VARIABLE_IDS.destinationStage] ??
+        defaults[DOOR_VARIABLE_IDS.destinationStage]?.defaultValue ??
+        "";
 
-        // Only draw the destination box when it points to this stage.
-        if (destStageId && destStageId !== stage.id) return null;
+      const destX = Number(destXRaw);
+      const destY = Number(destYRaw);
+      if (!Number.isFinite(destX) || !Number.isFinite(destY)) continue;
 
-        const active = doorDestDrag?.actorId === actor.id;
-        const pos = active ? doorDestDrag!.position : { x: destX, y: destY };
+      // Only draw the destination box when it points to this stage.
+      if (destStageId && destStageId !== stage.id) continue;
 
-        return (
-          <div
-            key={`door-dest-${actor.id}`}
-            className="door-destination-box"
-            onMouseDown={(e) => onStartDoorDestDrag(actor, { x: destX, y: destY }, e)}
-            style={{
-              position: "absolute",
-              left: pos.x * STAGE_CELL_SIZE,
-              top: pos.y * STAGE_CELL_SIZE,
-              width: STAGE_CELL_SIZE,
-              height: STAGE_CELL_SIZE,
-              border: "2px dashed #ff9500",
-              boxShadow: "0 0 0 1px rgba(255,149,0,0.4) inset",
-              backgroundColor: active ? "rgba(255,149,0,0.15)" : "transparent",
-              cursor: "grab",
-              pointerEvents: "auto",
-              zIndex: 999,
-            }}
-          />
-        );
-      })
-      .filter(Boolean);
+      const active = doorDestDrag?.actorId === actor.id;
+      const pos = active ? doorDestDrag!.position : { x: destX, y: destY };
+
+      nodes.push(
+        <div
+          key={`door-dest-${actor.id}`}
+          className="door-destination-box"
+          onMouseDown={(e) => onStartDoorDestDrag(actor, { x: destX, y: destY }, e)}
+          style={{
+            position: "absolute",
+            left: pos.x * STAGE_CELL_SIZE,
+            top: pos.y * STAGE_CELL_SIZE,
+            width: STAGE_CELL_SIZE,
+            height: STAGE_CELL_SIZE,
+            border: "2px dashed #ff9500",
+            boxShadow: "0 0 0 1px rgba(255,149,0,0.4) inset",
+            backgroundColor: active ? "rgba(255,149,0,0.15)" : "transparent",
+            cursor: "grab",
+            pointerEvents: "auto",
+            zIndex: 999,
+          }}
+        />,
+      );
+    }
+
+    // Remote-source: destinations for doors on OTHER stages that point here.
+    // Always visible (not gated on selection) and non-interactive — the
+    // source actor lives on another stage, so editing happens there.
+    for (const incoming of doorsPointingHere ?? []) {
+      nodes.push(
+        <div
+          key={`door-dest-incoming-${incoming.sourceStageId}-${incoming.sourceActorId}`}
+          className="door-destination-box door-destination-box-incoming"
+          title="Destination of a door on another stage"
+          style={{
+            position: "absolute",
+            left: incoming.destX * STAGE_CELL_SIZE,
+            top: incoming.destY * STAGE_CELL_SIZE,
+            width: STAGE_CELL_SIZE,
+            height: STAGE_CELL_SIZE,
+            border: "2px dotted #2a7cff",
+            boxShadow: "0 0 0 1px rgba(42,124,255,0.4) inset",
+            pointerEvents: "none",
+            zIndex: 998,
+          }}
+        />,
+      );
+    }
+
+    return nodes;
   };
 
   const renderRecordingExtent = () => {
