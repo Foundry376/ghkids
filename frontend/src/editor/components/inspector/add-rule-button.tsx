@@ -75,10 +75,10 @@ const RuleAddButton = ({
           <span className="badge rule-flow" /> Add Container
         </DropdownItem>
         <DropdownItem onClick={_onCreateFlowContainerWithClick}>
-          <span className="badge rule-flow" /> Add Click Container
+          <span className="badge rule-flow" /> Add Container with Click Test
         </DropdownItem>
         <DropdownItem onClick={_onCreateFlowContainerWithKeyPress}>
-          <span className="badge rule-flow" /> Add Key Press Container
+          <span className="badge rule-flow" /> Add Container with Key Test
         </DropdownItem>
       </DropdownMenu>
     </ButtonDropdown>
