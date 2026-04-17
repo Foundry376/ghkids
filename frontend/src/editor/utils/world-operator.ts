@@ -28,6 +28,7 @@ import {
   Stage,
   WorldMinimal,
 } from "../../types";
+import { DOOR_VARIABLE_IDS } from "./door-constants";
 import { FrameAccumulator } from "./frame-accumulator";
 import { getCurrentStageForWorld } from "./selectors";
 import {
@@ -676,6 +677,66 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
     };
   }
 
+  function applyDoorTeleports(): { [destStageId: string]: { [actorId: string]: Actor } } {
+    const crossStageActorsForDestStage: { [destStageId: string]: { [actorId: string]: Actor } } =
+      {};
+
+    // Identify door actors present on the current stage. Cache their destinations
+    // so we don't re-read variable values for each mover.
+    type DoorInfo = { destX: number; destY: number; destStageId: string };
+    const doorsByPosKey: { [posKey: string]: DoorInfo } = {};
+    for (const a of Object.values(actors)) {
+      const character = characters[a.characterId];
+      if (character?.kind !== "door") continue;
+
+      const destXStr = getVariableValue(a, character, DOOR_VARIABLE_IDS.destinationX, "=");
+      const destYStr = getVariableValue(a, character, DOOR_VARIABLE_IDS.destinationY, "=");
+      const destStageRaw =
+        getVariableValue(a, character, DOOR_VARIABLE_IDS.destinationStage, "=") ?? "";
+
+      const destX = Number(destXStr);
+      const destY = Number(destYStr);
+      if (!Number.isFinite(destX) || !Number.isFinite(destY)) continue;
+
+      const destStageId = destStageRaw || stage.id;
+      doorsByPosKey[`${a.position.x},${a.position.y}`] = { destX, destY, destStageId };
+    }
+
+    if (Object.keys(doorsByPosKey).length === 0) {
+      return crossStageActorsForDestStage;
+    }
+
+    // Teleport any non-door actor sitting on a door. Doors don't teleport themselves,
+    // and we only apply one teleport per actor per tick to avoid within-tick chains.
+    for (const mover of Object.values(actors)) {
+      const moverCharacter = characters[mover.characterId];
+      if (moverCharacter?.kind === "door") continue;
+
+      const door = doorsByPosKey[`${mover.position.x},${mover.position.y}`];
+      if (!door) continue;
+
+      if (door.destStageId === stage.id) {
+        mover.position = { x: door.destX, y: door.destY };
+        frameAccumulator?.push({ ...mover, animationStyle: "none" });
+      } else {
+        const destStage = previousWorld.stages[door.destStageId];
+        if (!destStage) continue;
+
+        crossStageActorsForDestStage[door.destStageId] =
+          crossStageActorsForDestStage[door.destStageId] ?? deepClone(destStage.actors);
+
+        const teleported: Actor = {
+          ...mover,
+          position: { x: door.destX, y: door.destY },
+        };
+        crossStageActorsForDestStage[door.destStageId][mover.id] = teleported;
+        delete actors[mover.id];
+      }
+    }
+
+    return crossStageActorsForDestStage;
+  }
+
   function resetForRule(
     rule: Rule | RuleTreeFlowItemCheck,
     { offset, applyActions }: { offset: Position; applyActions: boolean },
@@ -741,17 +802,6 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
     stage = currentStage;
     input = previousWorld.input;
 
-    const beforeSnapshot: HistorySnapshot = {
-      input: previousWorld.input,
-      globals: previousWorld.globals,
-      evaluatedRuleDetails: previousWorld.evaluatedRuleDetails,
-      stages: {
-        [stage.id]: {
-          actors: stage.actors,
-        },
-      },
-    };
-
     // mutable things
     globals = deepClone(previousWorld.globals);
     globals.keypress = { ...globals.keypress, value: Object.keys(input.keys).join(",") };
@@ -766,15 +816,34 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
       Object.values(actorRuleDetails).some((details) => details.passed),
     );
 
+    const crossStageActorsForDestStage = applyDoorTeleports();
+
+    const beforeStages: HistorySnapshot["stages"] = {
+      [stage.id]: { actors: stage.actors },
+    };
+    const afterStages: HistorySnapshot["stages"] = {
+      [stage.id]: { actors },
+    };
+    for (const [destStageId, destActors] of Object.entries(crossStageActorsForDestStage)) {
+      const destStage = previousWorld.stages[destStageId];
+      if (destStage) {
+        beforeStages[destStageId] = { actors: destStage.actors };
+      }
+      afterStages[destStageId] = { actors: destActors };
+    }
+
+    const beforeSnapshot: HistorySnapshot = {
+      input: previousWorld.input,
+      globals: previousWorld.globals,
+      evaluatedRuleDetails: previousWorld.evaluatedRuleDetails,
+      stages: beforeStages,
+    };
+
     const afterSnapshot: HistorySnapshot = {
       input: options.clearInput ? { keys: {}, clicks: {} } : previousWorld.input,
       globals,
       evaluatedRuleDetails,
-      stages: {
-        [stage.id]: {
-          actors,
-        },
-      },
+      stages: afterStages,
     };
 
     // Compute a compact diff (delta) instead of storing a full snapshot.
@@ -785,12 +854,15 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
       afterSnapshot as unknown as Record<string, unknown>,
     );
 
+    const stageUpdates: Record<string, { actors: unknown }> = {
+      [stage.id]: { actors: u.constant(actors) },
+    };
+    for (const [destStageId, destActors] of Object.entries(crossStageActorsForDestStage)) {
+      stageUpdates[destStageId] = { actors: u.constant(destActors) };
+    }
+
     const updates: Record<string, unknown> = {
-      stages: {
-        [stage.id]: {
-          actors: u.constant(actors),
-        },
-      },
+      stages: stageUpdates,
       globals: u.constant(globals),
       evaluatedRuleDetails: u.constant(evaluatedRuleDetails),
       evaluatedTickFrames: frameAccumulator.getFrames(),

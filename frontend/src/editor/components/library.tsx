@@ -10,6 +10,7 @@ import {
   changeCharacterAppearanceName,
   createCharacter,
   createCharacterAppearance,
+  createDoorCharacter,
   deleteCharacter,
   deleteCharacterAppearance,
   upsertCharacter,
@@ -262,6 +263,11 @@ export const Library: React.FC = () => {
     dispatch(paintCharacterAppearance(newCharacterId, "idle"));
   }, [dispatch]);
 
+  const onCreateDoor = useCallback(() => {
+    const newCharacterId = makeId("character");
+    dispatch(createDoorCharacter(newCharacterId));
+  }, [dispatch]);
+
   const onExploreCharacters = useCallback(() => {
     dispatch(showModal(MODALS.EXPLORE_CHARACTERS));
   }, [dispatch]);
@@ -301,6 +307,7 @@ export const Library: React.FC = () => {
             </DropdownToggle>
             <DropdownMenu right>
               <DropdownItem onClick={onExploreCharacters}>Explore Characters...</DropdownItem>
+              <DropdownItem onClick={onCreateDoor}>Add Door</DropdownItem>
               <DropdownItem divider />
               <DropdownItem onClick={onSetCharacterOrder}>Set Character Order...</DropdownItem>
             </DropdownMenu>

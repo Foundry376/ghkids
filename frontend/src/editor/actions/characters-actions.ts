@@ -1,6 +1,7 @@
 import { DeepPartial } from "redux";
 import { Character, RuleTreeEventItem } from "../../types";
 import * as types from "../constants/action-types";
+import { DOOR_VARIABLE_IDS } from "../utils/door-constants";
 import { makeId } from "../utils/utils";
 
 export function upsertCharacter(
@@ -37,6 +38,45 @@ export function createCharacter(newId: string): ActionUpsertCharacter {
         },
       },
       variables: {},
+    },
+  };
+}
+
+export function createDoorCharacter(newId: string): ActionUpsertCharacter {
+  return {
+    type: types.UPSERT_CHARACTER,
+    characterId: newId,
+    values: {
+      id: newId,
+      name: "Door",
+      kind: "door",
+      rules: [],
+      spritesheet: {
+        appearances: {
+          idle: [new URL("../img/splat.png", import.meta.url).href],
+        },
+        appearanceNames: {
+          idle: "Idle",
+        },
+      },
+      variables: {
+        [DOOR_VARIABLE_IDS.destinationX]: {
+          id: DOOR_VARIABLE_IDS.destinationX,
+          name: "Destination X",
+          defaultValue: "0",
+        },
+        [DOOR_VARIABLE_IDS.destinationY]: {
+          id: DOOR_VARIABLE_IDS.destinationY,
+          name: "Destination Y",
+          defaultValue: "0",
+        },
+        [DOOR_VARIABLE_IDS.destinationStage]: {
+          id: DOOR_VARIABLE_IDS.destinationStage,
+          name: "Destination Stage",
+          defaultValue: "",
+          type: "stage",
+        },
+      },
     },
   };
 }

@@ -228,6 +228,7 @@ export type Characters = { [id: string]: Character };
 export type Character = {
   id: string;
   name: string;
+  kind?: "door";
   rules: RuleTreeItem[];
   spritesheet: {
     appearances: { [appearanceId: string]: ImageData[] };
@@ -242,6 +243,7 @@ export type Character = {
       id: string;
       name: string;
       defaultValue: string;
+      type?: "stage";
     }
   >;
 };

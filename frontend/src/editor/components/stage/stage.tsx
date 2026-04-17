@@ -32,6 +32,11 @@ import {
 } from "../../actions/ui-actions";
 
 import { STAGE_CELL_SIZE, TOOLS } from "../../constants/constants";
+import {
+  computeDoorDefaultDestination,
+  DOOR_VARIABLE_IDS,
+  IncomingDoorDestination,
+} from "../../utils/door-constants";
 import { extentIgnoredPositions } from "../../utils/recording-helpers";
 import {
   actorFilledPoints,
@@ -71,6 +76,12 @@ interface StageProps {
   interactionMode?: "full" | "selectable" | "none";
   immersive?: boolean;
   style?: CSSProperties;
+  /**
+   * Door actors on other stages whose destination points to this stage.
+   * Rendered as read-only indicators so users can see incoming teleports
+   * without navigating back to the source stage.
+   */
+  doorsPointingHere?: IncomingDoorDestination[];
 }
 
 type Offset = { top: string | number; left: string | number };
@@ -239,6 +250,7 @@ export const Stage = ({
   interactionMode = "full",
   immersive,
   style,
+  doorsPointingHere,
 }: StageProps) => {
   const [{ top, left }, setOffset] = useState<Offset>({ top: 0, left: 0 });
   const [scale, setScale] = useState(
@@ -252,6 +264,10 @@ export const Stage = ({
     toolId: string;
   } | null>(null);
   const [spriteDrag, setSpriteDrag] = useState<SpriteDragState | null>(null);
+  const [doorDestDrag, setDoorDestDrag] = useState<{
+    actorId: string;
+    position: Position;
+  } | null>(null);
 
   const lastFiredExtent = useRef<string | null>(null);
   const lastActorPositions = useRef<{ [actorId: string]: Position }>({});
@@ -665,6 +681,16 @@ export const Stage = ({
     if (positionContainsCloneAlready) {
       return;
     }
+
+    if (character.kind === "door") {
+      const dest = computeDoorDefaultDestination(newActor.position, stage.width);
+      newActor.variableValues = {
+        ...(newActor.variableValues ?? {}),
+        [DOOR_VARIABLE_IDS.destinationX]: String(dest.x),
+        [DOOR_VARIABLE_IDS.destinationY]: String(dest.y),
+      };
+    }
+
     dispatch(createActors(world.id, stage.id, [{ character, initialValues: newActor }]));
   };
 
@@ -1033,6 +1059,146 @@ export const Stage = ({
     setActorSelectionPopover(null);
   };
 
+  const onStartDoorDestDrag = (
+    actorId: string,
+    sourceStageId: string,
+    initial: Position,
+    event: React.MouseEvent,
+  ) => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    // The destination must land on THIS stage (the one being rendered)
+    // regardless of which stage hosts the source door actor.
+    const clampToStage = (p: Position): Position => ({
+      x: Math.max(0, Math.min(stage.width - 1, p.x)),
+      y: Math.max(0, Math.min(stage.height - 1, p.y)),
+    });
+
+    setDoorDestDrag({ actorId, position: initial });
+
+    const onMoveDoc = (e: MouseEvent) => {
+      const next = clampToStage(getPositionForEvent(e));
+      setDoorDestDrag({ actorId, position: next });
+    };
+    const onUpDoc = (e: MouseEvent) => {
+      document.removeEventListener("mousemove", onMoveDoc);
+      document.removeEventListener("mouseup", onUpDoc);
+      const next = clampToStage(getPositionForEvent(e));
+      // Important: target the stage that owns the source door actor — for
+      // incoming cross-stage doors this is NOT the stage we're rendering.
+      dispatch(
+        changeActors(buildActorSelection(world.id, sourceStageId, [actorId]), {
+          variableValues: {
+            [DOOR_VARIABLE_IDS.destinationX]: String(next.x),
+            [DOOR_VARIABLE_IDS.destinationY]: String(next.y),
+          },
+        }),
+      );
+      setDoorDestDrag(null);
+    };
+    document.addEventListener("mousemove", onMoveDoc);
+    document.addEventListener("mouseup", onUpDoc);
+  };
+
+  const renderDoorDestinations = () => {
+    if (playback.running) return null;
+
+    const nodes: React.ReactNode[] = [];
+
+    // Local-source: destinations for selected door actors on THIS stage.
+    // These are interactive — users can drag them to edit X/Y.
+    for (const actor of selected) {
+      const character = characters[actor.characterId];
+      if (character?.kind !== "door") continue;
+
+      const defaults = character.variables;
+      const destXRaw =
+        actor.variableValues[DOOR_VARIABLE_IDS.destinationX] ??
+        defaults[DOOR_VARIABLE_IDS.destinationX]?.defaultValue;
+      const destYRaw =
+        actor.variableValues[DOOR_VARIABLE_IDS.destinationY] ??
+        defaults[DOOR_VARIABLE_IDS.destinationY]?.defaultValue;
+      const destStageId =
+        actor.variableValues[DOOR_VARIABLE_IDS.destinationStage] ??
+        defaults[DOOR_VARIABLE_IDS.destinationStage]?.defaultValue ??
+        "";
+
+      const destX = Number(destXRaw);
+      const destY = Number(destYRaw);
+      if (!Number.isFinite(destX) || !Number.isFinite(destY)) continue;
+
+      // Only draw the destination box when it points to this stage.
+      if (destStageId && destStageId !== stage.id) continue;
+
+      const active = doorDestDrag?.actorId === actor.id;
+      const pos = active ? doorDestDrag!.position : { x: destX, y: destY };
+
+      nodes.push(
+        <div
+          key={`door-dest-${actor.id}`}
+          className="door-destination-box"
+          onMouseDown={(e) =>
+            onStartDoorDestDrag(actor.id, stage.id, { x: destX, y: destY }, e)
+          }
+          style={{
+            position: "absolute",
+            left: pos.x * STAGE_CELL_SIZE,
+            top: pos.y * STAGE_CELL_SIZE,
+            width: STAGE_CELL_SIZE,
+            height: STAGE_CELL_SIZE,
+            border: "2px dashed #ff9500",
+            boxShadow: "0 0 0 1px rgba(255,149,0,0.4) inset",
+            backgroundColor: active ? "rgba(255,149,0,0.15)" : "transparent",
+            cursor: "grab",
+            pointerEvents: "auto",
+            zIndex: 999,
+          }}
+        />,
+      );
+    }
+
+    // Remote-source: destinations for doors on OTHER stages that point here.
+    // Always visible (not gated on selection) and draggable — dispatching
+    // edits to the source stage id so the source door's variables move.
+    for (const incoming of doorsPointingHere ?? []) {
+      const active = doorDestDrag?.actorId === incoming.sourceActorId;
+      const pos = active
+        ? doorDestDrag!.position
+        : { x: incoming.destX, y: incoming.destY };
+      nodes.push(
+        <div
+          key={`door-dest-incoming-${incoming.sourceStageId}-${incoming.sourceActorId}`}
+          className="door-destination-box door-destination-box-incoming"
+          title="Destination of a door on another stage"
+          onMouseDown={(e) =>
+            onStartDoorDestDrag(
+              incoming.sourceActorId,
+              incoming.sourceStageId,
+              { x: incoming.destX, y: incoming.destY },
+              e,
+            )
+          }
+          style={{
+            position: "absolute",
+            left: pos.x * STAGE_CELL_SIZE,
+            top: pos.y * STAGE_CELL_SIZE,
+            width: STAGE_CELL_SIZE,
+            height: STAGE_CELL_SIZE,
+            border: "2px dashed #ff9500",
+            boxShadow: "0 0 0 1px rgba(255,149,0,0.4) inset",
+            backgroundColor: active ? "rgba(255,149,0,0.15)" : "transparent",
+            cursor: "grab",
+            pointerEvents: "auto",
+            zIndex: 998,
+          }}
+        />,
+      );
+    }
+
+    return nodes;
+  };
+
   const renderRecordingExtent = () => {
     const { width, height } = stage;
     if (!recordingExtent) {
@@ -1207,6 +1373,8 @@ export const Stage = ({
         />
 
         {sortActorsByZOrder(Object.values(stage.actors), characterZOrder).map(renderActor)}
+
+        {renderDoorDestinations()}
 
         {recordingExtent ? renderRecordingExtent() : []}
       </div>
