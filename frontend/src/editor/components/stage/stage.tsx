@@ -655,28 +655,6 @@ export const Stage = ({
     const newActor = { position, appearance } as Actor;
     applyAnchorAdjustment(position, character, newActor);
 
-    // Seed "destinationX"/"destinationY" variables (used by door/portal-style
-    // characters) to the square immediately to the right of the drop point, or
-    // to the left if the drop is at the right edge of a non-wrapping stage.
-    const findVarIdByName = (name: string) => {
-      const target = name.toLowerCase().replace(/\s+/g, "");
-      return Object.values(character.variables || {}).find(
-        (v) => v.name.toLowerCase().replace(/\s+/g, "") === target,
-      )?.id;
-    };
-    const destXId = findVarIdByName("destinationX");
-    const destYId = findVarIdByName("destinationY");
-    if (destXId && destYId) {
-      const atRightEdge = newActor.position.x >= stage.width - 1;
-      const destX =
-        atRightEdge && !stage.wrapX ? newActor.position.x - 1 : newActor.position.x + 1;
-      newActor.variableValues = {
-        ...(newActor.variableValues ?? {}),
-        [destXId]: String(destX),
-        [destYId]: String(newActor.position.y),
-      };
-    }
-
     const newActorPoints = actorFilledPoints(newActor, characters).map((p) => `${p.x},${p.y}`);
 
     const positionContainsCloneAlready = Object.values(stage.actors).find(
