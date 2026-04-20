@@ -224,11 +224,14 @@ export class PaintModel {
   async copy(): Promise<void> {
     if (this.state.imageData === null) return;
 
+    const imageDataToCopy = this.state.selectionImageData ?? this.state.imageData;
+    const offsetToCopy = this.state.selectionImageData ? this.state.selectionOffset : { x: 0, y: 0 };
+
     const data: Record<string, Blob | string> = {
-      "text/plain": JSON.stringify(this.state.selectionOffset),
+      "text/plain": JSON.stringify(offsetToCopy),
     };
 
-    const blob = await getBlobFromImageData(this.state.selectionImageData);
+    const blob = await getBlobFromImageData(imageDataToCopy);
     if (blob) {
       data["image/png"] = blob;
     }

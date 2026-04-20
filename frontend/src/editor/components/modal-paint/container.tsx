@@ -289,8 +289,8 @@ const PaintContainer: React.FC = () => {
               <DropdownItem disabled={!state.selectionImageData} onClick={() => model.cut()}>
                 Cut Selection
               </DropdownItem>
-              <DropdownItem disabled={!state.selectionImageData} onClick={() => model.copy()}>
-                Copy Selection
+              <DropdownItem onClick={() => model.copy()}>
+                {state.selectionImageData ? "Copy Selection" : "Copy Image"}
               </DropdownItem>
               <DropdownItem onClick={() => model.paste()}>Paste</DropdownItem>
               <DropdownItem divider />
