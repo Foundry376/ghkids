@@ -304,7 +304,7 @@ export type Global =
     }
   | {
       id: "selectedStageId";
-      name: "Current Stage";
+      name: "Current Level";
       value: string;
       type: "stage";
     }

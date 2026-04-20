@@ -1,4 +1,32 @@
-<!-- LAST_COMMIT: 876b6d6c4b8fbc044e6cedcd428ba79f3c404404 -->
+<!-- LAST_COMMIT: 053fb3bb933427e34c628faaf0a7772af479951f -->
+
+## [2026-04-19]
+
+Stages are now called "Levels" throughout the editor — much easier to understand! We added a brand-new Codako Academy page with video tutorials to help you learn. The biggest new feature is **doors**: you can now create special door characters that teleport players from one spot to another, even across different levels! The play buttons got a colorful makeover (green=go, red=stop), and there's a handy new level-switcher dropdown in the toolbar so you can jump between levels without digging through settings.
+
+### Added
+
+- **Doors / teleportation system**: A new "Add Door" option creates a special door character that teleports any actor that steps on it to a destination you set — including destinations on other levels. You can drag the destination marker directly on the stage to place it visually. Incoming cross-level door destinations are shown with a dotted outline on the target level. (#113)
+- **Codako Academy page**: A new Academy tab on the home page with curated tutorial worlds and YouTube video series for learning Codako concepts. (#114)
+- **Level switcher in toolbar**: The Stage Settings button is now a split control — a dropdown that shows thumbnail previews of each level for quick switching, plus a gear icon for settings. (#117)
+- **Click and Key rule shortcuts**: New "Add Click Container" and "Add Key Press Container" options in the rules panel dropdown let you create event rule containers in one step, without the multi-step flow. (#115)
+- **Copy full image fallback in appearance editor**: Pressing Copy with no pixels selected now copies the whole canvas image instead of doing nothing. The menu label shows "Copy Selection" or "Copy Image" depending on whether something is selected. (#120)
+
+### Changed
+
+- **"Stage" renamed to "Level"** everywhere in the UI — buttons, labels, tooltips, and menus all now say "Level". The underlying data model is unchanged. (#121)
+- **Simpler button labels**: "Save Changes", "Save Recording", and "Save Conditions" are now "Done". "Close without Saving" is now "Cancel". The standalone "Done" save menu item in the toolbar was removed since the game autosaves. (#122)
+- **Play controls redesign**: Transport buttons are now arranged symmetrically around Stop and use stoplight colors (green=go, yellow=step, red=stop) with clearer active/inactive states. (#110)
+- **Background settings revamp**: Stage background settings now have a modern pill-style Color/Image toggle, a clickable color swatch, a thumbnail preview for image URLs, and a "Dim background" toggle for image mode. (#112)
+- **Recording "before" stage is always editable**: The left side of a rule recording is now always interactive, regardless of whether the "after" side has been set up yet. (#118)
+- **New stages default to no background dim**: Newly created levels start with backgroundFade turned off. (#119)
+
+### Fixed
+
+- Evaluated rule overlay squares misaligned when the rule extent didn't start at 0,0. (#109)
+- Recording extent alignment during active recording.
+- Door destination variables now read through the same helper as all other variable lookups. (#116)
+- TypeScript build errors in stage-actions and world-reducer. (#108)
 
 ## [2026-03-13]
 
