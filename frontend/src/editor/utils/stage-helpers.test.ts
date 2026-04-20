@@ -1,20 +1,20 @@
 import { expect } from "chai";
+import { Actor, ActorTransform, Character, Characters, Globals, RuleExtent } from "../../types";
 import {
+  actorFilledPoints,
+  actorFillsPoint,
+  actorIntersectsExtent,
+  applyTransformOperation,
+  applyVariableOperation,
+  comparatorMatches,
+  findRule,
+  getVariableValue,
   pointApplyingTransform,
   pointByAdding,
   pointIsInside,
   pointIsOutside,
-  applyVariableOperation,
-  applyTransformOperation,
   resolveRuleValue,
-  getVariableValue,
-  actorFilledPoints,
-  actorFillsPoint,
-  actorIntersectsExtent,
-  findRule,
-  comparatorMatches,
 } from "./stage-helpers";
-import { Actor, ActorTransform, Character, Characters, Globals, RuleExtent } from "../../types";
 
 describe("stage-helpers", () => {
   describe("comparatorMatches", () => {
@@ -418,7 +418,16 @@ describe("stage-helpers", () => {
       const tiny = { width: 1, height: 1 };
 
       it("should return [0, 0] for all transforms", () => {
-        const transforms: ActorTransform[] = ["0", "90", "180", "270", "flip-x", "flip-y", "d1", "d2"];
+        const transforms: ActorTransform[] = [
+          "0",
+          "90",
+          "180",
+          "270",
+          "flip-x",
+          "flip-y",
+          "d1",
+          "d2",
+        ];
         for (const t of transforms) {
           expect(pointApplyingTransform(0, 0, tiny, t)).to.deep.equal([0, 0]);
         }
@@ -641,7 +650,12 @@ describe("stage-helpers", () => {
     const globals: Globals = {
       click: { id: "click", name: "Clicked Actor", value: "", type: "actor" },
       keypress: { id: "keypress", name: "Key Pressed", value: "", type: "key" },
-      selectedStageId: { id: "selectedStageId", name: "Current Stage", value: "stage1", type: "stage" },
+      selectedStageId: {
+        id: "selectedStageId",
+        name: "Current Level",
+        value: "stage1",
+        type: "stage",
+      },
       cameraFollow: { id: "cameraFollow", name: "Camera Follow", value: "", type: "actor" },
       score: { id: "score", name: "Score", value: "100" },
     };
@@ -674,11 +688,15 @@ describe("stage-helpers", () => {
 
     describe("constant values", () => {
       it("should return constant string value", () => {
-        expect(resolveRuleValue({ constant: "hello" }, globals, characters, actors, "=")).to.equal("hello");
+        expect(resolveRuleValue({ constant: "hello" }, globals, characters, actors, "=")).to.equal(
+          "hello",
+        );
       });
 
       it("should return constant numeric value as string", () => {
-        expect(resolveRuleValue({ constant: "42" }, globals, characters, actors, "=")).to.equal("42");
+        expect(resolveRuleValue({ constant: "42" }, globals, characters, actors, "=")).to.equal(
+          "42",
+        );
       });
 
       it("should return empty constant", () => {
@@ -688,29 +706,58 @@ describe("stage-helpers", () => {
 
     describe("global values", () => {
       it("should resolve global value", () => {
-        expect(resolveRuleValue({ globalId: "score" }, globals, characters, actors, "=")).to.equal("100");
+        expect(resolveRuleValue({ globalId: "score" }, globals, characters, actors, "=")).to.equal(
+          "100",
+        );
       });
 
       it("should resolve stage global", () => {
-        expect(resolveRuleValue({ globalId: "selectedStageId" }, globals, characters, actors, "=")).to.equal("stage1");
+        expect(
+          resolveRuleValue({ globalId: "selectedStageId" }, globals, characters, actors, "="),
+        ).to.equal("stage1");
       });
 
       it("should return undefined for missing global", () => {
-        expect(resolveRuleValue({ globalId: "nonexistent" }, globals, characters, actors, "=")).to.be.undefined;
+        expect(resolveRuleValue({ globalId: "nonexistent" }, globals, characters, actors, "=")).to
+          .be.undefined;
       });
     });
 
     describe("actor variable values", () => {
       it("should resolve actor variable value", () => {
-        expect(resolveRuleValue({ actorId: "actor1", variableId: "health" }, globals, characters, actors, "=")).to.equal("75");
+        expect(
+          resolveRuleValue(
+            { actorId: "actor1", variableId: "health" },
+            globals,
+            characters,
+            actors,
+            "=",
+          ),
+        ).to.equal("75");
       });
 
       it("should resolve actor appearance with = comparator", () => {
-        expect(resolveRuleValue({ actorId: "actor1", variableId: "appearance" }, globals, characters, actors, "=")).to.equal("app1");
+        expect(
+          resolveRuleValue(
+            { actorId: "actor1", variableId: "appearance" },
+            globals,
+            characters,
+            actors,
+            "=",
+          ),
+        ).to.equal("app1");
       });
 
       it("should resolve actor transform", () => {
-        expect(resolveRuleValue({ actorId: "actor1", variableId: "transform" }, globals, characters, actors, "=")).to.equal("90");
+        expect(
+          resolveRuleValue(
+            { actorId: "actor1", variableId: "transform" },
+            globals,
+            characters,
+            actors,
+            "=",
+          ),
+        ).to.equal("90");
       });
     });
   });
@@ -788,7 +835,12 @@ describe("stage-helpers", () => {
   });
 
   describe("actorFilledPoints", () => {
-    const makeCharacter = (info: { width: number; height: number; anchor: { x: number; y: number }; filled: Record<string, boolean> }): Characters => ({
+    const makeCharacter = (info: {
+      width: number;
+      height: number;
+      anchor: { x: number; y: number };
+      filled: Record<string, boolean>;
+    }): Characters => ({
       char1: {
         id: "char1",
         name: "Test",
@@ -1029,8 +1081,26 @@ describe("stage-helpers", () => {
   });
 
   describe("findRule", () => {
-    const rule1 = { id: "rule1", type: "rule" as const, name: "Rule 1", mainActorId: "a", conditions: [], actors: {}, actions: [], extent: { xmin: 0, xmax: 0, ymin: 0, ymax: 0, ignored: {} } };
-    const rule2 = { id: "rule2", type: "rule" as const, name: "Rule 2", mainActorId: "a", conditions: [], actors: {}, actions: [], extent: { xmin: 0, xmax: 0, ymin: 0, ymax: 0, ignored: {} } };
+    const rule1 = {
+      id: "rule1",
+      type: "rule" as const,
+      name: "Rule 1",
+      mainActorId: "a",
+      conditions: [],
+      actors: {},
+      actions: [],
+      extent: { xmin: 0, xmax: 0, ymin: 0, ymax: 0, ignored: {} },
+    };
+    const rule2 = {
+      id: "rule2",
+      type: "rule" as const,
+      name: "Rule 2",
+      mainActorId: "a",
+      conditions: [],
+      actors: {},
+      actions: [],
+      extent: { xmin: 0, xmax: 0, ymin: 0, ymax: 0, ignored: {} },
+    };
     const flowContainer = {
       id: "flow1",
       type: "group-flow" as const,
@@ -1065,13 +1135,13 @@ describe("stage-helpers", () => {
 
     it("should return null for non-existent rule", () => {
       const node = { rules: [rule1, flowContainer] };
-      const [found, , ] = findRule(node, "nonexistent");
+      const [found, ,] = findRule(node, "nonexistent");
       expect(found).to.be.null;
     });
 
     it("should handle empty rules array", () => {
       const node = { rules: [] };
-      const [found, , ] = findRule(node, "rule1");
+      const [found, ,] = findRule(node, "rule1");
       expect(found).to.be.null;
     });
   });

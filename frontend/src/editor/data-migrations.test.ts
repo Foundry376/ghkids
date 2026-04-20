@@ -61,7 +61,7 @@ describe("data-migrations", () => {
             keypress: { id: "keypress", name: "Key Pressed", value: "", type: "key" },
             selectedStageId: {
               id: "selectedStageId",
-              name: "Current Stage",
+              name: "Current Level",
               value: "",
               type: "stage",
             },
@@ -105,7 +105,6 @@ describe("data-migrations", () => {
                 height: 10,
                 wrapX: false,
                 wrapY: false,
-
               },
             },
             globals: {
@@ -113,7 +112,7 @@ describe("data-migrations", () => {
               keypress: { id: "keypress", name: "Key Pressed", value: "", type: "key" },
               selectedStageId: {
                 id: "selectedStageId",
-                name: "Current Stage",
+                name: "Current Level",
                 value: "",
                 type: "stage",
               },
@@ -159,7 +158,6 @@ describe("data-migrations", () => {
                 height: 10,
                 wrapX: false,
                 wrapY: false,
-
               },
             },
             globals: {
@@ -167,7 +165,7 @@ describe("data-migrations", () => {
               keypress: { id: "keypress", name: "Key Pressed", value: "", type: "key" },
               selectedStageId: {
                 id: "selectedStageId",
-                name: "Current Stage",
+                name: "Current Level",
                 value: "",
                 type: "stage",
               },
@@ -517,7 +515,6 @@ describe("data-migrations", () => {
                 height: 10,
                 wrapX: false,
                 wrapY: false,
-
               },
             },
             globals: {
@@ -525,7 +522,7 @@ describe("data-migrations", () => {
               keypress: { id: "keypress", name: "Key Pressed", value: "", type: "key" },
               selectedStageId: {
                 id: "selectedStageId",
-                name: "Current Stage",
+                name: "Current Level",
                 value: "",
                 type: "stage",
               },

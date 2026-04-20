@@ -139,7 +139,7 @@ export type World = {
   globals: {
     selectedStageId: {
       id: "selectedStageId";
-      name: "Current Stage";
+      name: "Current Level";
       value: "root";
       type: "stage";
     };

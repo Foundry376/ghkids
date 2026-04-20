@@ -31,7 +31,7 @@ export function makeGlobals(overrides: Partial<Globals> = {}): Globals {
     keypress: { id: "keypress", name: "Key Pressed", value: "", type: "key" },
     selectedStageId: {
       id: "selectedStageId",
-      name: "Current Stage",
+      name: "Current Level",
       value: "stage-1",
       type: "stage",
     },

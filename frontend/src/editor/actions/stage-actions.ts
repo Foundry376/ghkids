@@ -43,7 +43,7 @@ export type ActionDeleteStageId = {
   stageId: string;
 };
 
-// individual stage actions (Require world id, act on current stage in that world)
+// individual stage actions (Require world id, act on Current Level in that world)
 
 export function advanceGameState(
   worldId: string,
@@ -85,7 +85,6 @@ export type ActionRewindAllGameState = {
   type: "REWIND_ALL_GAME_STATE";
   worldId: string;
 };
-
 
 export function updateStageSettings(
   worldId: string,

@@ -1,5 +1,4 @@
 import u from "updeep";
-import { diff as historyDiffFn, unpatch as historyUnpatch } from "./history-diff";
 import {
   Actor,
   ActorTransform,
@@ -30,6 +29,7 @@ import {
 } from "../../types";
 import { DOOR_VARIABLE_IDS } from "./door-constants";
 import { FrameAccumulator } from "./frame-accumulator";
+import { diff as historyDiffFn, unpatch as historyUnpatch } from "./history-diff";
 import { getCurrentStageForWorld } from "./selectors";
 import {
   actorFillsPoint,
@@ -681,7 +681,7 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
     const crossStageActorsForDestStage: { [destStageId: string]: { [actorId: string]: Actor } } =
       {};
 
-    // Identify door actors present on the current stage. Cache their destinations
+    // Identify door actors present on the Current Level. Cache their destinations
     // so we don't re-read variable values for each mover.
     type DoorInfo = { destX: number; destY: number; destStageId: string };
     const doorsByPosKey: { [posKey: string]: DoorInfo } = {};

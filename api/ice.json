@@ -2675,7 +2675,7 @@
       "globals": {
         "selectedStageId": {
           "id": "selectedStageId",
-          "name": "Current Stage",
+          "name": "Current Level",
           "value": "5233a60cfd685f755e000002",
           "type": "stage"
         }
@@ -2695,7 +2695,7 @@
           "globals": {
             "selectedStageId": {
               "id": "selectedStageId",
-              "name": "Current Stage",
+              "name": "Current Level",
               "value": "5233a60cfd685f755e000002",
               "type": "stage"
             }
@@ -3343,7 +3343,7 @@
           "globals": {
             "selectedStageId": {
               "id": "selectedStageId",
-              "name": "Current Stage",
+              "name": "Current Level",
               "value": "5233a60cfd685f755e000002",
               "type": "stage"
             }
@@ -3993,7 +3993,7 @@
           "globals": {
             "selectedStageId": {
               "id": "selectedStageId",
-              "name": "Current Stage",
+              "name": "Current Level",
               "value": "5233a60cfd685f755e000002",
               "type": "stage"
             }
@@ -4640,7 +4640,7 @@
           "globals": {
             "selectedStageId": {
               "id": "selectedStageId",
-              "name": "Current Stage",
+              "name": "Current Level",
               "value": "5233a60cfd685f755e000002",
               "type": "stage"
             }
@@ -5287,7 +5287,7 @@
           "globals": {
             "selectedStageId": {
               "id": "selectedStageId",
-              "name": "Current Stage",
+              "name": "Current Level",
               "value": "5233a60cfd685f755e000002",
               "type": "stage"
             }
@@ -5936,7 +5936,7 @@
           "globals": {
             "selectedStageId": {
               "id": "selectedStageId",
-              "name": "Current Stage",
+              "name": "Current Level",
               "value": "5233a60cfd685f755e000002",
               "type": "stage"
             }
@@ -6544,7 +6544,7 @@
           "globals": {
             "selectedStageId": {
               "id": "selectedStageId",
-              "name": "Current Stage",
+              "name": "Current Level",
               "value": "5233a60cfd685f755e000002",
               "type": "stage"
             }
@@ -7193,7 +7193,7 @@
           "globals": {
             "selectedStageId": {
               "id": "selectedStageId",
-              "name": "Current Stage",
+              "name": "Current Level",
               "value": "5233a60cfd685f755e000002",
               "type": "stage"
             }
@@ -7841,7 +7841,7 @@
           "globals": {
             "selectedStageId": {
               "id": "selectedStageId",
-              "name": "Current Stage",
+              "name": "Current Level",
               "value": "5233a60cfd685f755e000002",
               "type": "stage"
             }
@@ -8489,7 +8489,7 @@
           "globals": {
             "selectedStageId": {
               "id": "selectedStageId",
-              "name": "Current Stage",
+              "name": "Current Level",
               "value": "5233a60cfd685f755e000002",
               "type": "stage"
             }
@@ -9137,7 +9137,7 @@
           "globals": {
             "selectedStageId": {
               "id": "selectedStageId",
-              "name": "Current Stage",
+              "name": "Current Level",
               "value": "5233a60cfd685f755e000002",
               "type": "stage"
             }
