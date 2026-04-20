@@ -88,11 +88,6 @@ const Toolbar = () => {
             <i className="fa fa-ellipsis-v" />
           </DropdownToggle>
           <DropdownMenu>
-            <DropdownItem onClick={() => save()}>
-              <i className="fa fa-floppy-o fa-fw" style={{ marginRight: 8 }} />
-              Done
-              {hasUnsavedChanges && <i className="fa fa-circle" style={{ fontSize: "8px", color: "#ff9800", marginLeft: 8, verticalAlign: "middle" }} />}
-            </DropdownItem>
             <DropdownItem onClick={() => saveAndExit("/dashboard")}>
               <i className="fa fa-sign-out fa-fw fa-flip-horizontal" style={{ marginRight: 8 }} />
               Save &amp; Exit
