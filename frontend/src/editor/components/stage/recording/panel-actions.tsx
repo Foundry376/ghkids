@@ -182,7 +182,7 @@ export const RecordingActions = (props: { characters: Characters; recording: Rec
         return (
           <>
             Set
-            <VariableBlock name={"Current Stage"} />
+            <VariableBlock name={"Current Level"} />
             to
             <code>
               {beforeWorld.stages[a.value.constant] && beforeWorld.stages[a.value.constant].name}

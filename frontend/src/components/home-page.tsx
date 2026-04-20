@@ -39,7 +39,7 @@ const HomePage = () => {
                 <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
                   <img src={new URL("../img/new-game-tutorial.png", import.meta.url).href} />
                   <div style={{ textAlign: "left", height: 72 }}>
-                    <strong>Tutorial Stage (Recommended)</strong>
+                    <strong>Tutorial Level (Recommended)</strong>
                     <p>
                       Learn how to use Codako's drag-and-drop interface to create characters,
                       appearances, and rules.
@@ -51,7 +51,7 @@ const HomePage = () => {
                 <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
                   <img src={new URL("../img/new-game-empty.png", import.meta.url).href} />
                   <div style={{ textAlign: "left", height: 72 }}>
-                    <strong>Blank Stage</strong>
+                    <strong>Blank Level</strong>
                     <p>Start from scratch, add characters and design your own game world!</p>
                   </div>
                 </div>
