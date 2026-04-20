@@ -10,6 +10,7 @@ const InitialStage: Stage = {
   height: 13,
   wrapX: true,
   wrapY: true,
+  backgroundFade: false,
 };
 
 export default InitialStage;
