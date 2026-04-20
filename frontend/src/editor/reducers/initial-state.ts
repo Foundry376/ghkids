@@ -22,7 +22,7 @@ const InitialWorld: World = {
     },
     selectedStageId: {
       id: "selectedStageId",
-      name: "Current Stage",
+      name: "Current Level",
       value: stage.id,
       type: "stage",
     },

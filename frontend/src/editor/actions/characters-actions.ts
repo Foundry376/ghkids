@@ -74,7 +74,7 @@ export function createDoorCharacter(newId: string): ActionUpsertCharacter {
         },
         [DOOR_VARIABLE_IDS.destinationStage]: {
           id: DOOR_VARIABLE_IDS.destinationStage,
-          name: "Destination Stage",
+          name: "Destination Level",
           defaultValue: "",
           type: "stage",
         },

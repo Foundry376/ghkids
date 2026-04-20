@@ -2,7 +2,7 @@ import { Stage } from "../../../types";
 
 const Tutorial: Stage = {
   id: "5233a60cfd685f755e000002",
-  name: "Stage 1",
+  name: "Level 1",
   order: 1,
   actors: {
     1483668698770: {

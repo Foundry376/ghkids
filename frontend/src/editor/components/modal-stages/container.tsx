@@ -73,7 +73,7 @@ export const StagesContainer = () => {
       style={{ minWidth: 780, maxWidth: 780 }}
     >
       <div className="modal-header" style={{ display: "flex" }}>
-        <h4 style={{ flex: 1 }}>Stages</h4>
+        <h4 style={{ flex: 1 }}>Levels</h4>
       </div>
       <div style={{ display: "flex", flexDirection: "row", justifyContent: "stretch" }}>
         <div className="stage-sidebar">
@@ -93,7 +93,7 @@ export const StagesContainer = () => {
               <div className="add-stage-placeholder">
                 <i className="fa fa-plus" />
               </div>
-              <h3>Add Stage</h3>
+              <h3>Add Level</h3>
             </div>
           </div>
           <div className="bar">

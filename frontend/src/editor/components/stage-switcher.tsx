@@ -53,8 +53,8 @@ export const StageSwitcher = () => {
       </ButtonDropdown>
       <Button
         className="stage-switcher-settings"
-        title="Stage settings"
-        aria-label="Stage settings"
+        title="Level settings"
+        aria-label="Level settings"
         onClick={() => dispatch(actions.showModal(MODALS.STAGES))}
       >
         <GearIcon />
