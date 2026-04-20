@@ -220,7 +220,7 @@ const StageRecordingControls: React.FC<StageRecordingControlsProps> = ({
     [RECORDING_PHASE.RECORD]: (
       <span>
         <i className="fa fa-checkmark" />{" "}
-        {recording.actions ? "Save Recording" : "Save Conditions"}
+        Done
       </span>
     ),
   };

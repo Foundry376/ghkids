@@ -330,7 +330,7 @@ export const baseTutorialContent: TutorialStepContent[] = [
   },
   {
     pose: "standing-pointing",
-    text: `Click 'Save Recording' and let's try out your new rule.`,
+    text: `Click 'Done' and let's try out your new rule.`,
     annotation: {
       selectors: ["[data-tutorial-id=record-next-step]"],
       style: "outline",
@@ -581,7 +581,7 @@ export const baseTutorialContent: TutorialStepContent[] = [
   },
   {
     pose: "standing-pointing",
-    text: `Click 'Save Recording' and let's try out your new rule.`,
+    text: `Click 'Done' and let's try out your new rule.`,
     annotation: {
       selectors: ["[data-tutorial-id=record-next-step]"],
       style: "outline",
@@ -662,7 +662,7 @@ export const baseTutorialContent: TutorialStepContent[] = [
   },
   {
     pose: "standing-pointing",
-    text: `Click 'Save Recording' and let's try out your new rule.`,
+    text: `Click 'Done' and let's try out your new rule.`,
     annotation: {
       selectors: ["[data-tutorial-id=record-next-step]"],
       style: "outline",

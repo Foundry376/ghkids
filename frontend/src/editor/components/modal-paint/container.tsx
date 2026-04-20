@@ -466,7 +466,7 @@ const PaintContainer: React.FC = () => {
           </Button>
           <div style={{ flex: 1 }} />
           <Button key="cancel" onClick={handleClose}>
-            Close without Saving
+            Cancel
           </Button>{" "}
           <Button
             color="primary"
@@ -474,7 +474,7 @@ const PaintContainer: React.FC = () => {
             data-tutorial-id="paint-save-and-close"
             onClick={handleCloseAndSave}
           >
-            Save Changes
+            Done
           </Button>
         </ModalFooter>
       </div>

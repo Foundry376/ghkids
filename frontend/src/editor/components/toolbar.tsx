@@ -90,7 +90,7 @@ const Toolbar = () => {
           <DropdownMenu>
             <DropdownItem onClick={() => save()}>
               <i className="fa fa-floppy-o fa-fw" style={{ marginRight: 8 }} />
-              Save Changes
+              Done
               {hasUnsavedChanges && <i className="fa fa-circle" style={{ fontSize: "8px", color: "#ff9800", marginLeft: 8, verticalAlign: "middle" }} />}
             </DropdownItem>
             <DropdownItem onClick={() => saveAndExit("/dashboard")}>
