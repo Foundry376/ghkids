@@ -595,6 +595,10 @@ html {
         background-image: linear-gradient(#d42a2a, #a11e1e);
         color: white;
       }
+      &.transport-black.selected {
+        background-image: linear-gradient(#495057, #212529);
+        color: white;
+      }
     }
 
     .transport-green {
@@ -605,6 +609,9 @@ html {
     }
     .transport-red {
       color: #d42a2a;
+    }
+    .transport-black {
+      color: #495057;
     }
 
     .right {
