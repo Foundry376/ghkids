@@ -16,6 +16,9 @@ import {
   conditionMetScenario,
   conditionGreaterThanScenario,
   globalModifyScenario,
+  setPositionVariableToBottomRowScenario,
+  addOneToPositionVariableMovesUpScenario,
+  positionVariableConditionBottomRowScenario,
 } from "./__tests__/scenarios/basic-scenarios";
 import { collisionScenario, coinCollectionScenario } from "./__tests__/scenarios/multi-actor-scenarios";
 import { chaseGameScenario } from "./__tests__/scenarios/chase-game-scenario";
@@ -129,6 +132,20 @@ describe("world-operator integration", () => {
 
     it("should handle score accumulation game", () => {
       runScenario(scoreAccumulationScenario());
+    });
+  });
+
+  describe("display-coordinate (Y-up, 1-indexed) variable handling", () => {
+    it("set y=1 lands actor on the bottom row", () => {
+      runScenario(setPositionVariableToBottomRowScenario());
+    });
+
+    it("add 1 to y moves actor up (internal y decreases)", () => {
+      runScenario(addOneToPositionVariableMovesUpScenario());
+    });
+
+    it("condition actor.y == 1 matches the bottom row", () => {
+      runScenario(positionVariableConditionBottomRowScenario());
     });
   });
 });

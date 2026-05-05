@@ -593,3 +593,130 @@ export function globalModifyScenario(): TestScenario {
     },
   };
 }
+
+// ============================================================================
+// Display-coordinate scenarios
+// ============================================================================
+//
+// Kids see positions as 1-indexed Y-up. When a rule writes `actor.y` it's
+// in display coords; the engine must convert back to internal Y-down.
+
+/** "Set y to 1" should land the actor on the bottom row. */
+export function setPositionVariableToBottomRowScenario(): TestScenario {
+  const charId = "char-1";
+  const actorId = "actor-1";
+
+  const ruleActor = makeActor({ id: "rule-actor", characterId: charId });
+  const rule = makeRule({
+    id: "set-y-bottom",
+    mainActorId: "rule-actor",
+    actors: { "rule-actor": ruleActor },
+    actions: [
+      { type: "variable", actorId: "rule-actor", variable: "y", operation: "set", value: { constant: "1" } },
+    ],
+  });
+  const idleGroup = makeEventGroup({ id: "idle-group", event: "idle", rules: [rule] });
+  const character = makeCharacter({ id: charId, name: "Player", rules: [idleGroup] });
+  const characters: Characters = { [charId]: character };
+
+  const stageActor = makeActor({ id: actorId, characterId: charId, position: { x: 3, y: 4 } });
+  const stage = makeStage({ id: "stage-1", height: 8, actors: { [actorId]: stageActor } });
+  const world = makeWorld({ stage });
+
+  return {
+    name: "set y to display 1 lands actor on bottom row (internal y = height - 1)",
+    characters,
+    world,
+    frames: 1,
+    assertions: (result) => {
+      expectActorPosition(result, actorId, { x: 3, y: 7 });
+    },
+  };
+}
+
+/** "Add 1 to y" should move the actor up one row in display (internal y -1). */
+export function addOneToPositionVariableMovesUpScenario(): TestScenario {
+  const charId = "char-1";
+  const actorId = "actor-1";
+
+  const ruleActor = makeActor({ id: "rule-actor", characterId: charId });
+  const rule = makeRule({
+    id: "add-one-y",
+    mainActorId: "rule-actor",
+    actors: { "rule-actor": ruleActor },
+    actions: [
+      { type: "variable", actorId: "rule-actor", variable: "y", operation: "add", value: { constant: "1" } },
+    ],
+  });
+  const idleGroup = makeEventGroup({ id: "idle-group", event: "idle", rules: [rule] });
+  const character = makeCharacter({ id: charId, name: "Player", rules: [idleGroup] });
+  const characters: Characters = { [charId]: character };
+
+  const stageActor = makeActor({ id: actorId, characterId: charId, position: { x: 0, y: 4 } });
+  const stage = makeStage({ id: "stage-1", height: 8, actors: { [actorId]: stageActor } });
+  const world = makeWorld({ stage });
+
+  return {
+    name: "add 1 to y moves actor up (internal y decreases)",
+    characters,
+    world,
+    frames: 1,
+    assertions: (result) => {
+      // internal y was 4 (display 4); after "+1" → display 5 → internal 8 - 5 = 3
+      expectActorPosition(result, actorId, { x: 0, y: 3 });
+    },
+  };
+}
+
+/** "y == 1" condition matches only on the bottom row. */
+export function positionVariableConditionBottomRowScenario(): TestScenario {
+  const charId = "char-1";
+  const actorId = "actor-1";
+  const varId = "var-touched";
+
+  const ruleActor = makeActor({ id: "rule-actor", characterId: charId });
+  const condition: RuleCondition = {
+    key: "cond-1",
+    enabled: true,
+    left: { actorId: "rule-actor", variableId: "y" },
+    comparator: "=",
+    right: { constant: "1" },
+  };
+  const rule = makeRule({
+    id: "mark-bottom",
+    mainActorId: "rule-actor",
+    actors: { "rule-actor": ruleActor },
+    actions: [
+      { type: "variable", actorId: "rule-actor", variable: varId, operation: "set", value: { constant: "1" } },
+    ],
+    conditions: [condition],
+  });
+  const idleGroup = makeEventGroup({ id: "idle-group", event: "idle", rules: [rule] });
+  const character = makeCharacter({
+    id: charId,
+    name: "Player",
+    rules: [idleGroup],
+    variables: { [varId]: { id: varId, name: "Touched", defaultValue: "0" } },
+  });
+  const characters: Characters = { [charId]: character };
+
+  // Bottom row of a height-8 stage is internal y=7, display y=1.
+  const stageActor = makeActor({
+    id: actorId,
+    characterId: charId,
+    position: { x: 0, y: 7 },
+    variableValues: { [varId]: "0" },
+  });
+  const stage = makeStage({ id: "stage-1", height: 8, actors: { [actorId]: stageActor } });
+  const world = makeWorld({ stage });
+
+  return {
+    name: "condition actor.y == 1 matches the bottom row",
+    characters,
+    world,
+    frames: 1,
+    assertions: (result) => {
+      expectActorVariable(result, actorId, varId, "1");
+    },
+  };
+}

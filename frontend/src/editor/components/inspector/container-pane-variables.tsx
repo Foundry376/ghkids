@@ -5,7 +5,13 @@ import { useDispatch } from "react-redux";
 import { Button, ButtonDropdown, DropdownItem, DropdownMenu, DropdownToggle, Modal, ModalBody, ModalFooter, ModalHeader } from "reactstrap";
 import { DeepPartial } from "redux";
 import { Actor, ActorTransform, Character, Global, RuleTreeItem, Stage, WorldMinimal } from "../../../types";
-import { toDisplayX, toDisplayY, toInternalX, toInternalY } from "../../utils/coordinate-display";
+import {
+  formatPosition,
+  toDisplayX,
+  toDisplayY,
+  toInternalX,
+  toInternalY,
+} from "../../utils/coordinate-display";
 import { useEditorSelector } from "../../../hooks/redux";
 import { deleteCharacterVariable, upsertCharacter } from "../../actions/characters-actions";
 import { changeActors } from "../../actions/stage-actions";
@@ -386,35 +392,39 @@ export const ContainerPaneVariables = ({
                 dispatch(changeActors(selectedActors!, { appearance, transform }));
               }}
             />
-            <PositionGridItem
-              actor={actor}
-              coordinate="x"
-              displayValue={getCommonValue(actors, (a) => toDisplayX(a.position.x))}
-              onChange={(displayX) => {
-                dispatch(
-                  changeActors(selectedActors!, {
-                    position: { ...actor.position, x: toInternalX(displayX) },
-                  }),
-                );
-              }}
-            />
-            <PositionGridItem
-              actor={actor}
-              coordinate="y"
-              displayValue={
-                stage
-                  ? getCommonValue(actors, (a) => toDisplayY(a.position.y, stage.height))
-                  : getCommonValue(actors, (a) => a.position.y)
-              }
-              onChange={(displayY) => {
-                if (!stage) return;
-                dispatch(
-                  changeActors(selectedActors!, {
-                    position: { ...actor.position, y: toInternalY(displayY, stage.height) },
-                  }),
-                );
-              }}
-            />
+            {stage && (
+              <>
+                <PositionGridItem
+                  actor={actor}
+                  coordinate="x"
+                  displayValue={getCommonValue(actors, (a) => toDisplayX(a.position.x))}
+                  onChange={(displayX) => {
+                    dispatch(
+                      changeActors(selectedActors!, {
+                        position: { ...actor.position, x: toInternalX(displayX) },
+                      }),
+                    );
+                  }}
+                />
+                <PositionGridItem
+                  actor={actor}
+                  coordinate="y"
+                  displayValue={getCommonValue(actors, (a) =>
+                    toDisplayY(a.position.y, stage.height),
+                  )}
+                  onChange={(displayY) => {
+                    dispatch(
+                      changeActors(selectedActors!, {
+                        position: {
+                          ...actor.position,
+                          y: toInternalY(displayY, stage.height),
+                        },
+                      }),
+                    );
+                  }}
+                />
+              </>
+            )}
           </>
         )}
         {Object.values(character.variables).map((definition) => (
@@ -470,11 +480,11 @@ export const ContainerPaneVariables = ({
             <h3>
               {actors.length > 1
                 ? `${character.name} (${actors.length} selected)`
-                : actor
-                  ? `${character.name} at (${toDisplayX(actor.position.x)},${
-                      stage ? toDisplayY(actor.position.y, stage.height) : actor.position.y
-                    })`
-                  : `${character.name} (Defaults)`}
+                : actor && stage
+                  ? `${character.name} at ${formatPosition(actor.position, stage)}`
+                  : actor
+                    ? character.name
+                    : `${character.name} (Defaults)`}
             </h3>
             {_renderCharacterSection()}
           </div>

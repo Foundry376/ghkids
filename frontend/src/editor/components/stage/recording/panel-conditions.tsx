@@ -105,6 +105,7 @@ export const RecordingConditions = ({
           key={condition.key}
           actors={stage.actors}
           world={beforeWorld}
+          stage={stage}
           condition={condition}
           characters={characters}
           conditionStatus={conditionStatusMap[condition.key]}

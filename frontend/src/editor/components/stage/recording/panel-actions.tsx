@@ -43,7 +43,7 @@ export const RecordingActions = (props: { characters: Characters; recording: Rec
         return (
           <>
             Create a
-            <ActorBlock actor={a.actor} character={characters[a.actor.characterId]} />
+            <ActorBlock actor={a.actor} character={characters[a.actor.characterId]} stage={afterStage} />
             at
             <ActorOffsetCanvas
               actor={a.actor}
@@ -64,7 +64,7 @@ export const RecordingActions = (props: { characters: Characters; recording: Rec
         return (
           <>
             Move
-            <ActorBlock actor={actor} character={character} />
+            <ActorBlock actor={actor} character={character} stage={afterStage} />
             to
             {a.delta ? (
               <ActorDeltaCanvas delta={a.delta} />
@@ -86,7 +86,7 @@ export const RecordingActions = (props: { characters: Characters; recording: Rec
         return (
           <>
             Remove
-            <ActorBlock actor={actor} character={character} />
+            <ActorBlock actor={actor} character={character} stage={afterStage} />
             from the stage
           </>
         );
@@ -102,6 +102,7 @@ export const RecordingActions = (props: { characters: Characters; recording: Rec
             <FreeformConditionValue
               value={a.value}
               world={beforeWorld}
+              stage={afterStage}
               actors={afterStage.actors}
               characters={characters}
               onChange={(value) => onChange({ ...a, value })}
@@ -109,7 +110,12 @@ export const RecordingActions = (props: { characters: Characters; recording: Rec
               comparator="="
             />
             {{ set: "into", add: "to", subtract: "from" }[a.operation]}
-            <ActorVariableBlock character={character} actor={actor} variableId={a.variable} />
+            <ActorVariableBlock
+              character={character}
+              actor={actor}
+              variableId={a.variable}
+              stage={afterStage}
+            />
           </>
         );
       }
@@ -117,11 +123,12 @@ export const RecordingActions = (props: { characters: Characters; recording: Rec
         return (
           <>
             Change appearance of
-            <ActorBlock character={character} actor={actor} />
+            <ActorBlock character={character} actor={actor} stage={afterStage} />
             to
             <FreeformConditionValue
               value={a.value}
               world={beforeWorld}
+              stage={afterStage}
               actors={afterStage.actors}
               characters={characters}
               onChange={(value) => onChange({ ...a, value })}
@@ -135,7 +142,7 @@ export const RecordingActions = (props: { characters: Characters; recording: Rec
         return (
           <>
             Turn
-            <ActorBlock character={character} actor={actor} />
+            <ActorBlock character={character} actor={actor} stage={afterStage} />
             <TransformActionPicker
               operation={a.operation}
               onChangeOperation={(operation) => {
@@ -160,6 +167,7 @@ export const RecordingActions = (props: { characters: Characters; recording: Rec
             <FreeformConditionValue
               value={a.value}
               world={beforeWorld}
+              stage={afterStage}
               actors={afterStage.actors}
               characters={characters}
               onChange={(value) => onChange({ ...a, value })}

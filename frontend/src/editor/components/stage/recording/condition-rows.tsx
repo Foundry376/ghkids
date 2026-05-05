@@ -27,6 +27,11 @@ interface FreeformConditionRowProps {
   condition: RuleCondition;
   conditionStatus?: EvaluatedCondition;
   onChange?: (keep: boolean, condition: RuleCondition) => void;
+  // When provided, the actors above are absolute positions on this stage —
+  // disambiguation labels render in display coords matching the inspector.
+  // When omitted, actor positions are interpreted as relative offsets from
+  // the rule's main actor (rule.actors).
+  stage?: Pick<Stage, "height">;
 }
 
 type ImpliedDatatype =
@@ -59,6 +64,7 @@ export const FreeformConditionRow = ({
   characters,
   conditionStatus,
   onChange,
+  stage,
 }: FreeformConditionRowProps) => {
   const { left, right, comparator } = condition;
   const selectedToolId = useEditorSelector((state) => state.ui.selectedToolId);
@@ -116,6 +122,7 @@ export const FreeformConditionRow = ({
         value={left}
         actors={actors}
         world={world}
+        stage={stage}
         characters={characters}
         onChange={onChange ? (value) => onChange(true, { ...condition, left: value }) : undefined}
         impliedDatatype={impliedDatatype}
@@ -137,6 +144,7 @@ export const FreeformConditionRow = ({
         value={right}
         actors={actors}
         world={world}
+        stage={stage}
         characters={characters}
         onChange={onChange ? (value) => onChange(true, { ...condition, right: value }) : undefined}
         impliedDatatype={impliedDatatype}
@@ -168,6 +176,7 @@ export const FreeformConditionValue = ({
   impliedDatatype,
   conditionId,
   comparator,
+  stage,
 }: {
   value: RuleValue;
   world: WorldMinimal;
@@ -177,6 +186,10 @@ export const FreeformConditionValue = ({
   impliedDatatype: ImpliedDatatype;
   conditionId?: string;
   comparator: VariableComparator;
+  // Same convention as FreeformConditionRow's `stage`: provided ⇒ absolute
+  // recording-stage coords; omitted ⇒ relative offsets from the rule's main
+  // actor.
+  stage?: Pick<Stage, "height">;
 }) => {
   const selectedToolId = useEditorSelector((state) => state.ui.selectedToolId);
   const dispatch = useDispatch();
@@ -214,6 +227,7 @@ export const FreeformConditionValue = ({
             actor={actor}
             disambiguate={disambiguate}
             variableId={value.variableId}
+            stage={stage}
           />
         );
       }
@@ -260,7 +274,14 @@ export const FreeformConditionValue = ({
         if (actor && character) {
           const disambiguate =
             Object.values(actors).filter((a) => a.characterId === character.id).length > 1;
-          return <ActorBlock actor={actor} character={character} disambiguate={disambiguate} />;
+          return (
+            <ActorBlock
+              actor={actor}
+              character={character}
+              disambiguate={disambiguate}
+              stage={stage}
+            />
+          );
         }
       }
       if (impliedDatatype?.type === "key" && conditionId && onChange) {
