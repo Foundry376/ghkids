@@ -78,16 +78,17 @@ const StageControls: React.FC<StageControlsProps> = ({
       <div style={{ flex: 1 }} />
 
       <div className={classNames("center transport-controls", { "is-playing": running })} data-tutorial-id="controls">
-        {/* Reset - green, farthest left: most change backward */}
+        {/* Reset - black like the clock, distinct from rewind: jumps back fast and stops */}
         {!readonly && (
           <Button
-            className="transport-btn transport-green"
+            className="transport-btn transport-black"
             disabled={world.history && world.history.length === 0}
             onClick={() => dispatch(rewindAllGameState(world.id))}
           >
             <svg width="18" height="18" viewBox="0 0 14 14" fill="currentColor">
               <rect x="0" y="1" width="2.5" height="12" />
-              <polygon points="12,1 12,13 3,7" />
+              <polygon points="8,1 8,13 3,7" />
+              <polygon points="13,1 13,13 8,7" />
             </svg>
           </Button>
         )}
