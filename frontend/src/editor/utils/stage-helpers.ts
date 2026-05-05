@@ -555,9 +555,13 @@ export function getStageScreenshot(stage: Stage, { size }: { size: number }) {
   }
 
   sortActorsByZOrder(Object.values(stage.actors), characterZOrder).forEach((actor) => {
+    const character = characters[actor.characterId];
+    if (!character) return;
+    const { appearances, appearanceInfo } = character.spritesheet;
+    const data = appearances[actor.appearance]?.[0];
+    if (!data) return;
     const i = new Image();
-    const { appearances, appearanceInfo } = characters[actor.characterId].spritesheet;
-    i.src = appearances[actor.appearance][0];
+    i.src = data;
     const info = appearanceInfo?.[actor.appearance] || DEFAULT_APPEARANCE_INFO;
 
     context.save();
