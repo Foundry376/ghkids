@@ -368,6 +368,7 @@ export type UIState = {
   selectedToolId: TOOLS;
   selectedCharacterId: string | null;
   selectedActors: ActorSelection | null;
+  selectedRuleId: string | null;
   stampToolItem:
     | ActorSelection
     | { characterId: string }

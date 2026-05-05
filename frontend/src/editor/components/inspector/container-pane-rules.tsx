@@ -5,7 +5,7 @@ import { Character, Rule, RuleTreeFlowItemCheck, RuleTreeItem } from "../../../t
 import { useEditorSelector } from "../../../hooks/redux";
 import { upsertCharacter } from "../../actions/characters-actions";
 import { editRuleRecording } from "../../actions/recording-actions";
-import { selectToolId } from "../../actions/ui-actions";
+import { selectRule, selectToolId } from "../../actions/ui-actions";
 import { TOOLS } from "../../constants/constants";
 import { findRule } from "../../utils/stage-helpers";
 import { deepClone, makeId } from "../../utils/utils";
@@ -20,11 +20,109 @@ export const RuleActionsContext = React.createContext<{
   onRuleDeleted: (ruleId: string, event: React.MouseEvent<unknown>) => void;
 }>(new Error() as never);
 
+// In-app clipboard for rule copy/paste, shared across mounts of the rules pane.
+let ruleClipboard: RuleTreeItem | null = null;
+
+const cloneRuleWithFreshIds = (item: RuleTreeItem): RuleTreeItem => {
+  const copy = deepClone(item);
+  const rewrite = (node: RuleTreeItem) => {
+    node.id = makeId("rule");
+    if ("rules" in node) {
+      node.rules.forEach(rewrite);
+    }
+  };
+  rewrite(copy);
+  return copy;
+};
+
 export const ContainerPaneRules = ({ character }: { character: Character | null }) => {
   const dispatch = useDispatch();
-  const { selectedToolId, stampToolItem } = useEditorSelector((state) => state.ui);
+  const { selectedToolId, stampToolItem, selectedRuleId } = useEditorSelector(
+    (state) => state.ui,
+  );
   const _scrollContainerEl = useRef<HTMLDivElement>(null);
   const _scrollId = useRef<number>(0);
+
+  const latestRef = useRef({ character, selectedRuleId });
+  latestRef.current = { character, selectedRuleId };
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.defaultPrevented) return;
+      const target = event.target as HTMLElement | null;
+      if (
+        target &&
+        (target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          target.tagName === "SELECT" ||
+          target.isContentEditable)
+      ) {
+        return;
+      }
+      const { character, selectedRuleId } = latestRef.current;
+      if (!character) return;
+
+      const isShortcut = event.metaKey || event.ctrlKey;
+
+      if (!isShortcut && (event.key === "Delete" || event.key === "Backspace")) {
+        if (!selectedRuleId) return;
+        const rules = deepClone(character.rules);
+        const [, parentRule, parentIdx] = findRule({ rules }, selectedRuleId);
+        if (!parentRule.rules[parentIdx]) return;
+        parentRule.rules.splice(parentIdx, 1);
+        dispatch(upsertCharacter(character.id, { rules }));
+        dispatch(selectRule(null));
+        event.preventDefault();
+        return;
+      }
+
+      if (isShortcut && (event.key === "c" || event.key === "C")) {
+        if (!selectedRuleId) return;
+        const [rule] = findRule({ rules: character.rules }, selectedRuleId);
+        if (!rule) return;
+        ruleClipboard = deepClone(rule);
+        event.preventDefault();
+        return;
+      }
+
+      if (isShortcut && (event.key === "x" || event.key === "X")) {
+        if (!selectedRuleId) return;
+        const rules = deepClone(character.rules);
+        const [rule, parentRule, parentIdx] = findRule({ rules }, selectedRuleId);
+        if (!rule) return;
+        ruleClipboard = deepClone(rule);
+        parentRule.rules.splice(parentIdx, 1);
+        dispatch(upsertCharacter(character.id, { rules }));
+        dispatch(selectRule(null));
+        event.preventDefault();
+        return;
+      }
+
+      if (isShortcut && (event.key === "v" || event.key === "V")) {
+        if (!ruleClipboard) return;
+        const rules = deepClone(character.rules);
+        const newRule = cloneRuleWithFreshIds(ruleClipboard);
+
+        if (selectedRuleId) {
+          const [foundRule, parentRule, parentIdx] = findRule({ rules }, selectedRuleId);
+          if (foundRule) {
+            parentRule.rules.splice(parentIdx + 1, 0, newRule);
+          } else {
+            rules.push(newRule);
+          }
+        } else {
+          rules.push(newRule);
+        }
+        dispatch(upsertCharacter(character.id, { rules }));
+        dispatch(selectRule(newRule.id));
+        event.preventDefault();
+        return;
+      }
+    };
+
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [dispatch]);
 
   const prevRulesJSON = useRef<string>();
   useEffect(() => {
@@ -128,6 +226,9 @@ export const ContainerPaneRules = ({ character }: { character: Character | null 
     const [, parentRule, parentIdx] = findRule({ rules }, ruleId);
     parentRule.rules.splice(parentIdx, 1);
     dispatch(upsertCharacter(character.id, { rules }));
+    if (selectedRuleId === ruleId) {
+      dispatch(selectRule(null));
+    }
     if (!event.shiftKey) {
       dispatch(selectToolId(TOOLS.POINTER));
     }
@@ -185,6 +286,10 @@ export const ContainerPaneRules = ({ character }: { character: Character | null 
       if (!e.shiftKey) {
         dispatch(selectToolId(TOOLS.POINTER));
       }
+      return;
+    }
+    if (selectedToolId === TOOLS.POINTER) {
+      dispatch(selectRule(null));
     }
   };
 
