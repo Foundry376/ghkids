@@ -27,6 +27,7 @@ import {
   Stage,
   WorldMinimal,
 } from "../../types";
+import { toInternalX, toInternalY } from "./coordinate-display";
 import { DOOR_VARIABLE_IDS } from "./door-constants";
 import { FrameAccumulator } from "./frame-accumulator";
 import { diff as historyDiffFn, unpatch as historyUnpatch } from "./history-diff";
@@ -94,18 +95,18 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
       const leftValue: [string | null, Actor | null][] =
         "actorId" in left
           ? (stageActorsForId as ActorLookupFn)(left.actorId).map((actor) => [
-              getVariableValue(actor, character, left.variableId, comparator),
+              getVariableValue(actor, character, left.variableId, comparator, stage),
               actor,
             ])
-          : [[resolveRuleValue(left, globals, characters, actors, comparator), null]];
+          : [[resolveRuleValue(left, globals, characters, actors, comparator, stage), null]];
 
       const rightValue: [string | null, Actor | null][] =
         "actorId" in right
           ? (stageActorsForId as ActorLookupFn)(right.actorId).map((actor) => [
-              getVariableValue(actor, character, right.variableId, comparator),
+              getVariableValue(actor, character, right.variableId, comparator, stage),
               actor,
             ])
-          : [[resolveRuleValue(right, globals, characters, actors, comparator), null]];
+          : [[resolveRuleValue(right, globals, characters, actors, comparator, stage), null]];
 
       let found = false;
       for (const leftOpt of leftValue) {
@@ -166,7 +167,7 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
           const actor = actors[me.id];
           const character = characters[actor.characterId];
           iterations = Number(
-            getVariableValue(actor, character, struct.loopCount.variableId, "=") ?? "0",
+            getVariableValue(actor, character, struct.loopCount.variableId, "=", stage) ?? "0",
           );
         }
       }
@@ -459,6 +460,7 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
             characters,
             stageActorsForRuleActorIds,
             condition.comparator,
+            stage,
           );
           const right = resolveRuleValue(
             condition.right,
@@ -466,6 +468,7 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
             characters,
             stageActorsForRuleActorIds,
             condition.comparator,
+            stage,
           );
           const passed = comparatorMatches(condition.comparator, left, right);
           conditions.push({
@@ -565,7 +568,7 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
           global.value = applyVariableOperation(
             global.value,
             action.operation,
-            resolveRuleValue(action.value, globals, characters, stageActorForId, "=") ?? "",
+            resolveRuleValue(action.value, globals, characters, stageActorForId, "=", stage) ?? "",
           );
         } else if ("actorId" in action && action.actorId) {
           // find the actor on the stage that matches
@@ -608,7 +611,7 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
             }
           } else if (action.type === "appearance") {
             stageActor.appearance =
-              resolveRuleValue(action.value, globals, characters, stageActorForId, "=") ?? "";
+              resolveRuleValue(action.value, globals, characters, stageActorForId, "=", stage) ?? "";
             if (action.animationStyle !== "skip") {
               frameAccumulator?.push({
                 ...stageActor,
@@ -623,6 +626,7 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
               characters,
               stageActorForId,
               "=",
+              stage,
             ) as ActorTransform;
             const next = applyTransformOperation(
               stageActor.transform ?? "0",
@@ -644,16 +648,26 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
                 characters[stageActor.characterId],
                 action.variable,
                 "=",
+                stage,
               ) ?? "0";
             const value =
-              resolveRuleValue(action.value, globals, characters, stageActorForId, "=") ?? "";
+              resolveRuleValue(action.value, globals, characters, stageActorForId, "=", stage) ?? "";
             const next = applyVariableOperation(current, action.operation, value);
 
             if (action.variable === "x" || action.variable === "y") {
               const numValue = Number(next);
               if (!isNaN(numValue)) {
+                // `next` is in display coords (1-indexed, Y-up). Convert back to
+                // internal coords before applying to the actor's stage position.
                 const coord = action.variable as "x" | "y";
-                const wrappedPos = wrappedPosition({ ...stageActor.position, [coord]: numValue });
+                const internalValue =
+                  coord === "x"
+                    ? toInternalX(numValue)
+                    : toInternalY(numValue, stage.height);
+                const wrappedPos = wrappedPosition({
+                  ...stageActor.position,
+                  [coord]: internalValue,
+                });
                 if (wrappedPos) {
                   stageActor.position = wrappedPos;
                 }
@@ -689,6 +703,8 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
       const character = characters[a.characterId];
       if (character?.kind !== "door") continue;
 
+      // Door destinations live in regular variableValues (not the special x/y),
+      // so they're already in internal coords — no `stage` argument needed.
       const destXStr = getVariableValue(a, character, DOOR_VARIABLE_IDS.destinationX, "=");
       const destYStr = getVariableValue(a, character, DOOR_VARIABLE_IDS.destinationY, "=");
       const destStageRaw =
@@ -766,6 +782,7 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
           characters,
           rule.actors,
           cond.comparator,
+          stage,
         );
         if (value) {
           globals[cond.left.globalId].value = value;

@@ -4,7 +4,8 @@ import React, { useState } from "react";
 import { useDispatch } from "react-redux";
 import { Button, ButtonDropdown, DropdownItem, DropdownMenu, DropdownToggle, Modal, ModalBody, ModalFooter, ModalHeader } from "reactstrap";
 import { DeepPartial } from "redux";
-import { Actor, ActorTransform, Character, Global, RuleTreeItem, WorldMinimal } from "../../../types";
+import { Actor, ActorTransform, Character, Global, RuleTreeItem, Stage, WorldMinimal } from "../../../types";
+import { toDisplayX, toDisplayY, toInternalX, toInternalY } from "../../utils/coordinate-display";
 import { useEditorSelector } from "../../../hooks/redux";
 import { deleteCharacterVariable, upsertCharacter } from "../../actions/characters-actions";
 import { changeActors } from "../../actions/stage-actions";
@@ -159,13 +160,14 @@ export const TransformDropdown = ({
 type PositionGridItemProps = {
   actor: Actor;
   coordinate: "x" | "y";
-  /** When undefined, shows empty input (mixed values across multiple actors) */
-  value: number | undefined;
-  onChange: (value: number) => void;
+  /** Display value (1-indexed, Y-up). Undefined = mixed across multiple actors. */
+  displayValue: number | undefined;
+  /** Receives a display value and is responsible for converting to internal. */
+  onChange: (displayValue: number) => void;
 };
 
-const PositionGridItem = ({ actor, coordinate, value, onChange }: PositionGridItemProps) => {
-  const isMixed = value === undefined;
+const PositionGridItem = ({ actor, coordinate, displayValue, onChange }: PositionGridItemProps) => {
+  const isMixed = displayValue === undefined;
 
   const _onDragStart = (event: React.DragEvent) => {
     // Only allow dragging if we have a single consistent value
@@ -180,7 +182,9 @@ const PositionGridItem = ({ actor, coordinate, value, onChange }: PositionGridIt
       JSON.stringify({
         variableId: coordinate,
         actorId: actor.id,
-        value: String(value),
+        // The dropped constant lands in a kid-authored rule action, so it
+        // needs to be in the same display coordinate space the kid sees.
+        value: String(displayValue),
       }),
     );
   };
@@ -190,7 +194,7 @@ const PositionGridItem = ({ actor, coordinate, value, onChange }: PositionGridIt
       <div className="name">{coordinate === "x" ? "Horizontal" : "Vertical"}</div>
       <input
         type="number"
-        value={isMixed ? "" : value}
+        value={isMixed ? "" : displayValue}
         placeholder={isMixed ? "—" : undefined}
         onChange={(e) => {
           const num = Number(e.target.value);
@@ -281,11 +285,13 @@ export const ContainerPaneVariables = ({
   actor,
   actors = [],
   world,
+  stage,
 }: {
   character: Character;
   actor: Actor | null;
   actors?: Actor[];
   world: WorldMinimal;
+  stage: Stage | null;
 }) => {
   const dispatch = useDispatch();
   const selectedToolId = useEditorSelector((state) => state.ui.selectedToolId);
@@ -383,17 +389,30 @@ export const ContainerPaneVariables = ({
             <PositionGridItem
               actor={actor}
               coordinate="x"
-              value={getCommonValue(actors, (a) => a.position.x)}
-              onChange={(x) => {
-                dispatch(changeActors(selectedActors!, { position: { ...actor.position, x } }));
+              displayValue={getCommonValue(actors, (a) => toDisplayX(a.position.x))}
+              onChange={(displayX) => {
+                dispatch(
+                  changeActors(selectedActors!, {
+                    position: { ...actor.position, x: toInternalX(displayX) },
+                  }),
+                );
               }}
             />
             <PositionGridItem
               actor={actor}
               coordinate="y"
-              value={getCommonValue(actors, (a) => a.position.y)}
-              onChange={(y) => {
-                dispatch(changeActors(selectedActors!, { position: { ...actor.position, y } }));
+              displayValue={
+                stage
+                  ? getCommonValue(actors, (a) => toDisplayY(a.position.y, stage.height))
+                  : getCommonValue(actors, (a) => a.position.y)
+              }
+              onChange={(displayY) => {
+                if (!stage) return;
+                dispatch(
+                  changeActors(selectedActors!, {
+                    position: { ...actor.position, y: toInternalY(displayY, stage.height) },
+                  }),
+                );
               }}
             />
           </>
@@ -452,7 +471,9 @@ export const ContainerPaneVariables = ({
               {actors.length > 1
                 ? `${character.name} (${actors.length} selected)`
                 : actor
-                  ? `${character.name} at (${actor.position.x},${actor.position.y})`
+                  ? `${character.name} at (${toDisplayX(actor.position.x)},${
+                      stage ? toDisplayY(actor.position.y, stage.height) : actor.position.y
+                    })`
                   : `${character.name} (Defaults)`}
             </h3>
             {_renderCharacterSection()}

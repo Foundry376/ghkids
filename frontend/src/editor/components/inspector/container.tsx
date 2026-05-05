@@ -77,7 +77,7 @@ export const InspectorContainer = () => {
           <div style={{ flex: 1 }} />
           <AddButton character={focusedCharacter} actor={focusedActor} isRecording={isRecording} />
         </Nav>
-        <ContentContainer world={focusedWorld} character={focusedCharacter} actor={focusedActor} actors={focusedActors} />
+        <ContentContainer world={focusedWorld} stage={focusedStage} character={focusedCharacter} actor={focusedActor} actors={focusedActors} />
       </div>
     </InspectorContext.Provider>
   );

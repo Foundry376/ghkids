@@ -832,6 +832,37 @@ describe("stage-helpers", () => {
         expect(getVariableValue(actor, character, "nonexistent", "=")).to.be.null;
       });
     });
+
+    describe("position variables (x, y)", () => {
+      const positioned: Actor = { ...actor, position: { x: 2, y: 3 } };
+      const stage = { height: 8 };
+
+      it("should return display X (1-indexed) when stage is provided", () => {
+        expect(getVariableValue(positioned, character, "x", "=", stage)).to.equal("3");
+      });
+
+      it("should return display Y (Y-up, 1-indexed) when stage is provided", () => {
+        // internal y=3 in a height-8 stage → display y = 8 - 3 = 5
+        expect(getVariableValue(positioned, character, "y", "=", stage)).to.equal("5");
+      });
+
+      it("bottom-left tile reads as (1, 1) in display", () => {
+        const bl: Actor = { ...actor, position: { x: 0, y: 7 } };
+        expect(getVariableValue(bl, character, "x", "=", stage)).to.equal("1");
+        expect(getVariableValue(bl, character, "y", "=", stage)).to.equal("1");
+      });
+
+      it("top-left tile reads as (1, height) in display", () => {
+        const tl: Actor = { ...actor, position: { x: 0, y: 0 } };
+        expect(getVariableValue(tl, character, "x", "=", stage)).to.equal("1");
+        expect(getVariableValue(tl, character, "y", "=", stage)).to.equal("8");
+      });
+
+      it("falls back to internal coords when stage is omitted", () => {
+        expect(getVariableValue(positioned, character, "x", "=")).to.equal("2");
+        expect(getVariableValue(positioned, character, "y", "=")).to.equal("3");
+      });
+    });
   });
 
   describe("actorFilledPoints", () => {

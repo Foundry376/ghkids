@@ -14,6 +14,7 @@ import {
 } from "../../types";
 import { RELATIVE_TRANSFORMS } from "../components/inspector/transform-lookup";
 import { DEFAULT_APPEARANCE_INFO } from "../components/sprites/sprite";
+import { toDisplayX, toDisplayY } from "./coordinate-display";
 
 export function buildActorSelection(worldId: string, stageId: string, actorIds: string[]) {
   return { worldId, stageId, actorIds };
@@ -191,6 +192,7 @@ export function resolveRuleValue(
   characters: Characters,
   stageActorForId: Stage["actors"],
   comparator: VariableComparator, // some values behave differently depending on the comparator
+  stage?: Pick<Stage, "height">,
 ): string | null {
   if (!val) {
     console.warn(`A rule value is missing?`);
@@ -210,7 +212,7 @@ export function resolveRuleValue(
       console.warn(`resolveRuleValue: character ${actor.characterId} not found`);
       return null;
     }
-    return getVariableValue(actor, character, val.variableId, comparator);
+    return getVariableValue(actor, character, val.variableId, comparator, stage);
   }
   if ("globalId" in val) {
     const value = globals[val.globalId]?.value;
@@ -239,6 +241,10 @@ export function getVariableValue(
   character: Character,
   id: string,
   comparator: VariableComparator,
+  // When provided, the special `x` and `y` actor variables are returned in
+  // display coordinates (1-indexed, Y-up). Without it they fall back to raw
+  // internal coordinates — only safe for callers that don't surface x/y.
+  stage?: Pick<Stage, "height">,
 ) {
   if (id === "appearance") {
     if (["=", "!="].includes(comparator)) {
@@ -250,10 +256,10 @@ export function getVariableValue(
     return actor.transform ?? "0";
   }
   if (id === "x") {
-    return String(actor.position.x);
+    return String(stage ? toDisplayX(actor.position.x) : actor.position.x);
   }
   if (id === "y") {
-    return String(actor.position.y);
+    return String(stage ? toDisplayY(actor.position.y, stage.height) : actor.position.y);
   }
   if (actor.variableValues[id] !== undefined) {
     return actor.variableValues[id] ?? null;
