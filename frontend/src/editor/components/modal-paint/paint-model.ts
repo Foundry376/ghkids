@@ -383,22 +383,22 @@ export class PaintModel {
 
   flipHorizontally(): void {
     const width = this.state.selectionImageData?.width ?? this.state.imageData?.width ?? 0;
-    this.applyCoordinateTransform(({ x, y }) => ({ x: width - x, y }));
+    this.applyCoordinateTransform(({ x, y }) => ({ x: width - 1 - x, y }));
   }
 
   flipVertically(): void {
     const height = this.state.selectionImageData?.height ?? this.state.imageData?.height ?? 0;
-    this.applyCoordinateTransform(({ x, y }) => ({ x, y: height - y }));
+    this.applyCoordinateTransform(({ x, y }) => ({ x, y: height - 1 - y }));
   }
 
   rotate90(): void {
     const width = this.state.selectionImageData?.width ?? this.state.imageData?.width ?? 0;
-    this.applyCoordinateTransform(({ x, y }) => ({ x: y, y: width - x }));
+    this.applyCoordinateTransform(({ x, y }) => ({ x: y, y: width - 1 - x }));
   }
 
   rotateNeg90(): void {
     const height = this.state.selectionImageData?.height ?? this.state.imageData?.height ?? 0;
-    this.applyCoordinateTransform(({ x, y }) => ({ x: height - y, y: x }));
+    this.applyCoordinateTransform(({ x, y }) => ({ x: height - 1 - y, y: x }));
   }
 
   // --- Anchor Square ---
