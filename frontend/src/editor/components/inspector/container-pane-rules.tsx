@@ -46,83 +46,88 @@ export const ContainerPaneRules = ({ character }: { character: Character | null 
   const latestRef = useRef({ character, selectedRuleId });
   latestRef.current = { character, selectedRuleId };
 
-  useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.defaultPrevented) return;
-      const target = event.target as HTMLElement | null;
-      if (
-        target &&
-        (target.tagName === "INPUT" ||
-          target.tagName === "TEXTAREA" ||
-          target.tagName === "SELECT" ||
-          target.isContentEditable)
-      ) {
-        return;
-      }
-      const { character, selectedRuleId } = latestRef.current;
-      if (!character) return;
+  const onKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    const target = event.target as HTMLElement | null;
+    if (
+      target &&
+      (target.tagName === "INPUT" ||
+        target.tagName === "TEXTAREA" ||
+        target.tagName === "SELECT" ||
+        target.isContentEditable)
+    ) {
+      return;
+    }
+    const { character, selectedRuleId } = latestRef.current;
+    if (!character) return;
 
-      const isShortcut = event.metaKey || event.ctrlKey;
+    const isShortcut = event.metaKey || event.ctrlKey;
 
-      if (!isShortcut && (event.key === "Delete" || event.key === "Backspace")) {
-        if (!selectedRuleId) return;
-        const rules = deepClone(character.rules);
-        const [, parentRule, parentIdx] = findRule({ rules }, selectedRuleId);
-        if (!parentRule.rules[parentIdx]) return;
-        parentRule.rules.splice(parentIdx, 1);
-        dispatch(upsertCharacter(character.id, { rules }));
-        dispatch(selectRule(null));
-        event.preventDefault();
-        return;
-      }
+    if (!isShortcut && (event.key === "Delete" || event.key === "Backspace")) {
+      if (!selectedRuleId) return;
+      const rules = deepClone(character.rules);
+      const [, parentRule, parentIdx] = findRule({ rules }, selectedRuleId);
+      if (!parentRule.rules[parentIdx]) return;
+      parentRule.rules.splice(parentIdx, 1);
+      dispatch(upsertCharacter(character.id, { rules }));
+      dispatch(selectRule(null));
+      event.preventDefault();
+      return;
+    }
 
-      if (isShortcut && (event.key === "c" || event.key === "C")) {
-        if (!selectedRuleId) return;
-        const [rule] = findRule({ rules: character.rules }, selectedRuleId);
-        if (!rule) return;
-        ruleClipboard = deepClone(rule);
-        event.preventDefault();
-        return;
-      }
+    if (isShortcut && (event.key === "c" || event.key === "C")) {
+      if (!selectedRuleId) return;
+      const [rule] = findRule({ rules: character.rules }, selectedRuleId);
+      if (!rule) return;
+      ruleClipboard = deepClone(rule);
+      event.preventDefault();
+      return;
+    }
 
-      if (isShortcut && (event.key === "x" || event.key === "X")) {
-        if (!selectedRuleId) return;
-        const rules = deepClone(character.rules);
-        const [rule, parentRule, parentIdx] = findRule({ rules }, selectedRuleId);
-        if (!rule) return;
-        ruleClipboard = deepClone(rule);
-        parentRule.rules.splice(parentIdx, 1);
-        dispatch(upsertCharacter(character.id, { rules }));
-        dispatch(selectRule(null));
-        event.preventDefault();
-        return;
-      }
+    if (isShortcut && (event.key === "x" || event.key === "X")) {
+      if (!selectedRuleId) return;
+      const rules = deepClone(character.rules);
+      const [rule, parentRule, parentIdx] = findRule({ rules }, selectedRuleId);
+      if (!rule) return;
+      ruleClipboard = deepClone(rule);
+      parentRule.rules.splice(parentIdx, 1);
+      dispatch(upsertCharacter(character.id, { rules }));
+      dispatch(selectRule(null));
+      event.preventDefault();
+      return;
+    }
 
-      if (isShortcut && (event.key === "v" || event.key === "V")) {
-        if (!ruleClipboard) return;
-        const rules = deepClone(character.rules);
-        const newRule = cloneRuleWithFreshIds(ruleClipboard);
+    if (isShortcut && (event.key === "v" || event.key === "V")) {
+      if (!ruleClipboard) return;
+      const rules = deepClone(character.rules);
+      const newRule = cloneRuleWithFreshIds(ruleClipboard);
 
-        if (selectedRuleId) {
-          const [foundRule, parentRule, parentIdx] = findRule({ rules }, selectedRuleId);
-          if (foundRule) {
-            parentRule.rules.splice(parentIdx + 1, 0, newRule);
-          } else {
-            rules.push(newRule);
-          }
+      if (selectedRuleId) {
+        const [foundRule, parentRule, parentIdx] = findRule({ rules }, selectedRuleId);
+        if (foundRule) {
+          parentRule.rules.splice(parentIdx + 1, 0, newRule);
         } else {
           rules.push(newRule);
         }
-        dispatch(upsertCharacter(character.id, { rules }));
-        dispatch(selectRule(newRule.id));
-        event.preventDefault();
-        return;
+      } else {
+        rules.push(newRule);
       }
-    };
+      dispatch(upsertCharacter(character.id, { rules }));
+      dispatch(selectRule(newRule.id));
+      event.preventDefault();
+      return;
+    }
+  };
 
-    document.addEventListener("keydown", onKeyDown);
-    return () => document.removeEventListener("keydown", onKeyDown);
-  }, [dispatch]);
+  const onMouseDownContainer = () => {
+    // Move focus into the pane so the keyboard shortcuts on the scroll-container
+    // see the events. tabIndex={-1} keeps it out of the tab order.
+    if (
+      _scrollContainerEl.current &&
+      !_scrollContainerEl.current.contains(document.activeElement)
+    ) {
+      _scrollContainerEl.current.focus({ preventScroll: true });
+    }
+  };
 
   const prevRulesJSON = useRef<string>();
   useEffect(() => {
@@ -303,7 +308,14 @@ export const ContainerPaneRules = ({ character }: { character: Character | null 
         onRuleStamped: _onRuleStamped,
       }}
     >
-      <div className="scroll-container" ref={_scrollContainerEl} onClick={onClickBackground}>
+      <div
+        className="scroll-container"
+        ref={_scrollContainerEl}
+        tabIndex={-1}
+        onClick={onClickBackground}
+        onMouseDown={onMouseDownContainer}
+        onKeyDown={onKeyDown}
+      >
         <div className="scroll-container-contents">
           <RuleList
             character={character}
