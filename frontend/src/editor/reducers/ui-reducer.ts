@@ -50,6 +50,14 @@ export default function uiReducer(
       return Object.assign({}, state, {
         selectedCharacterId: action.characterId,
         selectedActors: action.actors,
+        selectedRuleId:
+          action.characterId && action.characterId === state.selectedCharacterId
+            ? state.selectedRuleId
+            : null,
+      });
+    case Types.SELECT_RULE_ID:
+      return Object.assign({}, state, {
+        selectedRuleId: action.ruleId,
       });
     case Types.DELETE_ACTORS: {
       if (
@@ -64,10 +72,12 @@ export default function uiReducer(
     case Types.DELETE_CHARACTER: {
       let selectedCharacterId = state.selectedCharacterId;
       let selectedActors = state.selectedActors;
+      let selectedRuleId = state.selectedRuleId;
 
       if (selectedCharacterId === action.characterId) {
         selectedCharacterId = null;
         selectedActors = null;
+        selectedRuleId = null;
       }
 
       // Also filter any selected actors that belong to the deleted character,
@@ -84,8 +94,12 @@ export default function uiReducer(
         }
       }
 
-      if (selectedCharacterId !== state.selectedCharacterId || selectedActors !== state.selectedActors) {
-        return Object.assign({}, state, { selectedCharacterId, selectedActors });
+      if (
+        selectedCharacterId !== state.selectedCharacterId ||
+        selectedActors !== state.selectedActors ||
+        selectedRuleId !== state.selectedRuleId
+      ) {
+        return Object.assign({}, state, { selectedCharacterId, selectedActors, selectedRuleId });
       }
       return state;
     }

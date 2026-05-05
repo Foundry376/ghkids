@@ -7,7 +7,7 @@ import { ContentRule } from "./content-rule";
 import { useDispatch } from "react-redux";
 import { Character, RuleTreeItem } from "../../../types";
 import { useEditorSelector } from "../../../hooks/redux";
-import { selectToolId, selectToolItem } from "../../actions/ui-actions";
+import { selectRule, selectToolId, selectToolItem } from "../../actions/ui-actions";
 import { TOOLS } from "../../constants/constants";
 import { CONTAINER_TYPES } from "../../utils/world-constants";
 import { RuleActionsContext } from "./container-pane-rules";
@@ -36,6 +36,8 @@ export const RuleList = ({
     useContext(RuleActionsContext);
   const selectedToolId = useEditorSelector((state) => state.ui.selectedToolId);
   const stampToolItem = useEditorSelector((s) => s.ui.stampToolItem);
+  const selectedRuleId = useEditorSelector((s) => s.ui.selectedRuleId);
+  const isRecording = useEditorSelector((s) => !!s.recording.characterId);
 
   const dispatch = useDispatch();
 
@@ -104,10 +106,20 @@ export const RuleList = ({
     if (selectedToolId === TOOLS.TRASH) {
       event.stopPropagation();
       onRuleDeleted(rule.id, event);
+      return;
     }
     if (selectedToolId === TOOLS.STAMP && !stampToolItem) {
       event.stopPropagation();
       dispatch(selectToolItem({ ruleId: rule.id }));
+      return;
+    }
+    if (selectedToolId === TOOLS.POINTER) {
+      // While recording, the rule being edited is referenced by recording state.
+      // Skipping selection here keeps Delete/Cut shortcuts inert and avoids
+      // misleading the user about what's actionable.
+      if (isRecording) return;
+      event.stopPropagation();
+      dispatch(selectRule(rule.id));
     }
   };
 
@@ -210,7 +222,7 @@ export const RuleList = ({
         draggable
         key={r.id}
         data-rule-id={r.id}
-        className={`rule-container tool-supported ${r.type} ${dragState.hovering === r.id && "hovering"} ${r.enabled === false && "rule-disabled"}`}
+        className={`rule-container tool-supported ${r.type} ${dragState.hovering === r.id && "hovering"} ${r.enabled === false && "rule-disabled"} ${selectedRuleId === r.id ? "selected" : ""}`}
         onClick={(event) => _onRuleClicked(event, r)}
         onDoubleClick={(event) => _onRuleDoubleClick(event, r)}
         onDragStart={(event) => _onDragStart(event, r)}

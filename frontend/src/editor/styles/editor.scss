@@ -851,6 +851,7 @@ html {
     position: relative;
     overflow-y: auto;
     flex: 1;
+    outline: none;
 
     .scroll-container-contents {
       position: absolute;
@@ -1474,6 +1475,14 @@ html {
       &.enabled {
         opacity: 1;
       }
+    }
+
+    &.selected {
+      outline: 2px solid $tint-color;
+      outline-offset: -1px;
+      box-shadow:
+        inset 0 0 2px 1px rgba(255, 255, 255, 0.4),
+        0 0 0 2px $highlight-color;
     }
 
     &.rule-disabled {

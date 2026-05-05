@@ -38,6 +38,13 @@ export function select(
   };
 }
 
+export function selectRule(ruleId: string | null): ActionSelectRuleId {
+  return {
+    type: types.SELECT_RULE_ID,
+    ruleId,
+  };
+}
+
 export function updatePlaybackState(
   values: DeepPartial<EditorState["ui"]["playback"]>,
 ): ActionUpdatePlaybackState {
@@ -145,6 +152,11 @@ export type ActionSelectDefinitionId = {
   actors: ActorSelection | null;
 };
 
+export type ActionSelectRuleId = {
+  type: "SELECT_RULE_ID";
+  ruleId: string | null;
+};
+
 export type ActionUpdatePlaybackState = {
   type: "UPDATE_PLAYBACK_STATE";
   values: DeepPartial<EditorState["ui"]["playback"]>;
@@ -185,6 +197,7 @@ export type UIActions =
   | ActionSelectToolItem
   | ActionSelectStageId
   | ActionSelectDefinitionId
+  | ActionSelectRuleId
   | ActionUpdatePlaybackState
   | ActionShowModal
   | ActionDismissModal

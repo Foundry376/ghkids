@@ -59,6 +59,7 @@ const InitialState: EditorState = {
     stampToolItem: null,
     selectedCharacterId: null,
     selectedActors: null,
+    selectedRuleId: null,
     tutorial: {
       stepIndex: 0,
     },
