@@ -37,6 +37,7 @@ export const RuleList = ({
   const selectedToolId = useEditorSelector((state) => state.ui.selectedToolId);
   const stampToolItem = useEditorSelector((s) => s.ui.stampToolItem);
   const selectedRuleId = useEditorSelector((s) => s.ui.selectedRuleId);
+  const isRecording = useEditorSelector((s) => !!s.recording.characterId);
 
   const dispatch = useDispatch();
 
@@ -113,6 +114,10 @@ export const RuleList = ({
       return;
     }
     if (selectedToolId === TOOLS.POINTER) {
+      // While recording, the rule being edited is referenced by recording state.
+      // Skipping selection here keeps Delete/Cut shortcuts inert and avoids
+      // misleading the user about what's actionable.
+      if (isRecording) return;
       event.stopPropagation();
       dispatch(selectRule(rule.id));
     }

@@ -51,7 +51,9 @@ export default function uiReducer(
         selectedCharacterId: action.characterId,
         selectedActors: action.actors,
         selectedRuleId:
-          action.characterId === state.selectedCharacterId ? state.selectedRuleId : null,
+          action.characterId && action.characterId === state.selectedCharacterId
+            ? state.selectedRuleId
+            : null,
       });
     case Types.SELECT_RULE_ID:
       return Object.assign({}, state, {

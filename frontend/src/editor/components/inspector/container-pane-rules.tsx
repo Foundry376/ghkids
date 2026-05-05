@@ -5,7 +5,7 @@ import { Character, Rule, RuleTreeFlowItemCheck, RuleTreeItem } from "../../../t
 import { useEditorSelector } from "../../../hooks/redux";
 import { upsertCharacter } from "../../actions/characters-actions";
 import { editRuleRecording } from "../../actions/recording-actions";
-import { selectRule, selectToolId } from "../../actions/ui-actions";
+import { selectRule, selectToolId, selectToolItem } from "../../actions/ui-actions";
 import { TOOLS } from "../../constants/constants";
 import { findRule } from "../../utils/stage-helpers";
 import { deepClone, makeId } from "../../utils/utils";
@@ -27,6 +27,9 @@ const cloneRuleWithFreshIds = (item: RuleTreeItem): RuleTreeItem => {
   const copy = deepClone(item);
   const rewrite = (node: RuleTreeItem) => {
     node.id = makeId("rule");
+    if (node.type === "group-flow" && node.check) {
+      node.check.id = `${node.id}-check`;
+    }
     if ("rules" in node) {
       node.rules.forEach(rewrite);
     }
@@ -40,11 +43,12 @@ export const ContainerPaneRules = ({ character }: { character: Character | null 
   const { selectedToolId, stampToolItem, selectedRuleId } = useEditorSelector(
     (state) => state.ui,
   );
+  const isRecording = useEditorSelector((s) => !!s.recording.characterId);
   const _scrollContainerEl = useRef<HTMLDivElement>(null);
   const _scrollId = useRef<number>(0);
 
-  const latestRef = useRef({ character, selectedRuleId });
-  latestRef.current = { character, selectedRuleId };
+  const latestRef = useRef({ character, selectedRuleId, stampToolItem, isRecording });
+  latestRef.current = { character, selectedRuleId, stampToolItem, isRecording };
 
   const onKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
     const target = event.target as HTMLElement | null;
@@ -57,10 +61,19 @@ export const ContainerPaneRules = ({ character }: { character: Character | null 
     ) {
       return;
     }
-    const { character, selectedRuleId } = latestRef.current;
+    const { character, selectedRuleId, stampToolItem, isRecording } = latestRef.current;
     if (!character) return;
+    // Don't allow rule mutations while recording — the recording's rule reference
+    // could be left dangling and corrupt sibling rules on commit.
+    if (isRecording) return;
 
     const isShortcut = event.metaKey || event.ctrlKey;
+
+    const clearStampIfMatches = (ruleId: string) => {
+      if (stampToolItem && "ruleId" in stampToolItem && stampToolItem.ruleId === ruleId) {
+        dispatch(selectToolItem(null));
+      }
+    };
 
     if (!isShortcut && (event.key === "Delete" || event.key === "Backspace")) {
       if (!selectedRuleId) return;
@@ -70,6 +83,7 @@ export const ContainerPaneRules = ({ character }: { character: Character | null 
       parentRule.rules.splice(parentIdx, 1);
       dispatch(upsertCharacter(character.id, { rules }));
       dispatch(selectRule(null));
+      clearStampIfMatches(selectedRuleId);
       event.preventDefault();
       return;
     }
@@ -92,6 +106,7 @@ export const ContainerPaneRules = ({ character }: { character: Character | null 
       parentRule.rules.splice(parentIdx, 1);
       dispatch(upsertCharacter(character.id, { rules }));
       dispatch(selectRule(null));
+      clearStampIfMatches(selectedRuleId);
       event.preventDefault();
       return;
     }
@@ -234,6 +249,9 @@ export const ContainerPaneRules = ({ character }: { character: Character | null 
     if (selectedRuleId === ruleId) {
       dispatch(selectRule(null));
     }
+    if (stampToolItem && "ruleId" in stampToolItem && stampToolItem.ruleId === ruleId) {
+      dispatch(selectToolItem(null));
+    }
     if (!event.shiftKey) {
       dispatch(selectToolId(TOOLS.POINTER));
     }
@@ -276,27 +294,27 @@ export const ContainerPaneRules = ({ character }: { character: Character | null 
     dispatch(upsertCharacter(character.id, root));
   };
 
-  if (!character.rules || character.rules.length === 0) {
-    return (
-      <div className="empty">
-        This character doesn&#39;t have any rules. Create a new rule by clicking the
-        &#39;Record&#39; icon.
-      </div>
-    );
-  }
-
   const onClickBackground = (e: React.MouseEvent) => {
     if (selectedToolId === TOOLS.STAMP && stampToolItem && "ruleId" in stampToolItem) {
-      _onRuleStamped(stampToolItem.ruleId, null, character.rules.length);
+      _onRuleStamped(stampToolItem.ruleId, null, character.rules?.length ?? 0);
       if (!e.shiftKey) {
         dispatch(selectToolId(TOOLS.POINTER));
       }
       return;
     }
     if (selectedToolId === TOOLS.POINTER) {
+      // Only deselect on clicks that landed in the empty space — clicks that
+      // bubbled up from inside a rule (e.g., on a <select> or condition row)
+      // shouldn't clear the selection that the rule-list click handler set.
+      const target = e.target as HTMLElement | null;
+      if (target && target.closest(".rule-container")) {
+        return;
+      }
       dispatch(selectRule(null));
     }
   };
+
+  const isEmpty = !character.rules || character.rules.length === 0;
 
   return (
     <RuleActionsContext.Provider
@@ -317,12 +335,19 @@ export const ContainerPaneRules = ({ character }: { character: Character | null 
         onKeyDown={onKeyDown}
       >
         <div className="scroll-container-contents">
-          <RuleList
-            character={character}
-            rules={character.rules}
-            collapsed={false}
-            parentId={null}
-          />
+          {isEmpty ? (
+            <div className="empty">
+              This character doesn&#39;t have any rules. Create a new rule by clicking the
+              &#39;Record&#39; icon.
+            </div>
+          ) : (
+            <RuleList
+              character={character}
+              rules={character.rules}
+              collapsed={false}
+              parentId={null}
+            />
+          )}
         </div>
       </div>
     </RuleActionsContext.Provider>
