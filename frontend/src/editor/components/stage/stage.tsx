@@ -544,14 +544,19 @@ export const Stage = ({
     }
     if (side === "top") {
       // Visually-top handle drags the topmost row of the extent (ymax in Y-up).
+      // Handle sits at world y = ymax + 1, so its center hovers at
+      // worldY = ymax + 0.5; round(worldY - 0.5) = ymax keeps it stable
+      // at rest and grows the extent as the cursor moves up.
       nextExtent.ymax = Math.max(
         nextExtent.ymin,
-        Math.min(stage.height, Math.round(worldY - 1.5)),
+        Math.min(stage.height, Math.round(worldY - 0.5)),
       );
     }
     if (side === "bottom") {
-      // Visually-bottom handle drags the bottommost row of the extent (ymin in Y-up).
-      nextExtent.ymin = Math.min(nextExtent.ymax, Math.max(1, Math.round(worldY + 0.5)));
+      // Visually-bottom handle drags the bottommost row of the extent.
+      // Handle sits at world y = ymin - 1, center hovers at worldY = ymin - 1.5;
+      // round(worldY + 1.5) = ymin keeps it stable at rest.
+      nextExtent.ymin = Math.min(nextExtent.ymax, Math.max(1, Math.round(worldY + 1.5)));
     }
 
     const str = JSON.stringify(nextExtent);
