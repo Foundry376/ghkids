@@ -6,7 +6,7 @@ Coordinates now match the way kids think about them! Position `(1, 1)` is the bo
 
 ### Changed
 
-- **Bottom-left coordinate system**: World positions are now displayed and stored Y-up — `(1, 1)` is the bottom-left tile, and "up" on the stage means a larger Y. The inspector position fields and disambiguation labels show 1-indexed values. Existing v1 worlds are migrated to v2 on load.
+- **Bottom-left coordinate system**: World positions are now stored and displayed Y-up and 1-indexed — `(1, 1)` is the bottom-left tile, and "up" on the stage means a larger Y. What the inspector shows is exactly what's saved, so variables that copy `actor.x` or `actor.y` carry the same value the kid sees. Existing v1 worlds are migrated to v2 on load.
 
 ## [2026-04-19]
 

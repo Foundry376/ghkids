@@ -1,14 +1,18 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /**
  * Migrates v1 worlds (Y-down, 0-indexed) to v2 worlds (Y-up internal,
- * 0-indexed; display layer adds +1).
+ * 1-indexed for absolute positions).
  *
  * v1 had top-left = (0, 0), bottom-right = (width-1, height-1).
- * v2 has bottom-left = (0, 0), top-right = (width-1, height-1).
- * Display in v2 shows (1, 1) at the bottom-left.
+ * v2 has bottom-left = (1, 1), top-right = (width, height) — what the kid sees
+ * is what we store.
  *
- * Internal-Y conversion: new = (height - 1) - old.
- * Relative-Y offsets: new = -old (no height needed; offsets are direction-bearing).
+ * Absolute conversions (stage actor positions, door destinations):
+ *   x_new = x_old + 1
+ *   y_new = stage.height - y_old   // flip + shift to 1-indexed
+ *
+ * Relative-Y offsets (rule actor positions, extents, deltas, action offsets):
+ *   y_new = -y_old                 // direction-bearing, no shift
  *
  * The migration runs once on load. After migrating we set version: 2 and the
  * world is persisted in v2 form on the next save.
@@ -27,9 +31,14 @@ function flipRelativeY<T extends { x: number; y: number }>(p: T): T {
   return { ...p, y: -p.y };
 }
 
-/** Flip an absolute Y on a stage of the given height. */
+/** Flip an absolute Y on a stage of the given height (Y-down 0-indexed → Y-up 1-indexed). */
 function flipAbsoluteY(y: number, stageHeight: number): number {
-  return stageHeight - 1 - y;
+  return stageHeight - y;
+}
+
+/** Shift an absolute X (0-indexed → 1-indexed). */
+function shiftAbsoluteX(x: number): number {
+  return x + 1;
 }
 
 function migrateRuleExtent(extent: any): any {
@@ -186,6 +195,7 @@ function migrateStage(stage: any, characters: AnyRecord, allStages: AnyRecord): 
     if (actor.position && typeof actor.position === "object") {
       nextActor.position = {
         ...actor.position,
+        x: shiftAbsoluteX(actor.position.x),
         y: flipAbsoluteY(actor.position.y, stageHeight),
       };
     }
@@ -203,6 +213,11 @@ function migrateStage(stage: any, characters: AnyRecord, allStages: AnyRecord): 
       const yNum = Number(yRaw);
       if (Number.isFinite(yNum)) {
         vv[DOOR_VARIABLE_IDS.destinationY] = String(flipAbsoluteY(yNum, destHeight));
+      }
+      const xRaw = vv[DOOR_VARIABLE_IDS.destinationX];
+      const xNum = Number(xRaw);
+      if (Number.isFinite(xNum)) {
+        vv[DOOR_VARIABLE_IDS.destinationX] = String(shiftAbsoluteX(xNum));
       }
       nextActor.variableValues = vv;
     }

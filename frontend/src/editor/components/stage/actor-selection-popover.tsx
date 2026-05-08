@@ -90,7 +90,17 @@ const ActorSelectionPopover: React.FC<ActorSelectionPopoverProps> = ({
               <div style={{ position: "relative" }}>
                 <ActorSprite
                   character={character}
-                  actor={{ ...actor, position: { x: bounds.offsetX, y: bounds.offsetY } }}
+                  // The container is sized to bounds.width x bounds.height. The
+                  // ActorSprite renderer treats position as 1-indexed Y-up, so
+                  // shift the bounds offset (which is a Y-down "from top" cell
+                  // shift) into 1-indexed Y-up world coords for this container.
+                  actor={{
+                    ...actor,
+                    position: {
+                      x: bounds.offsetX + 1,
+                      y: bounds.height - bounds.offsetY,
+                    },
+                  }}
                   selected={false}
                   onMouseUp={() => onSelect(actor)}
                   dragActorIds={onStartDrag ? [actor.id] : undefined}

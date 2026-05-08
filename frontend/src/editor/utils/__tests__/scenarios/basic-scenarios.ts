@@ -102,7 +102,7 @@ export function movementMultipleFramesScenario(): TestScenario {
   const character = makeCharacter({ id: charId, name: "Mover", rules: [idleGroup] });
   const characters: Characters = { [charId]: character };
 
-  const stageActor = makeActor({ id: actorId, characterId: charId });
+  const stageActor = makeActor({ id: actorId, characterId: charId, position: { x: 1, y: 1 } });
   const stage = makeStage({ id: "stage-1", actors: { [actorId]: stageActor } });
   const world = makeWorld({ stage });
 
@@ -112,7 +112,7 @@ export function movementMultipleFramesScenario(): TestScenario {
     world,
     frames: 5,
     assertions: (result) => {
-      expectActorPosition(result, actorId, { x: 5, y: 0 });
+      expectActorPosition(result, actorId, { x: 6, y: 1 });
     },
   };
 }
@@ -132,7 +132,7 @@ export function stageBoundaryScenario(): TestScenario {
   const character = makeCharacter({ id: charId, name: "Mover", rules: [idleGroup] });
   const characters: Characters = { [charId]: character };
 
-  const stageActor = makeActor({ id: actorId, characterId: charId, position: { x: 8, y: 0 } });
+  const stageActor = makeActor({ id: actorId, characterId: charId, position: { x: 8, y: 1 } });
   const stage = makeStage({ id: "stage-1", actors: { [actorId]: stageActor }, width: 10, height: 10 });
   const world = makeWorld({ stage });
 
@@ -142,7 +142,10 @@ export function stageBoundaryScenario(): TestScenario {
     world,
     frames: 5,
     assertions: (result) => {
-      expectActorPosition(result, actorId, { x: 9, y: 0 });
+      // 1-indexed Y-up: width 10 → valid x is [1, 10]. Starting at 8 with
+      // delta +1 per frame, the actor reaches x=10 after two frames and
+      // then can't move any further; after 5 frames it's still at x=10.
+      expectActorPosition(result, actorId, { x: 10, y: 1 });
     },
   };
 }
@@ -162,7 +165,7 @@ export function stageWrappingScenario(): TestScenario {
   const character = makeCharacter({ id: charId, name: "Mover", rules: [idleGroup] });
   const characters: Characters = { [charId]: character };
 
-  const stageActor = makeActor({ id: actorId, characterId: charId, position: { x: 9, y: 0 } });
+  const stageActor = makeActor({ id: actorId, characterId: charId, position: { x: 10, y: 1 } });
   const stage = makeStage({ id: "stage-1", actors: { [actorId]: stageActor }, width: 10, height: 10, wrapX: true });
   const world = makeWorld({ stage });
 
@@ -172,7 +175,8 @@ export function stageWrappingScenario(): TestScenario {
     world,
     frames: 1,
     assertions: (result) => {
-      expectActorPosition(result, actorId, { x: 0, y: 0 });
+      // 1-indexed: rightmost column is x=10, wraps to x=1.
+      expectActorPosition(result, actorId, { x: 1, y: 1 });
     },
   };
 }
@@ -238,6 +242,7 @@ export function actorCreationScenario(): TestScenario {
     frames: 1,
     assertions: (result) => {
       expectActorCount(result, charId, 2);
+      // 1-indexed Y-up: created at parent's position + offset (1, 0) = (4, 3).
       expectNewActorAtPosition(result, charId, { x: 4, y: 3 }, [actorId]);
     },
   };
@@ -263,7 +268,7 @@ export function appearanceChangeScenario(): TestScenario {
   character.spritesheet.appearances = { "state-a": [], "state-b": [] };
   const characters: Characters = { [charId]: character };
 
-  const stageActor = makeActor({ id: actorId, characterId: charId, appearance: "state-a" });
+  const stageActor = makeActor({ id: actorId, characterId: charId, appearance: "state-a", position: { x: 1, y: 1 } });
   const stage = makeStage({ id: "stage-1", actors: { [actorId]: stageActor } });
   const world = makeWorld({ stage });
 
@@ -293,7 +298,7 @@ export function transformRotationScenario(): TestScenario {
   const character = makeCharacter({ id: charId, name: "Rotator", rules: [idleGroup] });
   const characters: Characters = { [charId]: character };
 
-  const stageActor = makeActor({ id: actorId, characterId: charId });
+  const stageActor = makeActor({ id: actorId, characterId: charId, position: { x: 1, y: 1 } });
   const stage = makeStage({ id: "stage-1", actors: { [actorId]: stageActor } });
   const world = makeWorld({ stage });
 
@@ -333,7 +338,7 @@ export function variableSetScenario(): TestScenario {
   });
   const characters: Characters = { [charId]: character };
 
-  const stageActor = makeActor({ id: actorId, characterId: charId });
+  const stageActor = makeActor({ id: actorId, characterId: charId, position: { x: 1, y: 1 } });
   const stage = makeStage({ id: "stage-1", actors: { [actorId]: stageActor } });
   const world = makeWorld({ stage });
 
@@ -369,7 +374,7 @@ export function variableAddScenario(): TestScenario {
   });
   const characters: Characters = { [charId]: character };
 
-  const stageActor = makeActor({ id: actorId, characterId: charId, variableValues: { [varId]: "50" } });
+  const stageActor = makeActor({ id: actorId, characterId: charId, variableValues: { [varId]: "50" }, position: { x: 1, y: 1 } });
   const stage = makeStage({ id: "stage-1", actors: { [actorId]: stageActor } });
   const world = makeWorld({ stage });
 
@@ -405,7 +410,7 @@ export function variableAccumulateScenario(): TestScenario {
   });
   const characters: Characters = { [charId]: character };
 
-  const stageActor = makeActor({ id: actorId, characterId: charId });
+  const stageActor = makeActor({ id: actorId, characterId: charId, position: { x: 1, y: 1 } });
   const stage = makeStage({ id: "stage-1", actors: { [actorId]: stageActor } });
   const world = makeWorld({ stage });
 
@@ -453,7 +458,7 @@ export function conditionNotMetScenario(): TestScenario {
   });
   const characters: Characters = { [charId]: character };
 
-  const stageActor = makeActor({ id: actorId, characterId: charId, variableValues: { [varId]: "0" } });
+  const stageActor = makeActor({ id: actorId, characterId: charId, variableValues: { [varId]: "0" }, position: { x: 1, y: 1 } });
   const stage = makeStage({ id: "stage-1", actors: { [actorId]: stageActor } });
   const world = makeWorld({ stage });
 
@@ -463,7 +468,8 @@ export function conditionNotMetScenario(): TestScenario {
     world,
     frames: 3,
     assertions: (result) => {
-      expectActorPosition(result, actorId, { x: 0, y: 0 });
+      // Default position (1, 1); rule never fires, so it stays.
+      expectActorPosition(result, actorId, { x: 1, y: 1 });
     },
   };
 }
@@ -497,7 +503,7 @@ export function conditionMetScenario(): TestScenario {
   });
   const characters: Characters = { [charId]: character };
 
-  const stageActor = makeActor({ id: actorId, characterId: charId, variableValues: { [varId]: "1" } });
+  const stageActor = makeActor({ id: actorId, characterId: charId, variableValues: { [varId]: "1" }, position: { x: 1, y: 1 } });
   const stage = makeStage({ id: "stage-1", actors: { [actorId]: stageActor } });
   const world = makeWorld({ stage });
 
@@ -507,7 +513,8 @@ export function conditionMetScenario(): TestScenario {
     world,
     frames: 3,
     assertions: (result) => {
-      expectActorPosition(result, actorId, { x: 3, y: 0 });
+      // Default (1, 1) + 3 right moves = (4, 1).
+      expectActorPosition(result, actorId, { x: 4, y: 1 });
     },
   };
 }
@@ -541,7 +548,7 @@ export function conditionGreaterThanScenario(): TestScenario {
   });
   const characters: Characters = { [charId]: character };
 
-  const stageActor = makeActor({ id: actorId, characterId: charId, variableValues: { [varId]: "75" } });
+  const stageActor = makeActor({ id: actorId, characterId: charId, variableValues: { [varId]: "75" }, position: { x: 1, y: 1 } });
   const stage = makeStage({ id: "stage-1", actors: { [actorId]: stageActor } });
   const world = makeWorld({ stage });
 
@@ -551,7 +558,8 @@ export function conditionGreaterThanScenario(): TestScenario {
     world,
     frames: 1,
     assertions: (result) => {
-      expectActorPosition(result, actorId, { x: 1, y: 0 });
+      // Default (1, 1) + 1 right move = (2, 1).
+      expectActorPosition(result, actorId, { x: 2, y: 1 });
     },
   };
 }
@@ -576,7 +584,7 @@ export function globalModifyScenario(): TestScenario {
   const character = makeCharacter({ id: charId, name: "Scorer", rules: [idleGroup] });
   const characters: Characters = { [charId]: character };
 
-  const stageActor = makeActor({ id: actorId, characterId: charId });
+  const stageActor = makeActor({ id: actorId, characterId: charId, position: { x: 1, y: 1 } });
   const stage = makeStage({ id: "stage-1", actors: { [actorId]: stageActor } });
   const globals = makeGlobals({
     [globalId]: { id: globalId, name: "Score", value: "0" },

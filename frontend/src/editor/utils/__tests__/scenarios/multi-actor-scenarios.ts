@@ -45,9 +45,9 @@ export function collisionScenario(): TestScenario {
     [coinCharId]: coinChar,
   };
 
-  // Place player at (0, 0) and coin at (3, 0)
-  const playerActor = makeActor({ id: playerActorId, characterId: playerCharId });
-  const coinActor = makeActor({ id: coinActorId, characterId: coinCharId, position: { x: 3, y: 0 } });
+  // Place player at the default (1, 1) and coin at (3, 1) (1-indexed Y-up).
+  const playerActor = makeActor({ id: playerActorId, characterId: playerCharId, position: { x: 1, y: 1 } });
+  const coinActor = makeActor({ id: coinActorId, characterId: coinCharId, position: { x: 3, y: 1 } });
   const stage = makeStage({
     id: "stage-1",
     actors: { [playerActorId]: playerActor, [coinActorId]: coinActor },
@@ -60,8 +60,10 @@ export function collisionScenario(): TestScenario {
     world,
     frames: 3,
     assertions: (result) => {
-      expectActorPosition(result, playerActorId, { x: 3, y: 0 });
-      expectActorPosition(result, coinActorId, { x: 3, y: 0 });
+      // Player started at (1, 1) and walked right twice (blocked at coin
+      // on the third attempt because two actors occupy the same tile).
+      expectActorPosition(result, playerActorId, { x: 3, y: 1 });
+      expectActorPosition(result, coinActorId, { x: 3, y: 1 });
     },
   };
 }

@@ -4,7 +4,7 @@ import { migrateCoordinatesV1ToV2, migrateGameCoordinates } from "./coordinate-m
 
 describe("coordinate-migration", () => {
   describe("migrateCoordinatesV1ToV2", () => {
-    it("flips actor positions on a stage from Y-down to Y-up", () => {
+    it("flips actor positions on a stage from Y-down 0-indexed to Y-up 1-indexed", () => {
       const v1 = {
         version: 1,
         characters: {},
@@ -15,8 +15,8 @@ describe("coordinate-migration", () => {
               width: 10,
               height: 8,
               actors: {
-                a: { id: "a", characterId: "c", position: { x: 3, y: 0 } }, // top row
-                b: { id: "b", characterId: "c", position: { x: 5, y: 7 } }, // bottom row
+                a: { id: "a", characterId: "c", position: { x: 3, y: 0 } }, // top row in v1
+                b: { id: "b", characterId: "c", position: { x: 5, y: 7 } }, // bottom row in v1
                 c: { id: "c", characterId: "c", position: { x: 0, y: 4 } }, // middle
               },
             },
@@ -25,9 +25,12 @@ describe("coordinate-migration", () => {
       };
       const v2: any = migrateCoordinatesV1ToV2(v1);
       expect(v2.version).to.equal(2);
-      expect(v2.world.stages.s1.actors.a.position).to.deep.equal({ x: 3, y: 7 }); // top → top
-      expect(v2.world.stages.s1.actors.b.position).to.deep.equal({ x: 5, y: 0 }); // bottom → bottom
-      expect(v2.world.stages.s1.actors.c.position).to.deep.equal({ x: 0, y: 3 }); // middle stays middle
+      // top in v1 → top in v2; v2 top row = stage.height (1-indexed Y-up).
+      expect(v2.world.stages.s1.actors.a.position).to.deep.equal({ x: 4, y: 8 });
+      // bottom in v1 → bottom in v2 (y=1).
+      expect(v2.world.stages.s1.actors.b.position).to.deep.equal({ x: 6, y: 1 });
+      // middle: v1 y=4 in height-8 → 8 - 4 = 4. x: 0 → 1.
+      expect(v2.world.stages.s1.actors.c.position).to.deep.equal({ x: 1, y: 4 });
     });
 
     it("is idempotent: running on a v2 state returns it unchanged", () => {
@@ -189,12 +192,11 @@ describe("coordinate-migration", () => {
       };
       const v2: any = migrateCoordinatesV1ToV2(v1);
       const door = v2.world.stages.s1.actors.d;
-      // Source stage flip: y=2 in a height-10 stage → 7.
-      expect(door.position).to.deep.equal({ x: 1, y: 7 });
-      // Destination Y is converted using the dest stage height (6): 1 → 4.
-      expect(door.variableValues["door-dest-y"]).to.equal("4");
-      // X is unchanged.
-      expect(door.variableValues["door-dest-x"]).to.equal("5");
+      // Source stage flip: x: 1 → 2, y=2 in height-10 → 8 (1-indexed Y-up).
+      expect(door.position).to.deep.equal({ x: 2, y: 8 });
+      // Destination uses dest stage height (6): y 1 → 5; x: 5 → 6.
+      expect(door.variableValues["door-dest-y"]).to.equal("5");
+      expect(door.variableValues["door-dest-x"]).to.equal("6");
     });
 
     it("does not migrate stages without a positive height", () => {
@@ -208,7 +210,7 @@ describe("coordinate-migration", () => {
         },
       };
       const v2: any = migrateCoordinatesV1ToV2(v1);
-      // Position untouched because height is invalid.
+      // Position untouched because the stage's height is invalid.
       expect(v2.world.stages.broken.actors.a.position).to.deep.equal({ x: 0, y: 5 });
       // Version still bumped (the function only checks the global version gate).
       expect(v2.version).to.equal(2);
@@ -239,8 +241,9 @@ describe("coordinate-migration", () => {
         },
       };
       const result: any = migrateGameCoordinates(game);
-      expect(result.data.world.stages.s.actors.a.position).to.deep.equal({ x: 0, y: 3 });
-      expect(result.unsavedData.world.stages.s.actors.a.position).to.deep.equal({ x: 1, y: 0 });
+      // Both blobs migrated: x +1, y = stage.height - oldY (1-indexed Y-up).
+      expect(result.data.world.stages.s.actors.a.position).to.deep.equal({ x: 1, y: 4 });
+      expect(result.unsavedData.world.stages.s.actors.a.position).to.deep.equal({ x: 2, y: 1 });
     });
   });
 });

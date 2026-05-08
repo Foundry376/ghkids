@@ -50,6 +50,9 @@ export function makeInput(overrides: { keys?: number[]; clicks?: string[] } = {}
 
 export function makeActor(overrides: Partial<Actor> & { id: string; characterId: string }): Actor {
   return {
+    // Default (0, 0) suits rule-template actors (positions are relative to
+    // the main actor at (0, 0)). Stage actors should pass an explicit
+    // 1-indexed Y-up position via `position`.
     position: { x: 0, y: 0 },
     appearance: "default",
     variableValues: {},

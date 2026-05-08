@@ -30,8 +30,8 @@ export const RecordingSquareStatus = ({
             key={`square-status-${square.x}-${square.y}`}
             style={{
               position: "absolute",
-              left: x * STAGE_CELL_SIZE,
-              bottom: y * STAGE_CELL_SIZE,
+              left: (x - 1) * STAGE_CELL_SIZE,
+              bottom: (y - 1) * STAGE_CELL_SIZE,
               width: STAGE_CELL_SIZE,
               height: STAGE_CELL_SIZE,
               backgroundColor: color,

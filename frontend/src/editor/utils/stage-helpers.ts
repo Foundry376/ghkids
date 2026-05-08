@@ -250,12 +250,10 @@ export function getVariableValue(
     return actor.transform ?? "0";
   }
   if (id === "x") {
-    // Internal x is 0-indexed; kid-facing display is 1-indexed.
-    return String(actor.position.x + 1);
+    return String(actor.position.x);
   }
   if (id === "y") {
-    // Internal y is 0-indexed Y-up; kid-facing display is 1-indexed.
-    return String(actor.position.y + 1);
+    return String(actor.position.y);
   }
   if (actor.variableValues[id] !== undefined) {
     return actor.variableValues[id] ?? null;
@@ -567,11 +565,11 @@ export function getStageScreenshot(stage: Stage, { size }: { size: number }) {
     const info = appearanceInfo?.[actor.appearance] || DEFAULT_APPEARANCE_INFO;
 
     context.save();
-    // Y-up world: convert the actor's row to a screen row from the canvas top
-    // (stage.height - 1 - actor.position.y), then center the cell with +0.5.
+    // Y-up, 1-indexed world: cell (x, y) has its center on the canvas at
+    // ((x - 0.5) * px, (stage.height - y + 0.5) * px) from the top-left.
     context.translate(
-      Math.floor((actor.position.x + 0.5) * pxPerSquare),
-      Math.floor((stage.height - actor.position.y - 0.5) * pxPerSquare),
+      Math.floor((actor.position.x - 0.5) * pxPerSquare),
+      Math.floor((stage.height - actor.position.y + 0.5) * pxPerSquare),
     );
     applyActorTransformToContext(context, actor.transform ?? "0");
     context.drawImage(

@@ -50,8 +50,10 @@ export const RecordingActions = (props: { characters: Characters; recording: Rec
               character={characters[a.actor.characterId]}
               extent={extent}
               offset={{
-                x: a.offset!.x + mainActorBeforePosition.x - extent.xmin,
-                y: a.offset!.y + mainActorBeforePosition.y - extent.ymin,
+                // Express the action target in the canvas' 1-indexed
+                // extent-relative frame: leftmost column = 1, bottom row = 1.
+                x: a.offset!.x + mainActorBeforePosition.x - extent.xmin + 1,
+                y: a.offset!.y + mainActorBeforePosition.y - extent.ymin + 1,
               }}
             />
           </>

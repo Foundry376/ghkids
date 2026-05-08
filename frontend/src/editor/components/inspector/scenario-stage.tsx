@@ -28,9 +28,12 @@ export const ScenarioStage = React.memo(
     const height = (ymax - ymin + 1) * STAGE_CELL_SIZE;
     const zoom = Math.min(maxWidth / width, maxHeight / height, 1);
 
+    // Shift rule-relative coordinates into the renderer's 1-indexed Y-up
+    // frame so the same rendering math applies as on the live stage:
+    // bottom row = 1, leftmost column = 1.
     const ruleWorld = WorldOperator(world, characters).resetForRule(rule, {
       applyActions,
-      offset: { x: -xmin, y: -ymin },
+      offset: { x: 1 - xmin, y: 1 - ymin },
     });
     const ruleStage = getCurrentStageForWorld(ruleWorld as WorldMinimal);
     if (!ruleStage) {
@@ -47,7 +50,11 @@ export const ScenarioStage = React.memo(
           />
         ))}
         {extentIgnoredPositions(rule.extent).map(({ x, y }) => (
-          <RecordingIgnoredSprite key={`ignored-${x}-${y}`} x={x - xmin} y={y - ymin} />
+          <RecordingIgnoredSprite
+            key={`ignored-${x}-${y}`}
+            x={x - xmin + 1}
+            y={y - ymin + 1}
+          />
         ))}
       </div>
     );

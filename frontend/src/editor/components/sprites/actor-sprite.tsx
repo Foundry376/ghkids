@@ -93,9 +93,9 @@ const ActorSprite = (props: {
           position: "absolute",
           zIndex: selected ? 1000 : zIndex,
           transitionDuration: `${transitionDuration}ms`,
-          left: actor.position.x * STAGE_CELL_SIZE,
-          // Y-up: position.y measures from the bottom of the parent container.
-          bottom: actor.position.y * STAGE_CELL_SIZE,
+          left: (actor.position.x - 1) * STAGE_CELL_SIZE,
+          // Y-up, 1-indexed: position.y measures from the bottom of the parent container.
+          bottom: (actor.position.y - 1) * STAGE_CELL_SIZE,
           width: STAGE_CELL_SIZE,
           height: STAGE_CELL_SIZE,
           background: `url(${MISSING_CHARACTER_QUESTION_MARK})`,
@@ -188,11 +188,12 @@ const ActorSprite = (props: {
         position: "absolute",
         zIndex: selected ? 1000 : zIndex,
         transitionDuration: `${transitionDuration}ms`,
-        left: (actor.position.x - info.anchor.x) * STAGE_CELL_SIZE,
-        // Y-up world: anchor pixel sits at world row position.y.
-        // Sprite-pixel space stays Y-down (image top-left = (0,0)), so
-        // bottom-of-sprite = position.y - (info.height - 1 - anchor.y) cells.
-        bottom: (actor.position.y + info.anchor.y + 1 - info.height) * STAGE_CELL_SIZE,
+        left: (actor.position.x - 1 - info.anchor.x) * STAGE_CELL_SIZE,
+        // Y-up world (1-indexed): anchor pixel sits at world row position.y.
+        // Sprite-pixel space stays Y-down (image top-left = (0,0)), so the
+        // sprite's bottom edge is (info.height - 1 - anchor.y) cells below
+        // the anchor cell's bottom edge at (position.y - 1) * cell.
+        bottom: (actor.position.y + info.anchor.y - info.height) * STAGE_CELL_SIZE,
         pointerEvents: "none",
       }}
     >

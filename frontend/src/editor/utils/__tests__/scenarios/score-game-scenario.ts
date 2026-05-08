@@ -49,7 +49,7 @@ export function scoreAccumulationScenario(): TestScenario {
   });
   const characters: Characters = { [charId]: character };
 
-  const stageActor = makeActor({ id: actorId, characterId: charId });
+  const stageActor = makeActor({ id: actorId, characterId: charId, position: { x: 1, y: 1 } });
   const stage = makeStage({ id: "stage-1", actors: { [actorId]: stageActor } });
   const globals = makeGlobals({
     [globalScoreId]: { id: globalScoreId, name: "Score", value: "0" },
