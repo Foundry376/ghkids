@@ -240,7 +240,7 @@ export const baseTutorialContent: TutorialStepContent[] = [
     },
     onEnter: (dispatch) => {
       dispatch(stopPlayback());
-      dispatch(changeActors(baseTutorialCharacterPath, { position: { x: 9, y: 9 } }));
+      dispatch(changeActors(baseTutorialCharacterPath, { position: { x: 9, y: 3 } }));
     },
     waitsFor: {
       stateMatching: (state) => state.ui.selectedToolId === "record",
@@ -254,7 +254,7 @@ export const baseTutorialContent: TutorialStepContent[] = [
       style: "outline",
     },
     onEnter: (dispatch) => {
-      dispatch(changeActors(baseTutorialCharacterPath, { position: { x: 9, y: 9 } }));
+      dispatch(changeActors(baseTutorialCharacterPath, { position: { x: 9, y: 3 } }));
     },
     waitsFor: {
       stateMatching: (state) => state.recording.actorId === baseTutorialCharacterPath.actorIds[0]!,
@@ -315,7 +315,7 @@ export const baseTutorialContent: TutorialStepContent[] = [
           before &&
           after &&
           after.position.x === before.position.x + 1 &&
-          after.position.y === before.position.y - 1
+          after.position.y === before.position.y + 1
         );
       },
     },
@@ -344,7 +344,7 @@ export const baseTutorialContent: TutorialStepContent[] = [
     text: `Press 'Play'! If we did it right, our hero should climb the block now.`,
     annotation: { selectors: ["[data-tutorial-id=play]"], style: "outline" },
     onEnter: (dispatch) => {
-      dispatch(changeActors(baseTutorialCharacterPath, { position: { x: 2, y: 9 } }));
+      dispatch(changeActors(baseTutorialCharacterPath, { position: { x: 2, y: 3 } }));
     },
     waitsFor: {
       stateMatching: (_state, stage) => {
@@ -523,7 +523,7 @@ export const baseTutorialContent: TutorialStepContent[] = [
     pose: "folded-talking",
     text: `here when the boulder starts to fall. Remember how we created our first rule?`,
     onEnter: (dispatch) => {
-      dispatch(changeActors(baseTutorialCharacterPath, { position: { x: 12, y: 9 } }));
+      dispatch(changeActors(baseTutorialCharacterPath, { position: { x: 12, y: 3 } }));
     },
   },
   {
@@ -552,7 +552,7 @@ export const baseTutorialContent: TutorialStepContent[] = [
         return (
           main &&
           state.recording.extent.xmin <= main.position.x &&
-          state.recording.extent.ymax >= main.position.y
+          state.recording.extent.ymin <= main.position.y
         );
       },
     },
@@ -594,8 +594,8 @@ export const baseTutorialContent: TutorialStepContent[] = [
     pose: "excited",
     text: `Press 'Play'! Walk the hero toward the boulder and let's see if it falls.`,
     onEnter: (dispatch) => {
-      dispatch(changeActors(baseTutorialBoulderPath, { position: { x: 14, y: 5 } }));
-      dispatch(changeActors(baseTutorialCharacterPath, { position: { x: 9, y: 9 } }));
+      dispatch(changeActors(baseTutorialBoulderPath, { position: { x: 14, y: 7 } }));
+      dispatch(changeActors(baseTutorialCharacterPath, { position: { x: 9, y: 3 } }));
     },
     annotation: { selectors: ["[data-tutorial-id=play]"], style: "outline" },
     waitsFor: {
@@ -652,7 +652,7 @@ export const baseTutorialContent: TutorialStepContent[] = [
           return false;
         }
         const boulder = Object.values(after.actors).find((a) => a.characterId === "oou4u6jemi");
-        return boulder && boulder.position.y > 5;
+        return boulder && boulder.position.y < 7;
       },
     },
   },
@@ -675,8 +675,8 @@ export const baseTutorialContent: TutorialStepContent[] = [
     pose: "sitting-talking",
     text: `Okay let's try playing it again. This time when our hero walks toward the ledge, the boulder should slip off and fall! Can you get him past the boulder before it blocks his path?`,
     onEnter: (dispatch) => {
-      dispatch(changeActors(baseTutorialBoulderPath, { position: { x: 14, y: 5 } }));
-      dispatch(changeActors(baseTutorialCharacterPath, { position: { x: 2, y: 9 } }));
+      dispatch(changeActors(baseTutorialBoulderPath, { position: { x: 14, y: 7 } }));
+      dispatch(changeActors(baseTutorialCharacterPath, { position: { x: 2, y: 3 } }));
     },
     annotation: { selectors: ["[data-tutorial-id=play]"], style: "outline" },
     waitsFor: {

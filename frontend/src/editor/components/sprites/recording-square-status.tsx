@@ -31,7 +31,7 @@ export const RecordingSquareStatus = ({
             style={{
               position: "absolute",
               left: x * STAGE_CELL_SIZE,
-              top: y * STAGE_CELL_SIZE,
+              bottom: y * STAGE_CELL_SIZE,
               width: STAGE_CELL_SIZE,
               height: STAGE_CELL_SIZE,
               backgroundColor: color,

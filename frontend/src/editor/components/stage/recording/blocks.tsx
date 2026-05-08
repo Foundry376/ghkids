@@ -8,11 +8,16 @@ export const ActorBlock = ({
   character,
   actor,
   disambiguate = false,
+  absolute = false,
 }: {
   character: Character;
   actor: Actor;
   disambiguate?: boolean;
+  /** When the actor's position is in world coords (1-indexed display).
+   * Otherwise we treat the position as a rule-relative offset and display it as-is. */
+  absolute?: boolean;
 }) => {
+  const shift = absolute ? 1 : 0;
   return (
     <code>
       <Sprite
@@ -22,7 +27,7 @@ export const ActorBlock = ({
         fit
       />
       {disambiguate
-        ? `${character.name} (${actor.position.x},${actor.position.y})`
+        ? `${character.name} (${actor.position.x + shift},${actor.position.y + shift})`
         : character.name}
     </code>
   );
@@ -118,7 +123,7 @@ export const ConnectedActorBlock = ({
   const actor = getCurrentStageForWorld(recordingWorld || world)?.actors[actorId];
   const character = actor && characters[actor.characterId];
   if (actor && character) {
-    return <ActorBlock actor={actor} character={character} disambiguate />;
+    return <ActorBlock actor={actor} character={character} disambiguate absolute />;
   }
   return <span>{actorId}</span>;
 };

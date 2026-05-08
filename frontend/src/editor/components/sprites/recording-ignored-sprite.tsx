@@ -10,7 +10,7 @@ const RecordingIgnoredSprite = ({ x, y }: { x: number; y: number }) => {
         width: STAGE_CELL_SIZE,
         height: STAGE_CELL_SIZE,
         left: x * STAGE_CELL_SIZE,
-        top: y * STAGE_CELL_SIZE,
+        bottom: y * STAGE_CELL_SIZE,
       }}
     />
   );

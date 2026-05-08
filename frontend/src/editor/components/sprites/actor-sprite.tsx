@@ -94,7 +94,8 @@ const ActorSprite = (props: {
           zIndex: selected ? 1000 : zIndex,
           transitionDuration: `${transitionDuration}ms`,
           left: actor.position.x * STAGE_CELL_SIZE,
-          top: actor.position.y * STAGE_CELL_SIZE,
+          // Y-up: position.y measures from the bottom of the parent container.
+          bottom: actor.position.y * STAGE_CELL_SIZE,
           width: STAGE_CELL_SIZE,
           height: STAGE_CELL_SIZE,
           background: `url(${MISSING_CHARACTER_QUESTION_MARK})`,
@@ -188,7 +189,10 @@ const ActorSprite = (props: {
         zIndex: selected ? 1000 : zIndex,
         transitionDuration: `${transitionDuration}ms`,
         left: (actor.position.x - info.anchor.x) * STAGE_CELL_SIZE,
-        top: (actor.position.y - info.anchor.y) * STAGE_CELL_SIZE,
+        // Y-up world: anchor pixel sits at world row position.y.
+        // Sprite-pixel space stays Y-down (image top-left = (0,0)), so
+        // bottom-of-sprite = position.y - (info.height - 1 - anchor.y) cells.
+        bottom: (actor.position.y + info.anchor.y + 1 - info.height) * STAGE_CELL_SIZE,
         pointerEvents: "none",
       }}
     >

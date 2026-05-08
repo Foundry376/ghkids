@@ -653,7 +653,16 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
               const numValue = Number(next);
               if (!isNaN(numValue)) {
                 const coord = action.variable as "x" | "y";
-                const wrappedPos = wrappedPosition({ ...stageActor.position, [coord]: numValue });
+                // Display value is 1-indexed; convert back to internal 0-indexed.
+                // For "set", the operand was the kid's 1-indexed value (-1).
+                // For add/subtract, applyVariableOperation computed (display + delta);
+                // both internal and display agree on direction along Y-up, so the
+                // resulting display value still maps to internal via -1.
+                const internal = numValue - 1;
+                const wrappedPos = wrappedPosition({
+                  ...stageActor.position,
+                  [coord]: internal,
+                });
                 if (wrappedPos) {
                   stageActor.position = wrappedPos;
                 }

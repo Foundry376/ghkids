@@ -1,5 +1,13 @@
 <!-- LAST_COMMIT: 053fb3bb933427e34c628faaf0a7772af479951f -->
 
+## [2026-05-08]
+
+Coordinates now match the way kids think about them! Position `(1, 1)` is the bottom-left tile, and increasing Y moves you UP the stage. Existing worlds are migrated automatically the first time they load — actor positions, rule extents, move actions, and door destinations are all flipped, so games keep working without any author intervention.
+
+### Changed
+
+- **Bottom-left coordinate system**: World positions are now displayed and stored Y-up — `(1, 1)` is the bottom-left tile, and "up" on the stage means a larger Y. The inspector position fields and disambiguation labels show 1-indexed values. Existing v1 worlds are migrated to v2 on load.
+
 ## [2026-04-19]
 
 Stages are now called "Levels" throughout the editor — much easier to understand! We added a brand-new Codako Academy page with video tutorials to help you learn. The biggest new feature is **doors**: you can now create special door characters that teleport players from one spot to another, even across different levels! The play buttons got a colorful makeover (green=go, red=stop), and there's a handy new level-switcher dropdown in the toolbar so you can jump between levels without digging through settings.

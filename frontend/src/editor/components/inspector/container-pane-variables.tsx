@@ -166,6 +166,8 @@ type PositionGridItemProps = {
 
 const PositionGridItem = ({ actor, coordinate, value, onChange }: PositionGridItemProps) => {
   const isMixed = value === undefined;
+  // Display is 1-indexed; internal storage stays 0-indexed.
+  const displayValue = isMixed ? undefined : (value as number) + 1;
 
   const _onDragStart = (event: React.DragEvent) => {
     // Only allow dragging if we have a single consistent value
@@ -180,7 +182,7 @@ const PositionGridItem = ({ actor, coordinate, value, onChange }: PositionGridIt
       JSON.stringify({
         variableId: coordinate,
         actorId: actor.id,
-        value: String(value),
+        value: String(displayValue),
       }),
     );
   };
@@ -190,11 +192,11 @@ const PositionGridItem = ({ actor, coordinate, value, onChange }: PositionGridIt
       <div className="name">{coordinate === "x" ? "Horizontal" : "Vertical"}</div>
       <input
         type="number"
-        value={isMixed ? "" : value}
+        value={displayValue ?? ""}
         placeholder={isMixed ? "—" : undefined}
         onChange={(e) => {
           const num = Number(e.target.value);
-          if (!isNaN(num)) onChange(num);
+          if (!isNaN(num)) onChange(num - 1);
         }}
         style={{ width: "100%" }}
       />
@@ -452,7 +454,7 @@ export const ContainerPaneVariables = ({
               {actors.length > 1
                 ? `${character.name} (${actors.length} selected)`
                 : actor
-                  ? `${character.name} at (${actor.position.x},${actor.position.y})`
+                  ? `${character.name} at (${actor.position.x + 1},${actor.position.y + 1})`
                   : `${character.name} (Defaults)`}
             </h3>
             {_renderCharacterSection()}

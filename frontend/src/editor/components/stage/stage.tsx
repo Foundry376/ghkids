@@ -157,7 +157,11 @@ const SpriteDragPreview = ({
             style={{
               position: "absolute",
               left: baseX + (relX - info.anchor.x) * STAGE_CELL_SIZE * scale,
-              top: baseY + (relY - info.anchor.y) * STAGE_CELL_SIZE * scale,
+              // Y-up world: relY > 0 means the actor is higher visually than
+              // the anchor. baseY anchors the cursor click point, so we
+              // subtract upward distance and add the sprite-pixel anchor
+              // offset (sprite-pixel space stays Y-down).
+              top: baseY + (-relY - info.anchor.y) * STAGE_CELL_SIZE * scale,
               width: info.width * STAGE_CELL_SIZE * scale,
               height: info.height * STAGE_CELL_SIZE * scale,
               transform: SPRITE_TRANSFORM_CSS[transform],
@@ -377,17 +381,19 @@ export const Stage = ({
     const { xmin, ymin, xmax, ymax } = recordingExtent;
     const xCenter = xmin + 0.5 + (xmax - xmin) / 2.0;
     const yCenter = ymin + 0.5 + (ymax - ymin) / 2.0;
+    // Y-up: convert world center (rows from bottom) to screen rows from top.
+    const yCenterScreen = stage.height - yCenter;
 
     // The flex container always positions the stage at (containerSize - stageSize) / 2
     // (which is negative when the stage overflows). The container dimensions cancel out:
-    //   naturalEdge + offset + center * cellPx = containerSize / 2
-    //   (containerSize - stageSize) / 2 + offset + center * cellPx = containerSize / 2
-    //   offset = stageSize / 2 - center * cellPx
+    //   naturalEdge + offset + centerScreen * cellPx = containerSize / 2
+    //   (containerSize - stageSize) / 2 + offset + centerScreen * cellPx = containerSize / 2
+    //   offset = stageSize / 2 - centerScreen * cellPx
     // So we only need the stage dimensions — no need to read the container size.
     const cellPx = STAGE_CELL_SIZE * scale;
     return {
       left: (stage.width / 2 - xCenter) * cellPx,
-      top: (stage.height / 2 - yCenter) * cellPx,
+      top: (stage.height / 2 - yCenterScreen) * cellPx,
     };
   };
 
@@ -397,15 +403,17 @@ export const Stage = ({
     const actor = stage.actors[actorId];
     if (!actor) return null;
 
-    // Calculate actor center position (add 0.5 to center on the cell)
+    // Calculate actor center position (add 0.5 to center on the cell).
+    // Y-up: the actor at world-Y=k sits screen-row (stage.height - k - 0.5)
+    // from the top of the stage div.
     const xCenter = actor.position.x + 0.5;
-    const yCenter = actor.position.y + 0.5;
+    const yCenterScreen = stage.height - actor.position.y - 0.5;
 
     return {
       left: `calc(-${xCenter * STAGE_CELL_SIZE}px + 50%)`,
-      top: `calc(-${yCenter * STAGE_CELL_SIZE}px + 50%)`,
+      top: `calc(-${yCenterScreen * STAGE_CELL_SIZE}px + 50%)`,
     };
-  }, [stage.actors]);
+  }, [stage.actors, stage.height]);
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
@@ -523,6 +531,8 @@ export const Stage = ({
       x: (event.clientX - stageOffset.left) / STAGE_CELL_SIZE,
       y: (event.clientY - stageOffset.top) / STAGE_CELL_SIZE,
     };
+    // Y-up: convert screen rows (top-down) to internal y (bottom-up).
+    const worldY = stage.height - position.y;
 
     // expand the extent of the recording rule to reflect this new extent
     const nextExtent = Object.assign({}, recordingExtent);
@@ -536,13 +546,15 @@ export const Stage = ({
       );
     }
     if (side === "top") {
-      nextExtent.ymin = Math.min(nextExtent.ymax, Math.max(0, Math.round(position.y + 0.25)));
-    }
-    if (side === "bottom") {
+      // Visually-top handle drags the topmost row of the extent (ymax in Y-up).
       nextExtent.ymax = Math.max(
         nextExtent.ymin,
-        Math.min(stage.height, Math.round(position.y - 1)),
+        Math.min(stage.height - 1, Math.round(worldY - 1.5)),
       );
+    }
+    if (side === "bottom") {
+      // Visually-bottom handle drags the bottommost row of the extent (ymin in Y-up).
+      nextExtent.ymin = Math.min(nextExtent.ymax, Math.max(0, Math.round(worldY + 0.5)));
     }
 
     const str = JSON.stringify(nextExtent);
@@ -567,9 +579,11 @@ export const Stage = ({
     const { dragLeft, dragTop } = dragOffset ? JSON.parse(dragOffset) : halfOffset;
 
     const px = getPxOffsetForEvent(event);
+    // Y-up: invert the row index so internal y=0 is at the bottom of the stage.
+    const rowFromTop = Math.round((px.top - dragTop) / STAGE_CELL_SIZE / scale);
     return {
       x: Math.round((px.left - dragLeft) / STAGE_CELL_SIZE / scale),
-      y: Math.round((px.top - dragTop) / STAGE_CELL_SIZE / scale),
+      y: stage.height - 1 - rowFromTop,
     };
   };
 
@@ -963,13 +977,15 @@ export const Stage = ({
       const [minTop, maxTop] = [selectionRect.start.top, selectionRect.end.top].sort(
         (a, b) => a - b,
       );
+      // Y-up: convert screen rows (top-down) to internal y (bottom-up). The
+      // larger screen-top maps to the smaller internal y, so swap min/max.
       const min = {
         x: Math.floor(minLeft / STAGE_CELL_SIZE / scale),
-        y: Math.floor(minTop / STAGE_CELL_SIZE / scale),
+        y: stage.height - 1 - Math.floor(maxTop / STAGE_CELL_SIZE / scale),
       };
       const max = {
         x: Math.floor(maxLeft / STAGE_CELL_SIZE / scale),
-        y: Math.floor(maxTop / STAGE_CELL_SIZE / scale),
+        y: stage.height - 1 - Math.floor(minTop / STAGE_CELL_SIZE / scale),
       };
       for (const actor of Object.values(stage.actors)) {
         if (
@@ -1138,7 +1154,8 @@ export const Stage = ({
           style={{
             position: "absolute",
             left: pos.x * STAGE_CELL_SIZE,
-            top: pos.y * STAGE_CELL_SIZE,
+            // Y-up: position from the bottom of the stage container.
+            bottom: pos.y * STAGE_CELL_SIZE,
             width: STAGE_CELL_SIZE,
             height: STAGE_CELL_SIZE,
             border: "2px dashed #ff9500",
@@ -1176,7 +1193,8 @@ export const Stage = ({
           style={{
             position: "absolute",
             left: pos.x * STAGE_CELL_SIZE,
-            top: pos.y * STAGE_CELL_SIZE,
+            // Y-up: position from the bottom of the stage container.
+            bottom: pos.y * STAGE_CELL_SIZE,
             width: STAGE_CELL_SIZE,
             height: STAGE_CELL_SIZE,
             border: "2px dashed #ff9500",
@@ -1202,16 +1220,16 @@ export const Stage = ({
     const components: React.ReactNode[] = [];
     const { xmin, xmax, ymin, ymax } = recordingExtent;
 
-    // add the dark squares
+    // add the dark squares. Y-up: ymin is the bottom of the extent, ymax the top.
     components.push(
-      <RecordingMaskSprite key={`mask-top`} xmin={0} xmax={width} ymin={0} ymax={ymin} />,
       <RecordingMaskSprite
-        key={`mask-bottom`}
+        key={`mask-top`}
         xmin={0}
         xmax={width}
         ymin={ymax + 1}
         ymax={height}
       />,
+      <RecordingMaskSprite key={`mask-bottom`} xmin={0} xmax={width} ymin={0} ymax={ymin} />,
       <RecordingMaskSprite key={`mask-left`} xmin={0} xmax={xmin} ymin={ymin} ymax={ymax + 1} />,
       <RecordingMaskSprite
         key={`mask-right`}
@@ -1241,10 +1259,10 @@ export const Stage = ({
       );
     }
 
-    // add the handles
+    // add the handles. Y-up: ymin is the bottom row, ymax is the top row.
     const handles = {
-      top: [xmin + (xmax - xmin) / 2.0, ymin - 1],
-      bottom: [xmin + (xmax - xmin) / 2.0, ymax + 1],
+      top: [xmin + (xmax - xmin) / 2.0, ymax + 1],
+      bottom: [xmin + (xmax - xmin) / 2.0, ymin - 1],
       left: [xmin - 1, ymin + (ymax - ymin) / 2.0],
       right: [xmax + 1, ymin + (ymax - ymin) / 2.0],
     };

@@ -10,7 +10,8 @@ const RecordingMaskSprite = ({ xmin, xmax, ymin, ymax }: Omit<RuleExtent, "ignor
         width: (xmax - xmin) * STAGE_CELL_SIZE,
         height: (ymax - ymin) * STAGE_CELL_SIZE,
         left: xmin * STAGE_CELL_SIZE,
-        top: ymin * STAGE_CELL_SIZE,
+        // Y-up: position from the bottom of the parent container.
+        bottom: ymin * STAGE_CELL_SIZE,
       }}
     />
   );

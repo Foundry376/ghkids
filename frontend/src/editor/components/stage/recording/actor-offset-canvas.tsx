@@ -22,9 +22,16 @@ export const ActorOffsetCanvas = ({
         c.fillRect(0, 0, el.width, el.height);
         c.fillStyle = "#f00";
         const actorAtOffset = { ...actor, position: { ...offset } };
-        // applyAnchorAdjustment(actorAtOffset.position, character, actorAtOffset);
+        // Canvas is Y-down; world is Y-up. Flip per-cell so world-y=0 paints
+        // at the bottom of the canvas.
+        const heightCells = extent.ymax - extent.ymin + 1;
         for (const p of actorFilledPoints(actorAtOffset, { [actor.characterId]: character })) {
-          c.fillRect(p.x * squareSize, p.y * squareSize, squareSize, squareSize);
+          c.fillRect(
+            p.x * squareSize,
+            (heightCells - 1 - p.y) * squareSize,
+            squareSize,
+            squareSize,
+          );
         }
         c.lineWidth = 1;
         c.strokeStyle = "rgba(0,0,0,0.4)";

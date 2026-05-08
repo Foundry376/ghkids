@@ -24,7 +24,7 @@ const RecordingHandle = ({ side, position }: { side: string; position: Position 
         width: STAGE_CELL_SIZE,
         height: STAGE_CELL_SIZE,
         left: position.x * STAGE_CELL_SIZE,
-        top: position.y * STAGE_CELL_SIZE,
+        bottom: position.y * STAGE_CELL_SIZE,
         backgroundImage: `url(${new URL(`../../img/tiles/handle_${side}.png`, import.meta.url).href})`,
         backgroundSize: "contain",
         backgroundRepeat: "no-repeat",
