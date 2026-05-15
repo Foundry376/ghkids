@@ -26,8 +26,10 @@ export function applyAnchorAdjustment(
 ) {
   const info = character.spritesheet.appearanceInfo?.[appearance] || DEFAULT_APPEARANCE_INFO;
   const [x, y] = pointApplyingTransform(info.anchor.x, info.anchor.y, info, transform);
+  // Image-space Y is Y-down (0 = top of image) but world-space Y is Y-up
+  // (1 = bottom of stage), so the image-anchor Y contribution flips sign.
   position.x += x;
-  position.y += y;
+  position.y -= y;
 }
 
 export function actorFillsPoint(actor: Actor, characters: Characters, point: Position): boolean {
