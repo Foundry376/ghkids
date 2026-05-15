@@ -30,6 +30,9 @@ const Toolbar = () => {
     exitWithoutSaving,
     revertToSaved,
     hasUnsavedChanges,
+    isFullscreen,
+    canFullscreen,
+    toggleFullscreen,
   } = useContext(EditorContext);
   const [open, setOpen] = useState(false);
 
@@ -122,6 +125,18 @@ const Toolbar = () => {
               <i className="fa fa-fw" style={{ marginRight: 8 }} />
               Duplicate This World
             </DropdownItem>
+            {canFullscreen && (
+              <>
+                <DropdownItem divider />
+                <DropdownItem onClick={toggleFullscreen}>
+                  <i
+                    className={`fa ${isFullscreen ? "fa-compress" : "fa-expand"} fa-fw`}
+                    style={{ marginRight: 8 }}
+                  />
+                  {isFullscreen ? "Exit Full Screen" : "Show Full Screen"}
+                </DropdownItem>
+              </>
+            )}
             <DropdownItem divider />
             <DropdownItem onClick={() => saveWorldAnd(`/play/${metadata.id}`)}>
               <i className="fa fa-play fa-fw" style={{ marginRight: 8 }} />

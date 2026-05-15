@@ -11,6 +11,9 @@ export const EditorContext = React.createContext<{
   exitWithoutSaving: (dest: string) => void;
   revertToSaved: () => void;
   hasUnsavedChanges: boolean;
+  isFullscreen: boolean;
+  canFullscreen: boolean;
+  toggleFullscreen: () => void;
 }>({
   usingLocalStorage: false,
   saveWorldAnd: () => new Error(),
@@ -21,4 +24,7 @@ export const EditorContext = React.createContext<{
   exitWithoutSaving: () => new Error(),
   revertToSaved: () => new Error(),
   hasUnsavedChanges: false,
+  isFullscreen: false,
+  canFullscreen: false,
+  toggleFullscreen: () => undefined,
 });

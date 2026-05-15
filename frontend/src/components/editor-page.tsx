@@ -14,38 +14,42 @@ import { useParams } from "react-router";
 import { Button, Modal, ModalBody } from "reactstrap";
 import { applyDataMigrations } from "../editor/data-migrations";
 import { useAppSelector } from "../hooks/redux";
+import { useFullscreen } from "../hooks/useFullscreen";
 import { Game } from "../types";
 import PageMessage from "./common/page-message";
 import { EditorContext } from "./editor-context";
 
 function useFullscreenPrompt() {
-  const containerRef = useRef<HTMLDivElement>(null);
+  const fullscreen = useFullscreen<HTMLDivElement>();
   const [showPrompt, setShowPrompt] = useState(false);
 
   useEffect(() => {
     const isTouchDevice = "ontouchstart" in window || navigator.maxTouchPoints > 0;
-    const canFullscreen = !!document.documentElement.requestFullscreen;
     const isAlreadyFullscreen = !!document.fullscreenElement;
 
-    if (isTouchDevice && canFullscreen && !isAlreadyFullscreen) {
+    if (isTouchDevice && fullscreen.canFullscreen && !isAlreadyFullscreen) {
       setShowPrompt(true);
     }
-  }, []);
+  }, [fullscreen.canFullscreen]);
 
   const enter = useCallback(() => {
-    if (containerRef.current?.requestFullscreen) {
-      containerRef.current.requestFullscreen().catch(() => {
-        // Fullscreen request denied — dismiss silently
-      });
-    }
+    fullscreen.enter();
     setShowPrompt(false);
-  }, []);
+  }, [fullscreen]);
 
   const dismiss = useCallback(() => {
     setShowPrompt(false);
   }, []);
 
-  return { containerRef, showPrompt, enter, dismiss };
+  return {
+    containerRef: fullscreen.containerRef,
+    showPrompt,
+    enter,
+    dismiss,
+    isFullscreen: fullscreen.isFullscreen,
+    canFullscreen: fullscreen.canFullscreen,
+    toggle: fullscreen.toggle,
+  };
 }
 
 const APIAdapter = {
@@ -449,6 +453,9 @@ const EditorPage = () => {
         exitWithoutSaving: exitWithoutSaving,
         revertToSaved: revertToSaved,
         hasUnsavedChanges: hasUnsavedChanges,
+        isFullscreen: fullscreen.isFullscreen,
+        canFullscreen: fullscreen.canFullscreen,
+        toggleFullscreen: fullscreen.toggle,
       }}
     >
       <div ref={fullscreen.containerRef} className="editor-fullscreen-container">
