@@ -353,7 +353,7 @@ html {
         box-shadow: 0 0 0 4px $tint-color;
         .animated {
           transition-timing-function: linear;
-          transition-property: top, left;
+          transition-property: bottom, left;
         }
       }
       &.running-false {

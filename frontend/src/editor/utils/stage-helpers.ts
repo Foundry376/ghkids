@@ -565,9 +565,11 @@ export function getStageScreenshot(stage: Stage, { size }: { size: number }) {
     const info = appearanceInfo?.[actor.appearance] || DEFAULT_APPEARANCE_INFO;
 
     context.save();
+    // Y-up, 1-indexed world: cell (x, y) has its center on the canvas at
+    // ((x - 0.5) * px, (stage.height - y + 0.5) * px) from the top-left.
     context.translate(
-      Math.floor((actor.position.x + 0.5) * pxPerSquare),
-      Math.floor((actor.position.y + 0.5) * pxPerSquare),
+      Math.floor((actor.position.x - 0.5) * pxPerSquare),
+      Math.floor((stage.height - actor.position.y + 0.5) * pxPerSquare),
     );
     applyActorTransformToContext(context, actor.transform ?? "0");
     context.drawImage(

@@ -332,7 +332,7 @@ Input:
             "actorName": "Dog",
             "offset": {
                 "x": 0,
-                "y": -3
+                "y": 3
             }
         }
     ]

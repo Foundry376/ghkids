@@ -54,13 +54,14 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
   let frameAccumulator: FrameAccumulator;
 
   function wrappedPosition({ x, y }: PositionRelativeToWorld) {
-    // Use ((n % d) + d) % d to handle negative numbers correctly in JavaScript
-    // Simple (n + d) % d only works when n >= -d
+    // World coordinates are 1-indexed (bottom-left = (1, 1)). Wrap relative to
+    // the [1, dim] range: shift to 0-based, mod, then shift back.
+    const wrap = (n: number, d: number) => (((n - 1) % d) + d) % d + 1;
     const o = {
-      x: stage.wrapX ? ((x % stage.width) + stage.width) % stage.width : x,
-      y: stage.wrapY ? ((y % stage.height) + stage.height) % stage.height : y,
+      x: stage.wrapX ? wrap(x, stage.width) : x,
+      y: stage.wrapY ? wrap(y, stage.height) : y,
     };
-    if (o.x < 0 || o.y < 0 || o.x >= stage.width || o.y >= stage.height) {
+    if (o.x < 1 || o.y < 1 || o.x > stage.width || o.y > stage.height) {
       return null;
     }
     return o;
@@ -653,7 +654,10 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
               const numValue = Number(next);
               if (!isNaN(numValue)) {
                 const coord = action.variable as "x" | "y";
-                const wrappedPos = wrappedPosition({ ...stageActor.position, [coord]: numValue });
+                const wrappedPos = wrappedPosition({
+                  ...stageActor.position,
+                  [coord]: numValue,
+                });
                 if (wrappedPos) {
                   stageActor.position = wrappedPos;
                 }

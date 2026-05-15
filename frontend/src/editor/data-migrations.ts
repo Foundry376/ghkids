@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { Game } from "../types";
+import { migrateGameCoordinates } from "./utils/coordinate-migration";
 import { makeId } from "./utils/utils";
 
 export function applyValueChanges(value: any) {
@@ -146,5 +147,8 @@ export function applyDataMigrations(game: Game): Game {
     );
   }
 
-  return result;
+  // V1 -> V2 coordinate-system migration: flip stored Y values so internal
+  // coordinates use Y-up with origin (0, 0) at the bottom-left. Idempotent —
+  // a world already at version >= 2 is returned unchanged.
+  return migrateGameCoordinates(result);
 }

@@ -54,9 +54,9 @@ export function chaseGameScenario(): TestScenario {
     [enemyCharId]: enemyChar,
   };
 
-  // Player starts at (5, 0), enemy at (0, 0)
-  const playerActor = makeActor({ id: playerActorId, characterId: playerCharId, position: { x: 5, y: 0 } });
-  const enemyActor = makeActor({ id: enemyActorId, characterId: enemyCharId });
+  // Player starts at (5, 1), enemy at (1, 1) (1-indexed Y-up default).
+  const playerActor = makeActor({ id: playerActorId, characterId: playerCharId, position: { x: 5, y: 1 } });
+  const enemyActor = makeActor({ id: enemyActorId, characterId: enemyCharId, position: { x: 1, y: 1 } });
   const stage = makeStage({
     id: "stage-1",
     actors: { [playerActorId]: playerActor, [enemyActorId]: enemyActor },
@@ -77,10 +77,10 @@ export function chaseGameScenario(): TestScenario {
     frames: 3,
     inputPerFrame,
     assertions: (result) => {
-      // Player moved 3 right (5+3=8)
-      expectActorPosition(result, playerActorId, { x: 8, y: 0 });
-      // Enemy moved 3 right (0+3=3)
-      expectActorPosition(result, enemyActorId, { x: 3, y: 0 });
+      // Player moved 3 right (5+3=8), y stays at 1.
+      expectActorPosition(result, playerActorId, { x: 8, y: 1 });
+      // Enemy moved 3 right (1+3=4).
+      expectActorPosition(result, enemyActorId, { x: 4, y: 1 });
     },
   };
 }

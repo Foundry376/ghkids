@@ -401,7 +401,7 @@ export type UIState = {
 };
 
 export type EditorState = {
-  version: 1;
+  version: 1 | 2;
   characters: Characters;
   characterZOrder: string[];
   world: World;
