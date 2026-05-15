@@ -4,6 +4,7 @@ import { useDispatch } from "react-redux";
 import { Link, useParams } from "react-router-dom";
 
 import { createWorld, fetchWorld } from "../actions/main-actions";
+import { useFullscreen } from "../hooks/useFullscreen";
 import { useHideRecaptchaBadge } from "../hooks/useHideRecaptchaBadge";
 import { usePageTitle } from "../hooks/usePageTitle";
 import { RootPlayer } from "../editor/root-player";
@@ -24,9 +25,15 @@ const PlayPage: React.FC = () => {
   const world = worlds && worldId ? worlds[worldId] : null;
 
   const [immersive, setImmersive] = useState(false);
-  const [isFullscreen, setIsFullscreen] = useState(false);
   const editorStoreRef = useRef<Store | null>(null);
-  const containerRef = useRef<HTMLDivElement | null>(null);
+  const {
+    containerRef,
+    isFullscreen,
+    canFullscreen,
+    enter: enterFullscreen,
+    exit: exitFullscreen,
+    toggle: toggleFullscreen,
+  } = useFullscreen<HTMLDivElement>();
 
   useEffect(() => {
     if (worldId) {
@@ -37,24 +44,17 @@ const PlayPage: React.FC = () => {
   usePageTitle(world?.name);
   useHideRecaptchaBadge();
 
-  // Listen for fullscreen changes — when the user exits fullscreen via the
-  // browser (Escape key, Safari controls, etc.), also leave immersive mode so
-  // the landing overlay with navigation links reappears.
+  // When the user exits fullscreen while immersive (Escape key, Safari
+  // controls, the toggle button, etc.), also leave immersive mode so the
+  // landing overlay with navigation links reappears.
   useEffect(() => {
-    const onFullscreenChange = () => {
-      const nowFullscreen = !!document.fullscreenElement;
-      setIsFullscreen(nowFullscreen);
-      if (!nowFullscreen && immersive) {
-        // Fullscreen was exited externally — return to landing view
-        if (editorStoreRef.current) {
-          editorStoreRef.current.dispatch(updatePlaybackState({ speed: 500, running: false }));
-        }
-        setImmersive(false);
+    if (!isFullscreen && immersive) {
+      if (editorStoreRef.current) {
+        editorStoreRef.current.dispatch(updatePlaybackState({ speed: 500, running: false }));
       }
-    };
-    document.addEventListener("fullscreenchange", onFullscreenChange);
-    return () => document.removeEventListener("fullscreenchange", onFullscreenChange);
-  }, [immersive]);
+      setImmersive(false);
+    }
+  }, [isFullscreen, immersive]);
 
   const startPlayback = useCallback(() => {
     if (editorStoreRef.current) {
@@ -66,41 +66,26 @@ const PlayPage: React.FC = () => {
     setImmersive(true);
 
     // Attempt to enter fullscreen for a more immersive experience.
-    // This silently fails on platforms that don't support it (e.g. iPhone iOS Safari).
-    const canFullscreen = !!containerRef.current?.requestFullscreen;
+    // Silently falls back on platforms that don't support it (e.g. iPhone iOS Safari).
     if (canFullscreen) {
       // Delay playback start so the fullscreen transition animation completes
       // before the game begins ticking
-      containerRef.current!.requestFullscreen().then(() => {
-        setTimeout(startPlayback, 400);
-      }).catch(() => {
-        // Fullscreen rejected — start playback immediately
-        startPlayback();
-      });
+      enterFullscreen()
+        .then(() => setTimeout(startPlayback, 400))
+        .catch(() => startPlayback());
     } else {
       startPlayback();
     }
-  }, [startPlayback]);
+  }, [startPlayback, canFullscreen, enterFullscreen]);
 
   const onExitImmersive = useCallback(() => {
     // Stop playback
     if (editorStoreRef.current) {
       editorStoreRef.current.dispatch(updatePlaybackState({ speed: 500, running: false }));
     }
-    // Exit fullscreen if active
-    if (document.fullscreenElement) {
-      document.exitFullscreen();
-    }
+    exitFullscreen();
     setImmersive(false);
-  }, []);
-
-  const onToggleFullscreen = useCallback(() => {
-    if (document.fullscreenElement) {
-      document.exitFullscreen();
-    } else if (containerRef.current) {
-      containerRef.current.requestFullscreen();
-    }
-  }, []);
+  }, [exitFullscreen]);
 
   const onEditOrRemix = () => {
     if (!world) return;
@@ -136,14 +121,16 @@ const PlayPage: React.FC = () => {
         </div>
         <div className="play-top-bar__spacer" />
         <div className="play-top-bar__actions">
-          <Button
-            size="sm"
-            outline
-            onClick={onToggleFullscreen}
-            title={isFullscreen ? "Exit Full Screen" : "Show Full Screen"}
-          >
-            <i className={`fa ${isFullscreen ? "fa-compress" : "fa-expand"}`} />
-          </Button>
+          {canFullscreen && (
+            <Button
+              size="sm"
+              outline
+              onClick={toggleFullscreen}
+              title={isFullscreen ? "Exit Full Screen" : "Show Full Screen"}
+            >
+              <i className={`fa ${isFullscreen ? "fa-compress" : "fa-expand"}`} />
+            </Button>
+          )}
           {immersive && (
             <Button size="sm" outline onClick={onExitImmersive} title="Back to info">
               <i className="fa fa-arrow-left" />

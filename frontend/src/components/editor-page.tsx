@@ -14,60 +14,42 @@ import { useParams } from "react-router";
 import { Button, Modal, ModalBody } from "reactstrap";
 import { applyDataMigrations } from "../editor/data-migrations";
 import { useAppSelector } from "../hooks/redux";
+import { useFullscreen } from "../hooks/useFullscreen";
 import { Game } from "../types";
 import PageMessage from "./common/page-message";
 import { EditorContext } from "./editor-context";
 
 function useFullscreenPrompt() {
-  const containerRef = useRef<HTMLDivElement>(null);
+  const fullscreen = useFullscreen<HTMLDivElement>();
   const [showPrompt, setShowPrompt] = useState(false);
-  const [isFullscreen, setIsFullscreen] = useState(false);
 
   useEffect(() => {
     const isTouchDevice = "ontouchstart" in window || navigator.maxTouchPoints > 0;
-    const canFullscreen = !!document.documentElement.requestFullscreen;
     const isAlreadyFullscreen = !!document.fullscreenElement;
 
-    if (isTouchDevice && canFullscreen && !isAlreadyFullscreen) {
+    if (isTouchDevice && fullscreen.canFullscreen && !isAlreadyFullscreen) {
       setShowPrompt(true);
     }
-  }, []);
-
-  useEffect(() => {
-    const onChange = () => setIsFullscreen(!!document.fullscreenElement);
-    document.addEventListener("fullscreenchange", onChange);
-    return () => document.removeEventListener("fullscreenchange", onChange);
-  }, []);
+  }, [fullscreen.canFullscreen]);
 
   const enter = useCallback(() => {
-    if (containerRef.current?.requestFullscreen) {
-      containerRef.current.requestFullscreen().catch(() => {
-        // Fullscreen request denied — dismiss silently
-      });
-    }
+    fullscreen.enter();
     setShowPrompt(false);
-  }, []);
+  }, [fullscreen]);
 
   const dismiss = useCallback(() => {
     setShowPrompt(false);
   }, []);
 
-  const toggle = useCallback(() => {
-    if (document.fullscreenElement) {
-      document.exitFullscreen?.().catch(() => {
-        // Ignore — toggle is best effort
-      });
-    } else if (containerRef.current?.requestFullscreen) {
-      containerRef.current.requestFullscreen().catch(() => {
-        // Ignore — toggle is best effort
-      });
-    }
-  }, []);
-
-  const canFullscreen =
-    typeof document !== "undefined" && !!document.documentElement.requestFullscreen;
-
-  return { containerRef, showPrompt, enter, dismiss, isFullscreen, canFullscreen, toggle };
+  return {
+    containerRef: fullscreen.containerRef,
+    showPrompt,
+    enter,
+    dismiss,
+    isFullscreen: fullscreen.isFullscreen,
+    canFullscreen: fullscreen.canFullscreen,
+    toggle: fullscreen.toggle,
+  };
 }
 
 const APIAdapter = {
