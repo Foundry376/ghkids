@@ -88,7 +88,9 @@ export function actorFilledPoints(actor: Actor, characters: Characters) {
     for (let dy = 0; dy < info.height; dy++) {
       if (info.filled[`${dx},${dy}`]) {
         const [sx, sy] = pointApplyingTransform(dx, dy, info, actor.transform);
-        results.push({ x: x + sx - ix, y: y + sy - iy });
+        // Image-space Y is Y-down (0 = top of image) but world Y is Y-up
+        // (1 = bottom of stage), so flip the sign of the y delta.
+        results.push({ x: x + sx - ix, y: y + iy - sy });
       }
     }
   }

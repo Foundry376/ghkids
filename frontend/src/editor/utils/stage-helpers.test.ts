@@ -898,13 +898,16 @@ describe("stage-helpers", () => {
       });
 
       it("should return all four points", () => {
+        // Anchor at image (0,0) (image top-left). In Y-up world, the anchor
+        // sits at the sprite's top row, so the sprite extends downward
+        // (smaller y) from the actor position.
         const actor = makeActor(0, 0);
         const points = actorFilledPoints(actor, characters);
         expect(points).to.have.length(4);
         expect(points).to.deep.include({ x: 0, y: 0 });
         expect(points).to.deep.include({ x: 1, y: 0 });
-        expect(points).to.deep.include({ x: 0, y: 1 });
-        expect(points).to.deep.include({ x: 1, y: 1 });
+        expect(points).to.deep.include({ x: 0, y: -1 });
+        expect(points).to.deep.include({ x: 1, y: -1 });
       });
     });
 
@@ -917,13 +920,16 @@ describe("stage-helpers", () => {
       });
 
       it("should offset points by anchor", () => {
+        // Anchor at image (1,1) (image bottom-right). In Y-up world, image
+        // bottom = world bottom, so the sprite extends upward (larger y) and
+        // leftward (smaller x) from the actor position.
         const actor = makeActor(5, 5);
         const points = actorFilledPoints(actor, characters);
         expect(points).to.have.length(4);
-        expect(points).to.deep.include({ x: 4, y: 4 });
-        expect(points).to.deep.include({ x: 5, y: 4 });
         expect(points).to.deep.include({ x: 4, y: 5 });
         expect(points).to.deep.include({ x: 5, y: 5 });
+        expect(points).to.deep.include({ x: 4, y: 6 });
+        expect(points).to.deep.include({ x: 5, y: 6 });
       });
     });
 
@@ -1014,18 +1020,20 @@ describe("stage-helpers", () => {
       position: { x: 5, y: 5 },
     };
 
+    // Anchor at image top-left, 2x2: in Y-up world the sprite occupies
+    // (5,5), (6,5), (5,4), (6,4) — anchor at top-left of those cells.
     it("should return true for points actor fills", () => {
       expect(actorFillsPoint(actor, characters, { x: 5, y: 5 })).to.be.true;
       expect(actorFillsPoint(actor, characters, { x: 6, y: 5 })).to.be.true;
-      expect(actorFillsPoint(actor, characters, { x: 5, y: 6 })).to.be.true;
-      expect(actorFillsPoint(actor, characters, { x: 6, y: 6 })).to.be.true;
+      expect(actorFillsPoint(actor, characters, { x: 5, y: 4 })).to.be.true;
+      expect(actorFillsPoint(actor, characters, { x: 6, y: 4 })).to.be.true;
     });
 
     it("should return false for points actor does not fill", () => {
       expect(actorFillsPoint(actor, characters, { x: 4, y: 5 })).to.be.false;
       expect(actorFillsPoint(actor, characters, { x: 7, y: 5 })).to.be.false;
-      expect(actorFillsPoint(actor, characters, { x: 5, y: 4 })).to.be.false;
-      expect(actorFillsPoint(actor, characters, { x: 5, y: 7 })).to.be.false;
+      expect(actorFillsPoint(actor, characters, { x: 5, y: 6 })).to.be.false;
+      expect(actorFillsPoint(actor, characters, { x: 5, y: 3 })).to.be.false;
     });
   });
 
@@ -1065,7 +1073,8 @@ describe("stage-helpers", () => {
     });
 
     it("should return true when actor partially overlaps extent", () => {
-      const extent: RuleExtent = { xmin: 6, xmax: 10, ymin: 6, ymax: 10, ignored: {} };
+      // Anchor at image top-left, 2x2: sprite fills (5,5), (6,5), (5,4), (6,4).
+      const extent: RuleExtent = { xmin: 6, xmax: 10, ymin: 4, ymax: 10, ignored: {} };
       expect(actorIntersectsExtent(actor, characters, extent)).to.be.true;
     });
 
