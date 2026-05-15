@@ -8,6 +8,7 @@ import {
   RuleTreeEventItem,
   RuleTreeFlowItemCheck,
   RuleTreeItem,
+  RuleValue,
 } from "../../types";
 import { Actions } from "../actions";
 import { ruleFromRecordingState } from "../components/stage/recording/utils";
@@ -30,6 +31,10 @@ export default function charactersReducer(
 
     case Types.DELETE_CHARACTER: {
       return scrubCharacterFromCharacters(state, action.characterId);
+    }
+
+    case Types.DELETE_GLOBAL: {
+      return scrubGlobalFromCharacters(state, action.globalId);
     }
 
     case Types.CREATE_CHARACTER_VARIABLE: {
@@ -215,7 +220,42 @@ function scrubCharacterFromCharacters(state: Characters, characterId: string): C
           !("actor" in r && r.actor.characterId === characterId),
       );
     }
-    console.log(container);
+    if ("rules" in item) {
+      for (const rule of item.rules) {
+        scrubRule(rule);
+      }
+    }
+  };
+
+  for (const id of Object.keys(next)) {
+    for (const rule of next[id].rules) {
+      scrubRule(rule);
+    }
+  }
+  return next;
+}
+
+function scrubGlobalFromCharacters(state: Characters, globalId: string): Characters {
+  const next = deepClone(state);
+
+  const referencesGlobal = (val: RuleValue | undefined) =>
+    !!val && "globalId" in val && val.globalId === globalId;
+
+  const scrubRule = (item: RuleTreeItem) => {
+    const container: Rule | RuleTreeFlowItemCheck | undefined =
+      item.type === "rule" ? item : item.type === "group-flow" ? item.check : undefined;
+    if (container) {
+      container.conditions = container.conditions.filter(
+        (r) => !referencesGlobal(r.left) && !referencesGlobal(r.right),
+      );
+      if ("actions" in container) {
+        (container as Rule).actions = (container as Rule).actions.filter(
+          (a) =>
+            !(a.type === "global" && a.global === globalId) &&
+            !("value" in a && referencesGlobal(a.value)),
+        );
+      }
+    }
     if ("rules" in item) {
       for (const rule of item.rules) {
         scrubRule(rule);
