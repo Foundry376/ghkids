@@ -17,100 +17,88 @@ router.get("/generate-sprite", userFromBasicAuth, async (req, res) => {
   const prompt = (req.query.prompt as string) || "A sprite of a fantasy creature"; // Default prompt if none provided
   openai = openai || new OpenAI({});
 
-  // Determine the best DALL-E 3 image size based on canvas aspect ratio
-  // DALL-E 3 supports: 1024x1024, 1024x1792 (portrait), 1792x1024 (landscape)
+  // Determine the best gpt-image-1 image size based on canvas aspect ratio
+  // gpt-image-1 supports: 1024x1024, 1024x1536 (portrait), 1536x1024 (landscape)
   const canvasWidth = parseInt(req.query.width as string, 10) || 40;
   const canvasHeight = parseInt(req.query.height as string, 10) || 40;
   const aspectRatio = canvasWidth / canvasHeight;
 
-  let imageSize: "1024x1024" | "1024x1792" | "1792x1024" = "1024x1024";
+  let imageSize: "1024x1024" | "1024x1536" | "1536x1024" = "1024x1024";
   if (aspectRatio > 1.3) {
     // Canvas is wider than tall (landscape)
-    imageSize = "1792x1024";
+    imageSize = "1536x1024";
   } else if (aspectRatio < 0.77) {
     // Canvas is taller than wide (portrait)
-    imageSize = "1024x1792";
+    imageSize = "1024x1536";
   }
 
   console.log(
     `Generating sprite with size ${imageSize} for canvas ${canvasWidth}x${canvasHeight} (aspect ratio: ${aspectRatio.toFixed(2)})`,
   );
 
-  openai.images
-    .generate({
-      model: "dall-e-3",
+  try {
+    const response = await openai.images.generate({
+      model: "gpt-image-1",
       prompt: prompt,
       n: 1,
       size: imageSize,
-    })
-    .then((response) => {
-      const imageUrl = response.data?.[0]?.url;
-      if (!imageUrl) {
-        res.status(500).json({ error: "Failed to retrieve image URL" });
-        return;
-      }
-      console.log("Downloading image from URL:", imageUrl);
-
-      // Download the image using https
-      https
-        .get(imageUrl, (imageResponse) => {
-          const data: Buffer[] = [];
-
-          imageResponse.on("data", (chunk) => {
-            data.push(chunk);
-          });
-
-          imageResponse.on("end", () => {
-            const imageBuffer = Buffer.concat(data);
-
-            // Save the image locally
-            fs.writeFileSync("image.png", imageBuffer);
-            console.log("Image saved locally as 'image.png'");
-
-            const namePrompt = `Give a short, straightforward name for a sprite described as: ${prompt}. For example, if the sprite is a cute mouse, respond with "Mouse". Respond with only the name.`;
-            openai.chat.completions.create({
-              model: "gpt-3.5-turbo",
-              messages: [
-                { role: "system", content: "You are a helpful assistant for naming video game sprites." },
-                { role: "user", content: namePrompt },
-              ],
-              max_tokens: 10,
-              temperature: 0.9,
-            })
-              .then((nameResponse) => {
-                const spriteName = nameResponse.choices[0]?.message?.content?.trim() || "Unnamed Sprite";
-                res.setHeader("Access-Control-Allow-Origin", "*");
-                res.setHeader("Content-Type", "application/json");
-
-                // Send the image as a base64 data URL and the generated name
-                res.json({
-                  imageUrl: `data:image/png;base64,${imageBuffer.toString("base64")}`,
-                  name: spriteName,
-                });
-              })
-              .catch((err) => {
-                console.error("Error generating sprite name:", err);
-                res.setHeader("Access-Control-Allow-Origin", "*");
-                res.setHeader("Content-Type", "application/json");
-                res.json({
-                  imageUrl: `data:image/png;base64,${imageBuffer.toString("base64")}`,
-                  name: "Unnamed Sprite",
-                });
-              });
-          });
-        })
-        .on("error", (error) => {
-          console.error("Error downloading image:", error.message);
-          res.status(500).json({ error: "Failed to download image" });
-        });
-    })
-    .catch((error) => {
-      console.error(
-        "Error generating image:",
-        error.response ? error.response.data : error.message,
-      );
-      res.status(500).json({ error: "Failed to generate image" });
     });
+
+    let imageBase64 = response.data?.[0]?.b64_json;
+
+    if (!imageBase64 && response.data?.[0]?.url) {
+      const imageUrl = response.data[0].url;
+      console.log("Falling back to URL response:", imageUrl);
+      imageBase64 = await new Promise<string>((resolve, reject) => {
+        https
+          .get(imageUrl, (imageResponse) => {
+            const data: Buffer[] = [];
+            imageResponse.on("data", (chunk) => data.push(chunk));
+            imageResponse.on("end", () => resolve(Buffer.concat(data).toString("base64")));
+          })
+          .on("error", (err) => reject(err));
+      });
+    }
+
+    if (!imageBase64) {
+      res.status(500).json({ error: "Failed to retrieve generated image" });
+      return;
+    }
+
+    const imageBuffer = Buffer.from(imageBase64, "base64");
+    fs.writeFileSync("image.png", imageBuffer);
+    console.log("Image saved locally as 'image.png'");
+
+    const namePrompt = `Give a short, straightforward name for a sprite described as: ${prompt}. For example, if the sprite is a cute mouse, respond with "Mouse". Respond with only the name.`;
+    let spriteName = "Unnamed Sprite";
+    try {
+      const nameResponse = await openai.chat.completions.create({
+        model: "gpt-4.1-mini",
+        messages: [
+          { role: "system", content: "You are a helpful assistant for naming video game sprites." },
+          { role: "user", content: namePrompt },
+        ],
+        max_tokens: 10,
+        temperature: 0.9,
+      });
+      spriteName = nameResponse.choices[0]?.message?.content?.trim() || "Unnamed Sprite";
+    } catch (err) {
+      console.error("Error generating sprite name:", err);
+    }
+
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Content-Type", "application/json");
+    res.json({
+      imageUrl: `data:image/png;base64,${imageBase64}`,
+      name: spriteName,
+    });
+  } catch (error: any) {
+    console.error(
+      "Error generating image:",
+      error.response ? error.response.data : error.message,
+    );
+    res.status(500).json({ error: "Failed to generate image" });
+  }
 });
 
 router.post("/generate-sprite-name", userFromBasicAuth, (req, res) => {
@@ -478,60 +466,44 @@ router.get("/generate-background", userFromBasicAuth, async (req, res) => {
 
   try {
     const response = await openai.images.generate({
-      model: "dall-e-3",
-      // prompt: `A wide landscape game background scene: ${prompt}. Make it suitable for a 2D game background, with good depth and atmosphere.`,
+      model: "gpt-image-1",
       prompt: `A wide 2D game background of ${prompt}, with soft, muted colors and layered depth. Stylized and subtle, no text, low contrast, not distracting.`,
       n: 1,
-      size: "1792x1024",
+      size: "1536x1024",
     });
 
-    const imageUrl = response.data?.[0]?.url;
-    if (!imageUrl) {
-      res.status(500).json({ error: "Failed to retrieve image URL" });
+    let imageBase64 = response.data?.[0]?.b64_json;
+
+    if (!imageBase64 && response.data?.[0]?.url) {
+      const imageUrl = response.data[0].url;
+      console.log("Falling back to URL response:", imageUrl);
+      imageBase64 = await new Promise<string>((resolve, reject) => {
+        https
+          .get(imageUrl, (imageResponse) => {
+            const data: Buffer[] = [];
+            imageResponse.on("data", (chunk) => data.push(chunk));
+            imageResponse.on("end", () => resolve(Buffer.concat(data).toString("base64")));
+          })
+          .on("error", (err) => reject(err));
+      });
+    }
+
+    if (!imageBase64) {
+      res.status(500).json({ error: "Failed to retrieve generated background image" });
       return;
     }
-    console.log("Downloading background image from URL:", imageUrl);
 
-    // Download the image using https
-    https
-      .get(imageUrl, (imageResponse) => {
-        const data: Buffer[] = [];
+    const imageBuffer = Buffer.from(imageBase64, "base64");
+    const publicUrl = await uploadImageToSupabase(imageBuffer, filename, "image/png");
+    console.log("Uploaded to Supabase:", publicUrl);
 
-        imageResponse.on("data", (chunk) => {
-          data.push(chunk);
-        });
-
-        imageResponse.on("end", async () => {
-          try {
-            const imageBuffer = Buffer.concat(data);
-
-            // Upload the image to Supabase
-            const publicUrl = await uploadImageToSupabase(imageBuffer, filename, "image/png");
-
-            console.log("Uploaded to Supabase:", publicUrl);
-
-            // Save the image locally
-            // fs.writeFileSync("background.png", imageBuffer);
-            // console.log("Background image saved locally as 'background.png'");
-
-            // Set CORS headers
-            res.setHeader("Access-Control-Allow-Origin", "*");
-            res.setHeader("Content-Type", "application/json");
-            res.json({
-              success: true,
-              message: "Background generated successfully",
-              imageUrl: publicUrl,
-            });
-          } catch (err) {
-            console.error("Error processing image:", err);
-            res.status(500).json({ error: "Failed to process image" });
-          }
-        });
-      })
-      .on("error", (err) => {
-        console.error("Error downloading the image:", err);
-        res.status(500).json({ error: "Failed to download the image" });
-      });
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Content-Type", "application/json");
+    res.json({
+      success: true,
+      message: "Background generated successfully",
+      imageUrl: publicUrl,
+    });
   } catch (error) {
     console.error("Error generating background:", error);
     res.status(500).json({ error: "Failed to generate background" });
