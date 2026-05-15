@@ -136,11 +136,14 @@ const PlayPage: React.FC = () => {
         </div>
         <div className="play-top-bar__spacer" />
         <div className="play-top-bar__actions">
-          {immersive && (
-            <Button size="sm" outline onClick={onToggleFullscreen} title={isFullscreen ? "Exit Fullscreen" : "Fullscreen"}>
-              <i className={`fa ${isFullscreen ? "fa-compress" : "fa-expand"}`} />
-            </Button>
-          )}
+          <Button
+            size="sm"
+            outline
+            onClick={onToggleFullscreen}
+            title={isFullscreen ? "Show Partial Screen" : "Show Full Screen"}
+          >
+            <i className={`fa ${isFullscreen ? "fa-compress" : "fa-expand"}`} />
+          </Button>
           {immersive && (
             <Button size="sm" outline onClick={onExitImmersive} title="Back to info">
               <i className="fa fa-arrow-left" />

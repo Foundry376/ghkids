@@ -21,6 +21,7 @@ import { EditorContext } from "./editor-context";
 function useFullscreenPrompt() {
   const containerRef = useRef<HTMLDivElement>(null);
   const [showPrompt, setShowPrompt] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   useEffect(() => {
     const isTouchDevice = "ontouchstart" in window || navigator.maxTouchPoints > 0;
@@ -30,6 +31,12 @@ function useFullscreenPrompt() {
     if (isTouchDevice && canFullscreen && !isAlreadyFullscreen) {
       setShowPrompt(true);
     }
+  }, []);
+
+  useEffect(() => {
+    const onChange = () => setIsFullscreen(!!document.fullscreenElement);
+    document.addEventListener("fullscreenchange", onChange);
+    return () => document.removeEventListener("fullscreenchange", onChange);
   }, []);
 
   const enter = useCallback(() => {
@@ -45,7 +52,22 @@ function useFullscreenPrompt() {
     setShowPrompt(false);
   }, []);
 
-  return { containerRef, showPrompt, enter, dismiss };
+  const toggle = useCallback(() => {
+    if (document.fullscreenElement) {
+      document.exitFullscreen?.().catch(() => {
+        // Ignore — toggle is best effort
+      });
+    } else if (containerRef.current?.requestFullscreen) {
+      containerRef.current.requestFullscreen().catch(() => {
+        // Ignore — toggle is best effort
+      });
+    }
+  }, []);
+
+  const canFullscreen =
+    typeof document !== "undefined" && !!document.documentElement.requestFullscreen;
+
+  return { containerRef, showPrompt, enter, dismiss, isFullscreen, canFullscreen, toggle };
 }
 
 const APIAdapter = {
@@ -449,6 +471,9 @@ const EditorPage = () => {
         exitWithoutSaving: exitWithoutSaving,
         revertToSaved: revertToSaved,
         hasUnsavedChanges: hasUnsavedChanges,
+        isFullscreen: fullscreen.isFullscreen,
+        canFullscreen: fullscreen.canFullscreen,
+        toggleFullscreen: fullscreen.toggle,
       }}
     >
       <div ref={fullscreen.containerRef} className="editor-fullscreen-container">
