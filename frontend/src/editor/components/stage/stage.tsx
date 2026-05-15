@@ -785,6 +785,7 @@ export const Stage = ({
       case TOOLS.PAINT:
         if (!showPopoverIfOverlapping(TOOLS.PAINT)) {
           dispatch(paintCharacterAppearance(actor.characterId, actor.appearance));
+          dispatch(selectToolId(TOOLS.POINTER));
         }
         handled = true;
         break;
@@ -1045,6 +1046,7 @@ export const Stage = ({
     switch (toolId) {
       case TOOLS.PAINT:
         dispatch(paintCharacterAppearance(actor.characterId, actor.appearance));
+        dispatch(selectToolId(TOOLS.POINTER));
         break;
       case TOOLS.STAMP:
         dispatch(selectToolItem(selFor([actor.id])));
