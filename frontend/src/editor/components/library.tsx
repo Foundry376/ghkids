@@ -13,8 +13,11 @@ import {
   createDoorCharacter,
   deleteCharacter,
   deleteCharacterAppearance,
+  setAppearanceOrder,
+  setCharacterZOrder,
   upsertCharacter,
 } from "../actions/characters-actions";
+import { ItemReorderProps, useReorderableList } from "../hooks/use-reorderable-list";
 
 import { setupRecordingForCharacter } from "../actions/recording-actions";
 
@@ -44,6 +47,7 @@ interface LibraryItemProps {
   onDoubleClick?: () => void;
   dragType?: string;
   appearance?: string;
+  reorderProps?: ItemReorderProps;
 }
 
 const LibraryItem: React.FC<LibraryItemProps> = ({
@@ -57,11 +61,12 @@ const LibraryItem: React.FC<LibraryItemProps> = ({
   onDoubleClick,
   dragType,
   appearance,
+  reorderProps,
 }) => {
   const onDragStart = useCallback(
     (event: React.DragEvent<HTMLDivElement>) => {
       event.dataTransfer.dropEffect = "copy";
-      event.dataTransfer.effectAllowed = "copy";
+      event.dataTransfer.effectAllowed = "copyMove";
 
       const el = event.target as HTMLElement;
       const { top, left } = el.getBoundingClientRect();
@@ -85,8 +90,9 @@ const LibraryItem: React.FC<LibraryItemProps> = ({
           }),
         );
       }
+      reorderProps?.onDragStart(event);
     },
-    [character.id, appearance, dragType],
+    [character.id, appearance, dragType, reorderProps],
   );
 
   const { spritesheet } = character;
@@ -96,6 +102,11 @@ const LibraryItem: React.FC<LibraryItemProps> = ({
       className={classNames({ item: true, selected: selected })}
       draggable={labelEditable}
       onDragStart={onDragStart}
+      onDragOver={reorderProps?.onDragOver}
+      onDragLeave={reorderProps?.onDragLeave}
+      onDrop={reorderProps?.onDrop}
+      onDragEnd={reorderProps?.onDragEnd}
+      data-reorder-position={reorderProps?.["data-reorder-position"]}
       onClick={onClick}
       onDoubleClick={onDoubleClick}
     >
@@ -206,13 +217,34 @@ export const Library: React.FC = () => {
     }
   };
 
+  const charactersOrdered =
+    characterZOrder.length > 0
+      ? characterZOrder.filter((id) => characters[id])
+      : Object.keys(characters);
+
+  const charactersReorder = useReorderableList({
+    kind: "character",
+    order: charactersOrdered,
+    onReorder: (newOrder) => dispatch(setCharacterZOrder(newOrder)),
+  });
+
+  const selectedCharacter = ui.selectedCharacterId ? characters[ui.selectedCharacterId] : null;
+  const appearanceIds = selectedCharacter
+    ? Object.keys(selectedCharacter.spritesheet.appearances)
+    : [];
+
+  const appearancesReorder = useReorderableList({
+    kind: "appearance",
+    order: appearanceIds,
+    onReorder: (newOrder) => {
+      if (selectedCharacter) dispatch(setAppearanceOrder(selectedCharacter.id, newOrder));
+    },
+  });
+
   const renderCharactersPanel = () => {
     return (
       <div className="item-grid" onClick={onClickCharactersBackground}>
-        {(characterZOrder.length > 0
-          ? characterZOrder.filter((id) => characters[id])
-          : Object.keys(characters)
-        ).map((id) => (
+        {charactersOrdered.map((id) => (
           <LibraryItem
             key={id}
             dragType="sprite"
@@ -223,6 +255,11 @@ export const Library: React.FC = () => {
             onClick={(event) => onClickCharacter(event, id)}
             selected={id === ui.selectedCharacterId}
             outlined={id === ui.selectedCharacterId && !ui.selectedActors}
+            reorderProps={
+              ui.selectedToolId === TOOLS.POINTER
+                ? charactersReorder.getItemProps(id)
+                : undefined
+            }
           />
         ))}
       </div>
@@ -230,26 +267,31 @@ export const Library: React.FC = () => {
   };
 
   const renderAppearancesPanel = () => {
-    const character = ui.selectedCharacterId ? characters[ui.selectedCharacterId] : null;
-
-    if (!character) {
+    if (!selectedCharacter) {
       return <div className="empty">Select an actor in your library to view it's appearances.</div>;
     }
 
     return (
       <div className="item-grid" onClick={onClickAppearancesBackground}>
-        {Object.keys(character.spritesheet.appearances).map((appearanceId) => (
+        {appearanceIds.map((appearanceId) => (
           <LibraryItem
             key={appearanceId}
-            character={character}
+            character={selectedCharacter}
             appearance={appearanceId}
             dragType="appearance"
-            label={character.spritesheet.appearanceNames[appearanceId]}
+            label={selectedCharacter.spritesheet.appearanceNames[appearanceId]}
             labelEditable={ui.selectedToolId === TOOLS.POINTER}
-            onDoubleClick={() => dispatch(paintCharacterAppearance(character.id, appearanceId))}
-            onClick={(event) => onClickAppearance(event, character.id, appearanceId)}
+            onDoubleClick={() =>
+              dispatch(paintCharacterAppearance(selectedCharacter.id, appearanceId))
+            }
+            onClick={(event) => onClickAppearance(event, selectedCharacter.id, appearanceId)}
             onChangeLabel={(value) =>
-              dispatch(changeCharacterAppearanceName(character.id, appearanceId, value))
+              dispatch(changeCharacterAppearanceName(selectedCharacter.id, appearanceId, value))
+            }
+            reorderProps={
+              ui.selectedToolId === TOOLS.POINTER
+                ? appearancesReorder.getItemProps(appearanceId)
+                : undefined
             }
           />
         ))}

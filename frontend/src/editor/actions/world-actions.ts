@@ -67,4 +67,25 @@ export type ActionUpdateWorldMetadata = {
   metadata: World["metadata"];
 };
 
-export type WorldActions = ActionUpsertGlobal | ActionDeleteGlobal | ActionUpdateWorldMetadata;
+export function setGlobalOrder(
+  worldId: string | undefined,
+  globalOrder: string[],
+): ActionSetGlobalOrder {
+  return {
+    type: types.SET_GLOBAL_ORDER,
+    worldId,
+    globalOrder,
+  };
+}
+
+export type ActionSetGlobalOrder = {
+  type: "SET_GLOBAL_ORDER";
+  worldId?: string;
+  globalOrder: string[];
+};
+
+export type WorldActions =
+  | ActionUpsertGlobal
+  | ActionDeleteGlobal
+  | ActionUpdateWorldMetadata
+  | ActionSetGlobalOrder;

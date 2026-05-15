@@ -810,9 +810,27 @@ html {
       .item {
         padding: 10px;
         text-align: center;
+        position: relative;
 
         &[draggable="true"] {
           cursor: grab;
+        }
+        &[data-reorder-position="before"]::before,
+        &[data-reorder-position="after"]::after {
+          content: "";
+          position: absolute;
+          top: 6px;
+          bottom: 6px;
+          width: 3px;
+          background: #007bff;
+          border-radius: 2px;
+          pointer-events: none;
+        }
+        &[data-reorder-position="before"]::before {
+          left: -2px;
+        }
+        &[data-reorder-position="after"]::after {
+          right: -2px;
         }
         .name {
           padding-top: 2px;
@@ -1223,6 +1241,7 @@ html {
     background-color: #c6c6c6;
     box-sizing: content-box;
     margin: 8px 0;
+    position: relative;
     &[draggable="true"] {
       cursor: grab;
     }
@@ -1232,6 +1251,23 @@ html {
     &.dropping-true {
       border: 2px solid rgba(91, 192, 222, 0.8);
       background: rgba(91, 192, 222, 0.35);
+    }
+    &[data-reorder-position="before"]::before,
+    &[data-reorder-position="after"]::after {
+      content: "";
+      position: absolute;
+      top: 4px;
+      bottom: 4px;
+      width: 3px;
+      background: #007bff;
+      border-radius: 2px;
+      pointer-events: none;
+    }
+    &[data-reorder-position="before"]::before {
+      left: -3px;
+    }
+    &[data-reorder-position="after"]::after {
+      right: -3px;
     }
 
     .name {
