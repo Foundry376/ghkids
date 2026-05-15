@@ -140,7 +140,7 @@ const PlayPage: React.FC = () => {
             size="sm"
             outline
             onClick={onToggleFullscreen}
-            title={isFullscreen ? "Show Partial Screen" : "Show Full Screen"}
+            title={isFullscreen ? "Exit Full Screen" : "Show Full Screen"}
           >
             <i className={`fa ${isFullscreen ? "fa-compress" : "fa-expand"}`} />
           </Button>

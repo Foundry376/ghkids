@@ -133,7 +133,7 @@ const Toolbar = () => {
                     className={`fa ${isFullscreen ? "fa-compress" : "fa-expand"} fa-fw`}
                     style={{ marginRight: 8 }}
                   />
-                  {isFullscreen ? "Show Partial Screen" : "Show Full Screen"}
+                  {isFullscreen ? "Exit Full Screen" : "Show Full Screen"}
                 </DropdownItem>
               </>
             )}
