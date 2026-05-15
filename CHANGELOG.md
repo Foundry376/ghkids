@@ -1,4 +1,31 @@
-<!-- LAST_COMMIT: 053fb3bb933427e34c628faaf0a7772af479951f -->
+<!-- LAST_COMMIT: be16e52b6d282c1bee113c92ecfdbf83e29acea1 -->
+
+## [2026-05-15]
+
+You can now select rules and use keyboard shortcuts to copy, cut, paste, and delete them — just like you'd expect! There's also a fullscreen button in the editor toolbar so you can use the whole screen while building. We fixed a bunch of crashes, including one where deleting a global variable would break any rules that used it.
+
+### Added
+
+- **Rule selection with copy/paste/delete shortcuts**: Click a rule to select it, then use Delete, Cmd+C, Cmd+X, Cmd+V to manage rules. Paste creates a fresh copy with new IDs. (#126)
+- **Fullscreen toggle in editor toolbar**: Re-enter or exit fullscreen from the ellipsis menu — available in both editor and player modes. (#133)
+
+### Changed
+
+- **Reset button redesign**: Uses a double-triangle (|<<) icon in black to clearly distinguish it from the step-by-step rewind controls. (#123)
+- **Rule input styling**: Horizontal/vertical number inputs now match the freeform variable input style for a more consistent look. (#140)
+- **Don't-care squares only on "before" side**: The crosshatched ignored-square overlay now correctly appears only on the left (before) side of rule previews. (#130)
+- **AI sprite generation**: Sprite prompts now constrain to side/top/front views unless the user explicitly requests another perspective. (#132)
+- Left side of rule recordings is readonly again during demonstration.
+
+### Fixed
+
+- Crash when deleting a global variable that was referenced in rules — rules are now cleaned up automatically. (#135)
+- Crash when deleting a character variable that was referenced in other characters' rules — references are scrubbed on delete. (#135)
+- Character z-ordering not working on the play page due to missing data. (#131)
+- Anchor square position in the Turn modal was off after the Y-up migration. (#138)
+- Crash when evaluated rule details were undefined for older localStorage worlds. (#134)
+- Screenshot generation crashing when a character or appearance sprite was missing. (#125)
+- 1-pixel offset when rotating or flipping appearance images in the sprite editor. (#124)
 
 ## [2026-05-08]
 
