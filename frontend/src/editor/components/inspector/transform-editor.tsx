@@ -78,7 +78,7 @@ export const TransformEditorModal = ({
               actor={{
                 id: "0",
                 variableValues: {},
-                position: { x: 3, y: 3 },
+                position: { x: 4, y: 4 },
                 appearance,
                 transform,
                 characterId,
