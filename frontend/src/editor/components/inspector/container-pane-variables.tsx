@@ -189,6 +189,7 @@ const PositionGridItem = ({ actor, coordinate, value, onChange }: PositionGridIt
     <div className={`variable-box variable-set-${!isMixed}`} draggable={!isMixed} onDragStart={_onDragStart}>
       <div className="name">{coordinate === "x" ? "Horizontal" : "Vertical"}</div>
       <input
+        className="value"
         type="number"
         value={isMixed ? "" : value}
         placeholder={isMixed ? "—" : undefined}
@@ -196,7 +197,6 @@ const PositionGridItem = ({ actor, coordinate, value, onChange }: PositionGridIt
           const num = Number(e.target.value);
           if (!isNaN(num)) onChange(num);
         }}
-        style={{ width: "100%" }}
       />
     </div>
   );
