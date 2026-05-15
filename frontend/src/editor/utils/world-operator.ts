@@ -52,6 +52,7 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
   let input: FrameInput;
   let evaluatedRuleDetails: EvaluatedRuleDetailsMap = {};
   let frameAccumulator: FrameAccumulator;
+  let crossStageActorsForDestStage: { [destStageId: string]: { [actorId: string]: Actor } } = {};
 
   function wrappedPosition({ x, y }: PositionRelativeToWorld) {
     // World coordinates are 1-indexed (bottom-left = (1, 1)). Wrap relative to
@@ -508,6 +509,9 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
           if ("actorId" in action && rule.actors[action.actorId]) {
             requiredActorIds.push(action.actorId);
           }
+          if (action.type === "teleport" && rule.actors[action.doorActorId]) {
+            requiredActorIds.push(action.doorActorId);
+          }
         }
       }
       for (const { left, right } of rule.conditions) {
@@ -601,6 +605,45 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
                 animationStyle: action.animationStyle,
               });
             }
+          } else if (action.type === "teleport") {
+            const door = stageActorForId[action.doorActorId];
+            if (!door) {
+              return;
+            }
+            const doorCharacter = characters[door.characterId];
+            if (doorCharacter?.kind !== "door") {
+              return;
+            }
+            const destXStr = getVariableValue(door, doorCharacter, DOOR_VARIABLE_IDS.destinationX, "=");
+            const destYStr = getVariableValue(door, doorCharacter, DOOR_VARIABLE_IDS.destinationY, "=");
+            const destStageRaw =
+              getVariableValue(door, doorCharacter, DOOR_VARIABLE_IDS.destinationStage, "=") ?? "";
+
+            const destX = Number(destXStr);
+            const destY = Number(destYStr);
+            if (!Number.isFinite(destX) || !Number.isFinite(destY)) {
+              return;
+            }
+            const destStageId = destStageRaw || stage.id;
+
+            if (destStageId === stage.id) {
+              stageActor.position = { x: destX, y: destY };
+              frameAccumulator?.push({ ...stageActor, actionIdx, animationStyle: "none" });
+            } else {
+              const destStage = previousWorld.stages[destStageId];
+              if (!destStage) {
+                return;
+              }
+              crossStageActorsForDestStage[destStageId] =
+                crossStageActorsForDestStage[destStageId] ?? deepClone(destStage.actors);
+              const teleported: Actor = {
+                ...stageActor,
+                position: { x: destX, y: destY },
+              };
+              crossStageActorsForDestStage[destStageId][stageActor.id] = teleported;
+              delete actors[stageActor.id];
+              delete stageActorForId[action.actorId];
+            }
           } else if (action.type === "delete") {
             delete actors[stageActor.id];
             if (action.animationStyle !== "skip") {
@@ -685,66 +728,6 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
     };
   }
 
-  function applyDoorTeleports(): { [destStageId: string]: { [actorId: string]: Actor } } {
-    const crossStageActorsForDestStage: { [destStageId: string]: { [actorId: string]: Actor } } =
-      {};
-
-    // Identify door actors present on the Current Level. Cache their destinations
-    // so we don't re-read variable values for each mover.
-    type DoorInfo = { destX: number; destY: number; destStageId: string };
-    const doorsByPosKey: { [posKey: string]: DoorInfo } = {};
-    for (const a of Object.values(actors)) {
-      const character = characters[a.characterId];
-      if (character?.kind !== "door") continue;
-
-      const destXStr = getVariableValue(a, character, DOOR_VARIABLE_IDS.destinationX, "=");
-      const destYStr = getVariableValue(a, character, DOOR_VARIABLE_IDS.destinationY, "=");
-      const destStageRaw =
-        getVariableValue(a, character, DOOR_VARIABLE_IDS.destinationStage, "=") ?? "";
-
-      const destX = Number(destXStr);
-      const destY = Number(destYStr);
-      if (!Number.isFinite(destX) || !Number.isFinite(destY)) continue;
-
-      const destStageId = destStageRaw || stage.id;
-      doorsByPosKey[`${a.position.x},${a.position.y}`] = { destX, destY, destStageId };
-    }
-
-    if (Object.keys(doorsByPosKey).length === 0) {
-      return crossStageActorsForDestStage;
-    }
-
-    // Teleport any non-door actor sitting on a door. Doors don't teleport themselves,
-    // and we only apply one teleport per actor per tick to avoid within-tick chains.
-    for (const mover of Object.values(actors)) {
-      const moverCharacter = characters[mover.characterId];
-      if (moverCharacter?.kind === "door") continue;
-
-      const door = doorsByPosKey[`${mover.position.x},${mover.position.y}`];
-      if (!door) continue;
-
-      if (door.destStageId === stage.id) {
-        mover.position = { x: door.destX, y: door.destY };
-        frameAccumulator?.push({ ...mover, animationStyle: "none" });
-      } else {
-        const destStage = previousWorld.stages[door.destStageId];
-        if (!destStage) continue;
-
-        crossStageActorsForDestStage[door.destStageId] =
-          crossStageActorsForDestStage[door.destStageId] ?? deepClone(destStage.actors);
-
-        const teleported: Actor = {
-          ...mover,
-          position: { x: door.destX, y: door.destY },
-        };
-        crossStageActorsForDestStage[door.destStageId][mover.id] = teleported;
-        delete actors[mover.id];
-      }
-    }
-
-    return crossStageActorsForDestStage;
-  }
-
   function resetForRule(
     rule: Rule | RuleTreeFlowItemCheck,
     { offset, applyActions }: { offset: Position; applyActions: boolean },
@@ -782,6 +765,7 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
     }
 
     frameAccumulator = new FrameAccumulator(actors);
+    crossStageActorsForDestStage = {};
 
     // lay out the before state and apply any rules that apply to
     // the actors currently on the board
@@ -790,10 +774,17 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
       operator.applyRule(rule, { createActorIds: false, stageActorForId: { ...actors } });
     }
 
+    const stageUpdates: Record<string, { actors: unknown }> = {
+      [stage.id]: { actors: u.constant(actors) },
+    };
+    for (const [destStageId, destActors] of Object.entries(crossStageActorsForDestStage)) {
+      stageUpdates[destStageId] = { actors: u.constant(destActors) };
+    }
+
     return u(
       {
         globals: u.constant(globals),
-        stages: { [stage.id]: { actors: u.constant(actors) } },
+        stages: stageUpdates,
         evaluatedTickFrames: frameAccumulator.getFrames(),
       },
       previousWorld,
@@ -818,13 +809,12 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
     actors = deepClone(stage.actors);
     frameAccumulator = new FrameAccumulator(stage.actors);
     evaluatedRuleDetails = {};
+    crossStageActorsForDestStage = {};
 
     Object.values(actors).forEach((actor) => ActorOperator(actor).tickAllRules());
     const evaluatedSomeRule = Object.values(evaluatedRuleDetails).some((actorRuleDetails) =>
       Object.values(actorRuleDetails).some((details) => details.passed),
     );
-
-    const crossStageActorsForDestStage = applyDoorTeleports();
 
     const beforeStages: HistorySnapshot["stages"] = {
       [stage.id]: { actors: stage.actors },

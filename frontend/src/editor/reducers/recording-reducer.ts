@@ -5,6 +5,7 @@ import worldReducer from "./world-reducer";
 
 import {
   Actor,
+  Characters,
   EditorState,
   RecordingState,
   Rule,
@@ -86,7 +87,7 @@ function recordingReducer(
     // Normally, rule actions are appended to the list of actions in the rule, but
     // if you modify a var or global you've already modified in the rule, the new
     // action replaces it. There isn't any value in intra-rule changes.
-    const recordingActions = buildActionsFromStageActions(state, action);
+    const recordingActions = buildActionsFromStageActions(state, action, characters);
     if (recordingActions) {
       nextState.actions = [
         ...nextState.actions.filter(
@@ -267,13 +268,23 @@ function recordingReducer(
 function buildActionsFromStageActions(
   { actorId, beforeWorld, afterWorld }: RecordingState,
   action: Actions,
+  characters: Characters,
 ): RuleAction[] | null {
-  const mainActorBeforePosition = getCurrentStageForWorld(beforeWorld)!.actors[actorId!].position;
+  const beforeStage = getCurrentStageForWorld(beforeWorld)!;
+  const mainActorBeforePosition = beforeStage.actors[actorId!].position;
+
+  const doorActorAtPosition = (x: number, y: number): Actor | null => {
+    for (const a of Object.values(beforeStage.actors)) {
+      if (a.position.x !== x || a.position.y !== y) continue;
+      if (characters[a.characterId]?.kind === "door") return a;
+    }
+    return null;
+  };
 
   switch (action.type) {
     case Types.UPSERT_ACTORS: {
       return action.upserts
-        .map(({ id: actorId, values }): RuleAction | null => {
+        .flatMap(({ id: actorId, values }): RuleAction | RuleAction[] | null => {
           const existing = afterWorld && getCurrentStageForWorld(afterWorld)?.actors[actorId];
           if (!existing) {
             return {
@@ -291,7 +302,7 @@ function buildActionsFromStageActions(
             if (pos.x === existing.position.x && pos.y === existing.position.y) {
               return null;
             }
-            return {
+            const moveAction: RuleAction = {
               type: "move",
               actorId: actorId,
               offset: {
@@ -299,6 +310,14 @@ function buildActionsFromStageActions(
                 y: pos.y! - mainActorBeforePosition.y,
               },
             };
+            const door = doorActorAtPosition(pos.x!, pos.y!);
+            if (door && door.id !== actorId) {
+              return [
+                moveAction,
+                { type: "teleport", actorId, doorActorId: door.id },
+              ];
+            }
+            return moveAction;
           }
           if ("variableValues" in values) {
             const [key, value] = Object.entries(values.variableValues || {})[0];
