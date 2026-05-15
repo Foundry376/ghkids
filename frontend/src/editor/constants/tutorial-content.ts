@@ -17,7 +17,7 @@ import { stopPlayback } from "../actions/ui-actions";
 import { TutorialAnnotationProps } from "../components/tutorial/annotation";
 import { PoseKey } from "../components/tutorial/girl";
 import { getCurrentStageForWorld } from "../utils/selectors";
-import { RECORDING_PHASE, TOOLS } from "./constants";
+import { TOOLS } from "./constants";
 
 export const poseFrames = {
   "sitting-looking": ["sitting-looking"],
@@ -537,7 +537,6 @@ export const baseTutorialContent: TutorialStepContent[] = [
       stateMatching: (state) => {
         return (
           state.ui.selectedToolId === TOOLS.RECORD &&
-          state.recording.phase === RECORDING_PHASE.RECORD &&
           state.recording.characterId === "oou4u6jemi"
         );
       },
@@ -624,7 +623,6 @@ export const baseTutorialContent: TutorialStepContent[] = [
       stateMatching: (state) => {
         return (
           state.ui.selectedToolId === TOOLS.RECORD &&
-          state.recording.phase === RECORDING_PHASE.RECORD &&
           state.recording.characterId === "oou4u6jemi"
         );
       },

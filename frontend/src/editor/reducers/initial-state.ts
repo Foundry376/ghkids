@@ -1,5 +1,5 @@
 import { EditorState, World } from "../../types";
-import { RECORDING_PHASE, TOOLS, WORLDS } from "../constants/constants";
+import { TOOLS, WORLDS } from "../constants/constants";
 import stage from "./initial-state-stage";
 
 const InitialWorld: World = {
@@ -84,7 +84,6 @@ const InitialState: EditorState = {
     },
   },
   recording: {
-    phase: RECORDING_PHASE.RECORD,
     characterId: null,
     actorId: null,
     ruleId: null,
