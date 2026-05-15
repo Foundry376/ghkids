@@ -71,6 +71,57 @@ export default function charactersReducer(
       );
     }
 
+    case Types.SET_APPEARANCE_ORDER: {
+      const character = state[action.characterId];
+      if (!character) return state;
+      const { spritesheet } = character;
+      const ordered = action.appearanceOrder.filter(
+        (id) => spritesheet.appearances[id] !== undefined,
+      );
+      for (const id of Object.keys(spritesheet.appearances)) {
+        if (!ordered.includes(id)) ordered.push(id);
+      }
+      const appearances: typeof spritesheet.appearances = {};
+      const appearanceNames: typeof spritesheet.appearanceNames = {};
+      const appearanceInfo: NonNullable<typeof spritesheet.appearanceInfo> = {};
+      for (const id of ordered) {
+        appearances[id] = spritesheet.appearances[id];
+        appearanceNames[id] = spritesheet.appearanceNames[id];
+        if (spritesheet.appearanceInfo?.[id]) {
+          appearanceInfo[id] = spritesheet.appearanceInfo[id];
+        }
+      }
+      const newSpritesheet = {
+        ...spritesheet,
+        appearances,
+        appearanceNames,
+        ...(spritesheet.appearanceInfo ? { appearanceInfo } : {}),
+      };
+      return {
+        ...state,
+        [action.characterId]: { ...character, spritesheet: newSpritesheet },
+      };
+    }
+
+    case Types.SET_CHARACTER_VARIABLE_ORDER: {
+      const character = state[action.characterId];
+      if (!character) return state;
+      const ordered = action.variableOrder.filter(
+        (id) => character.variables[id] !== undefined,
+      );
+      for (const id of Object.keys(character.variables)) {
+        if (!ordered.includes(id)) ordered.push(id);
+      }
+      const variables: typeof character.variables = {};
+      for (const id of ordered) {
+        variables[id] = character.variables[id];
+      }
+      return {
+        ...state,
+        [action.characterId]: { ...character, variables },
+      };
+    }
+
     case Types.CREATE_CHARACTER_EVENT_CONTAINER: {
       const { characterId, eventType, eventCode, id } = action;
       if (!state[characterId]) {

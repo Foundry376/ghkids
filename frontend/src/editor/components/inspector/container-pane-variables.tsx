@@ -6,10 +6,15 @@ import { Button, ButtonDropdown, DropdownItem, DropdownMenu, DropdownToggle, Mod
 import { DeepPartial } from "redux";
 import { Actor, ActorTransform, Character, Global, RuleTreeItem, WorldMinimal } from "../../../types";
 import { useEditorSelector } from "../../../hooks/redux";
-import { deleteCharacterVariable, upsertCharacter } from "../../actions/characters-actions";
+import {
+  deleteCharacterVariable,
+  setCharacterVariableOrder,
+  upsertCharacter,
+} from "../../actions/characters-actions";
 import { changeActors } from "../../actions/stage-actions";
 import { selectToolId } from "../../actions/ui-actions";
-import { deleteGlobal, upsertGlobal } from "../../actions/world-actions";
+import { deleteGlobal, setGlobalOrder, upsertGlobal } from "../../actions/world-actions";
+import { useReorderableList } from "../../hooks/use-reorderable-list";
 import { TOOLS } from "../../constants/constants";
 import { findRules, FindRulesResult, ruleUsesVariable } from "../../utils/stage-helpers";
 import Sprite from "../sprites/sprite";
@@ -364,6 +369,22 @@ export const ContainerPaneVariables = ({
     }
   };
 
+  const characterVariableIds = Object.keys(character?.variables ?? {});
+  const characterVariablesReorder = useReorderableList({
+    kind: "character-variable",
+    order: characterVariableIds,
+    onReorder: (newOrder) => {
+      if (character) dispatch(setCharacterVariableOrder(character.id, newOrder));
+    },
+  });
+
+  const globalIds = Object.keys(world.globals);
+  const globalsReorder = useReorderableList({
+    kind: "global",
+    order: globalIds,
+    onReorder: (newOrder) => dispatch(setGlobalOrder(world.id, newOrder)),
+  });
+
   function _renderCharacterSection() {
     const actorValues = actor ? actor.variableValues : {};
 
@@ -401,7 +422,7 @@ export const ContainerPaneVariables = ({
         {Object.values(character.variables).map((definition) => (
           <VariableGridItem
             disabled={selectedToolId !== TOOLS.POINTER}
-            draggable={!!actor && selectedToolId === TOOLS.POINTER}
+            draggable={selectedToolId === TOOLS.POINTER}
             actorId={actor ? actor.id : null}
             key={definition.id}
             definition={definition}
@@ -411,6 +432,11 @@ export const ContainerPaneVariables = ({
             onChangeDefinition={_onChangeVarDefinition}
             onChangeValue={_onChangeVarValue}
             onBlurValue={(id, value) => _onChangeVarValue(id, value)}
+            reorderProps={
+              selectedToolId === TOOLS.POINTER
+                ? characterVariablesReorder.getItemProps(definition.id)
+                : undefined
+            }
           />
         ))}
         {Object.values(character.variables).length === 0 && (
@@ -437,6 +463,11 @@ export const ContainerPaneVariables = ({
             onChangeDefinition={_onChangeGlobalDefinition}
             onChangeValue={(id, value) => _onChangeGlobalDefinition(id, { value })}
             onBlurValue={(id, value) => _onChangeGlobalDefinition(id, { value })}
+            reorderProps={
+              selectedToolId === TOOLS.POINTER
+                ? globalsReorder.getItemProps(definition.id)
+                : undefined
+            }
           />
         ))}
       </div>

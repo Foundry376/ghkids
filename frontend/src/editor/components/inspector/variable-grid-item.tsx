@@ -15,6 +15,7 @@ export const VariableGridItem = ({
   onBlurValue,
   onChangeValue,
   onClick,
+  reorderProps,
 }: {
   actorId: string | null;
   draggable: boolean;
@@ -27,6 +28,14 @@ export const VariableGridItem = ({
   onChangeDefinition: (id: string, partial: Partial<Character["variables"][0]>) => void;
   onBlurValue: (id: string, value: string | undefined) => void;
   onClick: (id: string, event: React.MouseEvent) => void;
+  reorderProps?: {
+    onDragStart: (event: React.DragEvent) => void;
+    onDragOver: (event: React.DragEvent) => void;
+    onDragLeave: (event: React.DragEvent) => void;
+    onDrop: (event: React.DragEvent) => void;
+    onDragEnd: (event: React.DragEvent) => void;
+    "data-reorder-position"?: "before" | "after";
+  };
 }) => {
   const defaultValue = "defaultValue" in definition ? definition.defaultValue : undefined;
   const displayValue = isMixed ? "" : (value !== undefined ? value : defaultValue);
@@ -48,29 +57,37 @@ export const VariableGridItem = ({
       event.preventDefault();
       return;
     }
-    const dragValue = value !== undefined ? value : defaultValue;
+    const isCharacterVar = "defaultValue" in definition;
+    const canDragValue = !isCharacterVar || !!actorId;
 
     event.dataTransfer.dropEffect = "copy";
-    event.dataTransfer.effectAllowed = "copy";
-    event.dataTransfer.setData(
-      "variable",
-      JSON.stringify(
-        actorId
-          ? { actorId: actorId, variableId: definition.id, value: dragValue || "" }
-          : { globalId: definition.id, value: dragValue || "" },
-      ),
-    );
+    event.dataTransfer.effectAllowed = "copyMove";
+    if (canDragValue) {
+      const dragValue = value !== undefined ? value : defaultValue;
+      event.dataTransfer.setData(
+        "variable",
+        JSON.stringify(
+          actorId
+            ? { actorId: actorId, variableId: definition.id, value: dragValue || "" }
+            : { globalId: definition.id, value: dragValue || "" },
+        ),
+      );
+    }
+    reorderProps?.onDragStart(event);
   };
 
   const _onDragOver = (event: React.DragEvent) => {
     if (type === "actor" && event.dataTransfer.types.includes("sprite")) {
       event.preventDefault();
       setDropping(true);
+      return;
     }
+    reorderProps?.onDragOver(event);
   };
 
-  const _onDragLeave = () => {
+  const _onDragLeave = (event: React.DragEvent) => {
     setDropping(false);
+    reorderProps?.onDragLeave(event);
   };
 
   const _onDrop = (event: React.DragEvent) => {
@@ -79,7 +96,10 @@ export const VariableGridItem = ({
       onChangeValue(definition.id, dragAnchorActorId);
       event.preventDefault();
       event.stopPropagation();
+      setDropping(false);
+      return;
     }
+    reorderProps?.onDrop(event);
     setDropping(false);
   };
 
@@ -125,6 +145,8 @@ export const VariableGridItem = ({
       onDragOver={_onDragOver}
       onDragLeave={_onDragLeave}
       onDrop={_onDrop}
+      onDragEnd={reorderProps?.onDragEnd}
+      data-reorder-position={reorderProps?.["data-reorder-position"]}
     >
       <TapToEditLabel
         className="name"

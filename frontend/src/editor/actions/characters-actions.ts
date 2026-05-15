@@ -233,6 +233,40 @@ export type ActionSetCharacterZOrder = {
   characterZOrder: string[];
 };
 
+export function setAppearanceOrder(
+  characterId: string,
+  appearanceOrder: string[],
+): ActionSetAppearanceOrder {
+  return {
+    type: types.SET_APPEARANCE_ORDER,
+    characterId,
+    appearanceOrder,
+  };
+}
+
+export type ActionSetAppearanceOrder = {
+  type: "SET_APPEARANCE_ORDER";
+  characterId: string;
+  appearanceOrder: string[];
+};
+
+export function setCharacterVariableOrder(
+  characterId: string,
+  variableOrder: string[],
+): ActionSetCharacterVariableOrder {
+  return {
+    type: types.SET_CHARACTER_VARIABLE_ORDER,
+    characterId,
+    variableOrder,
+  };
+}
+
+export type ActionSetCharacterVariableOrder = {
+  type: "SET_CHARACTER_VARIABLE_ORDER";
+  characterId: string;
+  variableOrder: string[];
+};
+
 export type CharacterActions =
   | ActionUpsertCharacter
   | ActionDeleteCharacter
@@ -241,4 +275,6 @@ export type CharacterActions =
   | ActionDeleteCharacterVariable
   | ActionCreateCharacterEventContainer
   | ActionCreateCharacterFlowContainer
-  | ActionSetCharacterZOrder;
+  | ActionSetCharacterZOrder
+  | ActionSetAppearanceOrder
+  | ActionSetCharacterVariableOrder;

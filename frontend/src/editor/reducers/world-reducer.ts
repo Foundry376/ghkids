@@ -34,6 +34,19 @@ export default function worldReducer(
     case Types.DELETE_GLOBAL: {
       return u({ globals: u.omit(action.globalId) }, state);
     }
+    case Types.SET_GLOBAL_ORDER: {
+      const ordered = action.globalOrder.filter(
+        (id) => state.globals[id] !== undefined,
+      );
+      for (const id of Object.keys(state.globals)) {
+        if (!ordered.includes(id)) ordered.push(id);
+      }
+      const globals = {} as typeof state.globals;
+      for (const id of ordered) {
+        globals[id] = state.globals[id];
+      }
+      return { ...state, globals };
+    }
     case Types.INPUT_FOR_GAME_STATE: {
       const inputUpdates: { keys?: unknown; clicks?: unknown } = {};
       if (action.keys !== undefined) {
