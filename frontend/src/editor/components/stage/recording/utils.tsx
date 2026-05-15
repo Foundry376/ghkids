@@ -23,7 +23,10 @@ export function offsetForEditingRule(extent: RuleExtent, world: WorldMinimal) {
   const ey = extent.ymax - extent.ymin;
   return {
     x: Math.round(stage!.width / 2 + ex / 2),
-    y: Math.round(stage!.height / 2 + ey / 2),
+    // Y-up world: ymax is the visual top of the extent. Subtract ey/2 so the
+    // shifted extent sits in the lower half of the stage (where the previous
+    // Y-down formula `+ ey/2` placed it before the coordinate flip).
+    y: Math.round(stage!.height / 2 - ey / 2),
   };
 }
 
