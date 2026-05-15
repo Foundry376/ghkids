@@ -87,13 +87,19 @@ const ActorSelectionPopover: React.FC<ActorSelectionPopoverProps> = ({
                 overflow: "hidden",
               }}
             >
-              <div style={{ position: "relative" }}>
+              <div
+                style={{
+                  position: "relative",
+                  width: bounds.width * STAGE_CELL_SIZE,
+                  height: bounds.height * STAGE_CELL_SIZE,
+                }}
+              >
                 <ActorSprite
                   character={character}
-                  // The container is sized to bounds.width x bounds.height. The
-                  // ActorSprite renderer treats position as 1-indexed Y-up, so
-                  // shift the bounds offset (which is a Y-down "from top" cell
-                  // shift) into 1-indexed Y-up world coords for this container.
+                  // The wrapper is sized to bounds.width x bounds.height cells,
+                  // and ActorSprite positions itself via CSS `bottom` in Y-up
+                  // 1-indexed world coords. Shift the bounds offset (a Y-down
+                  // "from top" cell shift) into Y-up coords within the wrapper.
                   actor={{
                     ...actor,
                     position: {
