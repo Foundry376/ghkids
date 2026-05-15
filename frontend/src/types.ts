@@ -1,4 +1,4 @@
-import { RECORDING_PHASE, TOOLS, WORLDS } from "./editor/constants/constants";
+import { TOOLS, WORLDS } from "./editor/constants/constants";
 import { Frame } from "./editor/utils/frame-accumulator";
 
 export type ImageData = string;
@@ -431,7 +431,6 @@ export type Game = {
 };
 
 export type RecordingState = {
-  phase: RECORDING_PHASE;
   characterId: string | null;
   actorId: string | null;
   ruleId: string | null;

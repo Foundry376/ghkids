@@ -4,7 +4,6 @@ import { Dispatch } from "redux";
 
 import { makeRequest } from "../../../helpers/api";
 import { cancelRecording, finishRecording } from "../../actions/recording-actions";
-import { RECORDING_PHASE } from "../../constants/constants";
 import { getCurrentStageForWorld } from "../../utils/selectors";
 import { Actor, Characters, RecordingState, RuleAction, RuleCondition, Stage } from "../../../types";
 
@@ -185,54 +184,41 @@ const StageRecordingControls: React.FC<StageRecordingControlsProps> = ({
   };
 
   const onNext = async () => {
-    if (recording.phase === RECORDING_PHASE.RECORD) {
-      let generatedName = "Untitled Rule";
+    let generatedName = "Untitled Rule";
 
-      try {
-        const payload = buildNamingPayload(recording, characters);
+    try {
+      const payload = buildNamingPayload(recording, characters);
 
-        console.log("Payload:", payload);
+      console.log("Payload:", payload);
 
-        const resp = (await makeRequest("/generate-rule-name", {
-          method: "POST",
-          json: { recording: payload },
-        })) as { name?: string } | null;
-        if (resp && resp.name) {
-          generatedName = resp.name;
-          console.log("Suggested rule name:", generatedName);
-        }
-      } catch (err) {
-        console.error("Failed to auto-generate rule name:", err);
+      const resp = (await makeRequest("/generate-rule-name", {
+        method: "POST",
+        json: { recording: payload },
+      })) as { name?: string } | null;
+      if (resp && resp.name) {
+        generatedName = resp.name;
+        console.log("Suggested rule name:", generatedName);
       }
-
-      dispatch(finishRecording(generatedName));
+    } catch (err) {
+      console.error("Failed to auto-generate rule name:", err);
     }
-  };
 
-  const { phase } = recording;
-
-  const message: Record<string, string> = {
-    [RECORDING_PHASE.RECORD]:
-      "Use the handles to expand the frame and act out what you want to happen in the picture on the right.",
-  };
-
-  const next: Record<string, React.ReactNode> = {
-    [RECORDING_PHASE.RECORD]: (
-      <span>
-        <i className="fa fa-checkmark" />{" "}
-        Done
-      </span>
-    ),
+    dispatch(finishRecording(generatedName));
   };
 
   return (
     <div className="stage-controls">
-      <div className="left message">{message[phase]}</div>
+      <div className="left message">
+        Use the handles to expand the frame and act out what you want to happen in the picture on
+        the right.
+      </div>
       <div style={{ flex: 1 }} />
       <div className="right">
         <Button onClick={onCancel}>Cancel</Button>{" "}
         <Button data-tutorial-id="record-next-step" color="success" onClick={onNext}>
-          {next[phase]}
+          <span>
+            <i className="fa fa-checkmark" /> Done
+          </span>
         </Button>{" "}
       </div>
     </div>

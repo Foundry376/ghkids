@@ -19,7 +19,7 @@ import {
   getAfterWorldForRecording,
   offsetForEditingRule,
 } from "../components/stage/recording/utils";
-import { RECORDING_PHASE, WORLDS } from "../constants/constants";
+import { WORLDS } from "../constants/constants";
 import { defaultAppearanceId } from "../utils/character-helpers";
 import { extentByShiftingExtent } from "../utils/recording-helpers";
 import { getCurrentStageForWorld } from "../utils/selectors";
@@ -27,7 +27,6 @@ import { actorFilledPoints } from "../utils/stage-helpers";
 import WorldOperator from "../utils/world-operator";
 
 function stateForEditingRule(
-  phase: RECORDING_PHASE,
   rule: Rule | RuleTreeFlowItemCheck,
   entireState: EditorState,
 ) {
@@ -37,7 +36,6 @@ function stateForEditingRule(
   return {
     ruleId: rule.id,
     characterId: rule.actors[rule.mainActorId].characterId,
-    phase: phase,
     actorId: rule.mainActorId,
     conditions: u.constant(rule.conditions),
     actions: "actions" in rule ? u.constant(rule.actions) : u.constant(null),
@@ -108,7 +106,6 @@ function recordingReducer(
         {
           ruleId: null,
           characterId: actor.characterId,
-          phase: RECORDING_PHASE.RECORD,
           actorId: actor.id,
           actions: u.constant([]),
           conditions: u.constant([
@@ -154,10 +151,10 @@ function recordingReducer(
           },
         },
       };
-      return u(stateForEditingRule(RECORDING_PHASE.RECORD, initialRule, entireState), nextState);
+      return u(stateForEditingRule(initialRule, entireState), nextState);
     }
     case Types.EDIT_RULE_RECORDING: {
-      return u(stateForEditingRule(RECORDING_PHASE.RECORD, action.rule, entireState), nextState);
+      return u(stateForEditingRule(action.rule, entireState), nextState);
     }
     case Types.SETUP_CHECK_RECORDING_FOR_ACTOR: {
       // Initial creation of a precondition check with a selected actor on the
@@ -171,7 +168,6 @@ function recordingReducer(
           {
             ruleId: action.check.id,
             characterId: actor.characterId,
-            phase: RECORDING_PHASE.RECORD,
             actorId: actor.id,
             actions: u.constant(null),
             conditions: u.constant([
@@ -196,10 +192,7 @@ function recordingReducer(
         );
       }
       // Fallback: if actor not found, use the standard editing path
-      return u(
-        stateForEditingRule(RECORDING_PHASE.RECORD, action.check, entireState),
-        nextState,
-      );
+      return u(stateForEditingRule(action.check, entireState), nextState);
     }
     case Types.FINISH_RECORDING: {
       return Object.assign({}, initialState.recording);

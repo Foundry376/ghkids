@@ -34,7 +34,3 @@ export enum TOOLS {
   IGNORE_SQUARE = "ignore-square",
   ADD_CLICK_CONDITION = "add-click-condition",
 }
-
-export enum RECORDING_PHASE {
-  RECORD = "record",
-}

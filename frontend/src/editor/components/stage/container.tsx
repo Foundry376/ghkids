@@ -11,7 +11,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import * as Types from "../../../types";
 import { EvaluatedRuleDetailsMap, EvaluatedSquare, UIState } from "../../../types";
 import { useEditorSelector } from "../../../hooks/redux";
-import { RECORDING_PHASE } from "../../constants/constants";
 import { collectDoorsByDestinationStage } from "../../utils/door-constants";
 import { getCurrentStageForWorld } from "../../utils/selectors";
 import { Library } from "../library";
@@ -69,54 +68,52 @@ const StageContainer = ({ readonly, immersive }: { readonly?: boolean; immersive
     controls = (
       <StageRecordingControls characters={characters} dispatch={dispatch} recording={recording} />
     );
-    if (recording.phase === RECORDING_PHASE.RECORD) {
-      const evaluatedSquares = getEvaluatedSquares(
-        recording.ruleId,
-        world.evaluatedRuleDetails,
-        selectedActors,
-      );
+    const evaluatedSquares = getEvaluatedSquares(
+      recording.ruleId,
+      world.evaluatedRuleDetails,
+      selectedActors,
+    );
 
-      stageA = (
+    stageA = (
+      <Stage
+        style={{ marginRight: 2 }}
+        world={recording.beforeWorld}
+        stage={getCurrentStageForWorld(recording.beforeWorld)!}
+        recordingExtent={recording.extent}
+        recordingCentered
+        evaluatedSquares={evaluatedSquares}
+        interactionMode="full"
+      />
+    );
+    if (recording.actions !== null) {
+      stageB = (
         <Stage
-          style={{ marginRight: 2 }}
-          world={recording.beforeWorld}
-          stage={getCurrentStageForWorld(recording.beforeWorld)!}
+          style={{ marginLeft: 2 }}
+          world={recording.afterWorld}
+          stage={getCurrentStageForWorld(recording.afterWorld)!}
           recordingExtent={recording.extent}
           recordingCentered
-          evaluatedSquares={evaluatedSquares}
-          interactionMode="full"
         />
       );
-      if (recording.actions !== null) {
-        stageB = (
-          <Stage
-            style={{ marginLeft: 2 }}
-            world={recording.afterWorld}
-            stage={getCurrentStageForWorld(recording.afterWorld)!}
-            recordingExtent={recording.extent}
-            recordingCentered
-          />
-        );
-      }
-      actions = (
-        <div className="recording-specifics">
-          <div
-            style={{
-              position: "absolute",
-              zIndex: 2,
-              transform: "translate(0, -100%)",
-              paddingBottom: 5,
-            }}
-          >
-            <StageRecordingTools />
-          </div>
-          <RecordingConditions characters={characters} recording={recording} />
-          {recording.actions !== null && (
-            <RecordingActions characters={characters} recording={recording} />
-          )}
-        </div>
-      );
     }
+    actions = (
+      <div className="recording-specifics">
+        <div
+          style={{
+            position: "absolute",
+            zIndex: 2,
+            transform: "translate(0, -100%)",
+            paddingBottom: 5,
+          }}
+        >
+          <StageRecordingTools />
+        </div>
+        <RecordingConditions characters={characters} recording={recording} />
+        {recording.actions !== null && (
+          <RecordingActions characters={characters} recording={recording} />
+        )}
+      </div>
+    );
   }
 
   /**
