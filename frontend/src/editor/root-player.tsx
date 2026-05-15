@@ -20,8 +20,8 @@ interface RootPlayerProps {
 export const RootPlayer = ({ world: gameWorld, editorStoreRef, immersive }: RootPlayerProps) => {
   const editorStore = useMemo(() => {
     const migrated = applyDataMigrations(gameWorld);
-    const { world, characters } = migrated.data;
-    const state = u({ world, characters }, initialState) as EditorState;
+    const { world, characters, characterZOrder } = migrated.data;
+    const state = u({ world, characters, characterZOrder }, initialState) as EditorState;
     const editorStore = configureStore(state);
     window.editorStore = editorStore;
     return editorStore;
