@@ -533,7 +533,7 @@ export class PaintModel {
     const { imageData } = this.state;
     if (!imageData) return null;
 
-    const prompt = `Generate a pixel art sprite with a solid background based on the following description: ${description}`;
+    const prompt = `Generate a pixel art sprite with a solid background based on the following description: ${description}. The sprite must be drawn from a strict side view, top-down view, or front view only — never a diagonal, three-quarters, or isometric perspective, unless the description explicitly requests one of those views.`;
     try {
       const data = await makeRequest<{ imageUrl?: string; name?: string; error?: string }>(
         `/generate-sprite?prompt=${encodeURIComponent(prompt)}&width=${imageData.width}&height=${imageData.height}`,
