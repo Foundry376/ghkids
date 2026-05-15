@@ -49,13 +49,14 @@ export const ScenarioStage = React.memo(
             zIndex={characterZOrder.indexOf(actor.characterId)}
           />
         ))}
-        {extentIgnoredPositions(rule.extent).map(({ x, y }) => (
-          <RecordingIgnoredSprite
-            key={`ignored-${x}-${y}`}
-            x={x - xmin + 1}
-            y={y - ymin + 1}
-          />
-        ))}
+        {!applyActions &&
+          extentIgnoredPositions(rule.extent).map(({ x, y }) => (
+            <RecordingIgnoredSprite
+              key={`ignored-${x}-${y}`}
+              x={x - xmin + 1}
+              y={y - ymin + 1}
+            />
+          ))}
       </div>
     );
   },
