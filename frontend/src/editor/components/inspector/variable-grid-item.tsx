@@ -8,6 +8,7 @@ export const VariableGridItem = ({
   actorId,
   draggable,
   disabled,
+  readonly = false,
   value,
   isMixed = false,
   definition,
@@ -19,6 +20,7 @@ export const VariableGridItem = ({
   actorId: string | null;
   draggable: boolean;
   disabled: boolean;
+  readonly?: boolean;
   value: string;
   /** When true, values differ across multiple selected actors */
   isMixed?: boolean;
@@ -85,7 +87,9 @@ export const VariableGridItem = ({
 
   let content = null;
 
-  if (type === "stage") {
+  if (readonly) {
+    content = <div className="value">{isMixed ? "—" : displayValue}</div>;
+  } else if (type === "stage") {
     content = (
       <ConnectedStagePicker
         value={`${displayValue}`}
@@ -118,7 +122,7 @@ export const VariableGridItem = ({
 
   return (
     <div
-      className={`variable-box variable-set-${value !== undefined && !isMixed} dropping-${dropping}`}
+      className={`variable-box ${readonly ? "variable-readonly" : `variable-set-${value !== undefined && !isMixed}`} dropping-${dropping}`}
       onClick={(e) => onClick(definition.id, e)}
       draggable={draggable && !isMixed}
       onDragStart={_onDragStart}
@@ -130,7 +134,7 @@ export const VariableGridItem = ({
         className="name"
         value={definition.name}
         onChange={
-          disabled || ("type" in definition && definition.type === "stage")
+          readonly || disabled || ("type" in definition && definition.type === "stage")
             ? undefined
             : (name) => onChangeDefinition(definition.id, { name })
         }

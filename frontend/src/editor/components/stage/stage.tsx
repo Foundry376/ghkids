@@ -10,13 +10,13 @@ import { RecordingSquareStatus } from "../sprites/recording-square-status";
 import { DEFAULT_APPEARANCE_INFO, SPRITE_TRANSFORM_CSS } from "../sprites/sprite";
 import ActorSelectionPopover from "./actor-selection-popover";
 
+import { createCharacter } from "../../actions/characters-actions";
 import {
   setRecordingExtent,
   setupRecordingForActor,
   toggleSquareIgnored,
   upsertRecordingCondition,
 } from "../../actions/recording-actions";
-import { createCharacter } from "../../actions/characters-actions";
 import {
   changeActors,
   changeActorsIndividually,
@@ -74,7 +74,7 @@ interface StageProps {
    * - "selectable": Click/select actors but no dragging (used in player).
    * - "none": No actor interaction; only recording handles remain interactive.
    */
-  interactionMode?: "full" | "selectable" | "none";
+  interactionMode?: "full" | "selectable";
   immersive?: boolean;
   style?: CSSProperties;
   /**
@@ -103,7 +103,8 @@ const DRAGGABLE_TOOLS = [TOOLS.IGNORE_SQUARE, TOOLS.TRASH, TOOLS.STAMP, TOOLS.CR
 // Single empty image used for hiding native drag preview
 // eslint-disable-next-line react-refresh/only-export-components
 export const EMPTY_DRAG_IMAGE = new Image();
-EMPTY_DRAG_IMAGE.src = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
+EMPTY_DRAG_IMAGE.src =
+  "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
 
 // eslint-disable-next-line react-refresh/only-export-components
 export const STAGE_ZOOM_STEPS = [1, 0.88, 0.75, 0.63, 0.5, 0.42, 0.38];
@@ -168,9 +169,7 @@ const SpriteDragPreview = ({
               transformOrigin: `${((info.anchor.x + 0.5) / info.width) * 100}% ${((info.anchor.y + 0.5) / info.height) * 100}%`,
               opacity: 0.85,
               filter:
-                spriteDrag.mode === "copy"
-                  ? "drop-shadow(2px 2px 4px rgba(0,0,0,0.3))"
-                  : undefined,
+                spriteDrag.mode === "copy" ? "drop-shadow(2px 2px 4px rgba(0,0,0,0.3))" : undefined,
             }}
           />
         );
@@ -309,7 +308,7 @@ export const Stage = ({
         const minZoom = immersive && stage.scale !== "fit" ? (stage.scale ?? 1) : 0;
         const best = immersive
           ? Math.max(minZoom, fit)
-          : (STAGE_ZOOM_STEPS.find((z) => z <= fit) || fit);
+          : STAGE_ZOOM_STEPS.find((z) => z <= fit) || fit;
         _el.style.zoom = `${best}`;
         setScale(best);
 
@@ -397,22 +396,25 @@ export const Stage = ({
     };
   };
 
-  const centerOnActor = useCallback((actorId: string): Offset | null => {
-    if (!actorId) return null;
+  const centerOnActor = useCallback(
+    (actorId: string): Offset | null => {
+      if (!actorId) return null;
 
-    const actor = stage.actors[actorId];
-    if (!actor) return null;
+      const actor = stage.actors[actorId];
+      if (!actor) return null;
 
-    // 1-indexed Y-up: cell at world (x, y) has its center at
-    // (x - 0.5, stage.height - y + 0.5) cells from the stage div's top-left.
-    const xCenterScreen = actor.position.x - 0.5;
-    const yCenterScreen = stage.height - actor.position.y + 0.5;
+      // 1-indexed Y-up: cell at world (x, y) has its center at
+      // (x - 0.5, stage.height - y + 0.5) cells from the stage div's top-left.
+      const xCenterScreen = actor.position.x - 0.5;
+      const yCenterScreen = stage.height - actor.position.y + 0.5;
 
-    return {
-      left: `calc(-${xCenterScreen * STAGE_CELL_SIZE}px + 50%)`,
-      top: `calc(-${yCenterScreen * STAGE_CELL_SIZE}px + 50%)`,
-    };
-  }, [stage.actors, stage.height]);
+      return {
+        left: `calc(-${xCenterScreen * STAGE_CELL_SIZE}px + 50%)`,
+        top: `calc(-${yCenterScreen * STAGE_CELL_SIZE}px + 50%)`,
+      };
+    },
+    [stage.actors, stage.height],
+  );
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
@@ -537,20 +539,14 @@ export const Stage = ({
       nextExtent.xmin = Math.min(nextExtent.xmax, Math.max(1, Math.round(fracX + 0.25)));
     }
     if (side === "right") {
-      nextExtent.xmax = Math.max(
-        nextExtent.xmin,
-        Math.min(stage.width, Math.round(fracX - 1)),
-      );
+      nextExtent.xmax = Math.max(nextExtent.xmin, Math.min(stage.width, Math.round(fracX - 1)));
     }
     if (side === "top") {
       // Visually-top handle drags the topmost row of the extent (ymax in Y-up).
       // Handle sits at world y = ymax + 1, so its center hovers at
       // worldY = ymax + 0.5; round(worldY - 0.5) = ymax keeps it stable
       // at rest and grows the extent as the cursor moves up.
-      nextExtent.ymax = Math.max(
-        nextExtent.ymin,
-        Math.min(stage.height, Math.round(worldY - 0.5)),
-      );
+      nextExtent.ymax = Math.max(nextExtent.ymin, Math.min(stage.height, Math.round(worldY - 0.5)));
     }
     if (side === "bottom") {
       // Visually-bottom handle drags the bottommost row of the extent.
@@ -838,7 +834,12 @@ export const Stage = ({
             ),
           );
         } else {
-          const overlapping = actorsAtPoint(stage.actors, characters, clickedPosition, characterZOrder);
+          const overlapping = actorsAtPoint(
+            stage.actors,
+            characters,
+            clickedPosition,
+            characterZOrder,
+          );
           const topActor = overlapping[overlapping.length - 1];
           const isTopActorSelected = topActor && selected.some((a) => a.id === topActor.id);
 
@@ -868,7 +869,7 @@ export const Stage = ({
     if (playback.running) {
       return;
     }
-    if (interactionMode === "none" && selectedToolId !== TOOLS.IGNORE_SQUARE) {
+    if (interactionMode === "selectable" && selectedToolId !== TOOLS.IGNORE_SQUARE) {
       return;
     }
     const onMouseUpAnywhere = (e: MouseEvent) => {
@@ -1152,9 +1153,7 @@ export const Stage = ({
         <div
           key={`door-dest-${actor.id}`}
           className="door-destination-box"
-          onMouseDown={(e) =>
-            onStartDoorDestDrag(actor.id, stage.id, { x: destX, y: destY }, e)
-          }
+          onMouseDown={(e) => onStartDoorDestDrag(actor.id, stage.id, { x: destX, y: destY }, e)}
           style={{
             position: "absolute",
             left: (pos.x - 1) * STAGE_CELL_SIZE,
@@ -1178,9 +1177,7 @@ export const Stage = ({
     // edits to the source stage id so the source door's variables move.
     for (const incoming of doorsPointingHere ?? []) {
       const active = doorDestDrag?.actorId === incoming.sourceActorId;
-      const pos = active
-        ? doorDestDrag!.position
-        : { x: incoming.destX, y: incoming.destY };
+      const pos = active ? doorDestDrag!.position : { x: incoming.destX, y: incoming.destY };
       nodes.push(
         <div
           key={`door-dest-incoming-${incoming.sourceStageId}-${incoming.sourceActorId}`}
@@ -1247,11 +1244,13 @@ export const Stage = ({
     );
 
     // add the ignored squares
-    extentIgnoredPositions(recordingExtent)
-      .filter(({ x, y }) => x >= xmin && x <= xmax && y >= ymin && y <= ymax)
-      .forEach(({ x, y }) => {
-        components.push(<RecordingIgnoredSprite x={x} y={y} key={`ignored-${x}-${y}`} />);
-      });
+    if (interactionMode === "selectable") {
+      extentIgnoredPositions(recordingExtent)
+        .filter(({ x, y }) => x >= xmin && x <= xmax && y >= ymin && y <= ymax)
+        .forEach(({ x, y }) => {
+          components.push(<RecordingIgnoredSprite x={x} y={y} key={`ignored-${x}-${y}`} />);
+        });
+    }
 
     // add square status overlay if provided
     if (evaluatedSquares && evaluatedSquares.length > 0) {
@@ -1318,18 +1317,16 @@ export const Stage = ({
       Math.abs(lastPosition.y - actor.position.y) > 6;
     lastActorPositions.current[actor.id] = Object.assign({}, actor.position);
 
-    const draggable =
-      interactionMode === "full" && !DRAGGABLE_TOOLS.includes(selectedToolId);
-    const interactive = interactionMode !== "none";
+    const draggable = interactionMode === "full" && !DRAGGABLE_TOOLS.includes(selectedToolId);
     const animationStyle = actor.animationStyle || "linear";
     const zIndex = characterZOrder.indexOf(actor.characterId);
     return (
       <ActorSprite
         key={actor.id}
-        selected={interactive ? selected.includes(actor) : false}
+        selected={selected.includes(actor)}
         zIndex={zIndex >= 0 ? zIndex : undefined}
-        onMouseUp={interactive ? (event) => onMouseUpActor(actor, event) : undefined}
-        onDoubleClick={interactive ? () => onSelectActor(actor) : undefined}
+        onMouseUp={(event) => onMouseUpActor(actor, event)}
+        onDoubleClick={() => onSelectActor(actor)}
         transitionDuration={
           animationStyle === "linear" ? playback.speed / (actor.frameCount || 1) : 0
         }

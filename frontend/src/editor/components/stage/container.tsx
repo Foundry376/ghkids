@@ -8,9 +8,9 @@ import StageRecordingTools from "./stage-recording-tools";
 import TouchKeys from "./touch-keys";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useEditorSelector } from "../../../hooks/redux";
 import * as Types from "../../../types";
 import { EvaluatedRuleDetailsMap, EvaluatedSquare, UIState } from "../../../types";
-import { useEditorSelector } from "../../../hooks/redux";
 import { collectDoorsByDestinationStage } from "../../utils/door-constants";
 import { getCurrentStageForWorld } from "../../utils/selectors";
 import { Library } from "../library";
@@ -82,7 +82,7 @@ const StageContainer = ({ readonly, immersive }: { readonly?: boolean; immersive
         recordingExtent={recording.extent}
         recordingCentered
         evaluatedSquares={evaluatedSquares}
-        interactionMode="full"
+        interactionMode="selectable"
       />
     );
     if (recording.actions !== null) {
@@ -93,6 +93,7 @@ const StageContainer = ({ readonly, immersive }: { readonly?: boolean; immersive
           stage={getCurrentStageForWorld(recording.afterWorld)!}
           recordingExtent={recording.extent}
           recordingCentered
+          interactionMode="full"
         />
       );
     }

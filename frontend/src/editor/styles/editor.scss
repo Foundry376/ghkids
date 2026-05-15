@@ -1229,6 +1229,12 @@ html {
     &.variable-set-true {
       background-color: orange;
     }
+    &.variable-readonly {
+      background-color: orange;
+      .value {
+        background-color: orange;
+      }
+    }
     &.dropping-true {
       border: 2px solid rgba(91, 192, 222, 0.8);
       background: rgba(91, 192, 222, 0.35);

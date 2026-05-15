@@ -45,6 +45,8 @@ export const InspectorContainer = () => {
     variables: AddVariableButton,
   }[activeTab];
 
+  const isReadonly = isRecording && worldId === recording.beforeWorld.id;
+
   return (
     <InspectorContext.Provider
       value={{
@@ -77,7 +79,7 @@ export const InspectorContainer = () => {
           <div style={{ flex: 1 }} />
           <AddButton character={focusedCharacter} actor={focusedActor} isRecording={isRecording} />
         </Nav>
-        <ContentContainer world={focusedWorld} character={focusedCharacter} actor={focusedActor} actors={focusedActors} />
+        <ContentContainer world={focusedWorld} character={focusedCharacter} actor={focusedActor} actors={focusedActors} readonly={isReadonly} />
       </div>
     </InspectorContext.Provider>
   );

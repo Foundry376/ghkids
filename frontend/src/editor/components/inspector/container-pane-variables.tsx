@@ -17,6 +17,32 @@ import { TransformEditorModal } from "./transform-editor";
 import { TransformImages, TransformLabels } from "./transform-images";
 import { VariableGridItem } from "./variable-grid-item";
 
+const ReadonlyGridItem = ({ name, value }: { name: string; value: string | number | undefined }) => (
+  <div className="variable-box variable-readonly">
+    <div className="name">{name}</div>
+    <div className="value">{value !== undefined ? String(value) : "—"}</div>
+  </div>
+);
+
+const ReadonlyAppearanceGridItem = ({
+  spritesheet,
+  appearance,
+}: {
+  spritesheet: Character["spritesheet"];
+  appearance: string | undefined;
+}) => (
+  <div className="variable-box variable-readonly" draggable={false}>
+    <div className="name">Appearance</div>
+    <div className="value" style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+      {appearance !== undefined ? (
+        <Sprite spritesheet={spritesheet} appearance={appearance} fit />
+      ) : (
+        "—"
+      )}
+    </div>
+  </div>
+);
+
 type AppearanceGridItemProps = {
   spritesheet: Character["spritesheet"];
   actor: Actor;
@@ -281,11 +307,13 @@ export const ContainerPaneVariables = ({
   actor,
   actors = [],
   world,
+  readonly = false,
 }: {
   character: Character;
   actor: Actor | null;
   actors?: Actor[];
   world: WorldMinimal;
+  readonly?: boolean;
 }) => {
   const dispatch = useDispatch();
   const selectedToolId = useEditorSelector((state) => state.ui.selectedToolId);
@@ -371,36 +399,53 @@ export const ContainerPaneVariables = ({
       <div className="variables-grid">
         {actor && (
           <>
-            <AppearanceGridItem
-              actor={actor}
-              spritesheet={character.spritesheet}
-              appearance={getCommonValue(actors, (a) => a.appearance)}
-              transform={getCommonValue(actors, (a) => a.transform)}
-              onChange={(appearance, transform) => {
-                dispatch(changeActors(selectedActors!, { appearance, transform }));
-              }}
-            />
-            <PositionGridItem
-              actor={actor}
-              coordinate="x"
-              value={getCommonValue(actors, (a) => a.position.x)}
-              onChange={(x) => {
-                dispatch(changeActors(selectedActors!, { position: { ...actor.position, x } }));
-              }}
-            />
-            <PositionGridItem
-              actor={actor}
-              coordinate="y"
-              value={getCommonValue(actors, (a) => a.position.y)}
-              onChange={(y) => {
-                dispatch(changeActors(selectedActors!, { position: { ...actor.position, y } }));
-              }}
-            />
+            {readonly ? (
+              <ReadonlyAppearanceGridItem
+                spritesheet={character.spritesheet}
+                appearance={getCommonValue(actors, (a) => a.appearance)}
+              />
+            ) : (
+              <AppearanceGridItem
+                actor={actor}
+                spritesheet={character.spritesheet}
+                appearance={getCommonValue(actors, (a) => a.appearance)}
+                transform={getCommonValue(actors, (a) => a.transform)}
+                onChange={(appearance, transform) => {
+                  dispatch(changeActors(selectedActors!, { appearance, transform }));
+                }}
+              />
+            )}
+            {readonly ? (
+              <>
+                <ReadonlyGridItem name="Horizontal" value={getCommonValue(actors, (a) => a.position.x)} />
+                <ReadonlyGridItem name="Vertical" value={getCommonValue(actors, (a) => a.position.y)} />
+              </>
+            ) : (
+              <>
+                <PositionGridItem
+                  actor={actor}
+                  coordinate="x"
+                  value={getCommonValue(actors, (a) => a.position.x)}
+                  onChange={(x) => {
+                    dispatch(changeActors(selectedActors!, { position: { ...actor.position, x } }));
+                  }}
+                />
+                <PositionGridItem
+                  actor={actor}
+                  coordinate="y"
+                  value={getCommonValue(actors, (a) => a.position.y)}
+                  onChange={(y) => {
+                    dispatch(changeActors(selectedActors!, { position: { ...actor.position, y } }));
+                  }}
+                />
+              </>
+            )}
           </>
         )}
         {Object.values(character.variables).map((definition) => (
           <VariableGridItem
             disabled={selectedToolId !== TOOLS.POINTER}
+            readonly={readonly}
             draggable={!!actor && selectedToolId === TOOLS.POINTER}
             actorId={actor ? actor.id : null}
             key={definition.id}
@@ -430,6 +475,7 @@ export const ContainerPaneVariables = ({
             draggable={true}
             actorId={null}
             disabled={selectedToolId !== TOOLS.POINTER}
+            readonly={readonly}
             key={definition.id}
             definition={definition}
             value={definition.value || ""}
