@@ -17,7 +17,7 @@ import {
   setCharacterZOrder,
   upsertCharacter,
 } from "../actions/characters-actions";
-import { useReorderableList } from "../hooks/use-reorderable-list";
+import { ItemReorderProps, useReorderableList } from "../hooks/use-reorderable-list";
 
 import { setupRecordingForCharacter } from "../actions/recording-actions";
 
@@ -47,14 +47,7 @@ interface LibraryItemProps {
   onDoubleClick?: () => void;
   dragType?: string;
   appearance?: string;
-  reorderProps?: {
-    onDragStart: (event: React.DragEvent) => void;
-    onDragOver: (event: React.DragEvent) => void;
-    onDragLeave: (event: React.DragEvent) => void;
-    onDrop: (event: React.DragEvent) => void;
-    onDragEnd: (event: React.DragEvent) => void;
-    "data-reorder-position"?: "before" | "after";
-  };
+  reorderProps?: ItemReorderProps;
 }
 
 const LibraryItem: React.FC<LibraryItemProps> = ({

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Character, Global } from "../../../types";
+import { ItemReorderProps } from "../../hooks/use-reorderable-list";
 import { ConnectedActorBlock } from "../stage/recording/blocks";
 import { TapToEditLabel } from "../tap-to-edit-label";
 import ConnectedStagePicker from "./connected-stage-picker";
@@ -28,14 +29,7 @@ export const VariableGridItem = ({
   onChangeDefinition: (id: string, partial: Partial<Character["variables"][0]>) => void;
   onBlurValue: (id: string, value: string | undefined) => void;
   onClick: (id: string, event: React.MouseEvent) => void;
-  reorderProps?: {
-    onDragStart: (event: React.DragEvent) => void;
-    onDragOver: (event: React.DragEvent) => void;
-    onDragLeave: (event: React.DragEvent) => void;
-    onDrop: (event: React.DragEvent) => void;
-    onDragEnd: (event: React.DragEvent) => void;
-    "data-reorder-position"?: "before" | "after";
-  };
+  reorderProps?: ItemReorderProps;
 }) => {
   const defaultValue = "defaultValue" in definition ? definition.defaultValue : undefined;
   const displayValue = isMixed ? "" : (value !== undefined ? value : defaultValue);

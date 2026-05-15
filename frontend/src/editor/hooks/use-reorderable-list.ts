@@ -4,7 +4,7 @@ const MIME_PREFIX = "application/x-codako-reorder-";
 
 type DropAt = { id: string; side: "before" | "after" };
 
-type ItemReorderProps = {
+export type ItemReorderProps = {
   onDragStart: (event: React.DragEvent) => void;
   onDragOver: (event: React.DragEvent) => void;
   onDragLeave: (event: React.DragEvent) => void;
