@@ -54,7 +54,11 @@ export default function charactersReducer(
     }
 
     case Types.DELETE_CHARACTER_VARIABLE: {
-      const scrubbed = scrubCharacterVariableFromCharacters(state, action.variableId);
+      const scrubbed = scrubCharacterVariableFromCharacters(
+        state,
+        action.characterId,
+        action.variableId,
+      );
       return u.updateIn(
         action.characterId,
         {
@@ -192,24 +196,26 @@ export default function charactersReducer(
 
 /**
  * Walks every rule tree node in every character, invoking `visit` on each.
+ * The visitor receives the item and the id of the character that owns it
+ * (relevant for things like loop counts that resolve against that character).
  * `state` is deep-cloned up front so visitors can mutate freely.
  */
 function forEachRuleItem(
   state: Characters,
-  visit: (item: RuleTreeItem) => void,
+  visit: (item: RuleTreeItem, ownerCharacterId: string) => void,
 ): Characters {
   const next = deepClone(state);
-  const walk = (item: RuleTreeItem) => {
-    visit(item);
+  const walk = (item: RuleTreeItem, ownerCharacterId: string) => {
+    visit(item, ownerCharacterId);
     if ("rules" in item) {
       for (const child of item.rules) {
-        walk(child);
+        walk(child, ownerCharacterId);
       }
     }
   };
   for (const id of Object.keys(next)) {
     for (const rule of next[id].rules) {
-      walk(rule);
+      walk(rule, id);
     }
   }
   return next;
@@ -273,27 +279,44 @@ function scrubGlobalFromCharacters(state: Characters, globalId: string): Charact
 
 function scrubCharacterVariableFromCharacters(
   state: Characters,
+  characterId: string,
   variableId: string,
 ): Characters {
-  const referencesVar = (val: RuleValue | undefined) =>
-    !!val && "actorId" in val && val.variableId === variableId;
-
-  return forEachRuleItem(state, (item) => {
+  return forEachRuleItem(state, (item, ownerCharacterId) => {
     const container = ruleContainer(item);
     if (container) {
+      // Within this rule, find the rule-actor-ids that refer to the character
+      // whose variable is being deleted. Variable references are
+      // (actorId, variableId), so we need both to scope correctly.
+      const matchingActorIds = new Set(
+        Object.values(container.actors)
+          .filter((a) => a.characterId === characterId)
+          .map((a) => a.id),
+      );
+      const referencesVar = (val: RuleValue | undefined) =>
+        !!val &&
+        "actorId" in val &&
+        matchingActorIds.has(val.actorId) &&
+        val.variableId === variableId;
+
       container.conditions = container.conditions.filter(
         (r) => !referencesVar(r.left) && !referencesVar(r.right),
       );
       if ("actions" in container) {
         (container as Rule).actions = (container as Rule).actions.filter(
           (a) =>
-            !(a.type === "variable" && a.variable === variableId) &&
-            !("value" in a && referencesVar(a.value)),
+            !(
+              a.type === "variable" &&
+              matchingActorIds.has(a.actorId) &&
+              a.variable === variableId
+            ) && !("value" in a && referencesVar(a.value)),
         );
       }
     }
-    // Reset loop counts that referenced the deleted variable
+    // Loop counts resolve against the character that owns the rule tree,
+    // so only reset them when we're inside that character's rules.
     if (
+      ownerCharacterId === characterId &&
       item.type === "group-flow" &&
       "behavior" in item &&
       item.behavior === "loop" &&
