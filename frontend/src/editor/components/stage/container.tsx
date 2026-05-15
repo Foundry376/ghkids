@@ -23,10 +23,10 @@ import { Library } from "../library";
  */
 function getEvaluatedSquares(
   ruleId: string | null,
-  evaluatedRuleDetails: EvaluatedRuleDetailsMap,
+  evaluatedRuleDetails: EvaluatedRuleDetailsMap | undefined,
   selectedActors: UIState["selectedActors"],
 ): EvaluatedSquare[] {
-  if (!ruleId) {
+  if (!ruleId || !evaluatedRuleDetails) {
     return [];
   }
 
@@ -37,7 +37,7 @@ function getEvaluatedSquares(
     evalActorId = selectedActors.actorIds[0];
   } else {
     // Fall back: find any actor that has evaluation data for this rule
-    for (const actorId of Object.keys(evaluatedRuleDetails || {})) {
+    for (const actorId of Object.keys(evaluatedRuleDetails)) {
       if (evaluatedRuleDetails[actorId]?.[ruleId]) {
         evalActorId = actorId;
         break;
