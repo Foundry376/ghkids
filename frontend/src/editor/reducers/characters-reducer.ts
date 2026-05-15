@@ -8,6 +8,7 @@ import {
   RuleTreeEventItem,
   RuleTreeFlowItemCheck,
   RuleTreeItem,
+  RuleValue,
 } from "../../types";
 import { Actions } from "../actions";
 import { ruleFromRecordingState } from "../components/stage/recording/utils";
@@ -32,6 +33,10 @@ export default function charactersReducer(
       return scrubCharacterFromCharacters(state, action.characterId);
     }
 
+    case Types.DELETE_GLOBAL: {
+      return scrubGlobalFromCharacters(state, action.globalId);
+    }
+
     case Types.CREATE_CHARACTER_VARIABLE: {
       return u.updateIn(
         action.characterId,
@@ -49,12 +54,17 @@ export default function charactersReducer(
     }
 
     case Types.DELETE_CHARACTER_VARIABLE: {
+      const scrubbed = scrubCharacterVariableFromCharacters(
+        state,
+        action.characterId,
+        action.variableId,
+      );
       return u.updateIn(
         action.characterId,
         {
           variables: u.omit(action.variableId),
         },
-        state,
+        scrubbed,
       );
     }
 
@@ -184,16 +194,42 @@ export default function charactersReducer(
   }
 }
 
-function scrubCharacterFromCharacters(state: Characters, characterId: string): Characters {
+/**
+ * Walks every rule tree node in every character, invoking `visit` on each.
+ * The visitor receives the item and the id of the character that owns it
+ * (relevant for things like loop counts that resolve against that character).
+ * `state` is deep-cloned up front so visitors can mutate freely.
+ */
+function forEachRuleItem(
+  state: Characters,
+  visit: (item: RuleTreeItem, ownerCharacterId: string) => void,
+): Characters {
   const next = deepClone(state);
-  delete next[characterId];
-
-  const scrubRule = (item: RuleTreeItem) => {
-    const container: Rule | RuleTreeFlowItemCheck | undefined =
-      item.type === "rule" ? item : item.type === "group-flow" ? item.check : undefined;
-    if (!container) {
-      return;
+  const walk = (item: RuleTreeItem, ownerCharacterId: string) => {
+    visit(item, ownerCharacterId);
+    if ("rules" in item) {
+      for (const child of item.rules) {
+        walk(child, ownerCharacterId);
+      }
     }
+  };
+  for (const id of Object.keys(next)) {
+    for (const rule of next[id].rules) {
+      walk(rule, id);
+    }
+  }
+  return next;
+}
+
+function ruleContainer(item: RuleTreeItem): Rule | RuleTreeFlowItemCheck | undefined {
+  return item.type === "rule" ? item : item.type === "group-flow" ? item.check : undefined;
+}
+
+function scrubCharacterFromCharacters(state: Characters, characterId: string): Characters {
+  const next = forEachRuleItem(state, (item) => {
+    const container = ruleContainer(item);
+    if (!container) return;
+
     const removedIds = Object.values(container.actors)
       .filter((a) => a.characterId === characterId)
       .map((a) => a.id);
@@ -215,18 +251,79 @@ function scrubCharacterFromCharacters(state: Characters, characterId: string): C
           !("actor" in r && r.actor.characterId === characterId),
       );
     }
-    console.log(container);
-    if ("rules" in item) {
-      for (const rule of item.rules) {
-        scrubRule(rule);
+  });
+  delete next[characterId];
+  return next;
+}
+
+function scrubGlobalFromCharacters(state: Characters, globalId: string): Characters {
+  const referencesGlobal = (val: RuleValue | undefined) =>
+    !!val && "globalId" in val && val.globalId === globalId;
+
+  return forEachRuleItem(state, (item) => {
+    const container = ruleContainer(item);
+    if (!container) return;
+
+    container.conditions = container.conditions.filter(
+      (r) => !referencesGlobal(r.left) && !referencesGlobal(r.right),
+    );
+    if ("actions" in container) {
+      (container as Rule).actions = (container as Rule).actions.filter(
+        (a) =>
+          !(a.type === "global" && a.global === globalId) &&
+          !("value" in a && referencesGlobal(a.value)),
+      );
+    }
+  });
+}
+
+function scrubCharacterVariableFromCharacters(
+  state: Characters,
+  characterId: string,
+  variableId: string,
+): Characters {
+  return forEachRuleItem(state, (item, ownerCharacterId) => {
+    const container = ruleContainer(item);
+    if (container) {
+      // Within this rule, find the rule-actor-ids that refer to the character
+      // whose variable is being deleted. Variable references are
+      // (actorId, variableId), so we need both to scope correctly.
+      const matchingActorIds = new Set(
+        Object.values(container.actors)
+          .filter((a) => a.characterId === characterId)
+          .map((a) => a.id),
+      );
+      const referencesVar = (val: RuleValue | undefined) =>
+        !!val &&
+        "actorId" in val &&
+        matchingActorIds.has(val.actorId) &&
+        val.variableId === variableId;
+
+      container.conditions = container.conditions.filter(
+        (r) => !referencesVar(r.left) && !referencesVar(r.right),
+      );
+      if ("actions" in container) {
+        (container as Rule).actions = (container as Rule).actions.filter(
+          (a) =>
+            !(
+              a.type === "variable" &&
+              matchingActorIds.has(a.actorId) &&
+              a.variable === variableId
+            ) && !("value" in a && referencesVar(a.value)),
+        );
       }
     }
-  };
-
-  for (const id of Object.keys(next)) {
-    for (const rule of next[id].rules) {
-      scrubRule(rule);
+    // Loop counts resolve against the character that owns the rule tree,
+    // so only reset them when we're inside that character's rules.
+    if (
+      ownerCharacterId === characterId &&
+      item.type === "group-flow" &&
+      "behavior" in item &&
+      item.behavior === "loop" &&
+      "variableId" in item.loopCount &&
+      item.loopCount.variableId === variableId
+    ) {
+      item.loopCount = { constant: 2 };
     }
-  }
-  return next;
+  });
 }

@@ -563,6 +563,10 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
           stageActorForId[action.actorId] = nextActor;
         } else if (action.type === "global") {
           const global = globals[action.global];
+          if (!global) {
+            // Global was deleted - skip this action
+            return;
+          }
           global.value = applyVariableOperation(
             global.value,
             action.operation,
