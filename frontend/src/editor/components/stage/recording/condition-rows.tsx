@@ -17,6 +17,7 @@ import {
 } from "../../../../types";
 import { pickConditionValueFromKeyboard, selectToolId } from "../../../actions/ui-actions";
 import { TOOLS } from "../../../constants/constants";
+import ConnectedStagePicker from "../../inspector/connected-stage-picker";
 import { AppearanceDropdown, TransformDropdown } from "../../inspector/container-pane-variables";
 import { ActorBlock, ActorVariableBlock, AppearanceBlock, TransformBlock } from "./blocks";
 
@@ -35,6 +36,7 @@ type ImpliedDatatype =
   | { type: "position" }
   | { type: "key" }
   | { type: "actor" }
+  | { type: "stage" }
   | null;
 
 /** Status circle for condition evaluation */
@@ -274,6 +276,18 @@ export const FreeformConditionValue = ({
             {value.constant || "Choose…"}
           </Button>
         );
+      }
+      if (impliedDatatype?.type === "stage") {
+        if (onChange) {
+          return (
+            <ConnectedStagePicker
+              value={value.constant}
+              disabled={false}
+              onChange={(e) => onChange?.({ constant: e.target.value })}
+            />
+          );
+        }
+        return <code>{world.stages[value.constant]?.name ?? value.constant}</code>;
       }
 
       if (onChange) {
