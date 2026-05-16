@@ -109,6 +109,24 @@ EMPTY_DRAG_IMAGE.src =
 // eslint-disable-next-line react-refresh/only-export-components
 export const STAGE_ZOOM_STEPS = [1, 0.88, 0.75, 0.63, 0.5, 0.42, 0.38];
 
+// Resolves a Stage's scale settings, handling the legacy `scale: "fit"` value
+// by translating it to the equivalent zoom-to-fill + zoom-to-fit configuration.
+// eslint-disable-next-line react-refresh/only-export-components
+export function resolveStageScaleSettings(stage: {
+  scale?: number | "fit";
+  zoomToFill?: boolean;
+  zoomToFit?: boolean;
+}): { tileScale: number; zoomToFill: boolean; zoomToFit: boolean } {
+  if (stage.scale === "fit") {
+    return { tileScale: 1, zoomToFill: true, zoomToFit: true };
+  }
+  return {
+    tileScale: typeof stage.scale === "number" ? stage.scale : 1,
+    zoomToFill: stage.zoomToFill ?? true,
+    zoomToFit: stage.zoomToFit ?? false,
+  };
+}
+
 const SpriteDragPreview = ({
   spriteDrag,
   characters,
@@ -252,14 +270,11 @@ export const Stage = ({
   stage,
   world,
   interactionMode = "full",
-  immersive,
   style,
   doorsPointingHere,
 }: StageProps) => {
   const [{ top, left }, setOffset] = useState<Offset>({ top: 0, left: 0 });
-  const [scale, setScale] = useState(
-    stage.scale && typeof stage.scale === "number" ? stage.scale : 1,
-  );
+  const [scale, setScale] = useState(() => resolveStageScaleSettings(stage).tileScale);
 
   const [selectionRect, setSelectionRect] = useState<SelectionRect | null>(null);
   const [actorSelectionPopover, setActorSelectionPopover] = useState<{
@@ -296,40 +311,39 @@ export const Stage = ({
         setCenteringOffset({ left: 0, top: 0 });
         _scrollEl.style.justifyContent = "";
         _scrollEl.style.alignItems = "";
-      } else if (immersive || stage.scale === "fit") {
-        _el.style.zoom = "1"; // this needs to be here for scaling "up" to work
-        const fit = Math.min(
-          _scrollEl.clientWidth / (stage.width * STAGE_CELL_SIZE),
-          _scrollEl.clientHeight / (stage.height * STAGE_CELL_SIZE),
-        );
-        // In immersive mode, use the stage's intrinsic tile size (stage.scale) as a minimum
-        // zoom so the stage scrolls rather than shrinking below its configured size.
-        // If stage.scale is "fit" or unset, no minimum is applied.
-        const minZoom = immersive && stage.scale !== "fit" ? (stage.scale ?? 1) : 0;
-        const best = immersive
-          ? Math.max(minZoom, fit)
-          : STAGE_ZOOM_STEPS.find((z) => z <= fit) || fit;
-        _el.style.zoom = `${best}`;
-        setScale(best);
-
-        // Disable centering only on axes that overflow so the stage remains centered
-        // on any axis that still fits within the viewport.
-        const stageW = stage.width * STAGE_CELL_SIZE * best;
-        const stageH = stage.height * STAGE_CELL_SIZE * best;
-        const overflowsX = stageW > _scrollEl.clientWidth;
-        const overflowsY = stageH > _scrollEl.clientHeight;
-        _scrollEl.style.justifyContent = overflowsX ? "flex-start" : "";
-        _scrollEl.style.alignItems = overflowsY ? "flex-start" : "";
-        setCenteringOffset({
-          left: overflowsX ? 0 : Math.max(0, (_scrollEl.clientWidth - stageW) / 2),
-          top: overflowsY ? 0 : Math.max(0, (_scrollEl.clientHeight - stageH) / 2),
-        });
-      } else {
-        setScale(stage.scale ?? 1);
-        setCenteringOffset({ left: 0, top: 0 });
-        _scrollEl.style.justifyContent = "";
-        _scrollEl.style.alignItems = "";
+        return;
       }
+
+      _el.style.zoom = "1"; // this needs to be here for scaling "up" to work
+      const { tileScale, zoomToFill, zoomToFit } = resolveStageScaleSettings({
+        scale: stage.scale,
+        zoomToFill: stage.zoomToFill,
+        zoomToFit: stage.zoomToFit,
+      });
+      const fit = Math.min(
+        _scrollEl.clientWidth / (stage.width * STAGE_CELL_SIZE),
+        _scrollEl.clientHeight / (stage.height * STAGE_CELL_SIZE),
+      );
+      // Start at the configured tile size, then optionally scale up (fill) or
+      // down (fit) based on how the stage compares to the viewport.
+      let best = tileScale;
+      if (fit > tileScale && zoomToFill) best = fit;
+      if (fit < tileScale && zoomToFit) best = fit;
+      _el.style.zoom = `${best}`;
+      setScale(best);
+
+      // Disable centering only on axes that overflow so the stage remains centered
+      // on any axis that still fits within the viewport.
+      const stageW = stage.width * STAGE_CELL_SIZE * best;
+      const stageH = stage.height * STAGE_CELL_SIZE * best;
+      const overflowsX = stageW > _scrollEl.clientWidth;
+      const overflowsY = stageH > _scrollEl.clientHeight;
+      _scrollEl.style.justifyContent = overflowsX ? "flex-start" : "";
+      _scrollEl.style.alignItems = overflowsY ? "flex-start" : "";
+      setCenteringOffset({
+        left: overflowsX ? 0 : Math.max(0, (_scrollEl.clientWidth - stageW) / 2),
+        top: overflowsY ? 0 : Math.max(0, (_scrollEl.clientHeight - stageH) / 2),
+      });
     };
 
     // ResizeObserver fires during CSS transitions (e.g. split-stage close animation),
@@ -346,7 +360,14 @@ export const Stage = ({
       window.removeEventListener("resize", autofit);
       document.removeEventListener("fullscreenchange", autofit);
     };
-  }, [stage.height, stage.scale, stage.width, recordingCentered, immersive]);
+  }, [
+    stage.height,
+    stage.scale,
+    stage.zoomToFill,
+    stage.zoomToFit,
+    stage.width,
+    recordingCentered,
+  ]);
 
   const dispatch = useDispatch();
   const characters = useEditorSelector((state) => state.characters);
