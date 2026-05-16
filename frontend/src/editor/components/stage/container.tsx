@@ -102,7 +102,7 @@ const StageContainer = ({ readonly, immersive }: { readonly?: boolean; immersive
         <div
           style={{
             position: "absolute",
-            zIndex: 2,
+            zIndex: 101,
             transform: "translate(0, -100%)",
             paddingBottom: 5,
           }}

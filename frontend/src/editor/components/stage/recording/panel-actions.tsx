@@ -4,8 +4,8 @@ import classNames from "classnames";
 import React, { useState } from "react";
 import { useDispatch } from "react-redux";
 import { Button } from "reactstrap";
-import { Characters, RecordingState, RuleAction, RuleValue } from "../../../../types";
 import { useEditorSelector } from "../../../../hooks/redux";
+import { Characters, RecordingState, RuleAction, RuleValue } from "../../../../types";
 import { updateRecordingActions } from "../../../actions/recording-actions";
 import { changeActors } from "../../../actions/stage-actions";
 import { selectToolId } from "../../../actions/ui-actions";
@@ -397,7 +397,7 @@ const StageAfterTools = () => {
       className="floating-controls"
       style={{
         left: 0,
-        zIndex: 2,
+        zIndex: 101,
         position: "absolute",
         transform: "translate(0, -100%)",
         paddingBottom: 5,

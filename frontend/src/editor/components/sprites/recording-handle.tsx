@@ -28,6 +28,7 @@ const RecordingHandle = ({ side, position }: { side: string; position: Position 
         backgroundImage: `url(${new URL(`../../img/tiles/handle_${side}.png`, import.meta.url).href})`,
         backgroundSize: "contain",
         backgroundRepeat: "no-repeat",
+        zIndex: 100,
       }}
     />
   );

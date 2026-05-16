@@ -6,6 +6,7 @@ const RecordingMaskSprite = ({ xmin, xmax, ymin, ymax }: Omit<RuleExtent, "ignor
     <div
       style={{
         position: "absolute",
+        zIndex: 99,
         backgroundColor: "rgba(0,0,0,0.5)",
         width: (xmax - xmin) * STAGE_CELL_SIZE,
         height: (ymax - ymin) * STAGE_CELL_SIZE,
