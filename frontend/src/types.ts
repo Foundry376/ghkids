@@ -208,6 +208,8 @@ export type Stage = {
   wrapX: boolean;
   wrapY: boolean;
   scale?: number | "fit";
+  zoomToFill?: boolean;
+  zoomToFit?: boolean;
   tutorial_name?: string;
   tutorial_step?: number;
   world?: string;
