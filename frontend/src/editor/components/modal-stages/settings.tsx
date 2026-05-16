@@ -190,7 +190,9 @@ export const StageSettings = ({
             defaultValue={height}
             onBlur={(e) => onChange({ height: Number(e.target.value) })}
           />
-          <span style={{ paddingLeft: 20, paddingRight: 10 }}>Tile size:</span>
+          <span style={{ paddingLeft: 20, paddingRight: 10, whiteSpace: "nowrap" }}>
+            Tile size:
+          </span>
           <select
             className="form-control"
             value={tileScale}
@@ -207,8 +209,16 @@ export const StageSettings = ({
             ))}
           </select>
         </div>
-        <div style={{ display: "flex", flexDirection: "row", marginTop: 8 }}>
-          <div className="form-check" style={{ flex: 1 }}>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr",
+            rowGap: 6,
+            columnGap: 16,
+            marginTop: 12,
+          }}
+        >
+          <div className="form-check">
             <label className="form-check-label" htmlFor="zoomToFill">
               <input
                 style={{ marginRight: 5 }}
@@ -223,7 +233,7 @@ export const StageSettings = ({
               Zoom in to fill the screen
             </label>
           </div>
-          <div className="form-check" style={{ flex: 1, marginLeft: 10 }}>
+          <div className="form-check">
             <label className="form-check-label" htmlFor="zoomToFit">
               <input
                 style={{ marginRight: 5 }}
@@ -238,11 +248,7 @@ export const StageSettings = ({
               Zoom out to fit the screen
             </label>
           </div>
-        </div>
-      </fieldset>
-      <fieldset className="form-group">
-        <div style={{ display: "flex", flexDirection: "row" }}>
-          <div className="form-check" style={{ flex: 1 }}>
+          <div className="form-check">
             <label className="form-check-label" htmlFor="wrapX">
               <input
                 style={{ marginRight: 5 }}
@@ -252,22 +258,22 @@ export const StageSettings = ({
                 defaultChecked={wrapX}
                 onBlur={(e) => onChange({ wrapX: e.target.checked })}
               />
-              Wrap Horizontally
+              Wrap horizontally
             </label>
           </div>
-          <div className="form-check" style={{ flex: 1, marginLeft: 10 }}>
+          <div className="form-check">
             <label className="form-check-label" htmlFor="wrapY">
               <input
+                style={{ marginRight: 5 }}
                 className="form-check-input"
                 id="wrapY"
                 type="checkbox"
                 defaultChecked={wrapY}
                 onBlur={(e) => onChange({ wrapY: e.target.checked })}
               />
-              Wrap Vertically
+              Wrap vertically
             </label>
           </div>
-          <div className="form-check" style={{ flex: 1 }}></div>
         </div>
       </fieldset>
       <fieldset className="form-group" style={{ marginTop: 12 }}>
