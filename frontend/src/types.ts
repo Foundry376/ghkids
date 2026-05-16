@@ -76,6 +76,11 @@ export type RuleAction = (
       offset?: PositionRelativeToMainActor;
     }
   | {
+      type: "teleport";
+      actorId: string;
+      doorActorId: string;
+    }
+  | {
       type: "transform";
       actorId: string;
       operation: MathOperation;

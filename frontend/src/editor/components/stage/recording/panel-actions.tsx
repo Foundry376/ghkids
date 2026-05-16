@@ -95,6 +95,22 @@ export const RecordingActions = (props: { characters: Characters; recording: Rec
           </>
         );
       }
+      if (a.type === "teleport") {
+        const door = beforeStage.actors[a.doorActorId];
+        const doorCharacter = door ? characters[door.characterId] : undefined;
+        return (
+          <>
+            Teleport
+            <ActorBlock actor={actor} character={character} />
+            through
+            {door && doorCharacter ? (
+              <ActorBlock actor={door} character={doorCharacter} />
+            ) : (
+              <code>door</code>
+            )}
+          </>
+        );
+      }
 
       if (a.type === "variable") {
         return (
