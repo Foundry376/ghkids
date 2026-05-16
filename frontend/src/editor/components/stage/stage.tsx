@@ -320,15 +320,21 @@ export const Stage = ({
         zoomToFill: stage.zoomToFill,
         zoomToFit: stage.zoomToFit,
       });
-      const fit = Math.min(
-        _scrollEl.clientWidth / (stage.width * STAGE_CELL_SIZE),
-        _scrollEl.clientHeight / (stage.height * STAGE_CELL_SIZE),
-      );
+      const ratioX = _scrollEl.clientWidth / (stage.width * STAGE_CELL_SIZE);
+      const ratioY = _scrollEl.clientHeight / (stage.height * STAGE_CELL_SIZE);
+      // Aspect-fit: both axes within the viewport, one fills exactly (no scroll).
+      const fit = Math.min(ratioX, ratioY);
+      // Aspect-fill: the shorter axis fills the viewport; the longer one
+      // overflows and scrolls. Used by zoom-to-fill so that a long, thin stage
+      // (e.g. a side-scroller) zooms in to fill the constrained axis.
+      const fill = Math.max(ratioX, ratioY);
       // Start at the configured tile size, then optionally scale up (fill) or
-      // down (fit) based on how the stage compares to the viewport.
+      // down (fit) based on how the stage compares to the viewport. If both
+      // apply (long-thin stage with both checkboxes on), zoom-in wins because
+      // filling the short axis is the more immersive choice.
       let best = tileScale;
-      if (fit > tileScale && zoomToFill) best = fit;
       if (fit < tileScale && zoomToFit) best = fit;
+      if (fill > tileScale && zoomToFill) best = fill;
       _el.style.zoom = `${best}`;
       setScale(best);
 
