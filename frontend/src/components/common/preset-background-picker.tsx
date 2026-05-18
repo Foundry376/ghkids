@@ -1,14 +1,68 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "reactstrap";
-import { PRESET_BACKGROUNDS } from "../../editor/constants/preset-backgrounds";
+import { makeRequest } from "../../helpers/api";
 
 interface PresetBackgroundPickerProps {
   onSelect: (backgroundUrl: string) => void;
   onSkip: () => void;
 }
 
+type Preset = { label: string; url: string };
+
+type TaggedResponse = {
+  attribution: { label: string; url: string } | null;
+  images: { id: string; label: string; fullUrl: string; thumbUrl: string; featured: boolean }[];
+};
+
+const FEATURED_PROVIDER = "craftpix";
+const FEATURED_COUNT = 12;
+
 export const PresetBackgroundPicker = ({ onSelect, onSkip }: PresetBackgroundPickerProps) => {
   const [selected, setSelected] = useState<string | null>(null);
+  const [presets, setPresets] = useState<Preset[] | null>(null);
+  const [attribution, setAttribution] = useState<TaggedResponse["attribution"]>(null);
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    makeRequest<TaggedResponse>(`/backgrounds/${FEATURED_PROVIDER}`)
+      .then((resp) => {
+        if (cancelled) return;
+        const featured = resp.images.filter((i) => i.featured).slice(0, FEATURED_COUNT);
+        setPresets(featured.map((i) => ({ label: i.label, url: i.fullUrl })));
+        setAttribution(resp.attribution);
+      })
+      .catch(() => {
+        if (!cancelled) setError(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  if (!presets && !error) {
+    return (
+      <div style={{ textAlign: "center", color: "#888", padding: "32px 0" }}>
+        <i className="fa fa-spinner fa-spin" style={{ marginRight: 8 }} />
+        Loading backgrounds...
+      </div>
+    );
+  }
+
+  if (error || !presets || presets.length === 0) {
+    return (
+      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+        <div style={{ textAlign: "center", color: "#888", padding: "16px 0" }}>
+          Couldn't load backgrounds. You can start with a default and pick one later.
+        </div>
+        <div style={{ display: "flex", justifyContent: "flex-end" }}>
+          <Button color="primary" onClick={onSkip}>
+            Create Game
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
@@ -19,7 +73,7 @@ export const PresetBackgroundPicker = ({ onSelect, onSkip }: PresetBackgroundPic
           gap: 12,
         }}
       >
-        {PRESET_BACKGROUNDS.map((preset) => {
+        {presets.map((preset) => {
           const isSelected = selected === preset.url;
           return (
             <button
@@ -43,7 +97,7 @@ export const PresetBackgroundPicker = ({ onSelect, onSkip }: PresetBackgroundPic
               }}
             >
               <img
-                src={`${preset.url}?w=300&auto=format&fit=crop`}
+                src={preset.url}
                 alt={preset.label}
                 style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
               />
@@ -85,6 +139,16 @@ export const PresetBackgroundPicker = ({ onSelect, onSkip }: PresetBackgroundPic
           );
         })}
       </div>
+
+      {attribution && (
+        <div style={{ fontSize: 11, color: "#888", textAlign: "center" }}>
+          Backgrounds from{" "}
+          <a href={attribution.url} target="_blank" rel="noreferrer">
+            {attribution.label}
+          </a>
+          .
+        </div>
+      )}
 
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <button
