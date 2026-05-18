@@ -65,7 +65,6 @@ router.get("/worlds", userFromBasicAuth, async (req, res) => {
 
   const worlds = await AppDataSource.getRepository(World).find({
     relations: ["user", "forkParent"],
-    take: 50,
     where: { userId: user.id },
   });
   res.json(worlds.map((w) => w.serialize()));
