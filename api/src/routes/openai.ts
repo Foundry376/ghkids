@@ -93,10 +93,7 @@ router.get("/generate-sprite", userFromBasicAuth, async (req, res) => {
       name: spriteName,
     });
   } catch (error: any) {
-    console.error(
-      "Error generating image:",
-      error.response ? error.response.data : error.message,
-    );
+    console.error("Error generating image:", error.response ? error.response.data : error.message);
     res.status(500).json({ error: "Failed to generate image" });
   }
 });
@@ -136,12 +133,13 @@ router.post("/generate-sprite-name", userFromBasicAuth, (req, res) => {
     },
   ];
 
-  openai.chat.completions.create({
-    model: "gpt-4.1-mini",
-    messages: messages as any,
-    max_tokens: 10,
-    temperature: 0.9,
-  })
+  openai.chat.completions
+    .create({
+      model: "gpt-4.1-mini",
+      messages: messages as any,
+      max_tokens: 10,
+      temperature: 0.9,
+    })
     .then((completion) => {
       const name = completion.choices[0]?.message?.content?.trim() || "Unnamed Sprite";
       console.log("Generated sprite name:", name);
@@ -191,7 +189,9 @@ router.post("/edit-sprite", userFromBasicAuth, async (req, res) => {
     const isPNG = imageBuffer.subarray(0, 8).equals(pngSignature);
     console.log("[edit-sprite API] Image format check:", {
       isPNG,
-      firstBytes: Array.from(imageBuffer.subarray(0, 8)).map(b => `0x${b.toString(16)}`).join(" "),
+      firstBytes: Array.from(imageBuffer.subarray(0, 8))
+        .map((b) => `0x${b.toString(16)}`)
+        .join(" "),
     });
 
     if (!isPNG) {
@@ -276,7 +276,8 @@ router.post("/edit-sprite", userFromBasicAuth, async (req, res) => {
       response: error.response?.data,
       status: error.response?.status,
     });
-    const errorMessage = error.response?.data?.error?.message || error.message || "Failed to edit sprite";
+    const errorMessage =
+      error.response?.data?.error?.message || error.message || "Failed to edit sprite";
     res.status(500).json({ error: errorMessage });
   }
 });
@@ -417,7 +418,6 @@ Output: "Roll Ball"
       "Be creative and think about how the characters are interacting with each other. " +
       "Instead of describing what the rule does, describe the main action or behavior (i.e. instead of move, say jump, fight, escape, eat, etc.) " +
       "Focus on the main action or behavior. Respond with only the name.\n\n" +
-
       // Very concise input format primer
       "The structure of the rules are divided into a series of actions that animate the characters. " +
       "The actions are defined by (x,y) offsets relative to the main actor in a coordinate system where the main actor is at (0,0). " +
@@ -425,9 +425,9 @@ Output: "Roll Ball"
       "actions (e.g., move, delete, variable changes), optional conditions (what must be true, like appearance or variable value), and extent (coordinate metadata). " +
       "Coordinates are offsets relative to the main actor at (0,0); negative y is up, negative x is left. " +
       "Actors, variables, and appearances are provided as names, not IDs.\n\n" +
-
       "Here are some examples:\n" +
-      fewShotExamples + "\n" +
+      fewShotExamples +
+      "\n" +
       "Rule data:\n" +
       JSON.stringify(recording, null, 2);
 
@@ -439,7 +439,8 @@ Output: "Roll Ball"
       messages: [
         {
           role: "system",
-          content: "You generate concise, evocative names for gameplay rules. Focus on the main action or behavior. Output only the name.",
+          content:
+            "You generate concise, evocative names for gameplay rules. Focus on the main action or behavior. Output only the name.",
         },
         { role: "user", content: prompt },
       ],
@@ -578,7 +579,7 @@ router.post("/upload-image", upload.single("image") as any, async (req, res) => 
 
     // Upload the image to Supabase Storage
     const { data, error } = await supabase.storage
-      .from("background-images") // Replace with your bucket name
+      .from("codako-assets")
       .upload(`backgrounds/${originalname}`, buffer, {
         contentType: file.mimetype,
         upsert: true, // Overwrite if the file already exists
@@ -589,9 +590,7 @@ router.post("/upload-image", upload.single("image") as any, async (req, res) => 
     }
 
     // Get the public URL of the uploaded image
-    const publicUrl = supabase.storage
-      .from("background-images") // Replace with your bucket name
-      .getPublicUrl(data.path).data.publicUrl;
+    const publicUrl = supabase.storage.from("codako-assets").getPublicUrl(data.path).data.publicUrl;
 
     res.json({ publicUrl });
   } catch (error) {
@@ -604,7 +603,7 @@ router.post("/upload-image", upload.single("image") as any, async (req, res) => 
 const uploadImageToSupabase = async (imageBuffer: Buffer, filename: string, mimetype: string) => {
   try {
     const { data, error } = await supabase.storage
-      .from("background-images") // Change to your Supabase bucket name
+      .from("codako-assets")
       .upload(`backgrounds/${filename}`, imageBuffer, {
         contentType: mimetype,
         upsert: true, // Allow overwriting of existing files
@@ -616,9 +615,7 @@ const uploadImageToSupabase = async (imageBuffer: Buffer, filename: string, mime
     }
 
     // Get the public URL
-    const { data: publicUrlData } = supabase.storage
-      .from("background-images")
-      .getPublicUrl(data.path);
+    const { data: publicUrlData } = supabase.storage.from("codako-assets").getPublicUrl(data.path);
 
     return publicUrlData.publicUrl;
   } catch (err) {

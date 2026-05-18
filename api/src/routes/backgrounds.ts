@@ -7,7 +7,7 @@ const supabaseUrl = process.env.SUPABASE_URL!;
 const supabaseKey = process.env.SUPABASE_KEY!;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-const BUCKET = "background-images";
+const BUCKET = "codako-assets";
 
 // Allowlist of provider keys. Adding a new tagged provider is a matter of
 // uploading its assets + manifest to `${BUCKET}/${key}/` and adding the key here.
@@ -45,9 +45,7 @@ const fetchManifest = async (provider: ProviderKey): Promise<Manifest> => {
     return cached.manifest;
   }
 
-  const { data, error } = await supabase.storage
-    .from(BUCKET)
-    .download(`${provider}/manifest.json`);
+  const { data, error } = await supabase.storage.from(BUCKET).download(`${provider}/manifest.json`);
   if (error || !data) {
     throw new Error(error?.message || `manifest.json not found for ${provider}`);
   }

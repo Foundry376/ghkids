@@ -1,5 +1,5 @@
 {
-  "_comment": "Reference schema for the per-provider manifest.json uploaded to Supabase Storage at `background-images/<provider>/manifest.json`. Not loaded at runtime — the real file lives in the bucket. An agent reinterprets the images and writes tags into this file.",
+  "_comment": "Reference schema for the per-provider manifest.json uploaded to Supabase Storage at `codako-assets/<provider>/manifest.json`. Not loaded at runtime — the real file lives in the bucket. An agent reinterprets the images and writes tags into this file.",
   "attribution": {
     "label": "CraftPix.net",
     "url": "https://craftpix.net/freebies/"
@@ -8,83 +8,146 @@
     {
       "file": "forest-day.png",
       "label": "Forest, Day",
-      "tags": ["nature", "forest", "day", "green"],
+      "tags": [
+        "nature",
+        "forest",
+        "day",
+        "green"
+      ],
       "featured": true
     },
     {
       "file": "forest-night.png",
       "label": "Forest, Night",
-      "tags": ["nature", "forest", "night", "dark"],
+      "tags": [
+        "nature",
+        "forest",
+        "night",
+        "dark"
+      ],
       "featured": true
     },
     {
       "file": "desert-dunes.png",
       "label": "Desert Dunes",
-      "tags": ["nature", "desert", "day", "sand"],
+      "tags": [
+        "nature",
+        "desert",
+        "day",
+        "sand"
+      ],
       "featured": true
     },
     {
       "file": "cave-blue.png",
       "label": "Blue Cave",
-      "tags": ["cave", "underground", "blue"],
+      "tags": [
+        "cave",
+        "underground",
+        "blue"
+      ],
       "featured": true
     },
     {
       "file": "castle-exterior.png",
       "label": "Castle Exterior",
-      "tags": ["fantasy", "castle", "day"],
+      "tags": [
+        "fantasy",
+        "castle",
+        "day"
+      ],
       "featured": true
     },
     {
       "file": "castle-throne.png",
       "label": "Throne Room",
-      "tags": ["fantasy", "castle", "interior"]
+      "tags": [
+        "fantasy",
+        "castle",
+        "interior"
+      ]
     },
     {
       "file": "village-day.png",
       "label": "Village, Day",
-      "tags": ["fantasy", "village", "day"],
+      "tags": [
+        "fantasy",
+        "village",
+        "day"
+      ],
       "featured": true
     },
     {
       "file": "space-stars.png",
       "label": "Starfield",
-      "tags": ["space", "stars", "night"],
+      "tags": [
+        "space",
+        "stars",
+        "night"
+      ],
       "featured": true
     },
     {
       "file": "space-nebula.png",
       "label": "Nebula",
-      "tags": ["space", "nebula", "colorful"]
+      "tags": [
+        "space",
+        "nebula",
+        "colorful"
+      ]
     },
     {
       "file": "underwater-reef.png",
       "label": "Coral Reef",
-      "tags": ["nature", "underwater", "ocean", "colorful"],
+      "tags": [
+        "nature",
+        "underwater",
+        "ocean",
+        "colorful"
+      ],
       "featured": true
     },
     {
       "file": "city-skyline.png",
       "label": "City Skyline",
-      "tags": ["city", "urban", "day"],
+      "tags": [
+        "city",
+        "urban",
+        "day"
+      ],
       "featured": true
     },
     {
       "file": "city-night.png",
       "label": "City at Night",
-      "tags": ["city", "urban", "night", "dark"],
+      "tags": [
+        "city",
+        "urban",
+        "night",
+        "dark"
+      ],
       "featured": true
     },
     {
       "file": "snow-mountains.png",
       "label": "Snowy Mountains",
-      "tags": ["nature", "mountains", "snow", "cold"],
+      "tags": [
+        "nature",
+        "mountains",
+        "snow",
+        "cold"
+      ],
       "featured": true
     },
     {
       "file": "lava-cavern.png",
       "label": "Lava Cavern",
-      "tags": ["cave", "underground", "lava", "fire"]
+      "tags": [
+        "cave",
+        "underground",
+        "lava",
+        "fire"
+      ]
     }
   ]
 }
