@@ -7,7 +7,6 @@ import RootEditor from "../editor/root-editor";
 import StoreProvider from "../editor/store-provider";
 import { deepClone } from "../editor/utils/utils";
 import { makeRequest } from "../helpers/api";
-import { useHideRecaptchaBadge } from "../hooks/useHideRecaptchaBadge";
 import { usePageTitle } from "../hooks/usePageTitle";
 
 import { useParams } from "react-router";
@@ -209,7 +208,6 @@ const EditorPage = () => {
   }, [hasUnsavedChanges]);
 
   usePageTitle(world?.name);
-  useHideRecaptchaBadge();
 
   useEffect(() => {
     const load = async () => {

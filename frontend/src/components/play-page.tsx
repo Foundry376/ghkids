@@ -5,7 +5,6 @@ import { Link, useParams } from "react-router-dom";
 
 import { createWorld, fetchWorld } from "../actions/main-actions";
 import { useFullscreen } from "../hooks/useFullscreen";
-import { useHideRecaptchaBadge } from "../hooks/useHideRecaptchaBadge";
 import { usePageTitle } from "../hooks/usePageTitle";
 import { RootPlayer } from "../editor/root-player";
 import PageMessage from "./common/page-message";
@@ -42,7 +41,6 @@ const PlayPage: React.FC = () => {
   }, [worldId, dispatch]);
 
   usePageTitle(world?.name);
-  useHideRecaptchaBadge();
 
   // When the user exits fullscreen while immersive (Escape key, Safari
   // controls, the toggle button, etc.), also leave immersive mode so the
