@@ -1310,7 +1310,7 @@ export const Stage = ({
   const backgroundValue =
     typeof stage.background === "string"
       ? stage.background.includes("/Layer0_2.png")
-        ? `url(${new URL(`/src/editor/img/backgrounds/Layer0_2.png`, import.meta.url).href})`
+        ? `url(${new URL(`../../img/backgrounds/Layer0_2.png`, import.meta.url).href})`
         : stage.background
       : "";
 
@@ -1319,7 +1319,7 @@ export const Stage = ({
   // For solid color backgrounds the overlay is never applied.
   const applyFade = isImageBackground && stage.backgroundFade !== false;
   const backgroundCSS = [
-    `url('/src/editor/img/board-grid.png') top left / ${STAGE_CELL_SIZE}px`,
+    `url('${new URL("../../img/board-grid.png", import.meta.url).href}') top left / ${STAGE_CELL_SIZE}px`,
     applyFade ? `linear-gradient(rgba(255,255,255,0.25), rgba(255,255,255,0.25))` : null,
     `${backgroundValue}${isImageBackground ? " 50% 50% / cover" : ""}`,
   ]

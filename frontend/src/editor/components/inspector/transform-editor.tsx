@@ -69,7 +69,7 @@ export const TransformEditorModal = ({
             border: "2px solid #ccc",
             margin: "auto",
             zoom: 1.2,
-            background: `url('/src/editor/img/board-grid.png') top left / ${STAGE_CELL_SIZE}px`,
+            background: `url('${new URL("../../img/board-grid.png", import.meta.url).href}') top left / ${STAGE_CELL_SIZE}px`,
           }}
         >
           {characterId && appearance && (
