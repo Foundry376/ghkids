@@ -1,7 +1,7 @@
 import { Button, Col, Container, Row } from "reactstrap";
 import React, { useCallback, useMemo, useRef, useState } from "react";
 import { useDispatch } from "react-redux";
-import { useGoogleReCaptcha } from "react-google-recaptcha-v3";
+import { GoogleReCaptchaProvider, useGoogleReCaptcha } from "react-google-recaptcha-v3";
 
 import { useLocation } from "react-router";
 import { register } from "../actions/main-actions";
@@ -12,7 +12,9 @@ interface NetworkError extends Error {
   statusCode?: number;
 }
 
-const JoinPage: React.FC = () => {
+const RECAPTCHA_SITE_KEY = `6LczpzwsAAAAADQs-j6-hokHJ8JUsqZ8NZ6t3BTC`;
+
+const JoinPageForm: React.FC = () => {
   const location = useLocation();
   const usernameRef = useRef<HTMLInputElement>(null);
   const passRef = useRef<HTMLInputElement>(null);
@@ -172,5 +174,11 @@ const JoinPage: React.FC = () => {
     </Container>
   );
 };
+
+const JoinPage: React.FC = () => (
+  <GoogleReCaptchaProvider reCaptchaKey={RECAPTCHA_SITE_KEY}>
+    <JoinPageForm />
+  </GoogleReCaptchaProvider>
+);
 
 export default JoinPage;
