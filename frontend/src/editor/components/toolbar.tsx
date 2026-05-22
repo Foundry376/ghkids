@@ -184,7 +184,7 @@ const Toolbar = () => {
     <div className="toolbar">
       <div style={{ flex: 1, textAlign: "left" }}>{renderLeft()}</div>
 
-      <div style={{ display: "flex", alignItems: "center" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
         <div className="button-group">{[TOOLS.POINTER].map(renderTool)}</div>
         <div className="button-group">
           {[TOOLS.CREATE_CHARACTER, TOOLS.PAINT, TOOLS.RECORD].map(renderTool)}
@@ -192,7 +192,7 @@ const Toolbar = () => {
         <div className="button-group">{[TOOLS.STAMP, TOOLS.TRASH].map(renderTool)}</div>
       </div>
 
-      <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "flex-end" }}>
+      <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 12 }}>
         <UndoRedoControls />
         <StageSwitcher />
       </div>
