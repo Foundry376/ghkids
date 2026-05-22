@@ -304,26 +304,27 @@ class PixelSelectionTool extends PixelTool {
       };
     }
 
-    const result = {
-      ...super.mousedown(point, props),
+    const next = { ...props, ...super.mousedown(point, props) };
+    return {
+      ...next,
       imageData: getFlattenedImageData(props),
       selectionImageData: null,
       selectionOffset: { x: 0, y: 0 },
-      interactionPixels: this.selectionPixelsForProps(props),
+      interactionPixels: this.selectionPixelsForProps(next),
     };
-    return result;
   }
 
   mousemove(point: Point, props: PixelToolState): Partial<PixelToolState> {
+    const next = { ...props, ...super.mousemove(point, props) };
     if (props.draggingSelection) {
       return {
-        ...super.mousemove(point, props),
-        selectionOffset: this.selectionOffsetForProps(props),
+        ...next,
+        selectionOffset: this.selectionOffsetForProps(next),
       };
     }
     return {
-      ...super.mousemove(point, props),
-      interactionPixels: this.selectionPixelsForProps(props),
+      ...next,
+      interactionPixels: this.selectionPixelsForProps(next),
     };
   }
 
