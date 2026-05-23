@@ -1,6 +1,6 @@
 import { Button } from "reactstrap";
 import { useRef, useState } from "react";
-import { Stage } from "../../../types";
+import { Stage, StageVariable } from "../../../types";
 import { STAGE_CELL_SIZE } from "../../constants/constants";
 import { STAGE_ZOOM_STEPS } from "../stage/stage";
 import { ExploreBackgrounds } from "./explore-backgrounds";
@@ -11,10 +11,14 @@ const API_ROOT = window.location.host.includes("codako") ? `` : `http://localhos
 
 export const StageSettings = ({
   stage,
+  stageVariables = {},
   onChange,
+  onChangeStageVariableValue,
 }: {
   stage: Stage;
+  stageVariables?: Record<string, StageVariable>;
   onChange: (next: Partial<Stage>) => void;
+  onChangeStageVariableValue?: (stageVariableId: string, value: string | undefined) => void;
 }) => {
   const [isUploading, setUploading] = useState(false);
   const [savedImageUrl, setSavedImageUrl] = useState(
@@ -403,6 +407,42 @@ export const StageSettings = ({
           </div>
         )}
       </fieldset>
+
+      {onChangeStageVariableValue && Object.keys(stageVariables).length > 0 && (
+        <fieldset className="form-group" style={{ marginTop: 12 }}>
+          <legend className="col-form-legend">Level Variables</legend>
+          <div style={{ fontSize: 12, color: "#777", marginBottom: 8 }}>
+            Each Level can have its own value for these variables. Leave blank to use the default.
+          </div>
+          {Object.values(stageVariables).map((def) => {
+            const override = stage.variableValues?.[def.id];
+            return (
+              <div
+                key={def.id}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 10,
+                  marginBottom: 6,
+                }}
+              >
+                <span style={{ width: 140, fontWeight: 500 }}>{def.name}</span>
+                <input
+                  className="form-control"
+                  type="text"
+                  placeholder={`default: ${def.defaultValue}`}
+                  defaultValue={override ?? ""}
+                  onBlur={(e) => {
+                    const v = e.target.value;
+                    onChangeStageVariableValue(def.id, v === "" ? undefined : v);
+                  }}
+                  style={{ flex: 1 }}
+                />
+              </div>
+            );
+          })}
+        </fieldset>
+      )}
 
       <ExploreBackgrounds
         isOpen={showExplore}

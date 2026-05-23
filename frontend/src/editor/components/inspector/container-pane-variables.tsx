@@ -4,12 +4,17 @@ import React, { useState } from "react";
 import { useDispatch } from "react-redux";
 import { Button, ButtonDropdown, DropdownItem, DropdownMenu, DropdownToggle, Modal, ModalBody, ModalFooter, ModalHeader } from "reactstrap";
 import { DeepPartial } from "redux";
-import { Actor, ActorTransform, Character, Global, RuleTreeItem, WorldMinimal } from "../../../types";
+import { Actor, ActorTransform, Character, Global, RuleTreeItem, StageVariable, WorldMinimal } from "../../../types";
 import { useEditorSelector } from "../../../hooks/redux";
 import { deleteCharacterVariable, upsertCharacter } from "../../actions/characters-actions";
 import { changeActors } from "../../actions/stage-actions";
 import { selectToolId } from "../../actions/ui-actions";
-import { deleteGlobal, upsertGlobal } from "../../actions/world-actions";
+import {
+  deleteGlobal,
+  deleteStageVariable,
+  upsertGlobal,
+  upsertStageVariable,
+} from "../../actions/world-actions";
 import { TOOLS } from "../../constants/constants";
 import { findRules, FindRulesResult, ruleUsesVariable } from "../../utils/stage-helpers";
 import Sprite from "../sprites/sprite";
@@ -392,6 +397,24 @@ export const ContainerPaneVariables = ({
     }
   };
 
+  // Stage variables (definitions shared across stages, values per-stage edited elsewhere)
+
+  const _onChangeStageVariableDefinition = (
+    stageVariableId: string,
+    changes: Partial<StageVariable>,
+  ) => {
+    dispatch(upsertStageVariable(world.id, stageVariableId, changes));
+  };
+
+  const _onClickStageVariable = (stageVariableId: string, event: React.MouseEvent) => {
+    if (selectedToolId === TOOLS.TRASH) {
+      dispatch(deleteStageVariable(world.id, stageVariableId));
+      if (!event.shiftKey) {
+        dispatch(selectToolId(TOOLS.POINTER));
+      }
+    }
+  };
+
   function _renderCharacterSection() {
     const actorValues = actor ? actor.variableValues : {};
 
@@ -489,6 +512,39 @@ export const ContainerPaneVariables = ({
     );
   }
 
+  function _renderLevelSection() {
+    const definitions = Object.values(world.stageVariables ?? {});
+    return (
+      <div className="variables-grid">
+        {definitions.map((definition) => (
+          <VariableGridItem
+            draggable={true}
+            actorId={null}
+            kind="stageVariable"
+            disabled={selectedToolId !== TOOLS.POINTER}
+            readonly={readonly}
+            key={definition.id}
+            definition={definition}
+            value={definition.defaultValue}
+            onClick={_onClickStageVariable}
+            onChangeDefinition={_onChangeStageVariableDefinition}
+            onChangeValue={(id, value) =>
+              _onChangeStageVariableDefinition(id, { defaultValue: value })
+            }
+            onBlurValue={(id, value) =>
+              _onChangeStageVariableDefinition(id, { defaultValue: value })
+            }
+          />
+        ))}
+        {definitions.length === 0 && (
+          <div className="empty">
+            Add a Level Variable (like "difficulty") that every Level has, with values set per Level.
+          </div>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className={`scroll-container`}>
       <div className="scroll-container-contents">
@@ -506,6 +562,10 @@ export const ContainerPaneVariables = ({
         ) : (
           <div className="empty">Please select a character.</div>
         )}
+        <div className="variables-section">
+          <h3>Level</h3>
+          {_renderLevelSection()}
+        </div>
         <div className="variables-section">
           <h3>World</h3>
           {_renderWorldSection()}

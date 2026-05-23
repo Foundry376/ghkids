@@ -187,8 +187,17 @@ export const FreeformConditionValue = ({
 
   const onDropValue = (e: React.DragEvent) => {
     if (e.dataTransfer.types.includes("variable")) {
-      const { actorId, globalId, variableId } = JSON.parse(e.dataTransfer.getData("variable"));
-      const value = (globalId ? { globalId } : { actorId, variableId }) as RuleValue;
+      const { actorId, globalId, stageVariableId, variableId } = JSON.parse(
+        e.dataTransfer.getData("variable"),
+      );
+      let value: RuleValue;
+      if (stageVariableId) {
+        value = { stageVariableId };
+      } else if (globalId) {
+        value = { globalId };
+      } else {
+        value = { actorId, variableId };
+      }
       onChange?.(value);
       e.stopPropagation();
     }
@@ -321,6 +330,19 @@ export const FreeformConditionValue = ({
         <code>
           {icon}
           {world.globals[value.globalId]?.name ?? value.globalId}
+        </code>
+      );
+    }
+
+    if ("stageVariableId" in value) {
+      return (
+        <code>
+          <span
+            style={{ fontSize: "20px", lineHeight: "24px", marginRight: 6, verticalAlign: "middle" }}
+          >
+            📍
+          </span>
+          {world.stageVariables?.[value.stageVariableId]?.name ?? value.stageVariableId}
         </code>
       );
     }
