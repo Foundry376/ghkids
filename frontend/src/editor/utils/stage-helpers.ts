@@ -10,6 +10,7 @@ import {
   RuleTreeItem,
   RuleValue,
   Stage,
+  StageVariable,
   VariableComparator,
 } from "../../types";
 import { RELATIVE_TRANSFORMS } from "../components/inspector/transform-lookup";
@@ -189,12 +190,28 @@ export function shuffleArray<T>(input: Array<T>): Array<T> {
   return d;
 }
 
+export function getStageVariableValue(
+  stage: Pick<Stage, "variableValues"> | undefined,
+  stageVariables: Record<string, StageVariable> | undefined,
+  id: string,
+): string | null {
+  const override = stage?.variableValues?.[id];
+  if (override !== undefined) {
+    return override ?? null;
+  }
+  return stageVariables?.[id]?.defaultValue ?? null;
+}
+
 export function resolveRuleValue(
   val: RuleValue,
   globals: Globals,
   characters: Characters,
   stageActorForId: Stage["actors"],
   comparator: VariableComparator, // some values behave differently depending on the comparator
+  stageContext?: {
+    stage: Pick<Stage, "variableValues"> | undefined;
+    stageVariables: Record<string, StageVariable> | undefined;
+  },
 ): string | null {
   if (!val) {
     console.warn(`A rule value is missing?`);
@@ -225,6 +242,9 @@ export function resolveRuleValue(
       return Object.keys(stageActorForId).find((id) => stageActorForId[id].id === value) ?? value;
     }
     return value;
+  }
+  if ("stageVariableId" in val) {
+    return getStageVariableValue(stageContext?.stage, stageContext?.stageVariables, val.stageVariableId);
   }
   isNever(val);
   return "";

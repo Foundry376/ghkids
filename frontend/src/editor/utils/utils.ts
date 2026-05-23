@@ -6,7 +6,16 @@ export function deepClone<T>(obj: T): T {
 }
 
 export function makeId(
-  type: "rule" | "condition" | "var" | "global" | "stage" | "actor" | "character" | "appearance",
+  type:
+    | "rule"
+    | "condition"
+    | "var"
+    | "global"
+    | "stagevar"
+    | "stage"
+    | "actor"
+    | "character"
+    | "appearance",
 ) {
   return `${type}:${crypto.randomUUID().split("-")[0]}`;
 }

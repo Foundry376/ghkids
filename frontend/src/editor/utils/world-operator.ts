@@ -25,6 +25,7 @@ import {
   RuleTreeFlowLoopItem,
   RuleTreeItem,
   Stage,
+  StageVariable,
   WorldMinimal,
 } from "../../types";
 import { DOOR_VARIABLE_IDS } from "./door-constants";
@@ -47,12 +48,18 @@ import { CONTAINER_TYPES, FLOW_BEHAVIORS } from "./world-constants";
 
 export default function WorldOperator(previousWorld: WorldMinimal, characters: Characters) {
   let stage: Stage;
+  let stageVariableValues: Record<string, string>;
+  let stageVariables: Record<string, StageVariable>;
   let globals: Globals;
   let actors: { [actorId: string]: Actor };
   let input: FrameInput;
   let evaluatedRuleDetails: EvaluatedRuleDetailsMap = {};
   let frameAccumulator: FrameAccumulator;
   let crossStageActorsForDestStage: { [destStageId: string]: { [actorId: string]: Actor } } = {};
+
+  function stageCtx() {
+    return { stage: { variableValues: stageVariableValues }, stageVariables };
+  }
 
   function wrappedPosition({ x, y }: PositionRelativeToWorld) {
     // World coordinates are 1-indexed (bottom-left = (1, 1)). Wrap relative to
@@ -99,7 +106,7 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
               getVariableValue(actor, character, left.variableId, comparator),
               actor,
             ])
-          : [[resolveRuleValue(left, globals, characters, actors, comparator), null]];
+          : [[resolveRuleValue(left, globals, characters, actors, comparator, stageCtx()), null]];
 
       const rightValue: [string | null, Actor | null][] =
         "actorId" in right
@@ -107,7 +114,7 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
               getVariableValue(actor, character, right.variableId, comparator),
               actor,
             ])
-          : [[resolveRuleValue(right, globals, characters, actors, comparator), null]];
+          : [[resolveRuleValue(right, globals, characters, actors, comparator, stageCtx()), null]];
 
       let found = false;
       for (const leftOpt of leftValue) {
@@ -461,6 +468,7 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
             characters,
             stageActorsForRuleActorIds,
             condition.comparator,
+            stageCtx(),
           );
           const right = resolveRuleValue(
             condition.right,
@@ -468,6 +476,7 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
             characters,
             stageActorsForRuleActorIds,
             condition.comparator,
+            stageCtx(),
           );
           const passed = comparatorMatches(condition.comparator, left, right);
           conditions.push({
@@ -574,7 +583,23 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
           global.value = applyVariableOperation(
             global.value,
             action.operation,
-            resolveRuleValue(action.value, globals, characters, stageActorForId, "=") ?? "",
+            resolveRuleValue(action.value, globals, characters, stageActorForId, "=", stageCtx()) ??
+              "",
+          );
+        } else if (action.type === "stageVariable") {
+          const definition = stageVariables[action.stageVariable];
+          if (!definition) {
+            // Stage variable was deleted - skip this action
+            return;
+          }
+          const current = stageVariableValues[action.stageVariable] ?? definition.defaultValue ?? "0";
+          const value =
+            resolveRuleValue(action.value, globals, characters, stageActorForId, "=", stageCtx()) ??
+            "";
+          stageVariableValues[action.stageVariable] = applyVariableOperation(
+            current,
+            action.operation,
+            value,
           );
         } else if ("actorId" in action && action.actorId) {
           // find the actor on the stage that matches
@@ -656,7 +681,8 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
             }
           } else if (action.type === "appearance") {
             stageActor.appearance =
-              resolveRuleValue(action.value, globals, characters, stageActorForId, "=") ?? "";
+              resolveRuleValue(action.value, globals, characters, stageActorForId, "=", stageCtx()) ??
+              "";
             if (action.animationStyle !== "skip") {
               frameAccumulator?.push({
                 ...stageActor,
@@ -671,6 +697,7 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
               characters,
               stageActorForId,
               "=",
+              stageCtx(),
             ) as ActorTransform;
             const next = applyTransformOperation(
               stageActor.transform ?? "0",
@@ -694,7 +721,8 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
                 "=",
               ) ?? "0";
             const value =
-              resolveRuleValue(action.value, globals, characters, stageActorForId, "=") ?? "";
+              resolveRuleValue(action.value, globals, characters, stageActorForId, "=", stageCtx()) ??
+              "";
             const next = applyVariableOperation(current, action.operation, value);
 
             if (action.variable === "x" || action.variable === "y") {
@@ -742,6 +770,8 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
 
     // mutable things
     globals = deepClone(previousWorld.globals);
+    stageVariables = deepClone(previousWorld.stageVariables ?? {});
+    stageVariableValues = deepClone(currentStage.variableValues ?? {});
     actors = {};
     for (const actor of Object.values(rule.actors)) {
       actors[actor.id] = Object.assign(deepClone(actor), {
@@ -757,9 +787,23 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
           characters,
           rule.actors,
           cond.comparator,
+          stageCtx(),
         );
         if (value) {
           globals[cond.left.globalId].value = value;
+        }
+      }
+      if ("stageVariableId" in cond.left && stageVariables[cond.left.stageVariableId]) {
+        const value = resolveRuleValue(
+          cond.right,
+          globals,
+          characters,
+          rule.actors,
+          cond.comparator,
+          stageCtx(),
+        );
+        if (value) {
+          stageVariableValues[cond.left.stageVariableId] = value;
         }
       }
     }
@@ -774,8 +818,11 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
       operator.applyRule(rule, { createActorIds: false, stageActorForId: { ...actors } });
     }
 
-    const stageUpdates: Record<string, { actors: unknown }> = {
-      [stage.id]: { actors: u.constant(actors) },
+    const stageUpdates: Record<string, { actors: unknown; variableValues?: unknown }> = {
+      [stage.id]: {
+        actors: u.constant(actors),
+        variableValues: u.constant(stageVariableValues),
+      },
     };
     for (const [destStageId, destActors] of Object.entries(crossStageActorsForDestStage)) {
       stageUpdates[destStageId] = { actors: u.constant(destActors) };
@@ -805,6 +852,8 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
     globals = deepClone(previousWorld.globals);
     globals.keypress = { ...globals.keypress, value: Object.keys(input.keys).join(",") };
     globals.click = { ...globals.click, value: Object.keys(input.clicks)[0] };
+    stageVariables = deepClone(previousWorld.stageVariables ?? {});
+    stageVariableValues = deepClone(stage.variableValues ?? {});
 
     actors = deepClone(stage.actors);
     frameAccumulator = new FrameAccumulator(stage.actors);
@@ -817,17 +866,23 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
     );
 
     const beforeStages: HistorySnapshot["stages"] = {
-      [stage.id]: { actors: stage.actors },
+      [stage.id]: { actors: stage.actors, variableValues: stage.variableValues ?? {} },
     };
     const afterStages: HistorySnapshot["stages"] = {
-      [stage.id]: { actors },
+      [stage.id]: { actors, variableValues: stageVariableValues },
     };
     for (const [destStageId, destActors] of Object.entries(crossStageActorsForDestStage)) {
       const destStage = previousWorld.stages[destStageId];
       if (destStage) {
-        beforeStages[destStageId] = { actors: destStage.actors };
+        beforeStages[destStageId] = {
+          actors: destStage.actors,
+          variableValues: destStage.variableValues ?? {},
+        };
       }
-      afterStages[destStageId] = { actors: destActors };
+      afterStages[destStageId] = {
+        actors: destActors,
+        variableValues: previousWorld.stages[destStageId]?.variableValues ?? {},
+      };
     }
 
     const beforeSnapshot: HistorySnapshot = {
@@ -852,8 +907,11 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
       afterSnapshot as unknown as Record<string, unknown>,
     );
 
-    const stageUpdates: Record<string, { actors: unknown }> = {
-      [stage.id]: { actors: u.constant(actors) },
+    const stageUpdates: Record<string, { actors: unknown; variableValues?: unknown }> = {
+      [stage.id]: {
+        actors: u.constant(actors),
+        variableValues: u.constant(stageVariableValues),
+      },
     };
     for (const [destStageId, destActors] of Object.entries(crossStageActorsForDestStage)) {
       stageUpdates[destStageId] = { actors: u.constant(destActors) };
@@ -896,6 +954,7 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
       stages: {
         [currentStage.id]: {
           actors: currentStage.actors,
+          variableValues: currentStage.variableValues ?? {},
         },
       },
     };
@@ -913,6 +972,7 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
         stages: {
           [stageKey]: {
             actors: u.constant(previousSnapshot.stages[stageKey].actors),
+            variableValues: u.constant(previousSnapshot.stages[stageKey].variableValues ?? {}),
           },
         },
         evaluatedRuleDetails: u.constant(previousSnapshot.evaluatedRuleDetails),
