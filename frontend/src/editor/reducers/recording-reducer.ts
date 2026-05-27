@@ -55,6 +55,13 @@ function isActionForSameVarOrGlobal(r: RuleAction, n: RuleAction) {
     return true;
   }
   if (
+    n.type === "stageVariable" &&
+    r.type === "stageVariable" &&
+    r.stageVariable === n.stageVariable
+  ) {
+    return true;
+  }
+  if (
     n.type === "variable" &&
     r.type === "variable" &&
     r.variable === n.variable &&
@@ -357,6 +364,18 @@ function buildActionsFromStageActions(
         type: "delete",
         actorId,
       }));
+    }
+    case Types.SET_STAGE_VARIABLE_VALUE: {
+      // Editing a stage variable's value during recording becomes a
+      // stageVariable rule action so the rule reproduces the change.
+      return [
+        {
+          type: "stageVariable",
+          stageVariable: action.stageVariableId,
+          operation: "set",
+          value: { constant: action.value ?? "" },
+        },
+      ];
     }
     default:
       return null;

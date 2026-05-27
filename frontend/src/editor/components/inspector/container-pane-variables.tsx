@@ -325,7 +325,17 @@ export const ContainerPaneVariables = ({
   const dispatch = useDispatch();
   const selectedToolId = useEditorSelector((state) => state.ui.selectedToolId);
   const selectedActors = useEditorSelector((state) => state.ui.selectedActors);
-  const currentStage = useEditorSelector(getCurrentStage);
+  const mainCurrentStage = useEditorSelector(getCurrentStage);
+  const recording = useEditorSelector((state) => state.recording);
+  const isRecording = !!recording.characterId;
+  // During recording, Level edits should land on the after world so they
+  // become rule actions; otherwise they edit the live game state directly.
+  const levelTargetWorld = isRecording ? recording.afterWorld : world;
+  const levelTargetStage = isRecording
+    ? Object.values(levelTargetWorld.stages).find(
+        (s) => s.id === levelTargetWorld.globals.selectedStageId?.value,
+      ) ?? Object.values(levelTargetWorld.stages)[0]
+    : mainCurrentStage;
   const [pendingDelete, setPendingDelete] = useState<PendingDeleteState>(null);
 
   // Chararacter and actor variables
@@ -411,8 +421,10 @@ export const ContainerPaneVariables = ({
   };
 
   const _onChangeStageVariableValue = (stageVariableId: string, value: string | undefined) => {
-    if (!currentStage) return;
-    dispatch(setStageVariableValue(world.id, currentStage.id, stageVariableId, value));
+    if (!levelTargetStage) return;
+    dispatch(
+      setStageVariableValue(levelTargetWorld.id, levelTargetStage.id, stageVariableId, value),
+    );
   };
 
   const _onClickStageVariable = (stageVariableId: string, event: React.MouseEvent) => {
@@ -523,7 +535,7 @@ export const ContainerPaneVariables = ({
 
   function _renderLevelSection() {
     const definitions = Object.values(world.stageVariables ?? {});
-    const values = currentStage?.variableValues ?? {};
+    const values = levelTargetStage?.variableValues ?? {};
     return (
       <div className="variables-grid">
         {definitions.map((definition) => (
