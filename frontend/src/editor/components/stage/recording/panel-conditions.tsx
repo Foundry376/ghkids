@@ -132,17 +132,23 @@ export const RecordingConditions = ({
       }}
       onDrop={(e) => {
         if (e.dataTransfer.types.includes("variable")) {
-          const { value, actorId, variableId, globalId } = JSON.parse(
+          const { value, actorId, variableId, globalId, stageVariableId } = JSON.parse(
             e.dataTransfer.getData("variable"),
           );
           setDropping(false);
+
+          const left = stageVariableId
+            ? { stageVariableId }
+            : globalId
+              ? { globalId }
+              : { actorId, variableId };
 
           dispatch(
             upsertRecordingCondition({
               enabled: true,
               key: makeId("condition"),
               comparator: "=",
-              left: globalId ? { globalId } : { actorId, variableId },
+              left,
               right: { constant: value },
             }),
           );
