@@ -6,7 +6,11 @@ import stageCollectionReducer from "./stage-collection-reducer";
 import { EditorState, World, WorldMinimal } from "../../types";
 import { Actions } from "../actions";
 import * as Types from "../constants/action-types";
-import { isBuiltinStageVariableId } from "../utils/builtin-stage-variables";
+import {
+  initialValueForStageVariable,
+  isBuiltinStageVariableId,
+} from "../utils/builtin-stage-variables";
+import { getCurrentStageForWorld } from "../utils/selectors";
 import WorldOperator from "../utils/world-operator";
 
 export default function worldReducer(
@@ -36,10 +40,22 @@ export default function worldReducer(
       return u({ globals: u.omit(action.globalId) }, state);
     }
     case Types.UPSERT_STAGE_VARIABLE: {
-      return u(
+      const isCreating = !state.stageVariables[action.stageVariableId];
+      const nextState = u(
         { stageVariables: { [action.stageVariableId]: action.changes } },
         state,
-      );
+      ) as WorldMinimal;
+      if (!isCreating) {
+        return nextState;
+      }
+      // Maintain the invariant: every defined stage variable has a value on
+      // every stage. Seed the new variable on every stage with its initial.
+      const initial = initialValueForStageVariable(action.stageVariableId);
+      const stageUpdates: Record<string, { variableValues: { [id: string]: string } }> = {};
+      for (const stageId of Object.keys(nextState.stages)) {
+        stageUpdates[stageId] = { variableValues: { [action.stageVariableId]: initial } };
+      }
+      return u({ stages: stageUpdates }, nextState);
     }
     case Types.DELETE_STAGE_VARIABLE: {
       // Built-in stage variables (wrapX, wrapY, ...) are part of the engine
@@ -58,11 +74,38 @@ export default function worldReducer(
       );
     }
     case Types.SET_STAGE_VARIABLE_VALUE: {
-      const variableValues =
+      // Invariant: every defined stage variable has a value on every stage.
+      // Treat an undefined value as a reset to the variable's initial seed.
+      const value =
         action.value === undefined
-          ? u.omit(action.stageVariableId)
-          : { [action.stageVariableId]: action.value };
-      return u({ stages: { [action.stageId]: { variableValues } } }, state);
+          ? initialValueForStageVariable(action.stageVariableId)
+          : action.value;
+      return u(
+        { stages: { [action.stageId]: { variableValues: { [action.stageVariableId]: value } } } },
+        state,
+      );
+    }
+    case Types.CREATE_STAGE: {
+      // stageCollectionReducer just spread initialStateStage onto the new
+      // stage. Make the new stage inherit the currently-selected stage's
+      // variableValues (so Level 2 starts "like Level 1"), then patch in any
+      // missing stage variables with their initial values to uphold the
+      // every-var-on-every-stage invariant.
+      const newStage = state.stages[action.stageId];
+      if (!newStage) return state;
+      const sourceStage = getCurrentStageForWorld(state);
+      const seeded: Record<string, string> = sourceStage
+        ? { ...sourceStage.variableValues }
+        : { ...newStage.variableValues };
+      for (const id of Object.keys(state.stageVariables)) {
+        if (seeded[id] === undefined) {
+          seeded[id] = initialValueForStageVariable(id);
+        }
+      }
+      return u(
+        { stages: { [action.stageId]: { variableValues: u.constant(seeded) } } },
+        state,
+      );
     }
     case Types.INPUT_FOR_GAME_STATE: {
       const inputUpdates: { keys?: unknown; clicks?: unknown } = {};

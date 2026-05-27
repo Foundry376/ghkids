@@ -639,7 +639,7 @@ export function stageVariableModifyScenario(): TestScenario {
   });
   const world = makeWorld({
     stage,
-    stageVariables: { [stageVarId]: { id: stageVarId, name: "Difficulty", defaultValue: "0" } },
+    stageVariables: { [stageVarId]: { id: stageVarId, name: "Difficulty" } },
   });
 
   return {
@@ -649,56 +649,6 @@ export function stageVariableModifyScenario(): TestScenario {
     frames: 1,
     assertions: (result) => {
       expectStageVariable(result, "stage-1", stageVarId, "3");
-    },
-  };
-}
-
-export function stageVariableDefaultFallbackScenario(): TestScenario {
-  const charId = "char-1";
-  const actorId = "actor-1";
-  const stageVarId = "stagevar-difficulty";
-  const playerVarId = "var-score";
-
-  const ruleActor = makeActor({ id: "rule-actor", characterId: charId });
-  // Add the stage variable to the actor's variable - tests reading stage var as a RuleValue
-  const rule = makeRule({
-    id: "copy-stage-var",
-    mainActorId: "rule-actor",
-    actors: { "rule-actor": ruleActor },
-    actions: [
-      {
-        type: "variable",
-        actorId: "rule-actor",
-        variable: playerVarId,
-        operation: "set",
-        value: { stageVariableId: stageVarId },
-      },
-    ],
-  });
-  const idleGroup = makeEventGroup({ id: "idle-group", event: "idle", rules: [rule] });
-  const character = makeCharacter({
-    id: charId,
-    name: "Reader",
-    rules: [idleGroup],
-    variables: { [playerVarId]: { id: playerVarId, name: "Score", defaultValue: "0" } },
-  });
-  const characters: Characters = { [charId]: character };
-
-  const stageActor = makeActor({ id: actorId, characterId: charId, position: { x: 1, y: 1 } });
-  // Stage has no override; rule should read the world-level default ("7")
-  const stage = makeStage({ id: "stage-1", actors: { [actorId]: stageActor } });
-  const world = makeWorld({
-    stage,
-    stageVariables: { [stageVarId]: { id: stageVarId, name: "Difficulty", defaultValue: "7" } },
-  });
-
-  return {
-    name: "should read a stage variable's default when stage has no override",
-    characters,
-    world,
-    frames: 1,
-    assertions: (result) => {
-      expectActorVariable(result, actorId, playerVarId, "7");
     },
   };
 }
@@ -735,7 +685,7 @@ export function stageVariableConditionScenario(): TestScenario {
   });
   const world = makeWorld({
     stage,
-    stageVariables: { [stageVarId]: { id: stageVarId, name: "Difficulty", defaultValue: "0" } },
+    stageVariables: { [stageVarId]: { id: stageVarId, name: "Difficulty" } },
   });
 
   return {

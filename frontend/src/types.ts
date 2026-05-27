@@ -230,12 +230,10 @@ export type StageVariable =
   | {
       id: string;
       name: string;
-      defaultValue: string;
     }
   | {
       id: "wrapX" | "wrapY";
       name: string;
-      defaultValue: string;
       type: "boolean";
     };
 

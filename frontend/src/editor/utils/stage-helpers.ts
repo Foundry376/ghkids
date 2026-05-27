@@ -240,9 +240,11 @@ export function resolveRuleValue(
     return value;
   }
   if ("stageVariableId" in val) {
-    const override = ctx.stage?.variableValues?.[val.stageVariableId];
-    if (override !== undefined) return override;
-    return ctx.stageVariables?.[val.stageVariableId]?.defaultValue ?? null;
+    // Every defined stage variable is required to have a value on every stage,
+    // so we read directly without falling back to a world-level default. A
+    // missing value here means either the variable was deleted (the rule
+    // should have been scrubbed) or the seeding invariant was violated.
+    return ctx.stage?.variableValues?.[val.stageVariableId] ?? null;
   }
   isNever(val);
   return "";

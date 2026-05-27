@@ -620,5 +620,98 @@ describe("data-migrations", () => {
         expect((stage as any).wrapY).to.be.undefined;
       });
     });
+
+    describe("stage variable defaultValue migrations", () => {
+      const stageWithoutVarValues = (id: string) => ({
+        id,
+        order: 0,
+        name: id,
+        actors: {},
+        background: "#000",
+        width: 10,
+        height: 10,
+      });
+
+      const baseGlobals = {
+        click: { id: "click", name: "Clicked Actor", value: "", type: "actor" as const },
+        keypress: { id: "keypress", name: "Key Pressed", value: "", type: "key" as const },
+        selectedStageId: {
+          id: "selectedStageId" as const,
+          name: "Current Level" as const,
+          value: "",
+          type: "stage" as const,
+        },
+        cameraFollow: { id: "cameraFollow", name: "Camera Follow", value: "", type: "actor" as const },
+      };
+
+      it("should seed missing per-stage values from the definition's legacy defaultValue", () => {
+        const game = makeMinimalGame({
+          world: {
+            id: WORLDS.ROOT,
+            stages: {
+              stage1: stageWithoutVarValues("stage1") as any,
+              stage2: stageWithoutVarValues("stage2") as any,
+            },
+            globals: baseGlobals,
+            input: { keys: {}, clicks: {} },
+            evaluatedRuleDetails: {},
+            stageVariables: {
+              difficulty: { id: "difficulty", name: "Difficulty", defaultValue: "7" } as any,
+            },
+            history: [],
+            metadata: { name: "Test", id: 1, published: false, description: null },
+          },
+        });
+
+        const migrated = applyDataMigrations(game);
+        expect(migrated.data.world.stages["stage1"].variableValues.difficulty).to.equal("7");
+        expect(migrated.data.world.stages["stage2"].variableValues.difficulty).to.equal("7");
+      });
+
+      it("should not overwrite an existing per-stage value during seeding", () => {
+        const game = makeMinimalGame({
+          world: {
+            id: WORLDS.ROOT,
+            stages: {
+              stage1: {
+                ...stageWithoutVarValues("stage1"),
+                variableValues: { difficulty: "easy" },
+              } as any,
+            },
+            globals: baseGlobals,
+            input: { keys: {}, clicks: {} },
+            evaluatedRuleDetails: {},
+            stageVariables: {
+              difficulty: { id: "difficulty", name: "Difficulty", defaultValue: "7" } as any,
+            },
+            history: [],
+            metadata: { name: "Test", id: 1, published: false, description: null },
+          },
+        });
+
+        const migrated = applyDataMigrations(game);
+        expect(migrated.data.world.stages["stage1"].variableValues.difficulty).to.equal("easy");
+      });
+
+      it("should strip defaultValue from stage variable definitions", () => {
+        const game = makeMinimalGame({
+          world: {
+            id: WORLDS.ROOT,
+            stages: { stage1: stageWithoutVarValues("stage1") as any },
+            globals: baseGlobals,
+            input: { keys: {}, clicks: {} },
+            evaluatedRuleDetails: {},
+            stageVariables: {
+              difficulty: { id: "difficulty", name: "Difficulty", defaultValue: "7" } as any,
+            },
+            history: [],
+            metadata: { name: "Test", id: 1, published: false, description: null },
+          },
+        });
+
+        const migrated = applyDataMigrations(game);
+        expect((migrated.data.world.stageVariables.difficulty as any).defaultValue).to.be.undefined;
+      });
+    });
   });
 });

@@ -1,7 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { Game } from "../types";
-import { BUILTIN_STAGE_VARIABLES } from "./utils/builtin-stage-variables";
+import {
+  BUILTIN_STAGE_VARIABLES,
+  initialValueForStageVariable,
+} from "./utils/builtin-stage-variables";
 import { migrateGameCoordinates } from "./utils/coordinate-migration";
 import { makeId } from "./utils/utils";
 
@@ -152,9 +155,7 @@ export function applyDataMigrations(game: Game): Game {
         if (!s.variableValues) {
           s.variableValues = {};
         }
-        // Fold legacy boolean Stage fields into per-stage variableValues. Anything
-        // present on the saved Stage wins; absent fields fall back to the built-in
-        // default.
+        // Fold legacy boolean Stage fields into per-stage variableValues.
         if ("wrapX" in s && s.variableValues.wrapX === undefined) {
           s.variableValues.wrapX = s.wrapX ? "true" : "false";
         }
@@ -163,6 +164,27 @@ export function applyDataMigrations(game: Game): Game {
         }
         delete s.wrapX;
         delete s.wrapY;
+      }
+    }
+    // Stage variables no longer carry a world-level default. The invariant is
+    // that every defined stage variable has an explicit value on every stage.
+    // For each variable, populate any stage missing it with the (legacy)
+    // definition default if any, otherwise the variable's seed initial. Then
+    // strip defaultValue from the definitions.
+    for (const id of Object.keys(result.data.world.stageVariables)) {
+      const def = result.data.world.stageVariables[id];
+      const seed = def?.defaultValue ?? initialValueForStageVariable(id);
+      if (result.data.world.stages) {
+        for (const stageId of Object.keys(result.data.world.stages)) {
+          const s = result.data.world.stages[stageId];
+          if (!s) continue;
+          if (s.variableValues[id] === undefined) {
+            s.variableValues[id] = seed;
+          }
+        }
+      }
+      if (def && "defaultValue" in def) {
+        delete def.defaultValue;
       }
     }
   }

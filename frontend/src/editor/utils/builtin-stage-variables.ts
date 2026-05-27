@@ -9,34 +9,52 @@ export const BUILTIN_STAGE_VARIABLES: Record<string, StageVariable> = {
   [BUILTIN_STAGE_VARIABLE_IDS.wrapX]: {
     id: "wrapX",
     name: "Wrap Horizontally",
-    defaultValue: "true",
     type: "boolean",
   },
   [BUILTIN_STAGE_VARIABLE_IDS.wrapY]: {
     id: "wrapY",
     name: "Wrap Vertically",
-    defaultValue: "true",
     type: "boolean",
   },
 };
+
+/**
+ * Values written into a stage's `variableValues` when a stage variable is first
+ * introduced (new world, new stage with no source to copy from, or migration
+ * backfill). Stage variables are not allowed to fall back to a world-level
+ * default at read time, so these are seed-only — never consulted by the engine.
+ */
+export const BUILTIN_STAGE_VARIABLE_INITIAL_VALUES: Record<string, string> = {
+  [BUILTIN_STAGE_VARIABLE_IDS.wrapX]: "true",
+  [BUILTIN_STAGE_VARIABLE_IDS.wrapY]: "true",
+};
+
+/** Initial value to seed when a brand-new user-created stage variable is added. */
+export const USER_STAGE_VARIABLE_INITIAL_VALUE = "0";
 
 export function isBuiltinStageVariableId(id: string): boolean {
   return id in BUILTIN_STAGE_VARIABLES;
 }
 
+export function initialValueForStageVariable(id: string): string {
+  return BUILTIN_STAGE_VARIABLE_INITIAL_VALUES[id] ?? USER_STAGE_VARIABLE_INITIAL_VALUE;
+}
+
 /**
- * Read a boolean stage variable, falling back to the built-in default if the
- * per-stage value or world-level definition is missing. The right-panel
- * checkbox writes "true" / "false" strings; anything else is treated as false.
+ * Read a stage variable's value, asserting it's present. Every defined stage
+ * variable is required to have a value on every stage — reducers, migrations,
+ * and world initialization all maintain that invariant. A missing value here
+ * means an invariant violation, not a "use the default" situation.
  */
-export function readBooleanStageVariable(
+export function getStageVariableValue(
   id: string,
-  values: Record<string, string> | undefined,
-  definitions: Record<string, StageVariable> | undefined,
-): boolean {
-  const raw =
-    values?.[id] ??
-    definitions?.[id]?.defaultValue ??
-    BUILTIN_STAGE_VARIABLES[id]?.defaultValue;
-  return raw === "true";
+  values: Record<string, string>,
+): string {
+  const value = values[id];
+  if (value === undefined) {
+    throw new Error(
+      `Stage variable "${id}" has no value on the current stage. Every defined stage variable must be seeded on every stage.`,
+    );
+  }
+  return value;
 }
