@@ -1,5 +1,5 @@
 import { DeepPartial } from "redux";
-import { Global, World } from "../../types";
+import { Global, StageVariable, World } from "../../types";
 import * as types from "../constants/action-types";
 import { makeId } from "../utils/utils";
 
@@ -51,6 +51,80 @@ export type ActionDeleteGlobal = {
   globalId: string;
 };
 
+export function upsertStageVariable(
+  worldId: string | undefined,
+  stageVariableId: string,
+  changes: Partial<StageVariable>,
+): ActionUpsertStageVariable {
+  return {
+    type: types.UPSERT_STAGE_VARIABLE,
+    worldId,
+    stageVariableId,
+    changes,
+  };
+}
+
+export type ActionUpsertStageVariable = {
+  type: "UPSERT_STAGE_VARIABLE";
+  worldId?: string;
+  stageVariableId: string;
+  changes: Partial<StageVariable>;
+};
+
+export function createStageVariable(worldId?: string): ActionUpsertStageVariable {
+  const stageVariableId = makeId("stagevar");
+  return {
+    type: types.UPSERT_STAGE_VARIABLE,
+    worldId,
+    stageVariableId,
+    changes: {
+      id: stageVariableId,
+      name: "Untitled",
+      defaultValue: "0",
+    },
+  };
+}
+
+export function deleteStageVariable(
+  worldId: string,
+  stageVariableId: string,
+): ActionDeleteStageVariable {
+  return {
+    type: types.DELETE_STAGE_VARIABLE,
+    worldId,
+    stageVariableId,
+  };
+}
+
+export type ActionDeleteStageVariable = {
+  type: "DELETE_STAGE_VARIABLE";
+  worldId: string;
+  stageVariableId: string;
+};
+
+export function setStageVariableValue(
+  worldId: string,
+  stageId: string,
+  stageVariableId: string,
+  value: string | undefined,
+): ActionSetStageVariableValue {
+  return {
+    type: types.SET_STAGE_VARIABLE_VALUE,
+    worldId,
+    stageId,
+    stageVariableId,
+    value,
+  };
+}
+
+export type ActionSetStageVariableValue = {
+  type: "SET_STAGE_VARIABLE_VALUE";
+  worldId: string;
+  stageId: string;
+  stageVariableId: string;
+  value: string | undefined;
+};
+
 export function updateWorldMetadata(
   worldId: string,
   metadata: World["metadata"],
@@ -67,4 +141,10 @@ export type ActionUpdateWorldMetadata = {
   metadata: World["metadata"];
 };
 
-export type WorldActions = ActionUpsertGlobal | ActionDeleteGlobal | ActionUpdateWorldMetadata;
+export type WorldActions =
+  | ActionUpsertGlobal
+  | ActionDeleteGlobal
+  | ActionUpsertStageVariable
+  | ActionDeleteStageVariable
+  | ActionSetStageVariableValue
+  | ActionUpdateWorldMetadata;

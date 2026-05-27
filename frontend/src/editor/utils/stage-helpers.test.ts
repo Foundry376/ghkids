@@ -688,75 +688,66 @@ describe("stage-helpers", () => {
 
     describe("constant values", () => {
       it("should return constant string value", () => {
-        expect(resolveRuleValue({ constant: "hello" }, globals, characters, actors, "=")).to.equal(
+        expect(resolveRuleValue({ constant: "hello" }, "=", actors, { globals, characters })).to.equal(
           "hello",
         );
       });
 
       it("should return constant numeric value as string", () => {
-        expect(resolveRuleValue({ constant: "42" }, globals, characters, actors, "=")).to.equal(
+        expect(resolveRuleValue({ constant: "42" }, "=", actors, { globals, characters })).to.equal(
           "42",
         );
       });
 
       it("should return empty constant", () => {
-        expect(resolveRuleValue({ constant: "" }, globals, characters, actors, "=")).to.equal("");
+        expect(resolveRuleValue({ constant: "" }, "=", actors, { globals, characters })).to.equal("");
       });
     });
 
     describe("global values", () => {
       it("should resolve global value", () => {
-        expect(resolveRuleValue({ globalId: "score" }, globals, characters, actors, "=")).to.equal(
+        expect(resolveRuleValue({ globalId: "score" }, "=", actors, { globals, characters })).to.equal(
           "100",
         );
       });
 
       it("should resolve stage global", () => {
         expect(
-          resolveRuleValue({ globalId: "selectedStageId" }, globals, characters, actors, "="),
+          resolveRuleValue({ globalId: "selectedStageId" }, "=", actors, { globals, characters }),
         ).to.equal("stage1");
       });
 
       it("should return undefined for missing global", () => {
-        expect(resolveRuleValue({ globalId: "nonexistent" }, globals, characters, actors, "=")).to
-          .be.undefined;
+        expect(resolveRuleValue({ globalId: "nonexistent" }, "=", actors, { globals, characters }))
+          .to.be.undefined;
       });
     });
 
     describe("actor variable values", () => {
       it("should resolve actor variable value", () => {
         expect(
-          resolveRuleValue(
-            { actorId: "actor1", variableId: "health" },
+          resolveRuleValue({ actorId: "actor1", variableId: "health" }, "=", actors, {
             globals,
             characters,
-            actors,
-            "=",
-          ),
+          }),
         ).to.equal("75");
       });
 
       it("should resolve actor appearance with = comparator", () => {
         expect(
-          resolveRuleValue(
-            { actorId: "actor1", variableId: "appearance" },
+          resolveRuleValue({ actorId: "actor1", variableId: "appearance" }, "=", actors, {
             globals,
             characters,
-            actors,
-            "=",
-          ),
+          }),
         ).to.equal("app1");
       });
 
       it("should resolve actor transform", () => {
         expect(
-          resolveRuleValue(
-            { actorId: "actor1", variableId: "transform" },
+          resolveRuleValue({ actorId: "actor1", variableId: "transform" }, "=", actors, {
             globals,
             characters,
-            actors,
-            "=",
-          ),
+          }),
         ).to.equal("90");
       });
     });

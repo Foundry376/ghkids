@@ -34,6 +34,30 @@ export default function worldReducer(
     case Types.DELETE_GLOBAL: {
       return u({ globals: u.omit(action.globalId) }, state);
     }
+    case Types.UPSERT_STAGE_VARIABLE: {
+      return u(
+        { stageVariables: { [action.stageVariableId]: action.changes } },
+        state,
+      );
+    }
+    case Types.DELETE_STAGE_VARIABLE: {
+      // Drop the definition and any per-stage overrides for the variable
+      const stageUpdates: Record<string, { variableValues: unknown }> = {};
+      for (const stageId of Object.keys(state.stages)) {
+        stageUpdates[stageId] = { variableValues: u.omit(action.stageVariableId) };
+      }
+      return u(
+        { stageVariables: u.omit(action.stageVariableId), stages: stageUpdates },
+        state,
+      );
+    }
+    case Types.SET_STAGE_VARIABLE_VALUE: {
+      const variableValues =
+        action.value === undefined
+          ? u.omit(action.stageVariableId)
+          : { [action.stageVariableId]: action.value };
+      return u({ stages: { [action.stageId]: { variableValues } } }, state);
+    }
     case Types.INPUT_FOR_GAME_STATE: {
       const inputUpdates: { keys?: unknown; clicks?: unknown } = {};
       if (action.keys !== undefined) {

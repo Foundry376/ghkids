@@ -60,6 +60,12 @@ export type RuleAction = (
       value: RuleValue;
     }
   | {
+      type: "stageVariable";
+      stageVariable: string; // ID
+      operation: MathOperation;
+      value: RuleValue;
+    }
+  | {
       type: "delete";
       actorId: string;
     }
@@ -163,7 +169,8 @@ export type RuleCondition = {
 export type RuleValue =
   | { constant: string }
   | { actorId: string; variableId: string | "appearance" | "transform" | "x" | "y" }
-  | { globalId: string };
+  | { globalId: string }
+  | { stageVariableId: string };
 
 /**
  * Within a rule, the main actor is always at "0,0" and the extent
@@ -218,6 +225,13 @@ export type Stage = {
   tutorial_name?: string;
   tutorial_step?: number;
   world?: string;
+  variableValues: Record<string, string>;
+};
+
+export type StageVariable = {
+  id: string;
+  name: string;
+  defaultValue: string;
 };
 
 export type AppearanceInfo = {
@@ -346,7 +360,7 @@ export type HistorySnapshot = {
   input: FrameInput;
   globals: Globals;
   evaluatedRuleDetails: EvaluatedRuleDetailsMap;
-  stages: { [stageId: string]: Pick<Stage, "actors"> };
+  stages: { [stageId: string]: Pick<Stage, "actors" | "variableValues"> };
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -356,6 +370,7 @@ export type WorldMinimal = {
   id: WORLDS;
   stages: { [stageId: string]: Stage };
   globals: Globals;
+  stageVariables: Record<string, StageVariable>;
   input: FrameInput;
   evaluatedRuleDetails: EvaluatedRuleDetailsMap;
   evaluatedTickFrames?: Frame[];

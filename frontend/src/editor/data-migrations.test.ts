@@ -69,6 +69,7 @@ describe("data-migrations", () => {
           },
           input: { keys: {}, clicks: {} },
           evaluatedRuleDetails: {},
+          stageVariables: {},
           history: [],
           metadata: { name: "Test", id: 1 },
         },
@@ -105,6 +106,7 @@ describe("data-migrations", () => {
                 height: 10,
                 wrapX: false,
                 wrapY: false,
+                variableValues: {},
               },
             },
             globals: {
@@ -120,6 +122,7 @@ describe("data-migrations", () => {
             },
             input: { keys: {}, clicks: {} },
             evaluatedRuleDetails: {},
+            stageVariables: {},
             history: [],
             metadata: {
               name: "Test",
@@ -158,6 +161,7 @@ describe("data-migrations", () => {
                 height: 10,
                 wrapX: false,
                 wrapY: false,
+                variableValues: {},
               },
             },
             globals: {
@@ -173,6 +177,7 @@ describe("data-migrations", () => {
             },
             input: { keys: {}, clicks: {} },
             evaluatedRuleDetails: {},
+            stageVariables: {},
             history: [],
             metadata: {
               name: "Test",
@@ -515,6 +520,7 @@ describe("data-migrations", () => {
                 height: 10,
                 wrapX: false,
                 wrapY: false,
+                variableValues: {},
               },
             },
             globals: {
@@ -530,6 +536,7 @@ describe("data-migrations", () => {
             },
             input: { keys: {}, clicks: {} },
             evaluatedRuleDetails: {},
+            stageVariables: {},
             history: [],
             metadata: {
               name: "Test",

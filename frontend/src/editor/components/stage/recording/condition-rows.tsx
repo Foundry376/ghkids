@@ -17,6 +17,7 @@ import {
 } from "../../../../types";
 import { pickConditionValueFromKeyboard, selectToolId } from "../../../actions/ui-actions";
 import { TOOLS } from "../../../constants/constants";
+import { ruleValueFromDragPayload } from "../../../utils/stage-helpers";
 import ConnectedStagePicker from "../../inspector/connected-stage-picker";
 import { AppearanceDropdown, TransformDropdown } from "../../inspector/container-pane-variables";
 import { ActorBlock, ActorVariableBlock, AppearanceBlock, TransformBlock } from "./blocks";
@@ -187,10 +188,11 @@ export const FreeformConditionValue = ({
 
   const onDropValue = (e: React.DragEvent) => {
     if (e.dataTransfer.types.includes("variable")) {
-      const { actorId, globalId, variableId } = JSON.parse(e.dataTransfer.getData("variable"));
-      const value = (globalId ? { globalId } : { actorId, variableId }) as RuleValue;
-      onChange?.(value);
-      e.stopPropagation();
+      const value = ruleValueFromDragPayload(e.dataTransfer.getData("variable"));
+      if (value) {
+        onChange?.(value);
+        e.stopPropagation();
+      }
     }
     if (e.dataTransfer.types.includes("sprite")) {
       const { dragAnchorActorId } = JSON.parse(e.dataTransfer.getData("sprite"));
@@ -321,6 +323,19 @@ export const FreeformConditionValue = ({
         <code>
           {icon}
           {world.globals[value.globalId]?.name ?? value.globalId}
+        </code>
+      );
+    }
+
+    if ("stageVariableId" in value) {
+      return (
+        <code>
+          <span
+            style={{ fontSize: "20px", lineHeight: "24px", marginRight: 6, verticalAlign: "middle" }}
+          >
+            📍
+          </span>
+          {world.stageVariables?.[value.stageVariableId]?.name ?? value.stageVariableId}
         </code>
       );
     }

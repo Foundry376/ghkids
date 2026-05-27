@@ -11,6 +11,7 @@ const InitialStage: Stage = {
   wrapX: true,
   wrapY: true,
   backgroundFade: false,
+  variableValues: {},
 };
 
 export default InitialStage;

@@ -16,6 +16,9 @@ import {
   conditionMetScenario,
   conditionGreaterThanScenario,
   globalModifyScenario,
+  stageVariableModifyScenario,
+  stageVariableDefaultFallbackScenario,
+  stageVariableConditionScenario,
 } from "./__tests__/scenarios/basic-scenarios";
 import { collisionScenario, coinCollectionScenario } from "./__tests__/scenarios/multi-actor-scenarios";
 import { chaseGameScenario } from "./__tests__/scenarios/chase-game-scenario";
@@ -97,6 +100,20 @@ describe("world-operator integration", () => {
   describe("global variables", () => {
     it("should modify a global variable", () => {
       runScenario(globalModifyScenario());
+    });
+  });
+
+  describe("stage variables", () => {
+    it("should modify a stage-scoped variable on the current stage", () => {
+      runScenario(stageVariableModifyScenario());
+    });
+
+    it("should read a stage variable's default when stage has no override", () => {
+      runScenario(stageVariableDefaultFallbackScenario());
+    });
+
+    it("rule condition referencing a stage variable should match against the current stage", () => {
+      runScenario(stageVariableConditionScenario());
     });
   });
 

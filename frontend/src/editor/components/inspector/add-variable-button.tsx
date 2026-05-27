@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useDispatch } from "react-redux";
 import { Actor, Character } from "../../../types";
 import { createCharacterVariable } from "../../actions/characters-actions";
-import { createGlobal } from "../../actions/world-actions";
+import { createGlobal, createStageVariable } from "../../actions/world-actions";
 
 const VariablesAddButton = ({ character }: { character: Character; actor: Actor }) => {
   const [open, setOpen] = useState(false);
@@ -15,6 +15,10 @@ const VariablesAddButton = ({ character }: { character: Character; actor: Actor 
 
   const _onCreateGlobal = () => {
     dispatch(createGlobal());
+  };
+
+  const _onCreateStageVar = () => {
+    dispatch(createStageVariable());
   };
 
   return (
@@ -31,6 +35,9 @@ const VariablesAddButton = ({ character }: { character: Character; actor: Actor 
           <span className="badge rule" /> Add Character Variable
         </DropdownItem>
         <DropdownItem divider />
+        <DropdownItem onClick={_onCreateStageVar}>
+          <span className="badge rule-flow" /> Add Level Variable
+        </DropdownItem>
         <DropdownItem onClick={_onCreateGlobal}>
           <span className="badge rule-flow" /> Add World Variable
         </DropdownItem>

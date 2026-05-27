@@ -1,11 +1,12 @@
 import { useState } from "react";
-import { Character, Global } from "../../../types";
+import { Character, Global, StageVariable } from "../../../types";
 import { ConnectedActorBlock } from "../stage/recording/blocks";
 import { TapToEditLabel } from "../tap-to-edit-label";
 import ConnectedStagePicker from "./connected-stage-picker";
 
 export const VariableGridItem = ({
   actorId,
+  kind = "actor",
   draggable,
   disabled,
   readonly = false,
@@ -18,13 +19,15 @@ export const VariableGridItem = ({
   onClick,
 }: {
   actorId: string | null;
+  /** Selects the drag payload shape and how the displayed value relates to the definition. */
+  kind?: "actor" | "global" | "stageVariable";
   draggable: boolean;
   disabled: boolean;
   readonly?: boolean;
   value: string;
   /** When true, values differ across multiple selected actors */
   isMixed?: boolean;
-  definition: Character["variables"][0] | Global;
+  definition: Character["variables"][0] | Global | StageVariable;
   onChangeValue: (id: string, value: string | undefined) => void;
   onChangeDefinition: (id: string, partial: Partial<Character["variables"][0]>) => void;
   onBlurValue: (id: string, value: string | undefined) => void;
@@ -54,14 +57,15 @@ export const VariableGridItem = ({
 
     event.dataTransfer.dropEffect = "copy";
     event.dataTransfer.effectAllowed = "copy";
-    event.dataTransfer.setData(
-      "variable",
-      JSON.stringify(
-        actorId
-          ? { actorId: actorId, variableId: definition.id, value: dragValue || "" }
-          : { globalId: definition.id, value: dragValue || "" },
-      ),
-    );
+    let payload: Record<string, string>;
+    if (kind === "stageVariable") {
+      payload = { stageVariableId: definition.id, value: dragValue || "" };
+    } else if (actorId) {
+      payload = { actorId: actorId, variableId: definition.id, value: dragValue || "" };
+    } else {
+      payload = { globalId: definition.id, value: dragValue || "" };
+    }
+    event.dataTransfer.setData("variable", JSON.stringify(payload));
   };
 
   const _onDragOver = (event: React.DragEvent) => {

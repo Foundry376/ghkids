@@ -132,6 +132,22 @@ export function applyDataMigrations(game: Game): Game {
     result.data.characterZOrder = Object.keys(result.data.characters);
   }
 
+  // Initialize stage-scoped variable definitions and per-stage value maps on
+  // older saves that pre-date the feature.
+  if (result.data && result.data.world) {
+    if (!result.data.world.stageVariables) {
+      result.data.world.stageVariables = {};
+    }
+    if (result.data.world.stages) {
+      for (const stageId of Object.keys(result.data.world.stages)) {
+        const s = result.data.world.stages[stageId];
+        if (s && !s.variableValues) {
+          s.variableValues = {};
+        }
+      }
+    }
+  }
+
   const migrated = JSON.stringify(result);
 
   if (migrated !== nonmigrated) {

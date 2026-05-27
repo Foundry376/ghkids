@@ -4,13 +4,20 @@ import React, { useState } from "react";
 import { useDispatch } from "react-redux";
 import { Button, ButtonDropdown, DropdownItem, DropdownMenu, DropdownToggle, Modal, ModalBody, ModalFooter, ModalHeader } from "reactstrap";
 import { DeepPartial } from "redux";
-import { Actor, ActorTransform, Character, Global, RuleTreeItem, WorldMinimal } from "../../../types";
+import { Actor, ActorTransform, Character, Global, RuleTreeItem, StageVariable, WorldMinimal } from "../../../types";
 import { useEditorSelector } from "../../../hooks/redux";
 import { deleteCharacterVariable, upsertCharacter } from "../../actions/characters-actions";
 import { changeActors } from "../../actions/stage-actions";
 import { selectToolId } from "../../actions/ui-actions";
-import { deleteGlobal, upsertGlobal } from "../../actions/world-actions";
+import {
+  deleteGlobal,
+  deleteStageVariable,
+  setStageVariableValue,
+  upsertGlobal,
+  upsertStageVariable,
+} from "../../actions/world-actions";
 import { TOOLS } from "../../constants/constants";
+import { getCurrentStageForWorld } from "../../utils/selectors";
 import { findRules, FindRulesResult, ruleUsesVariable } from "../../utils/stage-helpers";
 import Sprite from "../sprites/sprite";
 import { TransformEditorModal } from "./transform-editor";
@@ -318,6 +325,12 @@ export const ContainerPaneVariables = ({
   const dispatch = useDispatch();
   const selectedToolId = useEditorSelector((state) => state.ui.selectedToolId);
   const selectedActors = useEditorSelector((state) => state.ui.selectedActors);
+  const recording = useEditorSelector((state) => state.recording);
+  const isRecording = !!recording.characterId;
+  // During recording, Level edits should land on the after world so they
+  // become rule actions; otherwise they edit the live game state directly.
+  const levelTargetWorld = isRecording ? recording.afterWorld : world;
+  const levelTargetStage = getCurrentStageForWorld(levelTargetWorld);
   const [pendingDelete, setPendingDelete] = useState<PendingDeleteState>(null);
 
   // Chararacter and actor variables
@@ -386,6 +399,32 @@ export const ContainerPaneVariables = ({
   const _onClickGlobal = (globalId: string, event: React.MouseEvent) => {
     if (selectedToolId === TOOLS.TRASH) {
       dispatch(deleteGlobal(world.id, globalId));
+      if (!event.shiftKey) {
+        dispatch(selectToolId(TOOLS.POINTER));
+      }
+    }
+  };
+
+  // Stage variables — definitions are world-scoped but values are per-stage.
+  // The right-panel section reads/writes the currently-selected stage's value.
+
+  const _onRenameStageVariable = (stageVariableId: string, changes: Partial<StageVariable>) => {
+    // Only `name` is editable here; values live on the stage, not the definition.
+    if ("name" in changes) {
+      dispatch(upsertStageVariable(world.id, stageVariableId, { name: changes.name }));
+    }
+  };
+
+  const _onChangeStageVariableValue = (stageVariableId: string, value: string | undefined) => {
+    if (!levelTargetStage) return;
+    dispatch(
+      setStageVariableValue(levelTargetWorld.id, levelTargetStage.id, stageVariableId, value),
+    );
+  };
+
+  const _onClickStageVariable = (stageVariableId: string, event: React.MouseEvent) => {
+    if (selectedToolId === TOOLS.TRASH) {
+      dispatch(deleteStageVariable(world.id, stageVariableId));
       if (!event.shiftKey) {
         dispatch(selectToolId(TOOLS.POINTER));
       }
@@ -489,6 +528,36 @@ export const ContainerPaneVariables = ({
     );
   }
 
+  function _renderLevelSection() {
+    const definitions = Object.values(world.stageVariables);
+    const values = levelTargetStage ? levelTargetStage.variableValues : {};
+    return (
+      <div className="variables-grid">
+        {definitions.map((definition) => (
+          <VariableGridItem
+            draggable={true}
+            actorId={null}
+            kind="stageVariable"
+            disabled={selectedToolId !== TOOLS.POINTER}
+            readonly={readonly}
+            key={definition.id}
+            definition={definition}
+            value={values[definition.id] ?? ""}
+            onClick={_onClickStageVariable}
+            onChangeDefinition={_onRenameStageVariable}
+            onChangeValue={_onChangeStageVariableValue}
+            onBlurValue={_onChangeStageVariableValue}
+          />
+        ))}
+        {definitions.length === 0 && (
+          <div className="empty">
+            Add a Level Variable (like "difficulty") that every Level has, with values set per Level.
+          </div>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className={`scroll-container`}>
       <div className="scroll-container-contents">
@@ -506,6 +575,10 @@ export const ContainerPaneVariables = ({
         ) : (
           <div className="empty">Please select a character.</div>
         )}
+        <div className="variables-section">
+          <h3>Level</h3>
+          {_renderLevelSection()}
+        </div>
         <div className="variables-section">
           <h3>World</h3>
           {_renderWorldSection()}

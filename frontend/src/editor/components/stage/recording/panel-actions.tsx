@@ -232,7 +232,32 @@ export const RecordingActions = (props: { characters: Characters; recording: Rec
       );
     }
 
-    throw new Error(`Unknown action type: ${a.type}`);
+    if (a.type === "stageVariable") {
+      const declaration = beforeWorld.stageVariables?.[a.stageVariable];
+      return (
+        <>
+          <VariableActionPicker
+            operation={a.operation}
+            onChangeOperation={(operation) => onChange({ ...a, operation })}
+          />
+          <FreeformConditionValue
+            value={a.value}
+            world={beforeWorld}
+            actors={afterStage.actors}
+            characters={characters}
+            onChange={(value) => onChange({ ...a, value })}
+            impliedDatatype={null}
+            comparator="="
+          />
+          {{ set: "into", add: "to", subtract: "from" }[a.operation]}
+
+          <VariableBlock name={declaration?.name ?? a.stageVariable} />
+          <span style={{ marginLeft: 4, color: "#777", fontSize: 12 }}>on this Level</span>
+        </>
+      );
+    }
+
+    throw new Error(`Unknown action type: ${(a as RuleAction).type}`);
   };
 
   const [droppingValue, setDroppingValue] = useState(false);
@@ -249,6 +274,7 @@ export const RecordingActions = (props: { characters: Characters; recording: Rec
       const {
         actorId,
         globalId,
+        stageVariableId,
         variableId,
         value: constant,
       } = JSON.parse(e.dataTransfer.getData("variable"));
@@ -258,11 +284,13 @@ export const RecordingActions = (props: { characters: Characters; recording: Rec
       const newAction: RuleAction | null =
         variableId === "appearance"
           ? { type: "appearance", actorId, value }
-          : globalId
-            ? { type: "global", operation: "set", global: globalId, value }
-            : variableId
-              ? { type: "variable", actorId, variable: variableId, operation: "set", value }
-              : null;
+          : stageVariableId
+            ? { type: "stageVariable", operation: "set", stageVariable: stageVariableId, value }
+            : globalId
+              ? { type: "global", operation: "set", global: globalId, value }
+              : variableId
+                ? { type: "variable", actorId, variable: variableId, operation: "set", value }
+                : null;
 
       if (newAction) {
         dispatch(updateRecordingActions([...actions, newAction]));

@@ -37,6 +37,10 @@ export default function charactersReducer(
       return scrubGlobalFromCharacters(state, action.globalId);
     }
 
+    case Types.DELETE_STAGE_VARIABLE: {
+      return scrubStageVariableFromCharacters(state, action.stageVariableId);
+    }
+
     case Types.CREATE_CHARACTER_VARIABLE: {
       return u.updateIn(
         action.characterId,
@@ -272,6 +276,30 @@ function scrubGlobalFromCharacters(state: Characters, globalId: string): Charact
         (a) =>
           !(a.type === "global" && a.global === globalId) &&
           !("value" in a && referencesGlobal(a.value)),
+      );
+    }
+  });
+}
+
+function scrubStageVariableFromCharacters(
+  state: Characters,
+  stageVariableId: string,
+): Characters {
+  const referencesStageVar = (val: RuleValue | undefined) =>
+    !!val && "stageVariableId" in val && val.stageVariableId === stageVariableId;
+
+  return forEachRuleItem(state, (item) => {
+    const container = ruleContainer(item);
+    if (!container) return;
+
+    container.conditions = container.conditions.filter(
+      (r) => !referencesStageVar(r.left) && !referencesStageVar(r.right),
+    );
+    if ("actions" in container) {
+      (container as Rule).actions = (container as Rule).actions.filter(
+        (a) =>
+          !(a.type === "stageVariable" && a.stageVariable === stageVariableId) &&
+          !("value" in a && referencesStageVar(a.value)),
       );
     }
   });

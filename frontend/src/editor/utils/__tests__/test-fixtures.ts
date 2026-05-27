@@ -125,6 +125,7 @@ export function makeStage(
     height: 10,
     wrapX: false,
     wrapY: false,
+    variableValues: {},
     ...overrides,
   };
 }
@@ -135,6 +136,7 @@ export function makeWorld(overrides: Partial<World> & { stage: Stage }): World {
     id: WORLDS.ROOT,
     stages: { [stage.id]: stage },
     globals: { ...globals, selectedStageId: { ...globals.selectedStageId, value: stage.id } },
+    stageVariables: {},
     input,
     evaluatedRuleDetails: {},
     history: [],
@@ -347,6 +349,32 @@ export function expectGlobalVariable(world: World, globalId: string, expected: s
   if (global.value !== expected) {
     throw new WorldAssertionError(
       `Expected global "${globalId}" to be "${expected}", but it was "${global.value}".`,
+    );
+  }
+}
+
+/**
+ * Assert a stage-scoped variable's value on a specific stage. Falls back to the
+ * world's `stageVariables[id].defaultValue` if the stage has no override.
+ */
+export function expectStageVariable(
+  world: World,
+  stageId: string,
+  stageVariableId: string,
+  expected: string,
+): void {
+  const stage = world.stages[stageId];
+  if (!stage) {
+    throw new WorldAssertionError(
+      `Expected stage "${stageId}" to exist when checking stage variable "${stageVariableId}".`,
+    );
+  }
+  const override = stage.variableValues?.[stageVariableId];
+  const fallback = world.stageVariables?.[stageVariableId]?.defaultValue;
+  const actual = override ?? fallback;
+  if (actual !== expected) {
+    throw new WorldAssertionError(
+      `Expected stage "${stageId}" variable "${stageVariableId}" to be "${expected}", but it was "${actual ?? "(not set)"}".`,
     );
   }
 }

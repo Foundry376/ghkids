@@ -33,6 +33,7 @@ const InitialWorld: World = {
       type: "actor",
     },
   },
+  stageVariables: {},
   input: {
     keys: {},
     clicks: {},

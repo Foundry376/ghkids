@@ -10,6 +10,7 @@ import {
   RuleTreeItem,
   RuleValue,
   Stage,
+  StageVariable,
   VariableComparator,
 } from "../../types";
 import { RELATIVE_TRANSFORMS } from "../components/inspector/transform-lookup";
@@ -189,12 +190,24 @@ export function shuffleArray<T>(input: Array<T>): Array<T> {
   return d;
 }
 
+/**
+ * Bundled context for resolving a RuleValue. Grouping these together avoids
+ * threading 4+ positional arguments through every call site, and means adding
+ * a new value tier later (akin to stage variables) is a one-field change here.
+ */
+export type RuleValueContext = {
+  globals: Globals;
+  characters: Characters;
+  /** The stage whose variableValues a `{stageVariableId}` should resolve against. */
+  stage?: Pick<Stage, "variableValues">;
+  stageVariables?: Record<string, StageVariable>;
+};
+
 export function resolveRuleValue(
   val: RuleValue,
-  globals: Globals,
-  characters: Characters,
-  stageActorForId: Stage["actors"],
   comparator: VariableComparator, // some values behave differently depending on the comparator
+  stageActorForId: Stage["actors"],
+  ctx: RuleValueContext,
 ): string | null {
   if (!val) {
     console.warn(`A rule value is missing?`);
@@ -209,7 +222,7 @@ export function resolveRuleValue(
       console.warn(`resolveRuleValue: actor ${val.actorId} not found`);
       return null;
     }
-    const character = characters[actor.characterId];
+    const character = ctx.characters[actor.characterId];
     if (!character) {
       console.warn(`resolveRuleValue: character ${actor.characterId} not found`);
       return null;
@@ -217,7 +230,7 @@ export function resolveRuleValue(
     return getVariableValue(actor, character, val.variableId, comparator);
   }
   if ("globalId" in val) {
-    const value = globals[val.globalId]?.value;
+    const value = ctx.globals[val.globalId]?.value;
 
     // If the rule says "global X must be actor Y", "Y" is an ID within the rule.
     // We need to map it to that actor on the stage for it to ever evaluate to true.
@@ -226,8 +239,31 @@ export function resolveRuleValue(
     }
     return value;
   }
+  if ("stageVariableId" in val) {
+    const override = ctx.stage?.variableValues?.[val.stageVariableId];
+    if (override !== undefined) return override;
+    return ctx.stageVariables?.[val.stageVariableId]?.defaultValue ?? null;
+  }
   isNever(val);
   return "";
+}
+
+/**
+ * Parse a "variable" drag-and-drop payload (set by VariableGridItem) into the
+ * RuleValue it represents. Centralizes the three-way discrimination so condition
+ * drop sites don't each reimplement the same if/else ladder.
+ */
+export function ruleValueFromDragPayload(raw: string): RuleValue | null {
+  const p = JSON.parse(raw) as {
+    actorId?: string;
+    globalId?: string;
+    stageVariableId?: string;
+    variableId?: string;
+  };
+  if (p.stageVariableId) return { stageVariableId: p.stageVariableId };
+  if (p.globalId) return { globalId: p.globalId };
+  if (p.actorId && p.variableId) return { actorId: p.actorId, variableId: p.variableId };
+  return null;
 }
 
 /** Why does the value of a variable depend on `comparator`? It's gross, but we
