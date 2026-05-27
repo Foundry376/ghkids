@@ -63,7 +63,7 @@ export const StageSettings = ({
     onChange({ background: `url(${url})` });
   };
 
-  const { width, height, scale, name, background } = stage;
+  const { scale, name, background } = stage;
   // Legacy `scale: "fit"` maps to the new zoomToFill + zoomToFit checkboxes; the
   // tile-size dropdown defaults to 1.0 (40px) in that case.
   const tileScale = scale === "fit" ? 1 : (scale ?? 1);
@@ -93,24 +93,8 @@ export const StageSettings = ({
         />
       </fieldset>
       <fieldset className="form-group" style={{ marginTop: 12 }}>
-        <legend className="col-form-legend">Size</legend>
+        <legend className="col-form-legend">Tile size</legend>
         <div style={{ display: "flex", flexDirection: "row", alignItems: "center" }}>
-          <input
-            className="form-control"
-            type="number"
-            defaultValue={width}
-            onBlur={(e) => onChange({ width: Number(e.target.value) })}
-          />
-          <span style={{ paddingLeft: 10, paddingRight: 10 }}>x</span>
-          <input
-            className="form-control"
-            type="number"
-            defaultValue={height}
-            onBlur={(e) => onChange({ height: Number(e.target.value) })}
-          />
-          <span style={{ paddingLeft: 20, paddingRight: 10, whiteSpace: "nowrap" }}>
-            Tile size:
-          </span>
           <select
             className="form-control"
             value={tileScale}

@@ -6,12 +6,12 @@ const InitialStage: Stage = {
   order: 0,
   actors: {},
   background: `url('/src/editor/img/backgrounds/Layer0_2.png')`,
-  width: 22,
-  height: 13,
   backgroundFade: false,
   variableValues: {
     wrapX: "true",
     wrapY: "true",
+    width: "22",
+    height: "13",
   },
 };
 

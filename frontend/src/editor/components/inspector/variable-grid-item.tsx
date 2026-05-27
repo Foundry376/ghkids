@@ -45,7 +45,8 @@ export const VariableGridItem = ({
           ? "actor"
           : null;
 
-  const isBuiltin = "type" in definition && definition.type === "boolean";
+  const isBuiltin =
+    "type" in definition && (definition.type === "boolean" || definition.type === "number");
 
   const [dropping, setDropping] = useState(false);
 
@@ -107,6 +108,27 @@ export const VariableGridItem = ({
         />
         <span className="variable-boolean-label">{checked ? "On" : "Off"}</span>
       </label>
+    );
+  } else if (type === "number") {
+    // Commit on blur with a min-1 clamp so the engine never sees zero or
+    // negative dimensions (which would throw at read time).
+    const commitNumber = (raw: string) => {
+      const n = Math.max(1, Math.floor(Number(raw)));
+      const next = Number.isFinite(n) ? String(n) : String(displayValue ?? "1");
+      onChangeValue(definition.id, next);
+    };
+    content = (
+      <input
+        className="value"
+        type="number"
+        min={1}
+        step={1}
+        defaultValue={displayValue}
+        key={displayValue}
+        disabled={disabled}
+        placeholder={isMixed ? "—" : undefined}
+        onBlur={(e) => commitNumber(e.target.value)}
+      />
     );
   } else if (type === "stage") {
     content = (

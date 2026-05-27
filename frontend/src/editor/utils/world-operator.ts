@@ -30,7 +30,9 @@ import {
 } from "../../types";
 import {
   BUILTIN_STAGE_VARIABLE_IDS,
+  getStageHeight,
   getStageVariableValue,
+  getStageWidth,
 } from "./builtin-stage-variables";
 import { DOOR_VARIABLE_IDS } from "./door-constants";
 import { FrameAccumulator } from "./frame-accumulator";
@@ -69,15 +71,20 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
 
   function wrappedPosition({ x, y }: PositionRelativeToWorld) {
     // World coordinates are 1-indexed (bottom-left = (1, 1)). Wrap relative to
-    // the [1, dim] range: shift to 0-based, mod, then shift back.
+    // the [1, dim] range: shift to 0-based, mod, then shift back. All four
+    // stage settings are read through the stage's variableValues map so a
+    // rule action that mutates wrap/width/height takes effect mid-tick.
     const wrap = (n: number, d: number) => (((n - 1) % d) + d) % d + 1;
+    const stageProps = { variableValues: stageVariableValues };
     const wrapX = getStageVariableValue(BUILTIN_STAGE_VARIABLE_IDS.wrapX, stageVariableValues) === "true";
     const wrapY = getStageVariableValue(BUILTIN_STAGE_VARIABLE_IDS.wrapY, stageVariableValues) === "true";
+    const width = getStageWidth(stageProps);
+    const height = getStageHeight(stageProps);
     const o = {
-      x: wrapX ? wrap(x, stage.width) : x,
-      y: wrapY ? wrap(y, stage.height) : y,
+      x: wrapX ? wrap(x, width) : x,
+      y: wrapY ? wrap(y, height) : y,
     };
-    if (o.x < 1 || o.y < 1 || o.x > stage.width || o.y > stage.height) {
+    if (o.x < 1 || o.y < 1 || o.x > width || o.y > height) {
       return null;
     }
     return o;

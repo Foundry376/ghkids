@@ -155,12 +155,21 @@ export function applyDataMigrations(game: Game): Game {
         if (!s.variableValues) {
           s.variableValues = {};
         }
-        // Fold legacy boolean Stage fields into per-stage variableValues.
+        // Fold legacy Stage fields into per-stage variableValues. Note: we
+        // leave s.width/s.height in place until AFTER migrateGameCoordinates
+        // runs (it needs the dimensions to flip Y-down → Y-up). They get
+        // stripped at the bottom of this function.
         if ("wrapX" in s && s.variableValues.wrapX === undefined) {
           s.variableValues.wrapX = s.wrapX ? "true" : "false";
         }
         if ("wrapY" in s && s.variableValues.wrapY === undefined) {
           s.variableValues.wrapY = s.wrapY ? "true" : "false";
+        }
+        if ("width" in s && s.variableValues.width === undefined) {
+          s.variableValues.width = String(s.width);
+        }
+        if ("height" in s && s.variableValues.height === undefined) {
+          s.variableValues.height = String(s.height);
         }
         delete s.wrapX;
         delete s.wrapY;
@@ -206,6 +215,19 @@ export function applyDataMigrations(game: Game): Game {
 
   // V1 -> V2 coordinate-system migration: flip stored Y values so internal
   // coordinates use Y-up with origin (0, 0) at the bottom-left. Idempotent —
-  // a world already at version >= 2 is returned unchanged.
-  return migrateGameCoordinates(result);
+  // a world already at version >= 2 is returned unchanged. Reads stage.height
+  // (legacy) to compute the Y flip, so it must run before we strip it below.
+  const finalResult = migrateGameCoordinates(result);
+
+  // With coordinate migration done, the legacy stage.width/stage.height fields
+  // are no longer needed — width and height now live in stage.variableValues.
+  if (finalResult.data?.world?.stages) {
+    for (const stageId of Object.keys(finalResult.data.world.stages)) {
+      const s = finalResult.data.world.stages[stageId];
+      if (!s) continue;
+      delete (s as { width?: number }).width;
+      delete (s as { height?: number }).height;
+    }
+  }
+  return finalResult;
 }

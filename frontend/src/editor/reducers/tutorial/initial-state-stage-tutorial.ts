@@ -677,14 +677,14 @@ const Tutorial: Stage = {
     },
   },
   background: `url('/src/editor/img/backgrounds/Layer0_2.png')`,
-  height: 13,
   tutorial_name: "introduction",
   tutorial_step: 0,
-  width: 22,
   world: "5233a60cfd685f755e000001",
   variableValues: {
     wrapX: "true",
     wrapY: "true",
+    width: "22",
+    height: "13",
   },
 };
 

@@ -183,7 +183,9 @@ function migrateCharacter(character: any): any {
 
 function migrateStage(stage: any, characters: AnyRecord, allStages: AnyRecord): any {
   if (!stage || typeof stage !== "object") return stage;
-  const stageHeight = Number(stage.height);
+  // Prefer the new variableValues location (applyDataMigrations folds legacy
+  // stage.height into it before this runs); fall back to the legacy field.
+  const stageHeight = Number(stage.variableValues?.height ?? stage.height);
   if (!Number.isFinite(stageHeight) || stageHeight <= 0) return stage;
 
   const nextActors: AnyRecord = {};
@@ -208,7 +210,8 @@ function migrateStage(stage: any, characters: AnyRecord, allStages: AnyRecord): 
       const destStageId = vv[DOOR_VARIABLE_IDS.destinationStage];
       const destStage =
         (destStageId && allStages[destStageId]) || stage; // fall back to source
-      const destHeight = Number(destStage?.height) || stageHeight;
+      const destHeight =
+        Number(destStage?.variableValues?.height ?? destStage?.height) || stageHeight;
       const yRaw = vv[DOOR_VARIABLE_IDS.destinationY];
       const yNum = Number(yRaw);
       if (Number.isFinite(yNum)) {

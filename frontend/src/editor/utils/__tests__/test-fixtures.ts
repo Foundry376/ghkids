@@ -123,11 +123,15 @@ export function makeStage(
     order: 0,
     name: "Test Stage",
     background: "",
-    width: 10,
-    height: 10,
     // Built-in stage variables must be present on every stage; merge so
     // callers can supply their own values without dropping the built-ins.
-    variableValues: { wrapX: "false", wrapY: "false", ...variableValues },
+    variableValues: {
+      wrapX: "false",
+      wrapY: "false",
+      width: "10",
+      height: "10",
+      ...variableValues,
+    },
     ...rest,
   };
 }

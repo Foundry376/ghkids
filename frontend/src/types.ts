@@ -215,8 +215,6 @@ export type Stage = {
   actors: { [actorId: string]: Actor };
   background: ImageData | string;
   backgroundFade?: boolean;
-  width: number;
-  height: number;
   scale?: number | "fit";
   zoomToFill?: boolean;
   zoomToFit?: boolean;
@@ -235,6 +233,11 @@ export type StageVariable =
       id: "wrapX" | "wrapY";
       name: string;
       type: "boolean";
+    }
+  | {
+      id: "width" | "height";
+      name: string;
+      type: "number";
     };
 
 export type AppearanceInfo = {

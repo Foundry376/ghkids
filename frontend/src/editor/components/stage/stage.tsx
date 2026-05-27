@@ -37,6 +37,7 @@ import {
   DOOR_VARIABLE_IDS,
   IncomingDoorDestination,
 } from "../../utils/door-constants";
+import { getStageHeight, getStageWidth } from "../../utils/builtin-stage-variables";
 import { extentIgnoredPositions } from "../../utils/recording-helpers";
 import {
   actorFilledPoints,
@@ -273,6 +274,8 @@ export const Stage = ({
   style,
   doorsPointingHere,
 }: StageProps) => {
+  const stageWidth = getStageWidth(stage);
+  const stageHeight = getStageHeight(stage);
   const [{ top, left }, setOffset] = useState<Offset>({ top: 0, left: 0 });
   const [scale, setScale] = useState(() => resolveStageScaleSettings(stage).tileScale);
 
@@ -321,8 +324,8 @@ export const Stage = ({
         zoomToFit: stage.zoomToFit,
       });
       const fit = Math.min(
-        _scrollEl.clientWidth / (stage.width * STAGE_CELL_SIZE),
-        _scrollEl.clientHeight / (stage.height * STAGE_CELL_SIZE),
+        _scrollEl.clientWidth / (stageWidth * STAGE_CELL_SIZE),
+        _scrollEl.clientHeight / (stageHeight * STAGE_CELL_SIZE),
       );
       // Start at the configured tile size, then optionally scale up (fill) or
       // down (fit) based on how the stage compares to the viewport.
@@ -334,8 +337,8 @@ export const Stage = ({
 
       // Disable centering only on axes that overflow so the stage remains centered
       // on any axis that still fits within the viewport.
-      const stageW = stage.width * STAGE_CELL_SIZE * best;
-      const stageH = stage.height * STAGE_CELL_SIZE * best;
+      const stageW = stageWidth * STAGE_CELL_SIZE * best;
+      const stageH = stageHeight * STAGE_CELL_SIZE * best;
       const overflowsX = stageW > _scrollEl.clientWidth;
       const overflowsY = stageH > _scrollEl.clientHeight;
       _scrollEl.style.justifyContent = overflowsX ? "flex-start" : "";
@@ -361,11 +364,11 @@ export const Stage = ({
       document.removeEventListener("fullscreenchange", autofit);
     };
   }, [
-    stage.height,
+    stageHeight,
     stage.scale,
     stage.zoomToFill,
     stage.zoomToFit,
-    stage.width,
+    stageWidth,
     recordingCentered,
   ]);
 
@@ -401,9 +404,9 @@ export const Stage = ({
     const { xmin, ymin, xmax, ymax } = recordingExtent;
     // 1-indexed cell at column k has its visual center at screen-from-left
     // = (k - 0.5) cells, and at row k has its visual center at
-    // screen-from-top = (stage.height - k + 0.5) cells.
+    // screen-from-top = (stageHeight - k + 0.5) cells.
     const xCenterScreen = (xmin + xmax) / 2 - 0.5;
-    const yCenterScreen = stage.height - (ymin + ymax) / 2 + 0.5;
+    const yCenterScreen = stageHeight - (ymin + ymax) / 2 + 0.5;
 
     // The flex container always positions the stage at (containerSize - stageSize) / 2
     // (which is negative when the stage overflows). The container dimensions cancel out:
@@ -412,8 +415,8 @@ export const Stage = ({
     //   offset = stageSize / 2 - centerScreen * cellPx
     const cellPx = STAGE_CELL_SIZE * scale;
     return {
-      left: (stage.width / 2 - xCenterScreen) * cellPx,
-      top: (stage.height / 2 - yCenterScreen) * cellPx,
+      left: (stageWidth / 2 - xCenterScreen) * cellPx,
+      top: (stageHeight / 2 - yCenterScreen) * cellPx,
     };
   };
 
@@ -425,16 +428,16 @@ export const Stage = ({
       if (!actor) return null;
 
       // 1-indexed Y-up: cell at world (x, y) has its center at
-      // (x - 0.5, stage.height - y + 0.5) cells from the stage div's top-left.
+      // (x - 0.5, stageHeight - y + 0.5) cells from the stage div's top-left.
       const xCenterScreen = actor.position.x - 0.5;
-      const yCenterScreen = stage.height - actor.position.y + 0.5;
+      const yCenterScreen = stageHeight - actor.position.y + 0.5;
 
       return {
         left: `calc(-${xCenterScreen * STAGE_CELL_SIZE}px + 50%)`,
         top: `calc(-${yCenterScreen * STAGE_CELL_SIZE}px + 50%)`,
       };
     },
-    [stage.actors, stage.height],
+    [stage.actors, stageHeight],
   );
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -465,10 +468,10 @@ export const Stage = ({
     const scrollWrapper = scrollEl.current;
     if (!scrollWrapper) return;
 
-    const stageWidth = stage.width * STAGE_CELL_SIZE * scale;
-    const stageHeight = stage.height * STAGE_CELL_SIZE * scale;
+    const stagePxWidth = stageWidth * STAGE_CELL_SIZE * scale;
+    const stagePxHeight = stageHeight * STAGE_CELL_SIZE * scale;
     const isOverflowing =
-      stageWidth > scrollWrapper.clientWidth || stageHeight > scrollWrapper.clientHeight;
+      stagePxWidth > scrollWrapper.clientWidth || stagePxHeight > scrollWrapper.clientHeight;
 
     if (!isOverflowing) return;
 
@@ -479,8 +482,8 @@ export const Stage = ({
   }, [
     playback.running,
     centerOnActor,
-    stage.width,
-    stage.height,
+    stageWidth,
+    stageHeight,
     world.globals?.cameraFollow?.value,
     scale,
     recordingExtent,
@@ -552,7 +555,7 @@ export const Stage = ({
     // Cell-fractional position. X is 1-indexed cell-from-left;
     // worldY is 1-indexed cell-from-bottom (Y-up).
     const fracX = (event.clientX - stageOffset.left) / STAGE_CELL_SIZE + 1;
-    const worldY = stage.height - (event.clientY - stageOffset.top) / STAGE_CELL_SIZE;
+    const worldY = stageHeight - (event.clientY - stageOffset.top) / STAGE_CELL_SIZE;
 
     // expand the extent of the recording rule to reflect this new extent
     const nextExtent = Object.assign({}, recordingExtent);
@@ -560,14 +563,14 @@ export const Stage = ({
       nextExtent.xmin = Math.min(nextExtent.xmax, Math.max(1, Math.round(fracX + 0.25)));
     }
     if (side === "right") {
-      nextExtent.xmax = Math.max(nextExtent.xmin, Math.min(stage.width, Math.round(fracX - 1)));
+      nextExtent.xmax = Math.max(nextExtent.xmin, Math.min(stageWidth, Math.round(fracX - 1)));
     }
     if (side === "top") {
       // Visually-top handle drags the topmost row of the extent (ymax in Y-up).
       // Handle sits at world y = ymax + 1, so its center hovers at
       // worldY = ymax + 0.5; round(worldY - 0.5) = ymax keeps it stable
       // at rest and grows the extent as the cursor moves up.
-      nextExtent.ymax = Math.max(nextExtent.ymin, Math.min(stage.height, Math.round(worldY - 0.5)));
+      nextExtent.ymax = Math.max(nextExtent.ymin, Math.min(stageHeight, Math.round(worldY - 0.5)));
     }
     if (side === "bottom") {
       // Visually-bottom handle drags the bottommost row of the extent.
@@ -598,12 +601,12 @@ export const Stage = ({
     const { dragLeft, dragTop } = dragOffset ? JSON.parse(dragOffset) : halfOffset;
 
     const px = getPxOffsetForEvent(event);
-    // Y-up, 1-indexed: top row = stage.height, bottom row = 1.
+    // Y-up, 1-indexed: top row = stageHeight, bottom row = 1.
     const rowFromTop = Math.round((px.top - dragTop) / STAGE_CELL_SIZE / scale);
     const colFromLeft = Math.round((px.left - dragLeft) / STAGE_CELL_SIZE / scale);
     return {
       x: colFromLeft + 1,
-      y: stage.height - rowFromTop,
+      y: stageHeight - rowFromTop,
     };
   };
 
@@ -718,7 +721,7 @@ export const Stage = ({
     }
 
     if (character.kind === "door") {
-      const dest = computeDoorDefaultDestination(newActor.position, stage.width);
+      const dest = computeDoorDefaultDestination(newActor.position, stageWidth);
       newActor.variableValues = {
         ...(newActor.variableValues ?? {}),
         [DOOR_VARIABLE_IDS.destinationX]: String(dest.x),
@@ -929,7 +932,7 @@ export const Stage = ({
     }
 
     const { x, y } = getPositionForEvent(event);
-    if (!(x >= 1 && x <= stage.width && y >= 1 && y <= stage.height)) {
+    if (!(x >= 1 && x <= stageWidth && y >= 1 && y <= stageHeight)) {
       return;
     }
     const posKey = `${x},${y}`;
@@ -1008,11 +1011,11 @@ export const Stage = ({
       // internal y, so swap min/max on the Y axis.
       const min = {
         x: Math.floor(minLeft / STAGE_CELL_SIZE / scale) + 1,
-        y: stage.height - Math.floor(maxTop / STAGE_CELL_SIZE / scale),
+        y: stageHeight - Math.floor(maxTop / STAGE_CELL_SIZE / scale),
       };
       const max = {
         x: Math.floor(maxLeft / STAGE_CELL_SIZE / scale) + 1,
-        y: stage.height - Math.floor(minTop / STAGE_CELL_SIZE / scale),
+        y: stageHeight - Math.floor(minTop / STAGE_CELL_SIZE / scale),
       };
       for (const actor of Object.values(stage.actors)) {
         if (
@@ -1116,8 +1119,8 @@ export const Stage = ({
     // The destination must land on THIS stage (the one being rendered)
     // regardless of which stage hosts the source door actor.
     const clampToStage = (p: Position): Position => ({
-      x: Math.max(1, Math.min(stage.width, p.x)),
-      y: Math.max(1, Math.min(stage.height, p.y)),
+      x: Math.max(1, Math.min(stageWidth, p.x)),
+      y: Math.max(1, Math.min(stageHeight, p.y)),
     });
 
     setDoorDestDrag({ actorId, position: initial });
@@ -1236,7 +1239,8 @@ export const Stage = ({
   };
 
   const renderRecordingExtent = () => {
-    const { width, height } = stage;
+    const width = stageWidth;
+    const height = stageHeight;
     if (!recordingExtent) {
       return [];
     }
@@ -1382,8 +1386,8 @@ export const Stage = ({
           {
             top,
             left,
-            width: stage.width * STAGE_CELL_SIZE,
-            height: stage.height * STAGE_CELL_SIZE,
+            width: stageWidth * STAGE_CELL_SIZE,
+            height: stageHeight * STAGE_CELL_SIZE,
             overflow: recordingExtent ? "visible" : "hidden",
             zoom: scale,
             "--outline-width": `${2.0 / scale}px`,
@@ -1402,8 +1406,8 @@ export const Stage = ({
           className="background"
           style={{
             position: "absolute",
-            width: stage.width * STAGE_CELL_SIZE,
-            height: stage.height * STAGE_CELL_SIZE,
+            width: stageWidth * STAGE_CELL_SIZE,
+            height: stageHeight * STAGE_CELL_SIZE,
             background: backgroundCSS,
             pointerEvents: "none",
             filter: applyFade ? "brightness(0.9) saturate(0.9)" : undefined,

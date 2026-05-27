@@ -1,8 +1,10 @@
-import { StageVariable } from "../../types";
+import { Stage, StageVariable } from "../../types";
 
 export const BUILTIN_STAGE_VARIABLE_IDS = {
   wrapX: "wrapX",
   wrapY: "wrapY",
+  width: "width",
+  height: "height",
 } as const;
 
 export const BUILTIN_STAGE_VARIABLES: Record<string, StageVariable> = {
@@ -16,6 +18,16 @@ export const BUILTIN_STAGE_VARIABLES: Record<string, StageVariable> = {
     name: "Wrap Vertically",
     type: "boolean",
   },
+  [BUILTIN_STAGE_VARIABLE_IDS.width]: {
+    id: "width",
+    name: "Width",
+    type: "number",
+  },
+  [BUILTIN_STAGE_VARIABLE_IDS.height]: {
+    id: "height",
+    name: "Height",
+    type: "number",
+  },
 };
 
 /**
@@ -28,6 +40,8 @@ export const BUILTIN_STAGE_VARIABLES: Record<string, StageVariable> = {
 export const BUILTIN_STAGE_VARIABLE_INITIAL_VALUES: Record<string, string> = {
   [BUILTIN_STAGE_VARIABLE_IDS.wrapX]: "true",
   [BUILTIN_STAGE_VARIABLE_IDS.wrapY]: "true",
+  [BUILTIN_STAGE_VARIABLE_IDS.width]: "22",
+  [BUILTIN_STAGE_VARIABLE_IDS.height]: "13",
 };
 
 export function isBuiltinStageVariableId(id: string): boolean {
@@ -51,4 +65,24 @@ export function getStageVariableValue(
     );
   }
   return value;
+}
+
+/** Read stage width as a number. Throws if the value is missing or non-numeric. */
+export function getStageWidth(stage: Pick<Stage, "variableValues">): number {
+  const raw = getStageVariableValue(BUILTIN_STAGE_VARIABLE_IDS.width, stage.variableValues);
+  const n = Number(raw);
+  if (!Number.isFinite(n) || n <= 0) {
+    throw new Error(`Stage width "${raw}" is not a positive number.`);
+  }
+  return n;
+}
+
+/** Read stage height as a number. Throws if the value is missing or non-numeric. */
+export function getStageHeight(stage: Pick<Stage, "variableValues">): number {
+  const raw = getStageVariableValue(BUILTIN_STAGE_VARIABLE_IDS.height, stage.variableValues);
+  const n = Number(raw);
+  if (!Number.isFinite(n) || n <= 0) {
+    throw new Error(`Stage height "${raw}" is not a positive number.`);
+  }
+  return n;
 }

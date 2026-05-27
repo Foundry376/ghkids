@@ -134,7 +134,7 @@ export function stageBoundaryScenario(): TestScenario {
   const characters: Characters = { [charId]: character };
 
   const stageActor = makeActor({ id: actorId, characterId: charId, position: { x: 8, y: 1 } });
-  const stage = makeStage({ id: "stage-1", actors: { [actorId]: stageActor }, width: 10, height: 10 });
+  const stage = makeStage({ id: "stage-1", actors: { [actorId]: stageActor } });
   const world = makeWorld({ stage });
 
   return {
@@ -170,9 +170,7 @@ export function stageWrappingScenario(): TestScenario {
   const stage = makeStage({
     id: "stage-1",
     actors: { [actorId]: stageActor },
-    width: 10,
-    height: 10,
-    variableValues: { wrapX: "true", wrapY: "false" },
+    variableValues: { wrapX: "true", wrapY: "false", width: "10", height: "10" },
   });
   const world = makeWorld({ stage });
 
