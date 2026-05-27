@@ -130,6 +130,8 @@ const PaintContainer: React.FC = () => {
     reduxDispatch(paintCharacterAppearance(null));
   }, [reduxDispatch]);
 
+  const [isSaving, setIsSaving] = useState(false);
+
   const handleCloseAndSave = useCallback(async () => {
     if (!characterId || !appearanceId || !character) return;
 
@@ -146,6 +148,7 @@ const PaintContainer: React.FC = () => {
     // Generate name if untitled
     let generatedSpriteName = "";
     if (character.name === "Untitled") {
+      setIsSaving(true);
       try {
         const nameResp = await makeRequest<{ name?: string }>("/generate-sprite-name", {
           method: "POST",
@@ -156,6 +159,8 @@ const PaintContainer: React.FC = () => {
         }
       } catch (err) {
         console.error("Failed to auto-generate sprite name:", err);
+      } finally {
+        setIsSaving(false);
       }
     }
 
@@ -465,7 +470,7 @@ const PaintContainer: React.FC = () => {
             <i className="fa fa-magic" style={{ color: "#7b5ea7" }} /> Draw with AI
           </Button>
           <div style={{ flex: 1 }} />
-          <Button key="cancel" onClick={handleClose}>
+          <Button key="cancel" onClick={handleClose} disabled={isSaving}>
             Cancel
           </Button>{" "}
           <Button
@@ -473,7 +478,9 @@ const PaintContainer: React.FC = () => {
             key="save"
             data-tutorial-id="paint-save-and-close"
             onClick={handleCloseAndSave}
+            disabled={isSaving}
           >
+            {isSaving && <i className="fa fa-spinner fa-spin" style={{ marginRight: 6 }} />}
             Done
           </Button>
         </ModalFooter>

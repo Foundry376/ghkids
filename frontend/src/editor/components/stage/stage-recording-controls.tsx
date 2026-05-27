@@ -1,5 +1,5 @@
 import { Button } from "reactstrap";
-import React from "react";
+import React, { useState } from "react";
 import { Dispatch } from "redux";
 
 import { makeRequest } from "../../../helpers/api";
@@ -179,6 +179,8 @@ const StageRecordingControls: React.FC<StageRecordingControlsProps> = ({
   recording,
   characters,
 }) => {
+  const [isFinishing, setIsFinishing] = useState(false);
+
   const onCancel = () => {
     dispatch(cancelRecording());
   };
@@ -186,6 +188,7 @@ const StageRecordingControls: React.FC<StageRecordingControlsProps> = ({
   const onNext = async () => {
     let generatedName = "Untitled Rule";
 
+    setIsFinishing(true);
     try {
       const payload = buildNamingPayload(recording, characters);
 
@@ -201,6 +204,8 @@ const StageRecordingControls: React.FC<StageRecordingControlsProps> = ({
       }
     } catch (err) {
       console.error("Failed to auto-generate rule name:", err);
+    } finally {
+      setIsFinishing(false);
     }
 
     dispatch(finishRecording(generatedName));
@@ -214,10 +219,20 @@ const StageRecordingControls: React.FC<StageRecordingControlsProps> = ({
       </div>
       <div style={{ flex: 1 }} />
       <div className="right">
-        <Button onClick={onCancel}>Cancel</Button>{" "}
-        <Button data-tutorial-id="record-next-step" color="success" onClick={onNext}>
+        <Button onClick={onCancel} disabled={isFinishing}>Cancel</Button>{" "}
+        <Button
+          data-tutorial-id="record-next-step"
+          color="success"
+          onClick={onNext}
+          disabled={isFinishing}
+        >
           <span>
-            <i className="fa fa-checkmark" /> Done
+            {isFinishing ? (
+              <i className="fa fa-spinner fa-spin" style={{ marginRight: 6 }} />
+            ) : (
+              <i className="fa fa-checkmark" />
+            )}{" "}
+            Done
           </span>
         </Button>{" "}
       </div>
