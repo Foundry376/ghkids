@@ -82,16 +82,15 @@ describe("worldReducer stage-variable invariant", () => {
   });
 
   describe("SET_STAGE_VARIABLE_VALUE", () => {
-    it("treats undefined as a reset to the initial seed instead of omitting", () => {
+    it("no-ops on undefined (so the every-var-on-every-stage invariant holds)", () => {
       const before = initialState.world as WorldMinimal;
       const stageId = Object.keys(before.stages)[0];
 
-      // wrapX starts seeded to "true"; flip to "false", then reset to undefined
       let next = reduce(before, setStageVariableValue(WORLDS.ROOT, stageId, "wrapX", "false"));
       expect(next.stages[stageId].variableValues.wrapX).to.equal("false");
 
       next = reduce(next, setStageVariableValue(WORLDS.ROOT, stageId, "wrapX", undefined));
-      expect(next.stages[stageId].variableValues.wrapX).to.equal("true");
+      expect(next.stages[stageId].variableValues.wrapX).to.equal("false");
     });
   });
 });

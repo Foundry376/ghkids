@@ -2,8 +2,8 @@
 
 import { Game } from "../types";
 import {
+  BUILTIN_STAGE_VARIABLE_INITIAL_VALUES,
   BUILTIN_STAGE_VARIABLES,
-  initialValueForStageVariable,
 } from "./utils/builtin-stage-variables";
 import { migrateGameCoordinates } from "./utils/coordinate-migration";
 import { makeId } from "./utils/utils";
@@ -173,7 +173,7 @@ export function applyDataMigrations(game: Game): Game {
     // strip defaultValue from the definitions.
     for (const id of Object.keys(result.data.world.stageVariables)) {
       const def = result.data.world.stageVariables[id];
-      const seed = def?.defaultValue ?? initialValueForStageVariable(id);
+      const seed = def?.defaultValue ?? BUILTIN_STAGE_VARIABLE_INITIAL_VALUES[id] ?? "0";
       if (result.data.world.stages) {
         for (const stageId of Object.keys(result.data.world.stages)) {
           const s = result.data.world.stages[stageId];

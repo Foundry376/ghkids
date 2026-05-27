@@ -19,25 +19,19 @@ export const BUILTIN_STAGE_VARIABLES: Record<string, StageVariable> = {
 };
 
 /**
- * Values written into a stage's `variableValues` when a stage variable is first
- * introduced (new world, new stage with no source to copy from, or migration
- * backfill). Stage variables are not allowed to fall back to a world-level
- * default at read time, so these are seed-only — never consulted by the engine.
+ * Values used by the data migration when a pre-existing save is missing a
+ * built-in's value on a stage. Brand-new worlds get these via the inline
+ * `variableValues` on initial-state-stage; at runtime, built-ins are already
+ * present on every stage (world init + migration), so this map is migration-
+ * only — the engine never reads it.
  */
 export const BUILTIN_STAGE_VARIABLE_INITIAL_VALUES: Record<string, string> = {
   [BUILTIN_STAGE_VARIABLE_IDS.wrapX]: "true",
   [BUILTIN_STAGE_VARIABLE_IDS.wrapY]: "true",
 };
 
-/** Initial value to seed when a brand-new user-created stage variable is added. */
-export const USER_STAGE_VARIABLE_INITIAL_VALUE = "0";
-
 export function isBuiltinStageVariableId(id: string): boolean {
   return id in BUILTIN_STAGE_VARIABLES;
-}
-
-export function initialValueForStageVariable(id: string): string {
-  return BUILTIN_STAGE_VARIABLE_INITIAL_VALUES[id] ?? USER_STAGE_VARIABLE_INITIAL_VALUE;
 }
 
 /**

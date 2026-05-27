@@ -6,10 +6,7 @@ import stageCollectionReducer from "./stage-collection-reducer";
 import { EditorState, World, WorldMinimal } from "../../types";
 import { Actions } from "../actions";
 import * as Types from "../constants/action-types";
-import {
-  initialValueForStageVariable,
-  isBuiltinStageVariableId,
-} from "../utils/builtin-stage-variables";
+import { isBuiltinStageVariableId } from "../utils/builtin-stage-variables";
 import { getCurrentStageForWorld } from "../utils/selectors";
 import WorldOperator from "../utils/world-operator";
 
@@ -49,11 +46,12 @@ export default function worldReducer(
         return nextState;
       }
       // Maintain the invariant: every defined stage variable has a value on
-      // every stage. Seed the new variable on every stage with its initial.
-      const initial = initialValueForStageVariable(action.stageVariableId);
+      // every stage. Only user-created variables go through this path
+      // (built-ins are added at world-init and migration time), so "0" is
+      // the right seed.
       const stageUpdates: Record<string, { variableValues: { [id: string]: string } }> = {};
       for (const stageId of Object.keys(nextState.stages)) {
-        stageUpdates[stageId] = { variableValues: { [action.stageVariableId]: initial } };
+        stageUpdates[stageId] = { variableValues: { [action.stageVariableId]: "0" } };
       }
       return u({ stages: stageUpdates }, nextState);
     }
@@ -74,36 +72,31 @@ export default function worldReducer(
       );
     }
     case Types.SET_STAGE_VARIABLE_VALUE: {
-      // Invariant: every defined stage variable has a value on every stage.
-      // Treat an undefined value as a reset to the variable's initial seed.
-      const value =
-        action.value === undefined
-          ? initialValueForStageVariable(action.stageVariableId)
-          : action.value;
+      // Invariant: every defined stage variable has a value on every stage,
+      // so an undefined value would break it. Treat it as a no-op; in
+      // practice callers always pass a concrete string.
+      if (action.value === undefined) return state;
       return u(
-        { stages: { [action.stageId]: { variableValues: { [action.stageVariableId]: value } } } },
+        { stages: { [action.stageId]: { variableValues: { [action.stageVariableId]: action.value } } } },
         state,
       );
     }
     case Types.CREATE_STAGE: {
       // stageCollectionReducer just spread initialStateStage onto the new
       // stage. Make the new stage inherit the currently-selected stage's
-      // variableValues (so Level 2 starts "like Level 1"), then patch in any
-      // missing stage variables with their initial values to uphold the
-      // every-var-on-every-stage invariant.
-      const newStage = state.stages[action.stageId];
-      if (!newStage) return state;
+      // variableValues so Level 2 starts "like Level 1". The source stage is
+      // guaranteed to have every defined variable populated (invariant), so
+      // a straight copy upholds the invariant for the new stage too.
       const sourceStage = getCurrentStageForWorld(state);
-      const seeded: Record<string, string> = sourceStage
-        ? { ...sourceStage.variableValues }
-        : { ...newStage.variableValues };
-      for (const id of Object.keys(state.stageVariables)) {
-        if (seeded[id] === undefined) {
-          seeded[id] = initialValueForStageVariable(id);
-        }
-      }
+      if (!sourceStage) return state;
       return u(
-        { stages: { [action.stageId]: { variableValues: u.constant(seeded) } } },
+        {
+          stages: {
+            [action.stageId]: {
+              variableValues: u.constant({ ...sourceStage.variableValues }),
+            },
+          },
+        },
         state,
       );
     }
