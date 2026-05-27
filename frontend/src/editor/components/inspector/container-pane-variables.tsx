@@ -17,7 +17,7 @@ import {
   upsertStageVariable,
 } from "../../actions/world-actions";
 import { TOOLS } from "../../constants/constants";
-import { getCurrentStage } from "../../utils/selectors";
+import { getCurrentStageForWorld } from "../../utils/selectors";
 import { findRules, FindRulesResult, ruleUsesVariable } from "../../utils/stage-helpers";
 import Sprite from "../sprites/sprite";
 import { TransformEditorModal } from "./transform-editor";
@@ -325,17 +325,12 @@ export const ContainerPaneVariables = ({
   const dispatch = useDispatch();
   const selectedToolId = useEditorSelector((state) => state.ui.selectedToolId);
   const selectedActors = useEditorSelector((state) => state.ui.selectedActors);
-  const mainCurrentStage = useEditorSelector(getCurrentStage);
   const recording = useEditorSelector((state) => state.recording);
   const isRecording = !!recording.characterId;
   // During recording, Level edits should land on the after world so they
   // become rule actions; otherwise they edit the live game state directly.
   const levelTargetWorld = isRecording ? recording.afterWorld : world;
-  const levelTargetStage = isRecording
-    ? Object.values(levelTargetWorld.stages).find(
-        (s) => s.id === levelTargetWorld.globals.selectedStageId?.value,
-      ) ?? Object.values(levelTargetWorld.stages)[0]
-    : mainCurrentStage;
+  const levelTargetStage = getCurrentStageForWorld(levelTargetWorld);
   const [pendingDelete, setPendingDelete] = useState<PendingDeleteState>(null);
 
   // Chararacter and actor variables

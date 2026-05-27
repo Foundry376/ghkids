@@ -41,6 +41,7 @@ import {
   getVariableValue,
   pointByAdding,
   resolveRuleValue,
+  RuleValueContext,
   shuffleArray,
 } from "./stage-helpers";
 import { deepClone, makeId } from "./utils";
@@ -57,9 +58,10 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
   let frameAccumulator: FrameAccumulator;
   let crossStageActorsForDestStage: { [destStageId: string]: { [actorId: string]: Actor } } = {};
 
-  function stageCtx() {
-    return { stage: { variableValues: stageVariableValues }, stageVariables };
-  }
+  // Built once per tick/resetForRule. Members are references to the mutable
+  // closure state above, so in-place mutations during applyRule are visible
+  // through ctx without rebuilding it.
+  let ctx: RuleValueContext;
 
   function wrappedPosition({ x, y }: PositionRelativeToWorld) {
     // World coordinates are 1-indexed (bottom-left = (1, 1)). Wrap relative to
@@ -106,7 +108,7 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
               getVariableValue(actor, character, left.variableId, comparator),
               actor,
             ])
-          : [[resolveRuleValue(left, globals, characters, actors, comparator, stageCtx()), null]];
+          : [[resolveRuleValue(left, comparator, actors, ctx), null]];
 
       const rightValue: [string | null, Actor | null][] =
         "actorId" in right
@@ -114,7 +116,7 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
               getVariableValue(actor, character, right.variableId, comparator),
               actor,
             ])
-          : [[resolveRuleValue(right, globals, characters, actors, comparator, stageCtx()), null]];
+          : [[resolveRuleValue(right, comparator, actors, ctx), null]];
 
       let found = false;
       for (const leftOpt of leftValue) {
@@ -464,19 +466,15 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
 
           const left = resolveRuleValue(
             condition.left,
-            globals,
-            characters,
-            stageActorsForRuleActorIds,
             condition.comparator,
-            stageCtx(),
+            stageActorsForRuleActorIds,
+            ctx,
           );
           const right = resolveRuleValue(
             condition.right,
-            globals,
-            characters,
-            stageActorsForRuleActorIds,
             condition.comparator,
-            stageCtx(),
+            stageActorsForRuleActorIds,
+            ctx,
           );
           const passed = comparatorMatches(condition.comparator, left, right);
           conditions.push({
@@ -583,7 +581,7 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
           global.value = applyVariableOperation(
             global.value,
             action.operation,
-            resolveRuleValue(action.value, globals, characters, stageActorForId, "=", stageCtx()) ??
+            resolveRuleValue(action.value, "=", stageActorForId, ctx) ??
               "",
           );
         } else if (action.type === "stageVariable") {
@@ -594,7 +592,7 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
           }
           const current = stageVariableValues[action.stageVariable] ?? definition.defaultValue ?? "0";
           const value =
-            resolveRuleValue(action.value, globals, characters, stageActorForId, "=", stageCtx()) ??
+            resolveRuleValue(action.value, "=", stageActorForId, ctx) ??
             "";
           stageVariableValues[action.stageVariable] = applyVariableOperation(
             current,
@@ -681,7 +679,7 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
             }
           } else if (action.type === "appearance") {
             stageActor.appearance =
-              resolveRuleValue(action.value, globals, characters, stageActorForId, "=", stageCtx()) ??
+              resolveRuleValue(action.value, "=", stageActorForId, ctx) ??
               "";
             if (action.animationStyle !== "skip") {
               frameAccumulator?.push({
@@ -693,11 +691,9 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
           } else if (action.type === "transform") {
             const value = resolveRuleValue(
               action.value,
-              globals,
-              characters,
-              stageActorForId,
               "=",
-              stageCtx(),
+              stageActorForId,
+              ctx,
             ) as ActorTransform;
             const next = applyTransformOperation(
               stageActor.transform ?? "0",
@@ -721,7 +717,7 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
                 "=",
               ) ?? "0";
             const value =
-              resolveRuleValue(action.value, globals, characters, stageActorForId, "=", stageCtx()) ??
+              resolveRuleValue(action.value, "=", stageActorForId, ctx) ??
               "";
             const next = applyVariableOperation(current, action.operation, value);
 
@@ -772,6 +768,7 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
     globals = deepClone(previousWorld.globals);
     stageVariables = deepClone(previousWorld.stageVariables ?? {});
     stageVariableValues = deepClone(currentStage.variableValues ?? {});
+    ctx = { globals, characters, stageVariables, stage: { variableValues: stageVariableValues } };
     actors = {};
     for (const actor of Object.values(rule.actors)) {
       actors[actor.id] = Object.assign(deepClone(actor), {
@@ -781,27 +778,13 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
 
     for (const cond of Object.values(rule.conditions)) {
       if ("globalId" in cond.left && globals[cond.left.globalId]) {
-        const value = resolveRuleValue(
-          cond.right,
-          globals,
-          characters,
-          rule.actors,
-          cond.comparator,
-          stageCtx(),
-        );
+        const value = resolveRuleValue(cond.right, cond.comparator, rule.actors, ctx);
         if (value) {
           globals[cond.left.globalId].value = value;
         }
       }
       if ("stageVariableId" in cond.left && stageVariables[cond.left.stageVariableId]) {
-        const value = resolveRuleValue(
-          cond.right,
-          globals,
-          characters,
-          rule.actors,
-          cond.comparator,
-          stageCtx(),
-        );
+        const value = resolveRuleValue(cond.right, cond.comparator, rule.actors, ctx);
         if (value) {
           stageVariableValues[cond.left.stageVariableId] = value;
         }
@@ -854,6 +837,7 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
     globals.click = { ...globals.click, value: Object.keys(input.clicks)[0] };
     stageVariables = deepClone(previousWorld.stageVariables ?? {});
     stageVariableValues = deepClone(stage.variableValues ?? {});
+    ctx = { globals, characters, stageVariables, stage: { variableValues: stageVariableValues } };
 
     actors = deepClone(stage.actors);
     frameAccumulator = new FrameAccumulator(stage.actors);
@@ -873,16 +857,14 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
     };
     for (const [destStageId, destActors] of Object.entries(crossStageActorsForDestStage)) {
       const destStage = previousWorld.stages[destStageId];
+      const destVars = destStage?.variableValues ?? {};
       if (destStage) {
-        beforeStages[destStageId] = {
-          actors: destStage.actors,
-          variableValues: destStage.variableValues ?? {},
-        };
+        beforeStages[destStageId] = { actors: destStage.actors, variableValues: destVars };
       }
-      afterStages[destStageId] = {
-        actors: destActors,
-        variableValues: previousWorld.stages[destStageId]?.variableValues ?? {},
-      };
+      // Rules only mutate the current stage's variableValues; cross-stage
+      // teleports just move actors, so before and after share the same
+      // variableValues here.
+      afterStages[destStageId] = { actors: destActors, variableValues: destVars };
     }
 
     const beforeSnapshot: HistorySnapshot = {

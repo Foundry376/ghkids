@@ -13,7 +13,7 @@ import {
 import { useEditorSelector } from "../../../../hooks/redux";
 import { upsertRecordingCondition } from "../../../actions/recording-actions";
 import { getCurrentStageForWorld } from "../../../utils/selectors";
-import { actorIntersectsExtent } from "../../../utils/stage-helpers";
+import { actorIntersectsExtent, ruleValueFromDragPayload } from "../../../utils/stage-helpers";
 import { makeId } from "../../../utils/utils";
 
 /**
@@ -132,16 +132,11 @@ export const RecordingConditions = ({
       }}
       onDrop={(e) => {
         if (e.dataTransfer.types.includes("variable")) {
-          const { value, actorId, variableId, globalId, stageVariableId } = JSON.parse(
-            e.dataTransfer.getData("variable"),
-          );
+          const raw = e.dataTransfer.getData("variable");
+          const left = ruleValueFromDragPayload(raw);
           setDropping(false);
-
-          const left = stageVariableId
-            ? { stageVariableId }
-            : globalId
-              ? { globalId }
-              : { actorId, variableId };
+          if (!left) return;
+          const { value } = JSON.parse(raw) as { value?: string };
 
           dispatch(
             upsertRecordingCondition({
@@ -149,7 +144,7 @@ export const RecordingConditions = ({
               key: makeId("condition"),
               comparator: "=",
               left,
-              right: { constant: value },
+              right: { constant: value ?? "" },
             }),
           );
         }

@@ -17,6 +17,7 @@ import {
 } from "../../../../types";
 import { pickConditionValueFromKeyboard, selectToolId } from "../../../actions/ui-actions";
 import { TOOLS } from "../../../constants/constants";
+import { ruleValueFromDragPayload } from "../../../utils/stage-helpers";
 import ConnectedStagePicker from "../../inspector/connected-stage-picker";
 import { AppearanceDropdown, TransformDropdown } from "../../inspector/container-pane-variables";
 import { ActorBlock, ActorVariableBlock, AppearanceBlock, TransformBlock } from "./blocks";
@@ -187,19 +188,11 @@ export const FreeformConditionValue = ({
 
   const onDropValue = (e: React.DragEvent) => {
     if (e.dataTransfer.types.includes("variable")) {
-      const { actorId, globalId, stageVariableId, variableId } = JSON.parse(
-        e.dataTransfer.getData("variable"),
-      );
-      let value: RuleValue;
-      if (stageVariableId) {
-        value = { stageVariableId };
-      } else if (globalId) {
-        value = { globalId };
-      } else {
-        value = { actorId, variableId };
+      const value = ruleValueFromDragPayload(e.dataTransfer.getData("variable"));
+      if (value) {
+        onChange?.(value);
+        e.stopPropagation();
       }
-      onChange?.(value);
-      e.stopPropagation();
     }
     if (e.dataTransfer.types.includes("sprite")) {
       const { dragAnchorActorId } = JSON.parse(e.dataTransfer.getData("sprite"));
