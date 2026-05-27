@@ -12,10 +12,12 @@ import { selectToolId } from "../../actions/ui-actions";
 import {
   deleteGlobal,
   deleteStageVariable,
+  setStageVariableValue,
   upsertGlobal,
   upsertStageVariable,
 } from "../../actions/world-actions";
 import { TOOLS } from "../../constants/constants";
+import { getCurrentStage } from "../../utils/selectors";
 import { findRules, FindRulesResult, ruleUsesVariable } from "../../utils/stage-helpers";
 import Sprite from "../sprites/sprite";
 import { TransformEditorModal } from "./transform-editor";
@@ -323,6 +325,7 @@ export const ContainerPaneVariables = ({
   const dispatch = useDispatch();
   const selectedToolId = useEditorSelector((state) => state.ui.selectedToolId);
   const selectedActors = useEditorSelector((state) => state.ui.selectedActors);
+  const currentStage = useEditorSelector(getCurrentStage);
   const [pendingDelete, setPendingDelete] = useState<PendingDeleteState>(null);
 
   // Chararacter and actor variables
@@ -397,13 +400,19 @@ export const ContainerPaneVariables = ({
     }
   };
 
-  // Stage variables (definitions shared across stages, values per-stage edited elsewhere)
+  // Stage variables — definitions are world-scoped but values are per-stage.
+  // The right-panel section reads/writes the currently-selected stage's value.
 
-  const _onChangeStageVariableDefinition = (
-    stageVariableId: string,
-    changes: Partial<StageVariable>,
-  ) => {
-    dispatch(upsertStageVariable(world.id, stageVariableId, changes));
+  const _onRenameStageVariable = (stageVariableId: string, changes: Partial<StageVariable>) => {
+    // Only `name` is editable here; values live on the stage, not the definition.
+    if ("name" in changes) {
+      dispatch(upsertStageVariable(world.id, stageVariableId, { name: changes.name }));
+    }
+  };
+
+  const _onChangeStageVariableValue = (stageVariableId: string, value: string | undefined) => {
+    if (!currentStage) return;
+    dispatch(setStageVariableValue(world.id, currentStage.id, stageVariableId, value));
   };
 
   const _onClickStageVariable = (stageVariableId: string, event: React.MouseEvent) => {
@@ -514,6 +523,7 @@ export const ContainerPaneVariables = ({
 
   function _renderLevelSection() {
     const definitions = Object.values(world.stageVariables ?? {});
+    const values = currentStage?.variableValues ?? {};
     return (
       <div className="variables-grid">
         {definitions.map((definition) => (
@@ -525,15 +535,11 @@ export const ContainerPaneVariables = ({
             readonly={readonly}
             key={definition.id}
             definition={definition}
-            value={definition.defaultValue}
+            value={values[definition.id] ?? ""}
             onClick={_onClickStageVariable}
-            onChangeDefinition={_onChangeStageVariableDefinition}
-            onChangeValue={(id, value) =>
-              _onChangeStageVariableDefinition(id, { defaultValue: value })
-            }
-            onBlurValue={(id, value) =>
-              _onChangeStageVariableDefinition(id, { defaultValue: value })
-            }
+            onChangeDefinition={_onRenameStageVariable}
+            onChangeValue={_onChangeStageVariableValue}
+            onBlurValue={_onChangeStageVariableValue}
           />
         ))}
         {definitions.length === 0 && (

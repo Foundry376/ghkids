@@ -5,7 +5,6 @@ import { useDispatch } from "react-redux";
 import { useEditorSelector } from "../../../hooks/redux";
 import { createStage, deleteStageId, updateStageSettings } from "../../actions/stage-actions";
 import { dismissModal, selectStageId } from "../../actions/ui-actions";
-import { setStageVariableValue } from "../../actions/world-actions";
 import { MODALS, WORLDS } from "../../constants/constants";
 import { getCurrentStage, getStagesList } from "../../utils/selectors";
 import { getStageScreenshot } from "../../utils/stage-helpers";
@@ -16,7 +15,6 @@ export const StagesContainer = () => {
   const listEl = useRef<HTMLDivElement>(null);
   const stage = useEditorSelector(getCurrentStage);
   const stagesArray = useEditorSelector(getStagesList);
-  const stageVariables = useEditorSelector((state) => state.world.stageVariables);
   const open = useEditorSelector((state) => state.ui.modal.openId === MODALS.STAGES);
 
   const _scrollToSelectedStage = () => {
@@ -108,12 +106,8 @@ export const StagesContainer = () => {
         <ModalBody>
           <StageSettings
             stage={stage}
-            stageVariables={stageVariables}
             key={stage.id}
             onChange={(settings) => dispatch(updateStageSettings(WORLDS.ROOT, stage.id, settings))}
-            onChangeStageVariableValue={(stageVariableId, value) =>
-              dispatch(setStageVariableValue(WORLDS.ROOT, stage.id, stageVariableId, value))
-            }
           />
         </ModalBody>
       </div>
