@@ -529,8 +529,8 @@ export const ContainerPaneVariables = ({
   }
 
   function _renderLevelSection() {
-    const definitions = Object.values(world.stageVariables ?? {});
-    const values = levelTargetStage?.variableValues ?? {};
+    const definitions = Object.values(world.stageVariables);
+    const values = levelTargetStage ? levelTargetStage.variableValues : {};
     return (
       <div className="variables-grid">
         {definitions.map((definition) => (

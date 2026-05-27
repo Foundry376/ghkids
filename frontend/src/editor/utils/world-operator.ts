@@ -766,8 +766,8 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
 
     // mutable things
     globals = deepClone(previousWorld.globals);
-    stageVariables = deepClone(previousWorld.stageVariables ?? {});
-    stageVariableValues = deepClone(currentStage.variableValues ?? {});
+    stageVariables = deepClone(previousWorld.stageVariables);
+    stageVariableValues = deepClone(currentStage.variableValues);
     ctx = { globals, characters, stageVariables, stage: { variableValues: stageVariableValues } };
     actors = {};
     for (const actor of Object.values(rule.actors)) {
@@ -835,8 +835,8 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
     globals = deepClone(previousWorld.globals);
     globals.keypress = { ...globals.keypress, value: Object.keys(input.keys).join(",") };
     globals.click = { ...globals.click, value: Object.keys(input.clicks)[0] };
-    stageVariables = deepClone(previousWorld.stageVariables ?? {});
-    stageVariableValues = deepClone(stage.variableValues ?? {});
+    stageVariables = deepClone(previousWorld.stageVariables);
+    stageVariableValues = deepClone(stage.variableValues);
     ctx = { globals, characters, stageVariables, stage: { variableValues: stageVariableValues } };
 
     actors = deepClone(stage.actors);
@@ -850,21 +850,25 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
     );
 
     const beforeStages: HistorySnapshot["stages"] = {
-      [stage.id]: { actors: stage.actors, variableValues: stage.variableValues ?? {} },
+      [stage.id]: { actors: stage.actors, variableValues: stage.variableValues },
     };
     const afterStages: HistorySnapshot["stages"] = {
       [stage.id]: { actors, variableValues: stageVariableValues },
     };
     for (const [destStageId, destActors] of Object.entries(crossStageActorsForDestStage)) {
       const destStage = previousWorld.stages[destStageId];
-      const destVars = destStage?.variableValues ?? {};
-      if (destStage) {
-        beforeStages[destStageId] = { actors: destStage.actors, variableValues: destVars };
-      }
+      if (!destStage) continue; // teleport only populates dests for stages that exist
       // Rules only mutate the current stage's variableValues; cross-stage
       // teleports just move actors, so before and after share the same
       // variableValues here.
-      afterStages[destStageId] = { actors: destActors, variableValues: destVars };
+      beforeStages[destStageId] = {
+        actors: destStage.actors,
+        variableValues: destStage.variableValues,
+      };
+      afterStages[destStageId] = {
+        actors: destActors,
+        variableValues: destStage.variableValues,
+      };
     }
 
     const beforeSnapshot: HistorySnapshot = {
@@ -936,7 +940,7 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
       stages: {
         [currentStage.id]: {
           actors: currentStage.actors,
-          variableValues: currentStage.variableValues ?? {},
+          variableValues: currentStage.variableValues,
         },
       },
     };
@@ -954,7 +958,7 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
         stages: {
           [stageKey]: {
             actors: u.constant(previousSnapshot.stages[stageKey].actors),
-            variableValues: u.constant(previousSnapshot.stages[stageKey].variableValues ?? {}),
+            variableValues: u.constant(previousSnapshot.stages[stageKey].variableValues),
           },
         },
         evaluatedRuleDetails: u.constant(previousSnapshot.evaluatedRuleDetails),
