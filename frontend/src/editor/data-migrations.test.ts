@@ -104,8 +104,6 @@ describe("data-migrations", () => {
                 background: "#000",
                 width: 10,
                 height: 10,
-                wrapX: false,
-                wrapY: false,
                 variableValues: {},
               },
             },
@@ -159,8 +157,6 @@ describe("data-migrations", () => {
                 background: "#000",
                 width: 10,
                 height: 10,
-                wrapX: false,
-                wrapY: false,
                 variableValues: {},
               },
             },
@@ -518,8 +514,6 @@ describe("data-migrations", () => {
                 background: "#000",
                 width: 10,
                 height: 10,
-                wrapX: false,
-                wrapY: false,
                 variableValues: {},
               },
             },
@@ -554,6 +548,76 @@ describe("data-migrations", () => {
         expect(game.data.world.stages["stage1"].actors["actor1"].transform).to.equal(
           originalTransform,
         );
+      });
+    });
+
+    describe("stage wrap migrations", () => {
+      const makeStageWithLegacyWrap = (overrides: { wrapX?: boolean; wrapY?: boolean }) => ({
+        id: "stage1",
+        order: 0,
+        name: "Stage 1",
+        actors: {},
+        background: "#000",
+        width: 10,
+        height: 10,
+        ...overrides,
+      });
+
+      it("should backfill built-in wrapX/wrapY definitions on the world", () => {
+        const game = makeMinimalGame({
+          world: {
+            id: WORLDS.ROOT,
+            stages: { stage1: makeStageWithLegacyWrap({ wrapX: true, wrapY: false }) as any },
+            globals: {
+              click: { id: "click", name: "Clicked Actor", value: "", type: "actor" },
+              keypress: { id: "keypress", name: "Key Pressed", value: "", type: "key" },
+              selectedStageId: { id: "selectedStageId", name: "Current Level", value: "", type: "stage" },
+              cameraFollow: { id: "cameraFollow", name: "Camera Follow", value: "", type: "actor" },
+            },
+            input: { keys: {}, clicks: {} },
+            evaluatedRuleDetails: {},
+            stageVariables: {},
+            history: [],
+            metadata: { name: "Test", id: 1, published: false, description: null },
+          },
+        });
+
+        const migrated = applyDataMigrations(game);
+        expect(migrated.data.world.stageVariables.wrapX).to.deep.include({
+          id: "wrapX",
+          type: "boolean",
+        });
+        expect(migrated.data.world.stageVariables.wrapY).to.deep.include({
+          id: "wrapY",
+          type: "boolean",
+        });
+      });
+
+      it("should fold legacy stage.wrapX/wrapY into stage.variableValues", () => {
+        const game = makeMinimalGame({
+          world: {
+            id: WORLDS.ROOT,
+            stages: { stage1: makeStageWithLegacyWrap({ wrapX: true, wrapY: false }) as any },
+            globals: {
+              click: { id: "click", name: "Clicked Actor", value: "", type: "actor" },
+              keypress: { id: "keypress", name: "Key Pressed", value: "", type: "key" },
+              selectedStageId: { id: "selectedStageId", name: "Current Level", value: "", type: "stage" },
+              cameraFollow: { id: "cameraFollow", name: "Camera Follow", value: "", type: "actor" },
+            },
+            input: { keys: {}, clicks: {} },
+            evaluatedRuleDetails: {},
+            stageVariables: {},
+            history: [],
+            metadata: { name: "Test", id: 1, published: false, description: null },
+          },
+        });
+
+        const migrated = applyDataMigrations(game);
+        const stage = migrated.data.world.stages["stage1"];
+        expect(stage.variableValues.wrapX).to.equal("true");
+        expect(stage.variableValues.wrapY).to.equal("false");
+        expect((stage as any).wrapX).to.be.undefined;
+        expect((stage as any).wrapY).to.be.undefined;
       });
     });
   });

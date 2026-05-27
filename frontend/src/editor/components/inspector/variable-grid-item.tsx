@@ -45,6 +45,8 @@ export const VariableGridItem = ({
           ? "actor"
           : null;
 
+  const isBuiltin = "type" in definition && definition.type === "boolean";
+
   const [dropping, setDropping] = useState(false);
 
   const _onDragStart = (event: React.DragEvent) => {
@@ -93,6 +95,19 @@ export const VariableGridItem = ({
 
   if (readonly) {
     content = <div className="value">{isMixed ? "—" : displayValue}</div>;
+  } else if (type === "boolean") {
+    const checked = displayValue === "true";
+    content = (
+      <label className="value variable-boolean">
+        <input
+          type="checkbox"
+          checked={checked}
+          disabled={disabled}
+          onChange={(e) => onChangeValue(definition.id, e.target.checked ? "true" : "false")}
+        />
+        <span className="variable-boolean-label">{checked ? "On" : "Off"}</span>
+      </label>
+    );
   } else if (type === "stage") {
     content = (
       <ConnectedStagePicker
@@ -138,7 +153,7 @@ export const VariableGridItem = ({
         className="name"
         value={definition.name}
         onChange={
-          readonly || disabled || ("type" in definition && definition.type === "stage")
+          readonly || disabled || isBuiltin || ("type" in definition && definition.type === "stage")
             ? undefined
             : (name) => onChangeDefinition(definition.id, { name })
         }

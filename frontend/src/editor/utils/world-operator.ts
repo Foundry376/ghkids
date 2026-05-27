@@ -28,6 +28,10 @@ import {
   StageVariable,
   WorldMinimal,
 } from "../../types";
+import {
+  BUILTIN_STAGE_VARIABLE_IDS,
+  readBooleanStageVariable,
+} from "./builtin-stage-variables";
 import { DOOR_VARIABLE_IDS } from "./door-constants";
 import { FrameAccumulator } from "./frame-accumulator";
 import { diff as historyDiffFn, unpatch as historyUnpatch } from "./history-diff";
@@ -67,9 +71,19 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
     // World coordinates are 1-indexed (bottom-left = (1, 1)). Wrap relative to
     // the [1, dim] range: shift to 0-based, mod, then shift back.
     const wrap = (n: number, d: number) => (((n - 1) % d) + d) % d + 1;
+    const wrapX = readBooleanStageVariable(
+      BUILTIN_STAGE_VARIABLE_IDS.wrapX,
+      stageVariableValues,
+      stageVariables,
+    );
+    const wrapY = readBooleanStageVariable(
+      BUILTIN_STAGE_VARIABLE_IDS.wrapY,
+      stageVariableValues,
+      stageVariables,
+    );
     const o = {
-      x: stage.wrapX ? wrap(x, stage.width) : x,
-      y: stage.wrapY ? wrap(y, stage.height) : y,
+      x: wrapX ? wrap(x, stage.width) : x,
+      y: wrapY ? wrap(y, stage.height) : y,
     };
     if (o.x < 1 || o.y < 1 || o.x > stage.width || o.y > stage.height) {
       return null;

@@ -167,7 +167,13 @@ export function stageWrappingScenario(): TestScenario {
   const characters: Characters = { [charId]: character };
 
   const stageActor = makeActor({ id: actorId, characterId: charId, position: { x: 10, y: 1 } });
-  const stage = makeStage({ id: "stage-1", actors: { [actorId]: stageActor }, width: 10, height: 10, wrapX: true });
+  const stage = makeStage({
+    id: "stage-1",
+    actors: { [actorId]: stageActor },
+    width: 10,
+    height: 10,
+    variableValues: { wrapX: "true", wrapY: "false" },
+  });
   const world = makeWorld({ stage });
 
   return {

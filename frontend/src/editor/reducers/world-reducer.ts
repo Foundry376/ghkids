@@ -6,6 +6,7 @@ import stageCollectionReducer from "./stage-collection-reducer";
 import { EditorState, World, WorldMinimal } from "../../types";
 import { Actions } from "../actions";
 import * as Types from "../constants/action-types";
+import { isBuiltinStageVariableId } from "../utils/builtin-stage-variables";
 import WorldOperator from "../utils/world-operator";
 
 export default function worldReducer(
@@ -41,6 +42,11 @@ export default function worldReducer(
       );
     }
     case Types.DELETE_STAGE_VARIABLE: {
+      // Built-in stage variables (wrapX, wrapY, ...) are part of the engine
+      // contract and cannot be deleted.
+      if (isBuiltinStageVariableId(action.stageVariableId)) {
+        return state;
+      }
       // Drop the definition and any per-stage overrides for the variable
       const stageUpdates: Record<string, { variableValues: unknown }> = {};
       for (const stageId of Object.keys(state.stages)) {

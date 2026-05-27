@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { Game } from "../types";
+import { BUILTIN_STAGE_VARIABLES } from "./utils/builtin-stage-variables";
 import { migrateGameCoordinates } from "./utils/coordinate-migration";
 import { makeId } from "./utils/utils";
 
@@ -138,12 +139,30 @@ export function applyDataMigrations(game: Game): Game {
     if (!result.data.world.stageVariables) {
       result.data.world.stageVariables = {};
     }
+    // Ensure built-in stage variables (wrapX, wrapY, ...) exist on the world.
+    for (const [id, def] of Object.entries(BUILTIN_STAGE_VARIABLES)) {
+      if (!result.data.world.stageVariables[id]) {
+        result.data.world.stageVariables[id] = { ...def };
+      }
+    }
     if (result.data.world.stages) {
       for (const stageId of Object.keys(result.data.world.stages)) {
         const s = result.data.world.stages[stageId];
-        if (s && !s.variableValues) {
+        if (!s) continue;
+        if (!s.variableValues) {
           s.variableValues = {};
         }
+        // Fold legacy boolean Stage fields into per-stage variableValues. Anything
+        // present on the saved Stage wins; absent fields fall back to the built-in
+        // default.
+        if ("wrapX" in s && s.variableValues.wrapX === undefined) {
+          s.variableValues.wrapX = s.wrapX ? "true" : "false";
+        }
+        if ("wrapY" in s && s.variableValues.wrapY === undefined) {
+          s.variableValues.wrapY = s.wrapY ? "true" : "false";
+        }
+        delete s.wrapX;
+        delete s.wrapY;
       }
     }
   }

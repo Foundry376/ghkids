@@ -217,8 +217,6 @@ export type Stage = {
   backgroundFade?: boolean;
   width: number;
   height: number;
-  wrapX: boolean;
-  wrapY: boolean;
   scale?: number | "fit";
   zoomToFill?: boolean;
   zoomToFit?: boolean;
@@ -228,11 +226,18 @@ export type Stage = {
   variableValues: Record<string, string>;
 };
 
-export type StageVariable = {
-  id: string;
-  name: string;
-  defaultValue: string;
-};
+export type StageVariable =
+  | {
+      id: string;
+      name: string;
+      defaultValue: string;
+    }
+  | {
+      id: "wrapX" | "wrapY";
+      name: string;
+      defaultValue: string;
+      type: "boolean";
+    };
 
 export type AppearanceInfo = {
   anchor: { x: number; y: number };

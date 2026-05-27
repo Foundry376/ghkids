@@ -19,6 +19,7 @@ import {
   World,
 } from "../../../types";
 import { WORLDS } from "../../constants/constants";
+import { BUILTIN_STAGE_VARIABLES } from "../builtin-stage-variables";
 import WorldOperator from "../world-operator";
 
 // ============================================================================
@@ -123,9 +124,7 @@ export function makeStage(
     background: "",
     width: 10,
     height: 10,
-    wrapX: false,
-    wrapY: false,
-    variableValues: {},
+    variableValues: { wrapX: "false", wrapY: "false" },
     ...overrides,
   };
 }
@@ -136,7 +135,7 @@ export function makeWorld(overrides: Partial<World> & { stage: Stage }): World {
     id: WORLDS.ROOT,
     stages: { [stage.id]: stage },
     globals: { ...globals, selectedStageId: { ...globals.selectedStageId, value: stage.id } },
-    stageVariables: {},
+    stageVariables: { ...BUILTIN_STAGE_VARIABLES },
     input,
     evaluatedRuleDetails: {},
     history: [],

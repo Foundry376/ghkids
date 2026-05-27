@@ -8,10 +8,11 @@ const InitialStage: Stage = {
   background: `url('/src/editor/img/backgrounds/Layer0_2.png')`,
   width: 22,
   height: 13,
-  wrapX: true,
-  wrapY: true,
   backgroundFade: false,
-  variableValues: {},
+  variableValues: {
+    wrapX: "true",
+    wrapY: "true",
+  },
 };
 
 export default InitialStage;

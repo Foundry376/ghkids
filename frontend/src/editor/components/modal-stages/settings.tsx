@@ -63,7 +63,7 @@ export const StageSettings = ({
     onChange({ background: `url(${url})` });
   };
 
-  const { width, height, scale, wrapX, wrapY, name, background } = stage;
+  const { width, height, scale, name, background } = stage;
   // Legacy `scale: "fit"` maps to the new zoomToFill + zoomToFit checkboxes; the
   // tile-size dropdown defaults to 1.0 (40px) in that case.
   const tileScale = scale === "fit" ? 1 : (scale ?? 1);
@@ -164,32 +164,6 @@ export const StageSettings = ({
                 }
               />
               Zoom out to fit the screen
-            </label>
-          </div>
-          <div className="form-check">
-            <label className="form-check-label" htmlFor="wrapX">
-              <input
-                style={{ marginRight: 5 }}
-                className="form-check-input"
-                id="wrapX"
-                type="checkbox"
-                defaultChecked={wrapX}
-                onBlur={(e) => onChange({ wrapX: e.target.checked })}
-              />
-              Wrap horizontally
-            </label>
-          </div>
-          <div className="form-check">
-            <label className="form-check-label" htmlFor="wrapY">
-              <input
-                style={{ marginRight: 5 }}
-                className="form-check-input"
-                id="wrapY"
-                type="checkbox"
-                defaultChecked={wrapY}
-                onBlur={(e) => onChange({ wrapY: e.target.checked })}
-              />
-              Wrap vertically
             </label>
           </div>
         </div>

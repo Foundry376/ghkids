@@ -682,9 +682,10 @@ const Tutorial: Stage = {
   tutorial_step: 0,
   width: 22,
   world: "5233a60cfd685f755e000001",
-  wrapX: true,
-  wrapY: true,
-  variableValues: {},
+  variableValues: {
+    wrapX: "true",
+    wrapY: "true",
+  },
 };
 
 export default Tutorial;
