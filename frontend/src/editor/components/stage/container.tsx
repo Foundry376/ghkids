@@ -10,10 +10,35 @@ import TouchKeys from "./touch-keys";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useEditorSelector } from "../../../hooks/redux";
 import * as Types from "../../../types";
-import { EvaluatedRuleDetailsMap, EvaluatedSquare, UIState } from "../../../types";
+import { EvaluatedRuleDetailsMap, EvaluatedSquare, Stage as StageType, UIState, WorldMinimal } from "../../../types";
+import { WORLDS } from "../../constants/constants";
+import { BUILTIN_STAGE_VARIABLES } from "../../utils/builtin-stage-variables";
 import { collectDoorsByDestinationStage } from "../../utils/door-constants";
 import { getCurrentStageForWorld } from "../../utils/selectors";
 import { Library } from "../library";
+
+/**
+ * Empty-but-valid stage/world used as a placeholder for the second flex slot
+ * when we aren't in the recording before/after view. Rendering a real <Stage>
+ * (rather than swapping component types) lets React reconcile the DOM so
+ * transitions in/out of recording stay smooth.
+ */
+const STUB_STAGE: StageType = {
+  id: "__stub__",
+  order: 0,
+  name: "",
+  actors: {},
+  background: "",
+  variableValues: { wrapX: "false", wrapY: "false", width: "1", height: "1" },
+};
+const STUB_WORLD: WorldMinimal = {
+  id: WORLDS.ROOT,
+  stages: {},
+  globals: {} as WorldMinimal["globals"],
+  stageVariables: { ...BUILTIN_STAGE_VARIABLES },
+  input: { keys: {}, clicks: {} },
+  evaluatedRuleDetails: {},
+};
 
 /**
  * Gets the evaluated squares for a rule by looking up evaluation data from the
@@ -179,7 +204,7 @@ const StageContainer = ({ readonly, immersive }: { readonly?: boolean; immersive
               doorsPointingHere={incomingDoors}
             />
           )}
-          {stageB || <div style={{ flex: 0 }} />}
+          {stageB || <Stage stage={STUB_STAGE} world={STUB_WORLD} style={{ flex: 0 }} />}
         </div>
         {actions || <div className="recording-specifics" style={{ height: 0 }} />}
         {controls || (
