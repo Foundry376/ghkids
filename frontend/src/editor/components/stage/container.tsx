@@ -179,7 +179,7 @@ const StageContainer = ({ readonly, immersive }: { readonly?: boolean; immersive
               doorsPointingHere={incomingDoors}
             />
           )}
-          {stageB || <Stage stage={0 as never} world={0 as never} style={{ flex: 0 }} />}
+          {stageB || <div style={{ flex: 0 }} />}
         </div>
         {actions || <div className="recording-specifics" style={{ height: 0 }} />}
         {controls || (
