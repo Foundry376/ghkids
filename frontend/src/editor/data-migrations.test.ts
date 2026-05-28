@@ -611,6 +611,55 @@ describe("data-migrations", () => {
         expect((stage as any).wrapX).to.be.undefined;
         expect((stage as any).wrapY).to.be.undefined;
       });
+
+      it("should also migrate stages on game.unsavedData", () => {
+        const game = makeMinimalGame({}) as any;
+        game.unsavedData = {
+          version: 2,
+          characters: {},
+          characterZOrder: [],
+          world: {
+            id: WORLDS.ROOT,
+            stages: {
+              stage1: {
+                id: "stage1",
+                order: 0,
+                name: "Stage 1",
+                actors: {},
+                background: "#000",
+                width: 8,
+                height: 5,
+                wrapX: false,
+                wrapY: true,
+              },
+            },
+            globals: {
+              click: { id: "click", name: "Clicked Actor", value: "", type: "actor" },
+              keypress: { id: "keypress", name: "Key Pressed", value: "", type: "key" },
+              selectedStageId: { id: "selectedStageId", name: "Current Level", value: "", type: "stage" },
+              cameraFollow: { id: "cameraFollow", name: "Camera Follow", value: "", type: "actor" },
+            },
+            input: { keys: {}, clicks: {} },
+            evaluatedRuleDetails: {},
+            stageVariables: {},
+            history: [],
+            metadata: { name: "Test", id: 1, published: false, description: null },
+          },
+        };
+
+        const migrated = applyDataMigrations(game) as any;
+        const stage = migrated.unsavedData.world.stages.stage1;
+        expect(stage.variableValues.wrapX).to.equal("false");
+        expect(stage.variableValues.wrapY).to.equal("true");
+        expect(stage.variableValues.width).to.equal("8");
+        expect(stage.variableValues.height).to.equal("5");
+        expect(stage.width).to.be.undefined;
+        expect(stage.height).to.be.undefined;
+        expect(migrated.unsavedData.world.stageVariables.width).to.deep.include({
+          id: "width",
+          type: "number",
+        });
+      });
     });
 
     describe("stage size migrations", () => {

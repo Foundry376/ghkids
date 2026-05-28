@@ -136,67 +136,10 @@ export function applyDataMigrations(game: Game): Game {
     result.data.characterZOrder = Object.keys(result.data.characters);
   }
 
-  // Initialize stage-scoped variable definitions and per-stage value maps on
-  // older saves that pre-date the feature.
-  if (result.data && result.data.world) {
-    if (!result.data.world.stageVariables) {
-      result.data.world.stageVariables = {};
-    }
-    // Ensure built-in stage variables (wrapX, wrapY, ...) exist on the world.
-    for (const [id, def] of Object.entries(BUILTIN_STAGE_VARIABLES)) {
-      if (!result.data.world.stageVariables[id]) {
-        result.data.world.stageVariables[id] = { ...def };
-      }
-    }
-    if (result.data.world.stages) {
-      for (const stageId of Object.keys(result.data.world.stages)) {
-        const s = result.data.world.stages[stageId];
-        if (!s) continue;
-        if (!s.variableValues) {
-          s.variableValues = {};
-        }
-        // Fold legacy Stage fields into per-stage variableValues. Note: we
-        // leave s.width/s.height in place until AFTER migrateGameCoordinates
-        // runs (it needs the dimensions to flip Y-down → Y-up). They get
-        // stripped at the bottom of this function.
-        if ("wrapX" in s && s.variableValues.wrapX === undefined) {
-          s.variableValues.wrapX = s.wrapX ? "true" : "false";
-        }
-        if ("wrapY" in s && s.variableValues.wrapY === undefined) {
-          s.variableValues.wrapY = s.wrapY ? "true" : "false";
-        }
-        if ("width" in s && s.variableValues.width === undefined) {
-          s.variableValues.width = String(s.width);
-        }
-        if ("height" in s && s.variableValues.height === undefined) {
-          s.variableValues.height = String(s.height);
-        }
-        delete s.wrapX;
-        delete s.wrapY;
-      }
-    }
-    // Stage variables no longer carry a world-level default. The invariant is
-    // that every defined stage variable has an explicit value on every stage.
-    // For each variable, populate any stage missing it with the (legacy)
-    // definition default if any, otherwise the variable's seed initial. Then
-    // strip defaultValue from the definitions.
-    for (const id of Object.keys(result.data.world.stageVariables)) {
-      const def = result.data.world.stageVariables[id];
-      const seed = def?.defaultValue ?? BUILTIN_STAGE_VARIABLE_INITIAL_VALUES[id] ?? "0";
-      if (result.data.world.stages) {
-        for (const stageId of Object.keys(result.data.world.stages)) {
-          const s = result.data.world.stages[stageId];
-          if (!s) continue;
-          if (s.variableValues[id] === undefined) {
-            s.variableValues[id] = seed;
-          }
-        }
-      }
-      if (def && "defaultValue" in def) {
-        delete def.defaultValue;
-      }
-    }
-  }
+  // Run stage-variable backfill on both the committed data and the unsaved
+  // draft (if any) — both can be picked as the source world by editor-page.
+  applyStageVariableMigrations(result.data?.world);
+  applyStageVariableMigrations(result.unsavedData?.world);
 
   const migrated = JSON.stringify(result);
 
@@ -221,13 +164,81 @@ export function applyDataMigrations(game: Game): Game {
 
   // With coordinate migration done, the legacy stage.width/stage.height fields
   // are no longer needed — width and height now live in stage.variableValues.
-  if (finalResult.data?.world?.stages) {
-    for (const stageId of Object.keys(finalResult.data.world.stages)) {
-      const s = finalResult.data.world.stages[stageId];
-      if (!s) continue;
-      delete (s as { width?: number }).width;
-      delete (s as { height?: number }).height;
+  stripLegacyStageDimensions(finalResult.data?.world);
+  stripLegacyStageDimensions(finalResult.unsavedData?.world);
+  return finalResult;
+}
+
+/**
+ * Stage-variable backfill on a single world. Idempotent — a world that's
+ * already been migrated is returned unchanged.
+ */
+function applyStageVariableMigrations(world: any) {
+  if (!world) return;
+  if (!world.stageVariables) {
+    world.stageVariables = {};
+  }
+  // Ensure built-in stage variables (wrapX, wrapY, ...) exist on the world.
+  for (const [id, def] of Object.entries(BUILTIN_STAGE_VARIABLES)) {
+    if (!world.stageVariables[id]) {
+      world.stageVariables[id] = { ...def };
     }
   }
-  return finalResult;
+  if (world.stages) {
+    for (const stageId of Object.keys(world.stages)) {
+      const s = world.stages[stageId];
+      if (!s) continue;
+      if (!s.variableValues) {
+        s.variableValues = {};
+      }
+      // Fold legacy Stage fields into per-stage variableValues. Note: we
+      // leave s.width/s.height in place until AFTER migrateGameCoordinates
+      // runs (it needs the dimensions to flip Y-down → Y-up).
+      if ("wrapX" in s && s.variableValues.wrapX === undefined) {
+        s.variableValues.wrapX = s.wrapX ? "true" : "false";
+      }
+      if ("wrapY" in s && s.variableValues.wrapY === undefined) {
+        s.variableValues.wrapY = s.wrapY ? "true" : "false";
+      }
+      if ("width" in s && s.variableValues.width === undefined) {
+        s.variableValues.width = String(s.width);
+      }
+      if ("height" in s && s.variableValues.height === undefined) {
+        s.variableValues.height = String(s.height);
+      }
+      delete s.wrapX;
+      delete s.wrapY;
+    }
+  }
+  // Stage variables no longer carry a world-level default. The invariant is
+  // that every defined stage variable has an explicit value on every stage.
+  // For each variable, populate any stage missing it with the (legacy)
+  // definition default if any, otherwise the variable's seed initial. Then
+  // strip defaultValue from the definitions.
+  for (const id of Object.keys(world.stageVariables)) {
+    const def = world.stageVariables[id];
+    const seed = def?.defaultValue ?? BUILTIN_STAGE_VARIABLE_INITIAL_VALUES[id] ?? "0";
+    if (world.stages) {
+      for (const stageId of Object.keys(world.stages)) {
+        const s = world.stages[stageId];
+        if (!s) continue;
+        if (s.variableValues[id] === undefined) {
+          s.variableValues[id] = seed;
+        }
+      }
+    }
+    if (def && "defaultValue" in def) {
+      delete def.defaultValue;
+    }
+  }
+}
+
+function stripLegacyStageDimensions(world: any) {
+  if (!world?.stages) return;
+  for (const stageId of Object.keys(world.stages)) {
+    const s = world.stages[stageId];
+    if (!s) continue;
+    delete s.width;
+    delete s.height;
+  }
 }
