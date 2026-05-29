@@ -50,7 +50,18 @@ export default class StoreProvider extends React.Component<
 
     const bgParam = new URLSearchParams(window.location.search).get("bg");
     const baseState = !data && bgParam
-      ? u({ world: { stages: { "5233a60cfd685f755e000002": { background: `url(${bgParam})` } } } }, initialData)
+      ? u(
+          {
+            world: {
+              stages: {
+                "5233a60cfd685f755e000002": {
+                  variableValues: { background: `url(${bgParam})` },
+                },
+              },
+            },
+          },
+          initialData,
+        )
       : data || initialData;
 
     const fullState = u(
