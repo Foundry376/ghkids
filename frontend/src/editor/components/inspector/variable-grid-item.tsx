@@ -31,8 +31,14 @@ const BackgroundValueEditor = ({
   return (
     <div className="value variable-background">
       <BackgroundPreview value={value} />
-      <Button size="sm" disabled={disabled} onClick={() => setOpen(true)} style={{ flex: 1 }}>
-        Set…
+      <Button
+        size="sm"
+        disabled={disabled}
+        onClick={() => setOpen(true)}
+        style={{ flex: 1 }}
+        title="Change background"
+      >
+        <i className="fa fa-pencil" />
       </Button>
       <BackgroundEditorModal
         open={open}

@@ -193,8 +193,8 @@ export const BackgroundConditionValue = ({
       <BackgroundPreview value={value} />
       {onChange && (
         <>
-          <Button size="sm" onClick={() => setOpen(true)}>
-            Set…
+          <Button size="sm" onClick={() => setOpen(true)} title="Change background">
+            <i className="fa fa-pencil" />
           </Button>
           <BackgroundEditorModal
             open={open}
