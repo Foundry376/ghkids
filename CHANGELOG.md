@@ -1,4 +1,36 @@
-<!-- LAST_COMMIT: be16e52b6d282c1bee113c92ecfdbf83e29acea1 -->
+<!-- LAST_COMMIT: 8d50cea176bd4aaadf977b2bc7f074c224b58a2a -->
+
+## [2026-05-29]
+
+Level settings like width, height, wrapping, tile size, and background are now "level variables" — you can drag them into rules and change them while your game is running! There's also a brand-new background picker with pixel art packs, Unsplash photos, AI generation, and custom URLs all in one place. Doors now work through rules, so you can see and control exactly when teleporting happens.
+
+### Added
+
+- **Level variables**: Width, Height, Wrap Horizontally, Wrap Vertically, Tile Size, and Background are now draggable variable tiles in the right panel. You can read them in conditions and change them with rule actions — resize the stage, toggle wrapping, or swap the background mid-game! (#154)
+- **Background picker modal**: A unified modal with tabs for Color, Pixel Art (CraftPix packs), Unsplash search, AI generation, and Custom URL/upload — replaces the old separate background controls. (#149)
+- **Rule-driven doors**: Doors now teleport actors through an explicit teleport rule action instead of automatically. Recording a move onto a door creates both a move and a teleport action, so you can see exactly what happens and delete the teleport if you want the actor to just stand on the door. (#146)
+- **Stage picker for conditions**: When a rule condition references a stage-typed variable, a dropdown of your levels now appears instead of a plain text input. (#147)
+- Integration tests for rule-reference scrubbing when deleting characters, globals, or variables. (#137)
+
+### Changed
+
+- **Zoom controls split out**: Tile size is now a separate setting from two new checkboxes — "Zoom in to fill screen" and "Zoom out to fit screen" — so the editor and play views match. (#148)
+- **AI image generation upgraded**: Sprite and background generation now use OpenAI's gpt-image-1 model (replacing the deprecated DALL-E 3), and sprite naming uses gpt-4.1-mini. (#141)
+- **reCAPTCHA scoped to join page**: The Google reCAPTCHA script no longer loads on editor or play pages, improving load times. (#153)
+- Background edit buttons now use a pencil icon instead of "Set…" text for visual consistency.
+- Removed pagination from the per-user games list.
+
+### Fixed
+
+- Broken board-grid and default background images not loading due to incorrect asset URLs. (#152)
+- Selection tools in the sprite editor lagging the cursor by one pixel. (#150)
+- Rule editing extent appearing in the wrong vertical position after the Y-up migration. (#145)
+- Paint tool not resetting to pointer after clicking an actor on the stage. (#144)
+- Actor disambiguation popover sprites rendering above their white boxes after the Y-up migration. (#142)
+- Multi-cell actors shifting position when dragged or checking collisions in Y-up coordinates. (#143)
+- Number spinner clicks on level variables not saving the new value.
+- Crash on world load when an in-memory draft hadn't been migrated to the new level-variable format.
+- Crash from the hidden Stage flex placeholder when loading a new world.
 
 ## [2026-05-15]
 
