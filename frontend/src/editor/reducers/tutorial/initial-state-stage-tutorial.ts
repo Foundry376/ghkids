@@ -676,7 +676,6 @@ const Tutorial: Stage = {
       id: "1483692854052",
     },
   },
-  background: `url('/src/editor/img/backgrounds/Layer0_2.png')`,
   tutorial_name: "introduction",
   tutorial_step: 0,
   world: "5233a60cfd685f755e000001",
@@ -686,6 +685,7 @@ const Tutorial: Stage = {
     height: "13",
     wrapY: "true",
     tileSize: "40",
+    background: "url('/src/editor/img/backgrounds/Layer0_2.png')",
   },
 };
 

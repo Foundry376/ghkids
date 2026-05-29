@@ -15,7 +15,7 @@ import {
 } from "../../types";
 import { RELATIVE_TRANSFORMS } from "../components/inspector/transform-lookup";
 import { DEFAULT_APPEARANCE_INFO } from "../components/sprites/sprite";
-import { getStageHeight, getStageWidth } from "./builtin-stage-variables";
+import { getStageBackground, getStageHeight, getStageWidth } from "./builtin-stage-variables";
 
 export function buildActorSelection(worldId: string, stageId: string, actorIds: string[]) {
   return { worldId, stageId, actorIds };
@@ -479,7 +479,7 @@ export function prepareCrossoriginImages(stages: Stage[]) {
   const next: { [url: string]: HTMLImageElementLoaded } = {};
 
   for (const stage of stages) {
-    const url = cssURLToURL(stage.background);
+    const url = cssURLToURL(getStageBackground(stage));
     if (!url) continue;
 
     next[url] = bgImages[url];
@@ -588,14 +588,15 @@ export function getStageScreenshot(stage: Stage, { size }: { size: number }) {
   if (!context) {
     return;
   }
-  const backgroundUrl = cssURLToURL(stage.background);
+  const background = getStageBackground(stage);
+  const backgroundUrl = cssURLToURL(background);
   if (backgroundUrl) {
     const backgroundImage = bgImages[backgroundUrl];
     if (backgroundImage && backgroundImage._codakoloaded) {
       context.drawImage(backgroundImage, 0, 0, canvas.width, canvas.height);
     }
   } else {
-    context.fillStyle = stage.background;
+    context.fillStyle = background;
     context.fillRect(0, 0, canvas.width, canvas.height);
   }
 

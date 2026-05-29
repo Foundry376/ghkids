@@ -5,7 +5,6 @@ const InitialStage: Stage = {
   name: "Level 1",
   order: 0,
   actors: {},
-  background: `url('/src/editor/img/backgrounds/Layer0_2.png')`,
   backgroundFade: false,
   variableValues: {
     width: "22",
@@ -13,6 +12,7 @@ const InitialStage: Stage = {
     height: "13",
     wrapY: "true",
     tileSize: "40",
+    background: "url('/src/editor/img/backgrounds/Layer0_2.png')",
   },
 };
 

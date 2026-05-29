@@ -122,7 +122,6 @@ export function makeStage(
   return {
     order: 0,
     name: "Test Stage",
-    background: "",
     // Built-in stage variables must be present on every stage; merge so
     // callers can supply their own values without dropping the built-ins.
     variableValues: {
@@ -131,6 +130,7 @@ export function makeStage(
       height: "10",
       wrapY: "false",
       tileSize: "40",
+      background: "#000",
       ...variableValues,
     },
     ...rest,

@@ -38,6 +38,7 @@ import {
   IncomingDoorDestination,
 } from "../../utils/door-constants";
 import {
+  getStageBackground,
   getStageHeight,
   getStageTileSize,
   getStageWidth,
@@ -1305,12 +1306,10 @@ export const Stage = ({
     );
   }
 
-  const backgroundValue =
-    typeof stage.background === "string"
-      ? stage.background.includes("/Layer0_2.png")
-        ? `url(${new URL(`../../img/backgrounds/Layer0_2.png`, import.meta.url).href})`
-        : stage.background
-      : "";
+  const rawBackground = getStageBackground(stage);
+  const backgroundValue = rawBackground.includes("/Layer0_2.png")
+    ? `url(${new URL(`../../img/backgrounds/Layer0_2.png`, import.meta.url).href})`
+    : rawBackground;
 
   const isImageBackground = backgroundValue?.includes("url(");
   // For image backgrounds, optionally apply a white overlay to dim the image.

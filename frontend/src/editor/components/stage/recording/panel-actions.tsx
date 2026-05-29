@@ -16,7 +16,7 @@ import { RELATIVE_TRANSFORMS } from "../../inspector/transform-lookup";
 import { ActorDeltaCanvas } from "./actor-delta-canvas";
 import { ActorOffsetCanvas } from "./actor-offset-canvas";
 import { ActorBlock, ActorVariableBlock, VariableBlock } from "./blocks";
-import { FreeformConditionValue } from "./condition-rows";
+import { BackgroundConditionValue, FreeformConditionValue } from "./condition-rows";
 import { TransformActionPicker } from "./transform-action-picker";
 import { getAfterWorldForRecording } from "./utils";
 import { VariableActionPicker } from "./variable-action-picker";
@@ -234,6 +234,23 @@ export const RecordingActions = (props: { characters: Characters; recording: Rec
 
     if (a.type === "stageVariable") {
       const declaration = beforeWorld.stageVariables?.[a.stageVariable];
+      // Background-typed stage variables get a preview + Set… button instead
+      // of the freeform text editor. "set" is the only sensible operation.
+      if (declaration && "type" in declaration && declaration.type === "background") {
+        return (
+          <>
+            Set
+            <VariableBlock name={declaration.name} />
+            to
+            <BackgroundConditionValue
+              value={"constant" in a.value ? a.value.constant : ""}
+              stageName={getCurrentStageForWorld(beforeWorld)?.name ?? ""}
+              onChange={(next) => onChange({ ...a, value: { constant: next } })}
+            />
+            <span style={{ marginLeft: 4, color: "#777", fontSize: 12 }}>on this Level</span>
+          </>
+        );
+      }
       return (
         <>
           <VariableActionPicker

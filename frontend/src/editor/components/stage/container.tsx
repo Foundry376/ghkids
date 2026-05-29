@@ -28,13 +28,13 @@ const STUB_STAGE: StageType = {
   order: 0,
   name: "",
   actors: {},
-  background: "",
   variableValues: {
     width: "1",
     wrapX: "false",
     height: "1",
     wrapY: "false",
     tileSize: "40",
+    background: "",
   },
 };
 const STUB_WORLD: WorldMinimal = {

@@ -1293,6 +1293,20 @@ html {
       }
     }
 
+    .value.variable-background {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px;
+      background-color: transparent;
+      height: auto;
+
+      .btn {
+        font-size: 0.85em;
+        padding: 2px 8px;
+      }
+    }
+
     .btn-group {
       width: 100%;
     }

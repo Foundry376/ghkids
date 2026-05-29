@@ -1,8 +1,51 @@
 import { useEffect, useState } from "react";
+import { Button } from "reactstrap";
+import { useEditorSelector } from "../../../hooks/redux";
 import { Character, Global, StageVariable } from "../../../types";
+import { getCurrentStageForWorld } from "../../utils/selectors";
+import {
+  BackgroundEditorModal,
+  BackgroundPreview,
+} from "../modal-stages/background-editor-modal";
 import { ConnectedActorBlock } from "../stage/recording/blocks";
 import { TapToEditLabel } from "../tap-to-edit-label";
 import ConnectedStagePicker from "./connected-stage-picker";
+
+/**
+ * Editor for `type: "background"` stage variables — shows a small preview of
+ * the current background and a Set… button that opens a modal picker
+ * (color / explore tabs / custom URL). Pattern mirrors the AppearanceGridItem
+ * "Turn…" button + TransformEditorModal flow.
+ */
+const BackgroundValueEditor = ({
+  value,
+  disabled,
+  onCommit,
+}: {
+  value: string;
+  disabled: boolean;
+  onCommit: (next: string) => void;
+}) => {
+  const [open, setOpen] = useState(false);
+  const stageName = useEditorSelector((s) => getCurrentStageForWorld(s.world)?.name ?? "");
+  return (
+    <div className="value variable-background">
+      <BackgroundPreview value={value} />
+      <Button size="sm" disabled={disabled} onClick={() => setOpen(true)} style={{ flex: 1 }}>
+        Set…
+      </Button>
+      <BackgroundEditorModal
+        open={open}
+        value={value}
+        stageName={stageName}
+        onChange={(next) => {
+          setOpen(false);
+          if (next !== value) onCommit(next);
+        }}
+      />
+    </div>
+  );
+};
 
 /**
  * Editor for `type: "number"` stage variables. Uses a controlled value backed
@@ -101,7 +144,10 @@ export const VariableGridItem = ({
           : null;
 
   const isBuiltin =
-    "type" in definition && (definition.type === "boolean" || definition.type === "number");
+    "type" in definition &&
+    (definition.type === "boolean" ||
+      definition.type === "number" ||
+      definition.type === "background");
 
   const [dropping, setDropping] = useState(false);
 
@@ -170,6 +216,14 @@ export const VariableGridItem = ({
         value={String(displayValue ?? "")}
         disabled={disabled}
         isMixed={isMixed}
+        onCommit={(v) => onChangeValue(definition.id, v)}
+      />
+    );
+  } else if (type === "background") {
+    content = (
+      <BackgroundValueEditor
+        value={String(displayValue ?? "")}
+        disabled={disabled}
         onCommit={(v) => onChangeValue(definition.id, v)}
       />
     );

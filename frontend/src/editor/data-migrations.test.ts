@@ -101,7 +101,6 @@ describe("data-migrations", () => {
                     transform: "none" as any,
                   },
                 },
-                background: "#000",
                 variableValues: {},
               },
             },
@@ -152,7 +151,6 @@ describe("data-migrations", () => {
                     transform: "90deg" as any,
                   },
                 },
-                background: "#000",
                 variableValues: {},
               },
             },
@@ -507,7 +505,6 @@ describe("data-migrations", () => {
                     transform: "none" as any,
                   },
                 },
-                background: "#000",
                 variableValues: {},
               },
             },
@@ -551,7 +548,6 @@ describe("data-migrations", () => {
         order: 0,
         name: "Stage 1",
         actors: {},
-        background: "#000",
         ...overrides,
       });
 
@@ -626,7 +622,6 @@ describe("data-migrations", () => {
                 order: 0,
                 name: "Stage 1",
                 actors: {},
-                background: "#000",
                 width: 8,
                 height: 5,
                 wrapX: false,
@@ -673,7 +668,6 @@ describe("data-migrations", () => {
                 order: 0,
                 name: "Stage 1",
                 actors: {},
-                background: "#000",
                 width: 17,
                 height: 9,
               } as any,
@@ -718,7 +712,6 @@ describe("data-migrations", () => {
                 order: 0,
                 name: "Stage 1",
                 actors: {},
-                background: "#000",
                 scale: 0.5,
               } as any,
             },
@@ -741,6 +734,51 @@ describe("data-migrations", () => {
         expect((stage as any).scale).to.be.undefined;
       });
 
+      it("should fold legacy stage.background into variableValues and strip the field", () => {
+        const game = makeMinimalGame({
+          world: {
+            id: WORLDS.ROOT,
+            stages: {
+              stageColor: {
+                id: "stageColor",
+                order: 0,
+                name: "Color Stage",
+                actors: {},
+                background: "#7c3aed",
+              } as any,
+              stageImage: {
+                id: "stageImage",
+                order: 1,
+                name: "Image Stage",
+                actors: {},
+                background: "url(https://example.com/foo.png)",
+              } as any,
+            },
+            globals: {
+              click: { id: "click", name: "Clicked Actor", value: "", type: "actor" },
+              keypress: { id: "keypress", name: "Key Pressed", value: "", type: "key" },
+              selectedStageId: { id: "selectedStageId", name: "Current Level", value: "", type: "stage" },
+              cameraFollow: { id: "cameraFollow", name: "Camera Follow", value: "", type: "actor" },
+            },
+            input: { keys: {}, clicks: {} },
+            evaluatedRuleDetails: {},
+            stageVariables: {},
+            history: [],
+            metadata: { name: "Test", id: 1, published: false, description: null },
+          },
+        });
+        const migrated = applyDataMigrations(game);
+        const stages = migrated.data.world.stages;
+        expect(stages.stageColor.variableValues.background).to.equal("#7c3aed");
+        expect(stages.stageImage.variableValues.background).to.equal("url(https://example.com/foo.png)");
+        expect((stages.stageColor as any).background).to.be.undefined;
+        expect((stages.stageImage as any).background).to.be.undefined;
+        expect(migrated.data.world.stageVariables.background).to.deep.include({
+          id: "background",
+          type: "background",
+        });
+      });
+
       it("should fold legacy stage.scale='fit' into tileSize=40 + force zoom checkboxes on", () => {
         const game = makeMinimalGame({
           world: {
@@ -751,7 +789,6 @@ describe("data-migrations", () => {
                 order: 0,
                 name: "Stage 1",
                 actors: {},
-                background: "#000",
                 scale: "fit",
               } as any,
             },
@@ -783,7 +820,6 @@ describe("data-migrations", () => {
         order: 0,
         name: id,
         actors: {},
-        background: "#000",
       });
 
       const baseGlobals = {

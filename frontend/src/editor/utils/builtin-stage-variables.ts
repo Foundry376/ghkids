@@ -6,13 +6,14 @@ export const BUILTIN_STAGE_VARIABLE_IDS = {
   height: "height",
   wrapY: "wrapY",
   tileSize: "tileSize",
+  background: "background",
 } as const;
 
 // Order here drives the row order in the right-panel Level section. The
 // flex-wrap grid puts items left-to-right then wraps, so:
 //   Width      | Wrap Horizontally
 //   Height     | Wrap Vertically
-//   Tile Size  | (next user-defined variable)
+//   Tile Size  | Background
 export const BUILTIN_STAGE_VARIABLES: Record<string, StageVariable> = {
   [BUILTIN_STAGE_VARIABLE_IDS.width]: {
     id: "width",
@@ -39,6 +40,11 @@ export const BUILTIN_STAGE_VARIABLES: Record<string, StageVariable> = {
     name: "Tile Size",
     type: "number",
   },
+  [BUILTIN_STAGE_VARIABLE_IDS.background]: {
+    id: "background",
+    name: "Background",
+    type: "background",
+  },
 };
 
 /**
@@ -54,6 +60,7 @@ export const BUILTIN_STAGE_VARIABLE_INITIAL_VALUES: Record<string, string> = {
   [BUILTIN_STAGE_VARIABLE_IDS.height]: "13",
   [BUILTIN_STAGE_VARIABLE_IDS.wrapY]: "true",
   [BUILTIN_STAGE_VARIABLE_IDS.tileSize]: "40",
+  [BUILTIN_STAGE_VARIABLE_IDS.background]: "url('/src/editor/img/backgrounds/Layer0_2.png')",
 };
 
 export function isBuiltinStageVariableId(id: string): boolean {
@@ -101,4 +108,12 @@ export function getStageHeight(stage: Pick<Stage, "variableValues">): number {
 /** Read the per-stage tile size in pixels. Throws if missing or non-numeric. */
 export function getStageTileSize(stage: Pick<Stage, "variableValues">): number {
   return readPositiveNumber(BUILTIN_STAGE_VARIABLE_IDS.tileSize, stage.variableValues, "tile size");
+}
+
+/**
+ * Read the per-stage background as a CSS-ready string — either a color
+ * (`"#005392"`) or a CSS url(...) expression. Throws if missing.
+ */
+export function getStageBackground(stage: Pick<Stage, "variableValues">): string {
+  return getStageVariableValue(BUILTIN_STAGE_VARIABLE_IDS.background, stage.variableValues);
 }

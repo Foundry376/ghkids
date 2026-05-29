@@ -219,9 +219,16 @@ function applyStageVariableMigrations(world: any) {
           s.variableValues.tileSize = String(Math.round(mult * 40));
         }
       }
+      // Fold legacy stage.background (color or url(...) string) directly into
+      // variableValues.background — nothing else in the pipeline needs it,
+      // unlike stage.height which the coord migration depends on.
+      if ("background" in s && s.variableValues.background === undefined) {
+        s.variableValues.background = String(s.background);
+      }
       delete s.wrapX;
       delete s.wrapY;
       delete s.scale;
+      delete s.background;
     }
   }
   // Stage variables no longer carry a world-level default. The invariant is
