@@ -681,10 +681,11 @@ const Tutorial: Stage = {
   tutorial_step: 0,
   world: "5233a60cfd685f755e000001",
   variableValues: {
-    wrapX: "true",
-    wrapY: "true",
     width: "22",
+    wrapX: "true",
     height: "13",
+    wrapY: "true",
+    tileSize: "40",
   },
 };
 

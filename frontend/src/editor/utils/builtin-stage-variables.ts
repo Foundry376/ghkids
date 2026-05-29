@@ -1,31 +1,42 @@
 import { Stage, StageVariable } from "../../types";
 
 export const BUILTIN_STAGE_VARIABLE_IDS = {
-  wrapX: "wrapX",
-  wrapY: "wrapY",
   width: "width",
+  wrapX: "wrapX",
   height: "height",
+  wrapY: "wrapY",
+  tileSize: "tileSize",
 } as const;
 
+// Order here drives the row order in the right-panel Level section. The
+// flex-wrap grid puts items left-to-right then wraps, so:
+//   Width      | Wrap Horizontally
+//   Height     | Wrap Vertically
+//   Tile Size  | (next user-defined variable)
 export const BUILTIN_STAGE_VARIABLES: Record<string, StageVariable> = {
+  [BUILTIN_STAGE_VARIABLE_IDS.width]: {
+    id: "width",
+    name: "Width",
+    type: "number",
+  },
   [BUILTIN_STAGE_VARIABLE_IDS.wrapX]: {
     id: "wrapX",
     name: "Wrap Horizontally",
     type: "boolean",
+  },
+  [BUILTIN_STAGE_VARIABLE_IDS.height]: {
+    id: "height",
+    name: "Height",
+    type: "number",
   },
   [BUILTIN_STAGE_VARIABLE_IDS.wrapY]: {
     id: "wrapY",
     name: "Wrap Vertically",
     type: "boolean",
   },
-  [BUILTIN_STAGE_VARIABLE_IDS.width]: {
-    id: "width",
-    name: "Width",
-    type: "number",
-  },
-  [BUILTIN_STAGE_VARIABLE_IDS.height]: {
-    id: "height",
-    name: "Height",
+  [BUILTIN_STAGE_VARIABLE_IDS.tileSize]: {
+    id: "tileSize",
+    name: "Tile Size",
     type: "number",
   },
 };
@@ -38,10 +49,11 @@ export const BUILTIN_STAGE_VARIABLES: Record<string, StageVariable> = {
  * only — the engine never reads it.
  */
 export const BUILTIN_STAGE_VARIABLE_INITIAL_VALUES: Record<string, string> = {
-  [BUILTIN_STAGE_VARIABLE_IDS.wrapX]: "true",
-  [BUILTIN_STAGE_VARIABLE_IDS.wrapY]: "true",
   [BUILTIN_STAGE_VARIABLE_IDS.width]: "22",
+  [BUILTIN_STAGE_VARIABLE_IDS.wrapX]: "true",
   [BUILTIN_STAGE_VARIABLE_IDS.height]: "13",
+  [BUILTIN_STAGE_VARIABLE_IDS.wrapY]: "true",
+  [BUILTIN_STAGE_VARIABLE_IDS.tileSize]: "40",
 };
 
 export function isBuiltinStageVariableId(id: string): boolean {
@@ -67,22 +79,26 @@ export function getStageVariableValue(
   return value;
 }
 
-/** Read stage width as a number. Throws if the value is missing or non-numeric. */
-export function getStageWidth(stage: Pick<Stage, "variableValues">): number {
-  const raw = getStageVariableValue(BUILTIN_STAGE_VARIABLE_IDS.width, stage.variableValues);
+function readPositiveNumber(id: string, values: Record<string, string>, label: string): number {
+  const raw = getStageVariableValue(id, values);
   const n = Number(raw);
   if (!Number.isFinite(n) || n <= 0) {
-    throw new Error(`Stage width "${raw}" is not a positive number.`);
+    throw new Error(`Stage ${label} "${raw}" is not a positive number.`);
   }
   return n;
 }
 
+/** Read stage width as a number. Throws if the value is missing or non-numeric. */
+export function getStageWidth(stage: Pick<Stage, "variableValues">): number {
+  return readPositiveNumber(BUILTIN_STAGE_VARIABLE_IDS.width, stage.variableValues, "width");
+}
+
 /** Read stage height as a number. Throws if the value is missing or non-numeric. */
 export function getStageHeight(stage: Pick<Stage, "variableValues">): number {
-  const raw = getStageVariableValue(BUILTIN_STAGE_VARIABLE_IDS.height, stage.variableValues);
-  const n = Number(raw);
-  if (!Number.isFinite(n) || n <= 0) {
-    throw new Error(`Stage height "${raw}" is not a positive number.`);
-  }
-  return n;
+  return readPositiveNumber(BUILTIN_STAGE_VARIABLE_IDS.height, stage.variableValues, "height");
+}
+
+/** Read the per-stage tile size in pixels. Throws if missing or non-numeric. */
+export function getStageTileSize(stage: Pick<Stage, "variableValues">): number {
+  return readPositiveNumber(BUILTIN_STAGE_VARIABLE_IDS.tileSize, stage.variableValues, "tile size");
 }

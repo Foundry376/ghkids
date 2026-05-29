@@ -178,7 +178,8 @@ function applyStageVariableMigrations(world: any) {
   if (!world.stageVariables) {
     world.stageVariables = {};
   }
-  // Ensure built-in stage variables (wrapX, wrapY, ...) exist on the world.
+  // Ensure built-in stage variables (width, wrapX, ...) exist on the world.
+  // Existing saves keep whatever order they were serialized in.
   for (const [id, def] of Object.entries(BUILTIN_STAGE_VARIABLES)) {
     if (!world.stageVariables[id]) {
       world.stageVariables[id] = { ...def };
@@ -206,8 +207,21 @@ function applyStageVariableMigrations(world: any) {
       if ("height" in s && s.variableValues.height === undefined) {
         s.variableValues.height = String(s.height);
       }
+      // Fold legacy stage.scale (a multiplier of 40px, or "fit" sentinel for
+      // both zoom-fill + zoom-fit at multiplier 1) into a pixel tile size.
+      if ("scale" in s && s.variableValues.tileSize === undefined) {
+        if (s.scale === "fit") {
+          s.variableValues.tileSize = "40";
+          if (s.zoomToFill === undefined) s.zoomToFill = true;
+          if (s.zoomToFit === undefined) s.zoomToFit = true;
+        } else {
+          const mult = typeof s.scale === "number" && Number.isFinite(s.scale) ? s.scale : 1;
+          s.variableValues.tileSize = String(Math.round(mult * 40));
+        }
+      }
       delete s.wrapX;
       delete s.wrapY;
+      delete s.scale;
     }
   }
   // Stage variables no longer carry a world-level default. The invariant is

@@ -8,10 +8,11 @@ const InitialStage: Stage = {
   background: `url('/src/editor/img/backgrounds/Layer0_2.png')`,
   backgroundFade: false,
   variableValues: {
-    wrapX: "true",
-    wrapY: "true",
     width: "22",
+    wrapX: "true",
     height: "13",
+    wrapY: "true",
+    tileSize: "40",
   },
 };
 

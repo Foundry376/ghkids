@@ -126,10 +126,11 @@ export function makeStage(
     // Built-in stage variables must be present on every stage; merge so
     // callers can supply their own values without dropping the built-ins.
     variableValues: {
-      wrapX: "false",
-      wrapY: "false",
       width: "10",
+      wrapX: "false",
       height: "10",
+      wrapY: "false",
+      tileSize: "40",
       ...variableValues,
     },
     ...rest,

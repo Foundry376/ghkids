@@ -29,7 +29,13 @@ const STUB_STAGE: StageType = {
   name: "",
   actors: {},
   background: "",
-  variableValues: { wrapX: "false", wrapY: "false", width: "1", height: "1" },
+  variableValues: {
+    width: "1",
+    wrapX: "false",
+    height: "1",
+    wrapY: "false",
+    tileSize: "40",
+  },
 };
 const STUB_WORLD: WorldMinimal = {
   id: WORLDS.ROOT,

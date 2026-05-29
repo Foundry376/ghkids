@@ -1,8 +1,6 @@
 import { Button } from "reactstrap";
 import { useRef, useState } from "react";
 import { Stage } from "../../../types";
-import { STAGE_CELL_SIZE } from "../../constants/constants";
-import { STAGE_ZOOM_STEPS } from "../stage/stage";
 import { ExploreBackgrounds } from "./explore-backgrounds";
 
 const DEFAULT_COLOR = "#005392";
@@ -63,12 +61,9 @@ export const StageSettings = ({
     onChange({ background: `url(${url})` });
   };
 
-  const { scale, name, background } = stage;
-  // Legacy `scale: "fit"` maps to the new zoomToFill + zoomToFit checkboxes; the
-  // tile-size dropdown defaults to 1.0 (40px) in that case.
-  const tileScale = scale === "fit" ? 1 : (scale ?? 1);
-  const zoomToFill = scale === "fit" ? true : (stage.zoomToFill ?? true);
-  const zoomToFit = scale === "fit" ? true : (stage.zoomToFit ?? false);
+  const { name, background } = stage;
+  const zoomToFill = stage.zoomToFill ?? true;
+  const zoomToFit = stage.zoomToFit ?? false;
 
   const backgroundAsURL = (/url\((.*)\)/.exec(background) || [])[1];
   const backgroundAsColor = backgroundAsURL ? null : background;
@@ -93,31 +88,13 @@ export const StageSettings = ({
         />
       </fieldset>
       <fieldset className="form-group" style={{ marginTop: 12 }}>
-        <legend className="col-form-legend">Tile size</legend>
-        <div style={{ display: "flex", flexDirection: "row", alignItems: "center" }}>
-          <select
-            className="form-control"
-            value={tileScale}
-            onChange={(e) =>
-              onChange({
-                scale: Number(e.target.value),
-                zoomToFill,
-                zoomToFit,
-              })
-            }
-          >
-            {STAGE_ZOOM_STEPS.map((s) => (
-              <option value={s} key={s}>{`${Math.round(STAGE_CELL_SIZE * s)}px`}</option>
-            ))}
-          </select>
-        </div>
+        <legend className="col-form-legend">Zoom</legend>
         <div
           style={{
             display: "grid",
             gridTemplateColumns: "1fr 1fr",
             rowGap: 6,
             columnGap: 16,
-            marginTop: 12,
           }}
         >
           <div className="form-check">
@@ -128,9 +105,7 @@ export const StageSettings = ({
                 id="zoomToFill"
                 type="checkbox"
                 checked={zoomToFill}
-                onChange={(e) =>
-                  onChange({ scale: tileScale, zoomToFill: e.target.checked, zoomToFit })
-                }
+                onChange={(e) => onChange({ zoomToFill: e.target.checked, zoomToFit })}
               />
               Zoom in to fill the screen
             </label>
@@ -143,9 +118,7 @@ export const StageSettings = ({
                 id="zoomToFit"
                 type="checkbox"
                 checked={zoomToFit}
-                onChange={(e) =>
-                  onChange({ scale: tileScale, zoomToFill, zoomToFit: e.target.checked })
-                }
+                onChange={(e) => onChange({ zoomToFill, zoomToFit: e.target.checked })}
               />
               Zoom out to fit the screen
             </label>

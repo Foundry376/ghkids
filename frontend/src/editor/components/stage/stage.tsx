@@ -37,7 +37,11 @@ import {
   DOOR_VARIABLE_IDS,
   IncomingDoorDestination,
 } from "../../utils/door-constants";
-import { getStageHeight, getStageWidth } from "../../utils/builtin-stage-variables";
+import {
+  getStageHeight,
+  getStageTileSize,
+  getStageWidth,
+} from "../../utils/builtin-stage-variables";
 import { extentIgnoredPositions } from "../../utils/recording-helpers";
 import {
   actorFilledPoints,
@@ -107,22 +111,18 @@ export const EMPTY_DRAG_IMAGE = new Image();
 EMPTY_DRAG_IMAGE.src =
   "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
 
-// eslint-disable-next-line react-refresh/only-export-components
-export const STAGE_ZOOM_STEPS = [1, 0.88, 0.75, 0.63, 0.5, 0.42, 0.38];
-
-// Resolves a Stage's scale settings, handling the legacy `scale: "fit"` value
-// by translating it to the equivalent zoom-to-fill + zoom-to-fit configuration.
+// Reads a Stage's scale settings. Tile size (in pixels) lives in
+// `variableValues.tileSize`; the returned `tileScale` is the multiplier
+// applied to STAGE_CELL_SIZE in the renderer.
 // eslint-disable-next-line react-refresh/only-export-components
 export function resolveStageScaleSettings(stage: {
-  scale?: number | "fit";
+  variableValues: Record<string, string>;
   zoomToFill?: boolean;
   zoomToFit?: boolean;
 }): { tileScale: number; zoomToFill: boolean; zoomToFit: boolean } {
-  if (stage.scale === "fit") {
-    return { tileScale: 1, zoomToFill: true, zoomToFit: true };
-  }
+  const tilePx = getStageTileSize(stage);
   return {
-    tileScale: typeof stage.scale === "number" ? stage.scale : 1,
+    tileScale: tilePx / STAGE_CELL_SIZE,
     zoomToFill: stage.zoomToFill ?? true,
     zoomToFit: stage.zoomToFit ?? false,
   };
@@ -318,11 +318,7 @@ export const Stage = ({
       }
 
       _el.style.zoom = "1"; // this needs to be here for scaling "up" to work
-      const { tileScale, zoomToFill, zoomToFit } = resolveStageScaleSettings({
-        scale: stage.scale,
-        zoomToFill: stage.zoomToFill,
-        zoomToFit: stage.zoomToFit,
-      });
+      const { tileScale, zoomToFill, zoomToFit } = resolveStageScaleSettings(stage);
       const fit = Math.min(
         _scrollEl.clientWidth / (stageWidth * STAGE_CELL_SIZE),
         _scrollEl.clientHeight / (stageHeight * STAGE_CELL_SIZE),
@@ -364,10 +360,8 @@ export const Stage = ({
       document.removeEventListener("fullscreenchange", autofit);
     };
   }, [
+    stage,
     stageHeight,
-    stage.scale,
-    stage.zoomToFill,
-    stage.zoomToFit,
     stageWidth,
     recordingCentered,
   ]);

@@ -215,7 +215,6 @@ export type Stage = {
   actors: { [actorId: string]: Actor };
   background: ImageData | string;
   backgroundFade?: boolean;
-  scale?: number | "fit";
   zoomToFill?: boolean;
   zoomToFit?: boolean;
   tutorial_name?: string;
@@ -235,7 +234,7 @@ export type StageVariable =
       type: "boolean";
     }
   | {
-      id: "width" | "height";
+      id: "width" | "height" | "tileSize";
       name: string;
       type: "number";
     };
