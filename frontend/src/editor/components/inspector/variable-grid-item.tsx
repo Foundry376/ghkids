@@ -1,8 +1,63 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Character, Global, StageVariable } from "../../../types";
 import { ConnectedActorBlock } from "../stage/recording/blocks";
 import { TapToEditLabel } from "../tap-to-edit-label";
 import ConnectedStagePicker from "./connected-stage-picker";
+
+/**
+ * Editor for `type: "number"` stage variables. Uses a controlled value backed
+ * by local state so that in-progress typing of intermediate states like "0"
+ * or "" doesn't surface to the engine (which throws on non-positive
+ * dimensions). Spinner clicks land in onChange with an already-valid integer
+ * and commit immediately; typing those same intermediate states stays local
+ * until blur, where a clamp gives us back something the engine can handle.
+ */
+const NumberValueEditor = ({
+  value,
+  disabled,
+  isMixed,
+  onCommit,
+}: {
+  value: string;
+  disabled: boolean;
+  isMixed: boolean;
+  onCommit: (next: string) => void;
+}) => {
+  const [local, setLocal] = useState(value);
+  useEffect(() => {
+    setLocal(value);
+  }, [value]);
+
+  const clamp = (raw: string): string => {
+    const n = Math.max(1, Math.floor(Number(raw)));
+    return Number.isFinite(n) ? String(n) : value;
+  };
+
+  return (
+    <input
+      className="value"
+      type="number"
+      min={1}
+      step={1}
+      value={local}
+      disabled={disabled}
+      placeholder={isMixed ? "—" : undefined}
+      onChange={(e) => {
+        const raw = e.target.value;
+        setLocal(raw);
+        const n = Number(raw);
+        if (Number.isInteger(n) && n >= 1) {
+          onCommit(String(n));
+        }
+      }}
+      onBlur={(e) => {
+        const next = clamp(e.target.value);
+        onCommit(next);
+        setLocal(next);
+      }}
+    />
+  );
+};
 
 export const VariableGridItem = ({
   actorId,
@@ -110,24 +165,12 @@ export const VariableGridItem = ({
       </label>
     );
   } else if (type === "number") {
-    // Commit on blur with a min-1 clamp so the engine never sees zero or
-    // negative dimensions (which would throw at read time).
-    const commitNumber = (raw: string) => {
-      const n = Math.max(1, Math.floor(Number(raw)));
-      const next = Number.isFinite(n) ? String(n) : String(displayValue ?? "1");
-      onChangeValue(definition.id, next);
-    };
     content = (
-      <input
-        className="value"
-        type="number"
-        min={1}
-        step={1}
-        defaultValue={displayValue}
-        key={displayValue}
+      <NumberValueEditor
+        value={String(displayValue ?? "")}
         disabled={disabled}
-        placeholder={isMixed ? "—" : undefined}
-        onBlur={(e) => commitNumber(e.target.value)}
+        isMixed={isMixed}
+        onCommit={(v) => onChangeValue(definition.id, v)}
       />
     );
   } else if (type === "stage") {
