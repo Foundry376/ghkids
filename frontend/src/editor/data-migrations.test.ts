@@ -101,11 +101,6 @@ describe("data-migrations", () => {
                     transform: "none" as any,
                   },
                 },
-                background: "#000",
-                width: 10,
-                height: 10,
-                wrapX: false,
-                wrapY: false,
                 variableValues: {},
               },
             },
@@ -156,11 +151,6 @@ describe("data-migrations", () => {
                     transform: "90deg" as any,
                   },
                 },
-                background: "#000",
-                width: 10,
-                height: 10,
-                wrapX: false,
-                wrapY: false,
                 variableValues: {},
               },
             },
@@ -515,11 +505,6 @@ describe("data-migrations", () => {
                     transform: "none" as any,
                   },
                 },
-                background: "#000",
-                width: 10,
-                height: 10,
-                wrapX: false,
-                wrapY: false,
                 variableValues: {},
               },
             },
@@ -554,6 +539,368 @@ describe("data-migrations", () => {
         expect(game.data.world.stages["stage1"].actors["actor1"].transform).to.equal(
           originalTransform,
         );
+      });
+    });
+
+    describe("stage wrap migrations", () => {
+      const makeStageWithLegacyWrap = (overrides: { wrapX?: boolean; wrapY?: boolean }) => ({
+        id: "stage1",
+        order: 0,
+        name: "Stage 1",
+        actors: {},
+        ...overrides,
+      });
+
+      it("should backfill built-in wrapX/wrapY definitions on the world", () => {
+        const game = makeMinimalGame({
+          world: {
+            id: WORLDS.ROOT,
+            stages: { stage1: makeStageWithLegacyWrap({ wrapX: true, wrapY: false }) as any },
+            globals: {
+              click: { id: "click", name: "Clicked Actor", value: "", type: "actor" },
+              keypress: { id: "keypress", name: "Key Pressed", value: "", type: "key" },
+              selectedStageId: { id: "selectedStageId", name: "Current Level", value: "", type: "stage" },
+              cameraFollow: { id: "cameraFollow", name: "Camera Follow", value: "", type: "actor" },
+            },
+            input: { keys: {}, clicks: {} },
+            evaluatedRuleDetails: {},
+            stageVariables: {},
+            history: [],
+            metadata: { name: "Test", id: 1, published: false, description: null },
+          },
+        });
+
+        const migrated = applyDataMigrations(game);
+        expect(migrated.data.world.stageVariables.wrapX).to.deep.include({
+          id: "wrapX",
+          type: "boolean",
+        });
+        expect(migrated.data.world.stageVariables.wrapY).to.deep.include({
+          id: "wrapY",
+          type: "boolean",
+        });
+      });
+
+      it("should fold legacy stage.wrapX/wrapY into stage.variableValues", () => {
+        const game = makeMinimalGame({
+          world: {
+            id: WORLDS.ROOT,
+            stages: { stage1: makeStageWithLegacyWrap({ wrapX: true, wrapY: false }) as any },
+            globals: {
+              click: { id: "click", name: "Clicked Actor", value: "", type: "actor" },
+              keypress: { id: "keypress", name: "Key Pressed", value: "", type: "key" },
+              selectedStageId: { id: "selectedStageId", name: "Current Level", value: "", type: "stage" },
+              cameraFollow: { id: "cameraFollow", name: "Camera Follow", value: "", type: "actor" },
+            },
+            input: { keys: {}, clicks: {} },
+            evaluatedRuleDetails: {},
+            stageVariables: {},
+            history: [],
+            metadata: { name: "Test", id: 1, published: false, description: null },
+          },
+        });
+
+        const migrated = applyDataMigrations(game);
+        const stage = migrated.data.world.stages["stage1"];
+        expect(stage.variableValues.wrapX).to.equal("true");
+        expect(stage.variableValues.wrapY).to.equal("false");
+        expect((stage as any).wrapX).to.be.undefined;
+        expect((stage as any).wrapY).to.be.undefined;
+      });
+
+      it("should also migrate stages on game.unsavedData", () => {
+        const game = makeMinimalGame({}) as any;
+        game.unsavedData = {
+          version: 2,
+          characters: {},
+          characterZOrder: [],
+          world: {
+            id: WORLDS.ROOT,
+            stages: {
+              stage1: {
+                id: "stage1",
+                order: 0,
+                name: "Stage 1",
+                actors: {},
+                width: 8,
+                height: 5,
+                wrapX: false,
+                wrapY: true,
+              },
+            },
+            globals: {
+              click: { id: "click", name: "Clicked Actor", value: "", type: "actor" },
+              keypress: { id: "keypress", name: "Key Pressed", value: "", type: "key" },
+              selectedStageId: { id: "selectedStageId", name: "Current Level", value: "", type: "stage" },
+              cameraFollow: { id: "cameraFollow", name: "Camera Follow", value: "", type: "actor" },
+            },
+            input: { keys: {}, clicks: {} },
+            evaluatedRuleDetails: {},
+            stageVariables: {},
+            history: [],
+            metadata: { name: "Test", id: 1, published: false, description: null },
+          },
+        };
+
+        const migrated = applyDataMigrations(game) as any;
+        const stage = migrated.unsavedData.world.stages.stage1;
+        expect(stage.variableValues.wrapX).to.equal("false");
+        expect(stage.variableValues.wrapY).to.equal("true");
+        expect(stage.variableValues.width).to.equal("8");
+        expect(stage.variableValues.height).to.equal("5");
+        expect(stage.width).to.be.undefined;
+        expect(stage.height).to.be.undefined;
+        expect(migrated.unsavedData.world.stageVariables.width).to.deep.include({
+          id: "width",
+          type: "number",
+        });
+      });
+    });
+
+    describe("stage size migrations", () => {
+      it("should fold legacy stage.width/stage.height into stage.variableValues", () => {
+        const game = makeMinimalGame({
+          world: {
+            id: WORLDS.ROOT,
+            stages: {
+              stage1: {
+                id: "stage1",
+                order: 0,
+                name: "Stage 1",
+                actors: {},
+                width: 17,
+                height: 9,
+              } as any,
+            },
+            globals: {
+              click: { id: "click", name: "Clicked Actor", value: "", type: "actor" },
+              keypress: { id: "keypress", name: "Key Pressed", value: "", type: "key" },
+              selectedStageId: { id: "selectedStageId", name: "Current Level", value: "", type: "stage" },
+              cameraFollow: { id: "cameraFollow", name: "Camera Follow", value: "", type: "actor" },
+            },
+            input: { keys: {}, clicks: {} },
+            evaluatedRuleDetails: {},
+            stageVariables: {},
+            history: [],
+            metadata: { name: "Test", id: 1, published: false, description: null },
+          },
+        });
+
+        const migrated = applyDataMigrations(game);
+        const stage = migrated.data.world.stages["stage1"];
+        expect(stage.variableValues.width).to.equal("17");
+        expect(stage.variableValues.height).to.equal("9");
+        expect((stage as any).width).to.be.undefined;
+        expect((stage as any).height).to.be.undefined;
+        expect(migrated.data.world.stageVariables.width).to.deep.include({
+          id: "width",
+          type: "number",
+        });
+        expect(migrated.data.world.stageVariables.height).to.deep.include({
+          id: "height",
+          type: "number",
+        });
+      });
+
+      it("should fold legacy stage.scale (numeric multiplier) into tileSize px", () => {
+        const game = makeMinimalGame({
+          world: {
+            id: WORLDS.ROOT,
+            stages: {
+              stage1: {
+                id: "stage1",
+                order: 0,
+                name: "Stage 1",
+                actors: {},
+                scale: 0.5,
+              } as any,
+            },
+            globals: {
+              click: { id: "click", name: "Clicked Actor", value: "", type: "actor" },
+              keypress: { id: "keypress", name: "Key Pressed", value: "", type: "key" },
+              selectedStageId: { id: "selectedStageId", name: "Current Level", value: "", type: "stage" },
+              cameraFollow: { id: "cameraFollow", name: "Camera Follow", value: "", type: "actor" },
+            },
+            input: { keys: {}, clicks: {} },
+            evaluatedRuleDetails: {},
+            stageVariables: {},
+            history: [],
+            metadata: { name: "Test", id: 1, published: false, description: null },
+          },
+        });
+        const migrated = applyDataMigrations(game);
+        const stage = migrated.data.world.stages["stage1"];
+        expect(stage.variableValues.tileSize).to.equal("20");
+        expect((stage as any).scale).to.be.undefined;
+      });
+
+      it("should fold legacy stage.background into variableValues and strip the field", () => {
+        const game = makeMinimalGame({
+          world: {
+            id: WORLDS.ROOT,
+            stages: {
+              stageColor: {
+                id: "stageColor",
+                order: 0,
+                name: "Color Stage",
+                actors: {},
+                background: "#7c3aed",
+              } as any,
+              stageImage: {
+                id: "stageImage",
+                order: 1,
+                name: "Image Stage",
+                actors: {},
+                background: "url(https://example.com/foo.png)",
+              } as any,
+            },
+            globals: {
+              click: { id: "click", name: "Clicked Actor", value: "", type: "actor" },
+              keypress: { id: "keypress", name: "Key Pressed", value: "", type: "key" },
+              selectedStageId: { id: "selectedStageId", name: "Current Level", value: "", type: "stage" },
+              cameraFollow: { id: "cameraFollow", name: "Camera Follow", value: "", type: "actor" },
+            },
+            input: { keys: {}, clicks: {} },
+            evaluatedRuleDetails: {},
+            stageVariables: {},
+            history: [],
+            metadata: { name: "Test", id: 1, published: false, description: null },
+          },
+        });
+        const migrated = applyDataMigrations(game);
+        const stages = migrated.data.world.stages;
+        expect(stages.stageColor.variableValues.background).to.equal("#7c3aed");
+        expect(stages.stageImage.variableValues.background).to.equal("url(https://example.com/foo.png)");
+        expect((stages.stageColor as any).background).to.be.undefined;
+        expect((stages.stageImage as any).background).to.be.undefined;
+        expect(migrated.data.world.stageVariables.background).to.deep.include({
+          id: "background",
+          type: "background",
+        });
+      });
+
+      it("should fold legacy stage.scale='fit' into tileSize=40 + force zoom checkboxes on", () => {
+        const game = makeMinimalGame({
+          world: {
+            id: WORLDS.ROOT,
+            stages: {
+              stage1: {
+                id: "stage1",
+                order: 0,
+                name: "Stage 1",
+                actors: {},
+                scale: "fit",
+              } as any,
+            },
+            globals: {
+              click: { id: "click", name: "Clicked Actor", value: "", type: "actor" },
+              keypress: { id: "keypress", name: "Key Pressed", value: "", type: "key" },
+              selectedStageId: { id: "selectedStageId", name: "Current Level", value: "", type: "stage" },
+              cameraFollow: { id: "cameraFollow", name: "Camera Follow", value: "", type: "actor" },
+            },
+            input: { keys: {}, clicks: {} },
+            evaluatedRuleDetails: {},
+            stageVariables: {},
+            history: [],
+            metadata: { name: "Test", id: 1, published: false, description: null },
+          },
+        });
+        const migrated = applyDataMigrations(game);
+        const stage = migrated.data.world.stages["stage1"];
+        expect(stage.variableValues.tileSize).to.equal("40");
+        expect(stage.zoomToFill).to.equal(true);
+        expect(stage.zoomToFit).to.equal(true);
+        expect((stage as any).scale).to.be.undefined;
+      });
+    });
+
+    describe("stage variable defaultValue migrations", () => {
+      const stageWithoutVarValues = (id: string) => ({
+        id,
+        order: 0,
+        name: id,
+        actors: {},
+      });
+
+      const baseGlobals = {
+        click: { id: "click", name: "Clicked Actor", value: "", type: "actor" as const },
+        keypress: { id: "keypress", name: "Key Pressed", value: "", type: "key" as const },
+        selectedStageId: {
+          id: "selectedStageId" as const,
+          name: "Current Level" as const,
+          value: "",
+          type: "stage" as const,
+        },
+        cameraFollow: { id: "cameraFollow", name: "Camera Follow", value: "", type: "actor" as const },
+      };
+
+      it("should seed missing per-stage values from the definition's legacy defaultValue", () => {
+        const game = makeMinimalGame({
+          world: {
+            id: WORLDS.ROOT,
+            stages: {
+              stage1: stageWithoutVarValues("stage1") as any,
+              stage2: stageWithoutVarValues("stage2") as any,
+            },
+            globals: baseGlobals,
+            input: { keys: {}, clicks: {} },
+            evaluatedRuleDetails: {},
+            stageVariables: {
+              difficulty: { id: "difficulty", name: "Difficulty", defaultValue: "7" } as any,
+            },
+            history: [],
+            metadata: { name: "Test", id: 1, published: false, description: null },
+          },
+        });
+
+        const migrated = applyDataMigrations(game);
+        expect(migrated.data.world.stages["stage1"].variableValues.difficulty).to.equal("7");
+        expect(migrated.data.world.stages["stage2"].variableValues.difficulty).to.equal("7");
+      });
+
+      it("should not overwrite an existing per-stage value during seeding", () => {
+        const game = makeMinimalGame({
+          world: {
+            id: WORLDS.ROOT,
+            stages: {
+              stage1: {
+                ...stageWithoutVarValues("stage1"),
+                variableValues: { difficulty: "easy" },
+              } as any,
+            },
+            globals: baseGlobals,
+            input: { keys: {}, clicks: {} },
+            evaluatedRuleDetails: {},
+            stageVariables: {
+              difficulty: { id: "difficulty", name: "Difficulty", defaultValue: "7" } as any,
+            },
+            history: [],
+            metadata: { name: "Test", id: 1, published: false, description: null },
+          },
+        });
+
+        const migrated = applyDataMigrations(game);
+        expect(migrated.data.world.stages["stage1"].variableValues.difficulty).to.equal("easy");
+      });
+
+      it("should strip defaultValue from stage variable definitions", () => {
+        const game = makeMinimalGame({
+          world: {
+            id: WORLDS.ROOT,
+            stages: { stage1: stageWithoutVarValues("stage1") as any },
+            globals: baseGlobals,
+            input: { keys: {}, clicks: {} },
+            evaluatedRuleDetails: {},
+            stageVariables: {
+              difficulty: { id: "difficulty", name: "Difficulty", defaultValue: "7" } as any,
+            },
+            history: [],
+            metadata: { name: "Test", id: 1, published: false, description: null },
+          },
+        });
+
+        const migrated = applyDataMigrations(game);
+        expect((migrated.data.world.stageVariables.difficulty as any).defaultValue).to.be.undefined;
       });
     });
   });

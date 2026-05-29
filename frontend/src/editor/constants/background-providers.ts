@@ -7,7 +7,7 @@ export type BackgroundProvider = {
   attribution?: { label: string; url: string };
 };
 
-// Order here drives tab order in the ExploreBackgrounds dialog.
+// Order here drives tab order in the BackgroundEditorModal.
 export const BACKGROUND_PROVIDERS: BackgroundProvider[] = [
   {
     key: "craftpix",

@@ -19,6 +19,7 @@ import {
   World,
 } from "../../../types";
 import { WORLDS } from "../../constants/constants";
+import { BUILTIN_STAGE_VARIABLES } from "../builtin-stage-variables";
 import WorldOperator from "../world-operator";
 
 // ============================================================================
@@ -117,16 +118,22 @@ export function makeCharacter(overrides: Partial<Character> & { id: string }): C
 export function makeStage(
   overrides: Partial<Stage> & { id: string; actors: Record<string, Actor> },
 ): Stage {
+  const { variableValues, ...rest } = overrides;
   return {
     order: 0,
     name: "Test Stage",
-    background: "",
-    width: 10,
-    height: 10,
-    wrapX: false,
-    wrapY: false,
-    variableValues: {},
-    ...overrides,
+    // Built-in stage variables must be present on every stage; merge so
+    // callers can supply their own values without dropping the built-ins.
+    variableValues: {
+      width: "10",
+      wrapX: "false",
+      height: "10",
+      wrapY: "false",
+      tileSize: "40",
+      background: "#000",
+      ...variableValues,
+    },
+    ...rest,
   };
 }
 
@@ -136,7 +143,7 @@ export function makeWorld(overrides: Partial<World> & { stage: Stage }): World {
     id: WORLDS.ROOT,
     stages: { [stage.id]: stage },
     globals: { ...globals, selectedStageId: { ...globals.selectedStageId, value: stage.id } },
-    stageVariables: {},
+    stageVariables: { ...BUILTIN_STAGE_VARIABLES },
     input,
     evaluatedRuleDetails: {},
     history: [],
@@ -354,8 +361,8 @@ export function expectGlobalVariable(world: World, globalId: string, expected: s
 }
 
 /**
- * Assert a stage-scoped variable's value on a specific stage. Falls back to the
- * world's `stageVariables[id].defaultValue` if the stage has no override.
+ * Assert a stage-scoped variable's value on a specific stage. Every defined
+ * stage variable is required to have a value on every stage, so no fallback.
  */
 export function expectStageVariable(
   world: World,
@@ -369,9 +376,7 @@ export function expectStageVariable(
       `Expected stage "${stageId}" to exist when checking stage variable "${stageVariableId}".`,
     );
   }
-  const override = stage.variableValues?.[stageVariableId];
-  const fallback = world.stageVariables?.[stageVariableId]?.defaultValue;
-  const actual = override ?? fallback;
+  const actual = stage.variableValues?.[stageVariableId];
   if (actual !== expected) {
     throw new WorldAssertionError(
       `Expected stage "${stageId}" variable "${stageVariableId}" to be "${expected}", but it was "${actual ?? "(not set)"}".`,

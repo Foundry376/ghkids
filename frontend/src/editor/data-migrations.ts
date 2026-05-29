@@ -1,6 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { Game } from "../types";
+import {
+  BUILTIN_STAGE_VARIABLE_INITIAL_VALUES,
+  BUILTIN_STAGE_VARIABLES,
+} from "./utils/builtin-stage-variables";
 import { migrateGameCoordinates } from "./utils/coordinate-migration";
 import { makeId } from "./utils/utils";
 
@@ -132,21 +136,10 @@ export function applyDataMigrations(game: Game): Game {
     result.data.characterZOrder = Object.keys(result.data.characters);
   }
 
-  // Initialize stage-scoped variable definitions and per-stage value maps on
-  // older saves that pre-date the feature.
-  if (result.data && result.data.world) {
-    if (!result.data.world.stageVariables) {
-      result.data.world.stageVariables = {};
-    }
-    if (result.data.world.stages) {
-      for (const stageId of Object.keys(result.data.world.stages)) {
-        const s = result.data.world.stages[stageId];
-        if (s && !s.variableValues) {
-          s.variableValues = {};
-        }
-      }
-    }
-  }
+  // Run stage-variable backfill on both the committed data and the unsaved
+  // draft (if any) — both can be picked as the source world by editor-page.
+  applyStageVariableMigrations(result.data?.world);
+  applyStageVariableMigrations(result.unsavedData?.world);
 
   const migrated = JSON.stringify(result);
 
@@ -165,6 +158,108 @@ export function applyDataMigrations(game: Game): Game {
 
   // V1 -> V2 coordinate-system migration: flip stored Y values so internal
   // coordinates use Y-up with origin (0, 0) at the bottom-left. Idempotent —
-  // a world already at version >= 2 is returned unchanged.
-  return migrateGameCoordinates(result);
+  // a world already at version >= 2 is returned unchanged. Reads stage.height
+  // (legacy) to compute the Y flip, so it must run before we strip it below.
+  const finalResult = migrateGameCoordinates(result);
+
+  // With coordinate migration done, the legacy stage.width/stage.height fields
+  // are no longer needed — width and height now live in stage.variableValues.
+  stripLegacyStageDimensions(finalResult.data?.world);
+  stripLegacyStageDimensions(finalResult.unsavedData?.world);
+  return finalResult;
+}
+
+/**
+ * Stage-variable backfill on a single world. Idempotent — a world that's
+ * already been migrated is returned unchanged.
+ */
+function applyStageVariableMigrations(world: any) {
+  if (!world) return;
+  if (!world.stageVariables) {
+    world.stageVariables = {};
+  }
+  // Ensure built-in stage variables (width, wrapX, ...) exist on the world.
+  // Existing saves keep whatever order they were serialized in.
+  for (const [id, def] of Object.entries(BUILTIN_STAGE_VARIABLES)) {
+    if (!world.stageVariables[id]) {
+      world.stageVariables[id] = { ...def };
+    }
+  }
+  if (world.stages) {
+    for (const stageId of Object.keys(world.stages)) {
+      const s = world.stages[stageId];
+      if (!s) continue;
+      if (!s.variableValues) {
+        s.variableValues = {};
+      }
+      // Fold legacy Stage fields into per-stage variableValues. Note: we
+      // leave s.width/s.height in place until AFTER migrateGameCoordinates
+      // runs (it needs the dimensions to flip Y-down → Y-up).
+      if ("wrapX" in s && s.variableValues.wrapX === undefined) {
+        s.variableValues.wrapX = s.wrapX ? "true" : "false";
+      }
+      if ("wrapY" in s && s.variableValues.wrapY === undefined) {
+        s.variableValues.wrapY = s.wrapY ? "true" : "false";
+      }
+      if ("width" in s && s.variableValues.width === undefined) {
+        s.variableValues.width = String(s.width);
+      }
+      if ("height" in s && s.variableValues.height === undefined) {
+        s.variableValues.height = String(s.height);
+      }
+      // Fold legacy stage.scale (a multiplier of 40px, or "fit" sentinel for
+      // both zoom-fill + zoom-fit at multiplier 1) into a pixel tile size.
+      if ("scale" in s && s.variableValues.tileSize === undefined) {
+        if (s.scale === "fit") {
+          s.variableValues.tileSize = "40";
+          if (s.zoomToFill === undefined) s.zoomToFill = true;
+          if (s.zoomToFit === undefined) s.zoomToFit = true;
+        } else {
+          const mult = typeof s.scale === "number" && Number.isFinite(s.scale) ? s.scale : 1;
+          s.variableValues.tileSize = String(Math.round(mult * 40));
+        }
+      }
+      // Fold legacy stage.background (color or url(...) string) directly into
+      // variableValues.background — nothing else in the pipeline needs it,
+      // unlike stage.height which the coord migration depends on.
+      if ("background" in s && s.variableValues.background === undefined) {
+        s.variableValues.background = String(s.background);
+      }
+      delete s.wrapX;
+      delete s.wrapY;
+      delete s.scale;
+      delete s.background;
+    }
+  }
+  // Stage variables no longer carry a world-level default. The invariant is
+  // that every defined stage variable has an explicit value on every stage.
+  // For each variable, populate any stage missing it with the (legacy)
+  // definition default if any, otherwise the variable's seed initial. Then
+  // strip defaultValue from the definitions.
+  for (const id of Object.keys(world.stageVariables)) {
+    const def = world.stageVariables[id];
+    const seed = def?.defaultValue ?? BUILTIN_STAGE_VARIABLE_INITIAL_VALUES[id] ?? "0";
+    if (world.stages) {
+      for (const stageId of Object.keys(world.stages)) {
+        const s = world.stages[stageId];
+        if (!s) continue;
+        if (s.variableValues[id] === undefined) {
+          s.variableValues[id] = seed;
+        }
+      }
+    }
+    if (def && "defaultValue" in def) {
+      delete def.defaultValue;
+    }
+  }
+}
+
+function stripLegacyStageDimensions(world: any) {
+  if (!world?.stages) return;
+  for (const stageId of Object.keys(world.stages)) {
+    const s = world.stages[stageId];
+    if (!s) continue;
+    delete s.width;
+    delete s.height;
+  }
 }

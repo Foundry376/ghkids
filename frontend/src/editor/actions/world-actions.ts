@@ -80,7 +80,6 @@ export function createStageVariable(worldId?: string): ActionUpsertStageVariable
     changes: {
       id: stageVariableId,
       name: "Untitled",
-      defaultValue: "0",
     },
   };
 }

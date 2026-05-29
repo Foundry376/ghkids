@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { Button, Modal, ModalBody, ModalHeader } from "reactstrap";
+import { useEffect, useRef, useState } from "react";
+import { Button, Modal, ModalBody, ModalFooter, ModalHeader } from "reactstrap";
 import { makeRequest } from "../../../helpers/api";
 import {
   BACKGROUND_PROVIDERS,
@@ -436,46 +436,237 @@ const GeneratePanel = ({
   );
 };
 
-export const ExploreBackgrounds = ({
-  isOpen,
-  toggle,
-  stageName,
-  onSelect,
-}: {
-  isOpen: boolean;
-  toggle: () => void;
-  stageName: string;
-  onSelect: (sel: SelectedBackground) => void;
-}) => {
-  const [activeKey, setActiveKey] = useState<string>(BACKGROUND_PROVIDERS[0].key);
-  const active =
-    BACKGROUND_PROVIDERS.find((p) => p.key === activeKey) ?? BACKGROUND_PROVIDERS[0];
+const DEFAULT_COLOR = "#005392";
+const API_ROOT = window.location.host.includes("codako") ? `` : `http://localhost:8080`;
 
-  const handleSelect = (sel: SelectedBackground) => {
-    onSelect(sel);
-    sel.onAfterSelect?.();
-    toggle();
+const COLOR_TAB_KEY = "__color__";
+const CUSTOM_TAB_KEY = "__custom__";
+
+const ColorPanel = ({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (color: string) => void;
+}) => {
+  const isUrl = /url\(/.test(value);
+  const color = isUrl ? DEFAULT_COLOR : value || DEFAULT_COLOR;
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 16, padding: 12 }}>
+      <label
+        style={{
+          width: 96,
+          height: 64,
+          borderRadius: 8,
+          border: "2px solid #ddd",
+          cursor: "pointer",
+          overflow: "hidden",
+          display: "block",
+          position: "relative",
+        }}
+        title="Pick a color"
+      >
+        <span
+          style={{ display: "block", width: "100%", height: "100%", background: color }}
+        />
+        <input
+          type="color"
+          value={color}
+          onChange={(e) => onChange(e.target.value)}
+          style={{
+            position: "absolute",
+            opacity: 0,
+            width: "100%",
+            height: "100%",
+            top: 0,
+            left: 0,
+            cursor: "pointer",
+          }}
+        />
+      </label>
+      <div>
+        <div style={{ fontSize: 13, fontFamily: "monospace", marginBottom: 4 }}>{color}</div>
+        <div style={{ fontSize: 12, color: "#888" }}>
+          Click the swatch to choose a solid background color.
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const CustomPanel = ({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (next: string) => void;
+}) => {
+  const urlMatch = /url\((.*)\)/.exec(value);
+  const cleanedURL = urlMatch?.[1]?.replace(/^['"]|['"]$/g, "") ?? "";
+  const isBuiltinBg = cleanedURL.includes("Layer0_") || cleanedURL.includes("Layer1_");
+  const displayURL = isBuiltinBg ? "" : cleanedURL;
+  const [isUploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const _onUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const me = window.store.getState().me;
+      const formData = new FormData();
+      formData.append("image", file);
+      const resp = await fetch(`${API_ROOT}/upload-image`, {
+        method: "POST",
+        headers: { Authorization: me && `Basic ${btoa(me.username + ":" + me.password)}` },
+        body: formData,
+      });
+      const data = await resp.json();
+      if (data.publicUrl) {
+        onChange(`url(${data.publicUrl})`);
+      } else {
+        alert("Failed to upload image. Please try again.");
+      }
+    } catch (error) {
+      console.error("Error uploading background:", error);
+      alert("Error uploading image. Please try again.");
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
   };
 
   return (
-    <Modal isOpen={isOpen} toggle={toggle} size="lg">
-      <ModalHeader toggle={toggle}>Explore backgrounds</ModalHeader>
+    <div style={{ display: "flex", flexDirection: "column", gap: 12, padding: 12 }}>
+      <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+        {displayURL && (
+          <img
+            src={displayURL}
+            alt="Current background"
+            style={{
+              width: 96,
+              height: 64,
+              objectFit: "cover",
+              borderRadius: 6,
+              border: "1px solid #ddd",
+              flexShrink: 0,
+            }}
+          />
+        )}
+        <input
+          key={displayURL}
+          type="text"
+          className="form-control"
+          placeholder="Paste an image URL..."
+          style={{ flex: 1, fontSize: 13 }}
+          defaultValue={displayURL}
+          onBlur={(e) => {
+            if (e.target.value) onChange(`url(${e.target.value})`);
+          }}
+        />
+      </div>
+      <div style={{ display: "flex", gap: 8 }}>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          style={{ display: "none" }}
+          onChange={_onUpload}
+        />
+        <Button
+          className="btn btn-outline-secondary btn-sm"
+          onClick={() => fileInputRef.current?.click()}
+          disabled={isUploading}
+          style={{ whiteSpace: "nowrap", display: "flex", alignItems: "center", gap: 5 }}
+        >
+          <i className={`fa ${isUploading ? "fa-spinner fa-spin" : "fa-upload"}`} />
+          {isUploading ? "Uploading..." : "Upload an image"}
+        </Button>
+      </div>
+    </div>
+  );
+};
+
+export const BackgroundPreview = ({ value }: { value: string }) => (
+  <div
+    style={{
+      width: 64,
+      height: 40,
+      borderRadius: 6,
+      border: "1px solid #ddd",
+      background: value,
+      backgroundSize: "cover",
+      backgroundPosition: "center",
+      flexShrink: 0,
+    }}
+  />
+);
+
+/**
+ * Picker for a Stage's `background` variable. Follows the TransformEditorModal
+ * pattern: takes the current `value`, holds local edits, emits `onChange` with
+ * the final string when the user clicks Done (or the original value on Cancel).
+ *
+ * Backgrounds can be a CSS color (`"#005392"`) or a CSS url(...) string.
+ */
+export const BackgroundEditorModal = ({
+  open,
+  value,
+  stageName,
+  onChange,
+}: {
+  open: boolean;
+  value: string;
+  stageName: string;
+  onChange: (next: string) => void;
+}) => {
+  const [local, setLocal] = useState(value);
+  useEffect(() => {
+    setLocal(value);
+  }, [open, value]);
+
+  const isColor = !/url\(/.test(local) && local.length > 0;
+  const defaultTab = isColor ? COLOR_TAB_KEY : BACKGROUND_PROVIDERS[0].key;
+  const [activeKey, setActiveKey] = useState<string>(defaultTab);
+  // Reset the active tab whenever we re-open so the modal lands on the tab
+  // matching the incoming value's kind.
+  useEffect(() => {
+    if (open) setActiveKey(isColor ? COLOR_TAB_KEY : BACKGROUND_PROVIDERS[0].key);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
+  const active = BACKGROUND_PROVIDERS.find((p) => p.key === activeKey);
+
+  const tabs = [
+    { key: COLOR_TAB_KEY, label: "Color" },
+    ...BACKGROUND_PROVIDERS.map((p) => ({ key: p.key, label: p.label })),
+    { key: CUSTOM_TAB_KEY, label: "Custom URL" },
+  ];
+
+  return (
+    <Modal isOpen={open} toggle={() => onChange(value)} size="lg">
+      <ModalHeader>Choose a background</ModalHeader>
       <ModalBody>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
+          <BackgroundPreview value={local} />
+          <div style={{ fontSize: 12, color: "#888" }}>Current selection</div>
+        </div>
         <div
           style={{
             display: "flex",
             gap: 2,
             borderBottom: "1px solid #eee",
             marginBottom: 16,
+            flexWrap: "wrap",
           }}
         >
-          {BACKGROUND_PROVIDERS.map((p) => {
-            const isActive = p.key === activeKey;
+          {tabs.map((t) => {
+            const isActive = t.key === activeKey;
             return (
               <button
-                key={p.key}
+                key={t.key}
                 type="button"
-                onClick={() => setActiveKey(p.key)}
+                onClick={() => setActiveKey(t.key)}
                 style={{
                   padding: "8px 16px",
                   border: "none",
@@ -488,25 +679,42 @@ export const ExploreBackgrounds = ({
                   marginBottom: -1,
                 }}
               >
-                {p.label}
+                {t.label}
               </button>
             );
           })}
         </div>
 
-        {active.kind === "tagged" && (
-          <TaggedPanel
+        {activeKey === COLOR_TAB_KEY && <ColorPanel value={local} onChange={setLocal} />}
+        {activeKey === CUSTOM_TAB_KEY && <CustomPanel value={local} onChange={setLocal} />}
+        {active?.kind === "tagged" && (
+          <TaggedPanel provider={active} onSelect={(img) => setLocal(`url(${img.fullUrl})`)} />
+        )}
+        {active?.kind === "search" && (
+          <SearchPanel
             provider={active}
-            onSelect={(img) => handleSelect({ fullUrl: img.fullUrl })}
+            onSelect={(sel) => {
+              setLocal(`url(${sel.fullUrl})`);
+              sel.onAfterSelect?.();
+            }}
           />
         )}
-        {active.kind === "search" && (
-          <SearchPanel provider={active} onSelect={handleSelect} />
-        )}
-        {active.kind === "generate" && (
-          <GeneratePanel stageName={stageName} onSelect={handleSelect} />
+        {active?.kind === "generate" && (
+          <GeneratePanel
+            stageName={stageName}
+            onSelect={(sel) => {
+              setLocal(`url(${sel.fullUrl})`);
+              sel.onAfterSelect?.();
+            }}
+          />
         )}
       </ModalBody>
+      <ModalFooter>
+        <Button onClick={() => onChange(value)}>Cancel</Button>{" "}
+        <Button color="primary" onClick={() => onChange(local)}>
+          Done
+        </Button>
+      </ModalFooter>
     </Modal>
   );
 };

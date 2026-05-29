@@ -20,6 +20,10 @@ import { TOOLS } from "../../../constants/constants";
 import { ruleValueFromDragPayload } from "../../../utils/stage-helpers";
 import ConnectedStagePicker from "../../inspector/connected-stage-picker";
 import { AppearanceDropdown, TransformDropdown } from "../../inspector/container-pane-variables";
+import {
+  BackgroundEditorModal,
+  BackgroundPreview,
+} from "../../modal-stages/background-editor-modal";
 import { ActorBlock, ActorVariableBlock, AppearanceBlock, TransformBlock } from "./blocks";
 
 interface FreeformConditionRowProps {
@@ -38,6 +42,7 @@ type ImpliedDatatype =
   | { type: "key" }
   | { type: "actor" }
   | { type: "stage" }
+  | { type: "background"; stageName: string }
   | null;
 
 /** Status circle for condition evaluation */
@@ -76,6 +81,18 @@ export const FreeformConditionRow = ({
       "globalId" in left && world.globals[left.globalId],
       "globalId" in right && world.globals[right.globalId],
     ];
+    const stageVarDefs = [
+      "stageVariableId" in left && world.stageVariables?.[left.stageVariableId],
+      "stageVariableId" in right && world.stageVariables?.[right.stageVariableId],
+    ];
+
+    const stageVarType = stageVarDefs
+      .map((d) => (d && "type" in d ? d.type : null))
+      .filter(Boolean)[0];
+    if (stageVarType === "background") {
+      const currentStage = world.stages[world.globals.selectedStageId.value];
+      return { type: "background", stageName: currentStage?.name ?? "" };
+    }
 
     const globalType = globals.map((g) => (g && `type` in g ? g.type : null)).filter(Boolean)[0];
     if (globalType) {
@@ -153,6 +170,44 @@ export const FreeformConditionRow = ({
         </div>
       )}
     </li>
+  );
+};
+
+/**
+ * Inline editor for a background-typed constant — used in condition rows and
+ * stageVariable action chips. Renders a preview swatch + "Set…" button that
+ * opens the BackgroundEditorModal.
+ */
+export const BackgroundConditionValue = ({
+  value,
+  stageName,
+  onChange,
+}: {
+  value: string;
+  stageName: string;
+  onChange?: (next: string) => void;
+}) => {
+  const [open, setOpen] = useState(false);
+  return (
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+      <BackgroundPreview value={value} />
+      {onChange && (
+        <>
+          <Button size="sm" onClick={() => setOpen(true)} title="Change background">
+            <i className="fa fa-pencil" />
+          </Button>
+          <BackgroundEditorModal
+            open={open}
+            value={value}
+            stageName={stageName}
+            onChange={(next) => {
+              setOpen(false);
+              if (next !== value) onChange(next);
+            }}
+          />
+        </>
+      )}
+    </span>
   );
 };
 
@@ -291,6 +346,15 @@ export const FreeformConditionValue = ({
         }
         return <code>{world.stages[value.constant]?.name ?? value.constant}</code>;
       }
+      if (impliedDatatype?.type === "background") {
+        return (
+          <BackgroundConditionValue
+            value={value.constant}
+            stageName={impliedDatatype.stageName}
+            onChange={onChange ? (next) => onChange?.({ constant: next }) : undefined}
+          />
+        );
+      }
 
       if (onChange) {
         return (
@@ -422,6 +486,9 @@ function comparatorsForImpliedDatatype(inferred: ImpliedDatatype) {
   }
   if (inferred?.type === "position") {
     return ["=", "!=", "<", ">", "<=", ">="];
+  }
+  if (inferred?.type === "background") {
+    return ["=", "!="];
   }
   return ["=", "!="];
 }

@@ -1,8 +1,112 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { Button } from "reactstrap";
+import { useEditorSelector } from "../../../hooks/redux";
 import { Character, Global, StageVariable } from "../../../types";
+import { getCurrentStageForWorld } from "../../utils/selectors";
+import {
+  BackgroundEditorModal,
+  BackgroundPreview,
+} from "../modal-stages/background-editor-modal";
 import { ConnectedActorBlock } from "../stage/recording/blocks";
 import { TapToEditLabel } from "../tap-to-edit-label";
 import ConnectedStagePicker from "./connected-stage-picker";
+
+/**
+ * Editor for `type: "background"` stage variables — shows a small preview of
+ * the current background and a Set… button that opens a modal picker
+ * (color / explore tabs / custom URL). Pattern mirrors the AppearanceGridItem
+ * "Turn…" button + TransformEditorModal flow.
+ */
+const BackgroundValueEditor = ({
+  value,
+  disabled,
+  onCommit,
+}: {
+  value: string;
+  disabled: boolean;
+  onCommit: (next: string) => void;
+}) => {
+  const [open, setOpen] = useState(false);
+  const stageName = useEditorSelector((s) => getCurrentStageForWorld(s.world)?.name ?? "");
+  return (
+    <div className="value variable-background">
+      <BackgroundPreview value={value} />
+      <Button
+        size="sm"
+        disabled={disabled}
+        onClick={() => setOpen(true)}
+        style={{ flex: 1 }}
+        title="Change background"
+      >
+        <i className="fa fa-pencil" />
+      </Button>
+      <BackgroundEditorModal
+        open={open}
+        value={value}
+        stageName={stageName}
+        onChange={(next) => {
+          setOpen(false);
+          if (next !== value) onCommit(next);
+        }}
+      />
+    </div>
+  );
+};
+
+/**
+ * Editor for `type: "number"` stage variables. Uses a controlled value backed
+ * by local state so that in-progress typing of intermediate states like "0"
+ * or "" doesn't surface to the engine (which throws on non-positive
+ * dimensions). Spinner clicks land in onChange with an already-valid integer
+ * and commit immediately; typing those same intermediate states stays local
+ * until blur, where a clamp gives us back something the engine can handle.
+ */
+const NumberValueEditor = ({
+  value,
+  disabled,
+  isMixed,
+  onCommit,
+}: {
+  value: string;
+  disabled: boolean;
+  isMixed: boolean;
+  onCommit: (next: string) => void;
+}) => {
+  const [local, setLocal] = useState(value);
+  useEffect(() => {
+    setLocal(value);
+  }, [value]);
+
+  const clamp = (raw: string): string => {
+    const n = Math.max(1, Math.floor(Number(raw)));
+    return Number.isFinite(n) ? String(n) : value;
+  };
+
+  return (
+    <input
+      className="value"
+      type="number"
+      min={1}
+      step={1}
+      value={local}
+      disabled={disabled}
+      placeholder={isMixed ? "—" : undefined}
+      onChange={(e) => {
+        const raw = e.target.value;
+        setLocal(raw);
+        const n = Number(raw);
+        if (Number.isInteger(n) && n >= 1) {
+          onCommit(String(n));
+        }
+      }}
+      onBlur={(e) => {
+        const next = clamp(e.target.value);
+        onCommit(next);
+        setLocal(next);
+      }}
+    />
+  );
+};
 
 export const VariableGridItem = ({
   actorId,
@@ -44,6 +148,12 @@ export const VariableGridItem = ({
         : displayValue?.startsWith("actor")
           ? "actor"
           : null;
+
+  const isBuiltin =
+    "type" in definition &&
+    (definition.type === "boolean" ||
+      definition.type === "number" ||
+      definition.type === "background");
 
   const [dropping, setDropping] = useState(false);
 
@@ -93,6 +203,36 @@ export const VariableGridItem = ({
 
   if (readonly) {
     content = <div className="value">{isMixed ? "—" : displayValue}</div>;
+  } else if (type === "boolean") {
+    const checked = displayValue === "true";
+    content = (
+      <label className="value variable-boolean">
+        <input
+          type="checkbox"
+          checked={checked}
+          disabled={disabled}
+          onChange={(e) => onChangeValue(definition.id, e.target.checked ? "true" : "false")}
+        />
+        <span className="variable-boolean-label">{checked ? "On" : "Off"}</span>
+      </label>
+    );
+  } else if (type === "number") {
+    content = (
+      <NumberValueEditor
+        value={String(displayValue ?? "")}
+        disabled={disabled}
+        isMixed={isMixed}
+        onCommit={(v) => onChangeValue(definition.id, v)}
+      />
+    );
+  } else if (type === "background") {
+    content = (
+      <BackgroundValueEditor
+        value={String(displayValue ?? "")}
+        disabled={disabled}
+        onCommit={(v) => onChangeValue(definition.id, v)}
+      />
+    );
   } else if (type === "stage") {
     content = (
       <ConnectedStagePicker
@@ -138,7 +278,7 @@ export const VariableGridItem = ({
         className="name"
         value={definition.name}
         onChange={
-          readonly || disabled || ("type" in definition && definition.type === "stage")
+          readonly || disabled || isBuiltin || ("type" in definition && definition.type === "stage")
             ? undefined
             : (name) => onChangeDefinition(definition.id, { name })
         }

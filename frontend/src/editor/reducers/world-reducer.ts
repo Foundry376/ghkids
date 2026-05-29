@@ -6,6 +6,8 @@ import stageCollectionReducer from "./stage-collection-reducer";
 import { EditorState, World, WorldMinimal } from "../../types";
 import { Actions } from "../actions";
 import * as Types from "../constants/action-types";
+import { isBuiltinStageVariableId } from "../utils/builtin-stage-variables";
+import { getCurrentStageForWorld } from "../utils/selectors";
 import WorldOperator from "../utils/world-operator";
 
 export default function worldReducer(
@@ -35,12 +37,30 @@ export default function worldReducer(
       return u({ globals: u.omit(action.globalId) }, state);
     }
     case Types.UPSERT_STAGE_VARIABLE: {
-      return u(
+      const isCreating = !state.stageVariables[action.stageVariableId];
+      const nextState = u(
         { stageVariables: { [action.stageVariableId]: action.changes } },
         state,
-      );
+      ) as WorldMinimal;
+      if (!isCreating) {
+        return nextState;
+      }
+      // Maintain the invariant: every defined stage variable has a value on
+      // every stage. Only user-created variables go through this path
+      // (built-ins are added at world-init and migration time), so "0" is
+      // the right seed.
+      const stageUpdates: Record<string, { variableValues: { [id: string]: string } }> = {};
+      for (const stageId of Object.keys(nextState.stages)) {
+        stageUpdates[stageId] = { variableValues: { [action.stageVariableId]: "0" } };
+      }
+      return u({ stages: stageUpdates }, nextState);
     }
     case Types.DELETE_STAGE_VARIABLE: {
+      // Built-in stage variables (wrapX, wrapY, ...) are part of the engine
+      // contract and cannot be deleted.
+      if (isBuiltinStageVariableId(action.stageVariableId)) {
+        return state;
+      }
       // Drop the definition and any per-stage overrides for the variable
       const stageUpdates: Record<string, { variableValues: unknown }> = {};
       for (const stageId of Object.keys(state.stages)) {
@@ -52,11 +72,33 @@ export default function worldReducer(
       );
     }
     case Types.SET_STAGE_VARIABLE_VALUE: {
-      const variableValues =
-        action.value === undefined
-          ? u.omit(action.stageVariableId)
-          : { [action.stageVariableId]: action.value };
-      return u({ stages: { [action.stageId]: { variableValues } } }, state);
+      // Invariant: every defined stage variable has a value on every stage,
+      // so an undefined value would break it. Treat it as a no-op; in
+      // practice callers always pass a concrete string.
+      if (action.value === undefined) return state;
+      return u(
+        { stages: { [action.stageId]: { variableValues: { [action.stageVariableId]: action.value } } } },
+        state,
+      );
+    }
+    case Types.CREATE_STAGE: {
+      // stageCollectionReducer just spread initialStateStage onto the new
+      // stage. Make the new stage inherit the currently-selected stage's
+      // variableValues so Level 2 starts "like Level 1". The source stage is
+      // guaranteed to have every defined variable populated (invariant), so
+      // a straight copy upholds the invariant for the new stage too.
+      const sourceStage = getCurrentStageForWorld(state);
+      if (!sourceStage) return state;
+      return u(
+        {
+          stages: {
+            [action.stageId]: {
+              variableValues: u.constant({ ...sourceStage.variableValues }),
+            },
+          },
+        },
+        state,
+      );
     }
     case Types.INPUT_FOR_GAME_STATE: {
       const inputUpdates: { keys?: unknown; clicks?: unknown } = {};

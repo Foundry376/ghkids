@@ -213,13 +213,7 @@ export type Stage = {
   order: number;
   name: string;
   actors: { [actorId: string]: Actor };
-  background: ImageData | string;
   backgroundFade?: boolean;
-  width: number;
-  height: number;
-  wrapX: boolean;
-  wrapY: boolean;
-  scale?: number | "fit";
   zoomToFill?: boolean;
   zoomToFit?: boolean;
   tutorial_name?: string;
@@ -228,11 +222,26 @@ export type Stage = {
   variableValues: Record<string, string>;
 };
 
-export type StageVariable = {
-  id: string;
-  name: string;
-  defaultValue: string;
-};
+export type StageVariable =
+  | {
+      id: string;
+      name: string;
+    }
+  | {
+      id: "wrapX" | "wrapY";
+      name: string;
+      type: "boolean";
+    }
+  | {
+      id: "width" | "height" | "tileSize";
+      name: string;
+      type: "number";
+    }
+  | {
+      id: "background";
+      name: string;
+      type: "background";
+    };
 
 export type AppearanceInfo = {
   anchor: { x: number; y: number };

@@ -676,15 +676,17 @@ const Tutorial: Stage = {
       id: "1483692854052",
     },
   },
-  background: `url('/src/editor/img/backgrounds/Layer0_2.png')`,
-  height: 13,
   tutorial_name: "introduction",
   tutorial_step: 0,
-  width: 22,
   world: "5233a60cfd685f755e000001",
-  wrapX: true,
-  wrapY: true,
-  variableValues: {},
+  variableValues: {
+    width: "22",
+    wrapX: "true",
+    height: "13",
+    wrapY: "true",
+    tileSize: "40",
+    background: "url('/src/editor/img/backgrounds/Layer0_2.png')",
+  },
 };
 
 export default Tutorial;

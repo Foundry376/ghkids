@@ -15,6 +15,7 @@ import {
 } from "../../types";
 import { RELATIVE_TRANSFORMS } from "../components/inspector/transform-lookup";
 import { DEFAULT_APPEARANCE_INFO } from "../components/sprites/sprite";
+import { getStageBackground, getStageHeight, getStageWidth } from "./builtin-stage-variables";
 
 export function buildActorSelection(worldId: string, stageId: string, actorIds: string[]) {
   return { worldId, stageId, actorIds };
@@ -240,9 +241,11 @@ export function resolveRuleValue(
     return value;
   }
   if ("stageVariableId" in val) {
-    const override = ctx.stage?.variableValues?.[val.stageVariableId];
-    if (override !== undefined) return override;
-    return ctx.stageVariables?.[val.stageVariableId]?.defaultValue ?? null;
+    // Every defined stage variable is required to have a value on every stage,
+    // so we read directly without falling back to a world-level default. A
+    // missing value here means either the variable was deleted (the rule
+    // should have been scrubbed) or the seeding invariant was violated.
+    return ctx.stage?.variableValues?.[val.stageVariableId] ?? null;
   }
   isNever(val);
   return "";
@@ -476,7 +479,7 @@ export function prepareCrossoriginImages(stages: Stage[]) {
   const next: { [url: string]: HTMLImageElementLoaded } = {};
 
   for (const stage of stages) {
-    const url = cssURLToURL(stage.background);
+    const url = cssURLToURL(getStageBackground(stage));
     if (!url) continue;
 
     next[url] = bgImages[url];
@@ -573,24 +576,27 @@ export function renderTransformedImage(
 export function getStageScreenshot(stage: Stage, { size }: { size: number }) {
   const { characters, characterZOrder } = window.editorStore!.getState();
 
-  const scale = Math.min(size / (stage.width * 40), size / (stage.height * 40));
+  const width = getStageWidth(stage);
+  const height = getStageHeight(stage);
+  const scale = Math.min(size / (width * 40), size / (height * 40));
   const pxPerSquare = Math.round(40 * scale);
 
   const canvas = document.createElement("canvas");
-  canvas.width = stage.width * pxPerSquare;
-  canvas.height = stage.height * pxPerSquare;
+  canvas.width = width * pxPerSquare;
+  canvas.height = height * pxPerSquare;
   const context = canvas.getContext("2d");
   if (!context) {
     return;
   }
-  const backgroundUrl = cssURLToURL(stage.background);
+  const background = getStageBackground(stage);
+  const backgroundUrl = cssURLToURL(background);
   if (backgroundUrl) {
     const backgroundImage = bgImages[backgroundUrl];
     if (backgroundImage && backgroundImage._codakoloaded) {
       context.drawImage(backgroundImage, 0, 0, canvas.width, canvas.height);
     }
   } else {
-    context.fillStyle = stage.background;
+    context.fillStyle = background;
     context.fillRect(0, 0, canvas.width, canvas.height);
   }
 
@@ -606,10 +612,10 @@ export function getStageScreenshot(stage: Stage, { size }: { size: number }) {
 
     context.save();
     // Y-up, 1-indexed world: cell (x, y) has its center on the canvas at
-    // ((x - 0.5) * px, (stage.height - y + 0.5) * px) from the top-left.
+    // ((x - 0.5) * px, (height - y + 0.5) * px) from the top-left.
     context.translate(
       Math.floor((actor.position.x - 0.5) * pxPerSquare),
-      Math.floor((stage.height - actor.position.y + 0.5) * pxPerSquare),
+      Math.floor((height - actor.position.y + 0.5) * pxPerSquare),
     );
     applyActorTransformToContext(context, actor.transform ?? "0");
     context.drawImage(

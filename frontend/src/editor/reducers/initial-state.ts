@@ -1,5 +1,6 @@
 import { EditorState, World } from "../../types";
 import { TOOLS, WORLDS } from "../constants/constants";
+import { BUILTIN_STAGE_VARIABLES } from "../utils/builtin-stage-variables";
 import stage from "./initial-state-stage";
 
 const InitialWorld: World = {
@@ -33,7 +34,7 @@ const InitialWorld: World = {
       type: "actor",
     },
   },
-  stageVariables: {},
+  stageVariables: { ...BUILTIN_STAGE_VARIABLES },
   input: {
     keys: {},
     clicks: {},

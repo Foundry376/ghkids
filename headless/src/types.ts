@@ -108,14 +108,9 @@ export type Actor = {
 export type Stage = {
   id: string;
   actors: { [actorId: string]: Actor };
-  background: ImageData;
-  height: number;
   tutorial_name: string;
   tutorial_step: number;
-  width: number;
   world: "5233a60cfd685f755e000001";
-  wrapX: boolean;
-  wrapY: boolean;
   name: string;
 };
 
