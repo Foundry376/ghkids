@@ -888,17 +888,25 @@ html {
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  padding: 8px 8px 6px;
+  padding: 8px 0 6px 0px;
   border-bottom: 1px solid #eee;
 
   .inspector-subnav-pills {
-    flex-wrap: wrap;
-    gap: 4px;
+    min-width: 0;
+    gap: 0;
 
+    .nav-item:first-child {
+      min-width: 0;
+      overflow: hidden;
+    }
     .nav-link {
       cursor: pointer;
-      padding: 3px 12px;
+      padding: 4px 10px;
       font-size: 14px;
+      min-width: 0;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      overflow: hidden;
       color: #666;
     }
   }
@@ -912,7 +920,7 @@ html {
 // the fieldset-style border/label on each section just adds noise.
 .variables-pane .variables-section {
   border-top: none;
-  margin-top: 4px;
+  margin-top: 8px;
   min-height: 0;
 }
 
