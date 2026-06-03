@@ -867,6 +867,63 @@ html {
   }
 }
 
+// Top-level Rules / Variables tabs split the panel width evenly rather than
+// hugging the left edge.
+.inspector-top-tabs.nav-tabs {
+  flex-wrap: nowrap;
+
+  .nav-item {
+    flex: 1 1 0;
+    text-align: center;
+  }
+  .nav-link {
+    cursor: pointer;
+  }
+}
+
+// Sub-navigation row beneath the top tabs: section pills (Character / Level /
+// World) on the left and the contextual add (+) button on the right.
+.inspector-subnav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 0 6px 0px;
+  border-bottom: 1px solid #eee;
+
+  .inspector-subnav-pills {
+    min-width: 0;
+    gap: 0;
+
+    .nav-item:first-child {
+      min-width: 0;
+      overflow: hidden;
+    }
+    .nav-link {
+      cursor: pointer;
+      padding: 4px 10px;
+      font-size: 14px;
+      min-width: 0;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      overflow: hidden;
+      color: #666;
+    }
+  }
+
+  .inspector-subnav-spacer {
+    flex: 1;
+  }
+}
+
+// In the single-section variables view the pill already names the section, so
+// the fieldset-style border/label on each section just adds noise.
+.variables-pane .variables-section {
+  border-top: none;
+  margin-top: 8px;
+  min-height: 0;
+}
+
 .modal-dialog {
   .btn-group > .btn,
   button.btn {

@@ -2,8 +2,6 @@ import { Nav, NavItem, NavLink } from "reactstrap";
 import classNames from "classnames";
 import { useEffect, useState } from "react";
 
-import AddRuleButton from "./add-rule-button";
-import AddVariableButton from "./add-variable-button";
 import { ContainerPaneRules } from "./container-pane-rules";
 import { ContainerPaneVariables } from "./container-pane-variables";
 
@@ -40,11 +38,6 @@ export const InspectorContainer = () => {
     variables: ContainerPaneVariables,
   }[activeTab];
 
-  const AddButton = {
-    rules: AddRuleButton,
-    variables: AddVariableButton,
-  }[activeTab];
-
   const isReadonly = isRecording && worldId === recording.beforeWorld.id;
 
   return (
@@ -59,7 +52,7 @@ export const InspectorContainer = () => {
       }}
     >
       <div className={`panel inspector-panel-container tool-supported`}>
-        <Nav tabs>
+        <Nav tabs className="inspector-top-tabs">
           <NavItem>
             <NavLink
               className={classNames({ active: activeTab === "rules" })}
@@ -76,8 +69,6 @@ export const InspectorContainer = () => {
               Variables
             </NavLink>
           </NavItem>
-          <div style={{ flex: 1 }} />
-          <AddButton character={focusedCharacter} actor={focusedActor} isRecording={isRecording} />
         </Nav>
         <ContentContainer world={focusedWorld} character={focusedCharacter} actor={focusedActor} actors={focusedActors} readonly={isReadonly} />
       </div>

@@ -2,7 +2,7 @@ import React, { useState } from "react";
 
 
 import { useDispatch } from "react-redux";
-import { Button, ButtonDropdown, DropdownItem, DropdownMenu, DropdownToggle, Modal, ModalBody, ModalFooter, ModalHeader } from "reactstrap";
+import { Button, ButtonDropdown, DropdownItem, DropdownMenu, DropdownToggle, Modal, ModalBody, ModalFooter, ModalHeader, Nav, NavItem, NavLink } from "reactstrap";
 import { DeepPartial } from "redux";
 import { Actor, ActorTransform, Character, Global, RuleTreeItem, StageVariable, WorldMinimal } from "../../../types";
 import { useEditorSelector } from "../../../hooks/redux";
@@ -20,6 +20,7 @@ import { TOOLS } from "../../constants/constants";
 import { getCurrentStageForWorld } from "../../utils/selectors";
 import { findRules, FindRulesResult, ruleUsesVariable } from "../../utils/stage-helpers";
 import Sprite from "../sprites/sprite";
+import AddVariableButton, { VariablesSubTab } from "./add-variable-button";
 import { TransformEditorModal } from "./transform-editor";
 import { TransformImages, TransformLabels } from "./transform-images";
 import { VariableGridItem } from "./variable-grid-item";
@@ -332,6 +333,7 @@ export const ContainerPaneVariables = ({
   const levelTargetWorld = isRecording ? recording.afterWorld : world;
   const levelTargetStage = getCurrentStageForWorld(levelTargetWorld);
   const [pendingDelete, setPendingDelete] = useState<PendingDeleteState>(null);
+  const [subTab, setSubTab] = useState<VariablesSubTab>("character");
 
   // Chararacter and actor variables
 
@@ -558,41 +560,63 @@ export const ContainerPaneVariables = ({
     );
   }
 
-  return (
-    <div className={`scroll-container`}>
-      <div className="scroll-container-contents">
-        {character ? (
-          <div className="variables-section">
-            <h3>
-              {actors.length > 1
-                ? `${character.name} (${actors.length} selected)`
-                : actor
-                  ? `${character.name} at (${actor.position.x},${actor.position.y})`
-                  : `${character.name} (Defaults)`}
-            </h3>
-            {_renderCharacterSection()}
-          </div>
-        ) : (
-          <div className="empty">Please select a character.</div>
-        )}
-        <div className="variables-section">
-          <h3>Level</h3>
-          {_renderLevelSection()}
-        </div>
-        <div className="variables-section">
-          <h3>World</h3>
-          {_renderWorldSection()}
-        </div>
-      </div>
+  // The Character pill carries the selection context (which actor / how many)
+  // that used to live in an in-panel header above the variable boxes.
+  const characterLabel = character
+    ? actors.length > 1
+      ? `${character.name} (${actors.length} selected)`
+      : actor
+        ? `${character.name} at (${actor.position.x},${actor.position.y})`
+        : `${character.name} (Defaults)`
+    : "Character";
 
-      {pendingDelete && (
-        <VariableInUseModal
-          variableName={pendingDelete.variableName}
-          rulesUsingVariable={pendingDelete.rulesUsingVariable}
-          onConfirm={_onConfirmDelete}
-          onCancel={_onCancelDelete}
-        />
-      )}
-    </div>
+  return (
+    <>
+      <div className="inspector-subnav">
+        <Nav pills className="inspector-subnav-pills">
+          <NavItem>
+            <NavLink active={subTab === "character"} onClick={() => setSubTab("character")}>
+              {characterLabel}
+            </NavLink>
+          </NavItem>
+          <NavItem>
+            <NavLink active={subTab === "level"} onClick={() => setSubTab("level")}>
+              Level
+            </NavLink>
+          </NavItem>
+          <NavItem>
+            <NavLink active={subTab === "world"} onClick={() => setSubTab("world")}>
+              World
+            </NavLink>
+          </NavItem>
+        </Nav>
+        <AddVariableButton character={character} section={subTab} />
+      </div>
+      <div className={`scroll-container variables-pane`}>
+        <div className="scroll-container-contents">
+          {subTab === "character" &&
+            (character ? (
+              <div className="variables-section">{_renderCharacterSection()}</div>
+            ) : (
+              <div className="empty">Please select a character.</div>
+            ))}
+          {subTab === "level" && (
+            <div className="variables-section">{_renderLevelSection()}</div>
+          )}
+          {subTab === "world" && (
+            <div className="variables-section">{_renderWorldSection()}</div>
+          )}
+        </div>
+
+        {pendingDelete && (
+          <VariableInUseModal
+            variableName={pendingDelete.variableName}
+            rulesUsingVariable={pendingDelete.rulesUsingVariable}
+            onConfirm={_onConfirmDelete}
+            onCancel={_onCancelDelete}
+          />
+        )}
+      </div>
+    </>
   );
 };
