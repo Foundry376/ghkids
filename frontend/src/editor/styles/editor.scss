@@ -892,7 +892,7 @@ html {
   border-bottom: 1px solid #eee;
 
   .inspector-subnav-pills {
-    flex-wrap: nowrap;
+    flex-wrap: wrap;
     gap: 4px;
 
     .nav-link {
@@ -914,11 +914,6 @@ html {
   border-top: none;
   margin-top: 4px;
   min-height: 0;
-
-  h3 {
-    top: 0;
-    padding-left: 0;
-  }
 }
 
 .modal-dialog {

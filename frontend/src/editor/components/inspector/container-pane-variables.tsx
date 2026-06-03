@@ -560,13 +560,23 @@ export const ContainerPaneVariables = ({
     );
   }
 
+  // The Character pill carries the selection context (which actor / how many)
+  // that used to live in an in-panel header above the variable boxes.
+  const characterLabel = character
+    ? actors.length > 1
+      ? `${character.name} (${actors.length} selected)`
+      : actor
+        ? `${character.name} at (${actor.position.x},${actor.position.y})`
+        : `${character.name} (Defaults)`
+    : "Character";
+
   return (
     <>
       <div className="inspector-subnav">
         <Nav pills className="inspector-subnav-pills">
           <NavItem>
             <NavLink active={subTab === "character"} onClick={() => setSubTab("character")}>
-              Character
+              {characterLabel}
             </NavLink>
           </NavItem>
           <NavItem>
@@ -586,30 +596,15 @@ export const ContainerPaneVariables = ({
         <div className="scroll-container-contents">
           {subTab === "character" &&
             (character ? (
-              <div className="variables-section">
-                <h3>
-                  {actors.length > 1
-                    ? `${character.name} (${actors.length} selected)`
-                    : actor
-                      ? `${character.name} at (${actor.position.x},${actor.position.y})`
-                      : `${character.name} (Defaults)`}
-                </h3>
-                {_renderCharacterSection()}
-              </div>
+              <div className="variables-section">{_renderCharacterSection()}</div>
             ) : (
               <div className="empty">Please select a character.</div>
             ))}
           {subTab === "level" && (
-            <div className="variables-section">
-              <h3>Level</h3>
-              {_renderLevelSection()}
-            </div>
+            <div className="variables-section">{_renderLevelSection()}</div>
           )}
           {subTab === "world" && (
-            <div className="variables-section">
-              <h3>World</h3>
-              {_renderWorldSection()}
-            </div>
+            <div className="variables-section">{_renderWorldSection()}</div>
           )}
         </div>
 
