@@ -1,48 +1,48 @@
-import { ButtonDropdown, DropdownItem, DropdownMenu, DropdownToggle } from "reactstrap";
-import { useState } from "react";
+import { Button } from "reactstrap";
 import { useDispatch } from "react-redux";
-import { Actor, Character } from "../../../types";
+import { Character } from "../../../types";
 import { createCharacterVariable } from "../../actions/characters-actions";
 import { createGlobal, createStageVariable } from "../../actions/world-actions";
 
-const VariablesAddButton = ({ character }: { character: Character; actor: Actor }) => {
-  const [open, setOpen] = useState(false);
+export type VariablesSubTab = "character" | "level" | "world";
+
+const VariablesAddButton = ({
+  character,
+  section,
+}: {
+  character: Character | null;
+  section: VariablesSubTab;
+}) => {
   const dispatch = useDispatch();
 
-  const _onCreateVar = () => {
-    dispatch(createCharacterVariable(character.id));
+  // The plus button adds a variable to whichever section the user is
+  // currently looking at, so its behavior follows the active sub-tab.
+  const _onClick = () => {
+    if (section === "character") {
+      if (!character) return;
+      dispatch(createCharacterVariable(character.id));
+    } else if (section === "level") {
+      dispatch(createStageVariable());
+    } else {
+      dispatch(createGlobal());
+    }
   };
 
-  const _onCreateGlobal = () => {
-    dispatch(createGlobal());
-  };
-
-  const _onCreateStageVar = () => {
-    dispatch(createStageVariable());
-  };
+  const label = {
+    character: "Add Character Variable",
+    level: "Add Level Variable",
+    world: "Add World Variable",
+  }[section];
 
   return (
-    <ButtonDropdown
-      isOpen={open}
-      data-tutorial-id="inspector-add-rule"
-      toggle={() => setOpen(!open)}
+    <Button
+      className="inspector-subnav-add"
+      title={label}
+      disabled={section === "character" && !character}
+      onClick={_onClick}
     >
-      <DropdownToggle caret>
-        <i className="fa fa-plus" />
-      </DropdownToggle>
-      <DropdownMenu right>
-        <DropdownItem disabled={!character} onClick={_onCreateVar}>
-          <span className="badge rule" /> Add Character Variable
-        </DropdownItem>
-        <DropdownItem divider />
-        <DropdownItem onClick={_onCreateStageVar}>
-          <span className="badge rule-flow" /> Add Level Variable
-        </DropdownItem>
-        <DropdownItem onClick={_onCreateGlobal}>
-          <span className="badge rule-flow" /> Add World Variable
-        </DropdownItem>
-      </DropdownMenu>
-    </ButtonDropdown>
+      <i className="fa fa-plus" />
+    </Button>
   );
 };
 

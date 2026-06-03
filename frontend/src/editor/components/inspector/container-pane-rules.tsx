@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from "react";
 
 import { useDispatch } from "react-redux";
-import { Character, Rule, RuleTreeFlowItemCheck, RuleTreeItem } from "../../../types";
+import { Actor, Character, Rule, RuleTreeFlowItemCheck, RuleTreeItem } from "../../../types";
 import { useEditorSelector } from "../../../hooks/redux";
 import { upsertCharacter } from "../../actions/characters-actions";
 import { editRuleRecording } from "../../actions/recording-actions";
@@ -9,6 +9,7 @@ import { selectRule, selectToolId, selectToolItem } from "../../actions/ui-actio
 import { TOOLS } from "../../constants/constants";
 import { findRule } from "../../utils/stage-helpers";
 import { deepClone, makeId } from "../../utils/utils";
+import AddRuleButton from "./add-rule-button";
 import { RuleList } from "./rule-list";
 
 // eslint-disable-next-line react-refresh/only-export-components
@@ -38,7 +39,13 @@ const cloneRuleWithFreshIds = (item: RuleTreeItem): RuleTreeItem => {
   return copy;
 };
 
-export const ContainerPaneRules = ({ character }: { character: Character | null }) => {
+export const ContainerPaneRules = ({
+  character,
+  actor,
+}: {
+  character: Character | null;
+  actor?: Actor | null;
+}) => {
   const dispatch = useDispatch();
   const { selectedToolId, stampToolItem, selectedRuleId } = useEditorSelector(
     (state) => state.ui,
@@ -326,6 +333,10 @@ export const ContainerPaneRules = ({ character }: { character: Character | null 
         onRuleStamped: _onRuleStamped,
       }}
     >
+      <div className="inspector-subnav">
+        <div className="inspector-subnav-spacer" />
+        <AddRuleButton character={character!} actor={actor!} isRecording={isRecording} />
+      </div>
       <div
         className="scroll-container"
         ref={_scrollContainerEl}
