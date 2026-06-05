@@ -156,13 +156,13 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
   }
 
   function ActorOperator(me: Actor) {
-    function tickAllRules() {
+    function tickAllRules(): boolean {
       const actor = actors[me.id];
       if (!actor) {
-        return; // actor was deleted by another rule
+        return false; // actor was deleted by another rule
       }
       const struct = characters[actor.characterId];
-      tickRulesTree(struct);
+      return tickRulesTree(struct);
     }
 
     function tickRulesTree(
@@ -856,7 +856,53 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
     evaluatedRuleDetails = {};
     crossStageActorsForDestStage = {};
 
-    Object.values(actors).forEach((actor) => ActorOperator(actor).tickAllRules());
+    // Each actor is evaluated once, in stage order. We track which actors
+    // applied at least one rule this tick ("acted") so the settle passes
+    // below can leave them alone.
+    const initialActorIds = Object.keys(actors);
+    const acted = new Set<string>();
+    const visit = (id: string): boolean => {
+      const actor = actors[id];
+      if (!actor) {
+        return false; // deleted by another actor's rule this tick
+      }
+      const didAct = ActorOperator(actor).tickAllRules();
+      if (didAct) {
+        acted.add(id);
+      }
+      return didAct;
+    };
+
+    initialActorIds.forEach((id) => visit(id));
+
+    // Settle passes: actors that haven't acted yet get another chance to
+    // react to the board *after* everyone else has moved — most importantly,
+    // to step into a square that another actor just vacated this tick.
+    // Without this, whether a line of followers keeps its spacing depends on
+    // the (essentially arbitrary) order in which actors are visited.
+    //
+    // `acted` is sticky for the whole tick, so each actor acts at most once.
+    // That (a) guarantees termination — the acted set only ever grows and is
+    // bounded by the actor count — and (b) preserves spacing: a train of
+    // followers shifts by exactly one square per tick regardless of order.
+    //
+    // Only actors present at the start of the tick are revisited; actors
+    // created mid-tick still wait until the next tick to act, matching the
+    // main pass. We skip settling entirely when nothing moved, since an
+    // unchanged board cannot newly satisfy any rule.
+    let changed = acted.size > 0;
+    while (changed) {
+      changed = false;
+      for (const id of initialActorIds) {
+        if (acted.has(id)) {
+          continue;
+        }
+        if (visit(id)) {
+          changed = true;
+        }
+      }
+    }
+
     const evaluatedSomeRule = Object.values(evaluatedRuleDetails).some((actorRuleDetails) =>
       Object.values(actorRuleDetails).some((details) => details.passed),
     );

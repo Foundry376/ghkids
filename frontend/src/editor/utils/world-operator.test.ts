@@ -19,7 +19,13 @@ import {
   stageVariableModifyScenario,
   stageVariableConditionScenario,
 } from "./__tests__/scenarios/basic-scenarios";
-import { collisionScenario, coinCollectionScenario } from "./__tests__/scenarios/multi-actor-scenarios";
+import {
+  collisionScenario,
+  coinCollectionScenario,
+  trainFollowerVisitedFirstScenario,
+  trainLeaderVisitedFirstScenario,
+  longTrainScenario,
+} from "./__tests__/scenarios/multi-actor-scenarios";
 import { chaseGameScenario } from "./__tests__/scenarios/chase-game-scenario";
 import { scoreAccumulationScenario } from "./__tests__/scenarios/score-game-scenario";
 
@@ -119,6 +125,20 @@ describe("world-operator integration", () => {
 
     it("should delete coin when player reaches it", () => {
       runScenario(coinCollectionScenario());
+    });
+  });
+
+  describe("order-independent settling", () => {
+    it("preserves train spacing when the follower is visited first", () => {
+      runScenario(trainFollowerVisitedFirstScenario());
+    });
+
+    it("preserves train spacing when the leader is visited first", () => {
+      runScenario(trainLeaderVisitedFirstScenario());
+    });
+
+    it("ripples a long train by one square per tick regardless of visit order", () => {
+      runScenario(longTrainScenario());
     });
   });
 
