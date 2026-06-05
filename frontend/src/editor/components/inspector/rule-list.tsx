@@ -32,7 +32,7 @@ export const RuleList = ({
   character: Character;
   collapsed: boolean;
 }) => {
-  const { onRuleMoved, onRuleReRecord, onRuleDeleted, onRuleStamped } =
+  const { onRuleMoved, onRuleReRecord, onRuleDeleted, onRuleStamped, onRuleChanged } =
     useContext(RuleActionsContext);
   const selectedToolId = useEditorSelector((state) => state.ui.selectedToolId);
   const stampToolItem = useEditorSelector((s) => s.ui.stampToolItem);
@@ -103,6 +103,13 @@ export const RuleList = ({
   };
 
   const _onRuleClicked = (event: React.MouseEvent<unknown>, rule: RuleTreeItem) => {
+    if (selectedToolId === TOOLS.DISABLE_RULE) {
+      // Clicking a rule (or container) flips whether it's enabled. Stay in the
+      // tool so several rules can be toggled in a row.
+      event.stopPropagation();
+      onRuleChanged(rule.id, { enabled: rule.enabled === false });
+      return;
+    }
     if (selectedToolId === TOOLS.TRASH) {
       event.stopPropagation();
       onRuleDeleted(rule.id, event);

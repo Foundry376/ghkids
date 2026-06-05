@@ -1696,6 +1696,23 @@ html {
   }
 }
 
+// The "disable rule" tool lives in the rules sidebar. The global rule above
+// hides the cursor for non-pointer tools (they draw their own image cursor),
+// but this tool has no image, so restore a normal cursor and show a pointer
+// over the rules you can click to toggle.
+.editor.tool-disable-rule {
+  .tool-supported {
+    cursor: default;
+  }
+  .rules-list .rule-container.tool-supported {
+    cursor: pointer;
+
+    &.hovering {
+      background-color: rgba(255, 255, 255, 0.25);
+    }
+  }
+}
+
 .flex-horizontal {
   display: flex;
 }

@@ -10,6 +10,7 @@ import { TOOLS } from "../../constants/constants";
 import { findRule } from "../../utils/stage-helpers";
 import { deepClone, makeId } from "../../utils/utils";
 import AddRuleButton from "./add-rule-button";
+import DisableRuleToolButton from "./disable-rule-tool-button";
 import { RuleList } from "./rule-list";
 
 // eslint-disable-next-line react-refresh/only-export-components
@@ -335,6 +336,7 @@ export const ContainerPaneRules = ({
     >
       <div className="inspector-subnav">
         <div className="inspector-subnav-spacer" />
+        <DisableRuleToolButton disabled={!character || isRecording} />
         <AddRuleButton character={character!} actor={actor!} isRecording={isRecording} />
       </div>
       <div

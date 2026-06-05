@@ -30,6 +30,9 @@ export enum TOOLS {
   PAINT = "paint",
   CREATE_CHARACTER = "create-character",
 
+  // Local to the rules sidebar — clicking a rule toggles its enabled status
+  DISABLE_RULE = "disable-rule",
+
   // Used in the recording flow
   IGNORE_SQUARE = "ignore-square",
   ADD_CLICK_CONDITION = "add-click-condition",
