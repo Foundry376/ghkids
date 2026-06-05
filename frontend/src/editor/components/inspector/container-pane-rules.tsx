@@ -1,7 +1,14 @@
 import React, { useEffect, useRef } from "react";
 
 import { useDispatch } from "react-redux";
-import { Actor, Character, Rule, RuleTreeFlowItemCheck, RuleTreeItem } from "../../../types";
+import {
+  Actor,
+  Character,
+  Rule,
+  RuleTreeComment,
+  RuleTreeFlowItemCheck,
+  RuleTreeItem,
+} from "../../../types";
 import { useEditorSelector } from "../../../hooks/redux";
 import { upsertCharacter } from "../../actions/characters-actions";
 import { editRuleRecording } from "../../actions/recording-actions";
@@ -10,6 +17,7 @@ import { TOOLS } from "../../constants/constants";
 import { findRule } from "../../utils/stage-helpers";
 import { deepClone, makeId } from "../../utils/utils";
 import AddRuleButton from "./add-rule-button";
+import CommentToolButton from "./comment-tool-button";
 import DisableRuleToolButton from "./disable-rule-tool-button";
 import { RuleList } from "./rule-list";
 
@@ -20,6 +28,8 @@ export const RuleActionsContext = React.createContext<{
   onRuleReRecord: (rule: Rule | RuleTreeFlowItemCheck) => void;
   onRuleChanged: (ruleId: string, changes: Partial<RuleTreeItem>) => void;
   onRuleDeleted: (ruleId: string, event: React.MouseEvent<unknown>) => void;
+  onCommentInserted: (parentId: string | null, index: number) => void;
+  onCommentRemoved: (id: string) => void;
 }>(new Error() as never);
 
 // In-app clipboard for rule copy/paste, shared across mounts of the rules pane.
@@ -273,6 +283,31 @@ export const ContainerPaneRules = ({
     dispatch(upsertCharacter(character.id, { rules }));
   };
 
+  const _onCommentInserted = (parentId: string | null, index: number) => {
+    const rules = deepClone(character.rules);
+    const root = { rules };
+    const [parentRule] = parentId ? findRule(root, parentId) : [root];
+    if (!parentRule || !("rules" in parentRule)) {
+      return;
+    }
+    const comment: RuleTreeComment = { type: "comment", id: makeId("comment"), text: "" };
+    parentRule.rules.splice(index, 0, comment);
+    dispatch(upsertCharacter(character.id, root));
+  };
+
+  const _onCommentRemoved = (id: string) => {
+    const rules = deepClone(character.rules);
+    const [, parentRule, parentIdx] = findRule({ rules }, id);
+    if (!parentRule.rules[parentIdx]) {
+      return;
+    }
+    parentRule.rules.splice(parentIdx, 1);
+    dispatch(upsertCharacter(character.id, { rules }));
+    if (selectedRuleId === id) {
+      dispatch(selectRule(null));
+    }
+  };
+
   const _onRuleStamped = (
     sourceRuleId: string,
     newParentId: string | null,
@@ -332,10 +367,13 @@ export const ContainerPaneRules = ({
         onRuleMoved: _onRuleMoved,
         onRuleDeleted: _onRuleDeleted,
         onRuleStamped: _onRuleStamped,
+        onCommentInserted: _onCommentInserted,
+        onCommentRemoved: _onCommentRemoved,
       }}
     >
       <div className="inspector-subnav">
         <div className="inspector-subnav-spacer" />
+        <CommentToolButton disabled={!character || isRecording} />
         <DisableRuleToolButton disabled={!character || isRecording} />
         <AddRuleButton character={character!} actor={actor!} isRecording={isRecording} />
       </div>

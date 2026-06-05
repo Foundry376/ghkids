@@ -1,5 +1,6 @@
 import React, { useContext, useEffect, useRef, useState } from "react";
 
+import { ContentComment, RuleCommentAnnotation } from "./content-comment";
 import { ContentEventGroup } from "./content-event-group";
 import { ContentFlowGroup } from "./content-flow-group";
 import { ContentRule } from "./content-rule";
@@ -32,8 +33,14 @@ export const RuleList = ({
   character: Character;
   collapsed: boolean;
 }) => {
-  const { onRuleMoved, onRuleReRecord, onRuleDeleted, onRuleStamped, onRuleChanged } =
-    useContext(RuleActionsContext);
+  const {
+    onRuleMoved,
+    onRuleReRecord,
+    onRuleDeleted,
+    onRuleStamped,
+    onRuleChanged,
+    onCommentInserted,
+  } = useContext(RuleActionsContext);
   const selectedToolId = useEditorSelector((state) => state.ui.selectedToolId);
   const stampToolItem = useEditorSelector((s) => s.ui.stampToolItem);
   const selectedRuleId = useEditorSelector((s) => s.ui.selectedRuleId);
@@ -103,6 +110,15 @@ export const RuleList = ({
   };
 
   const _onRuleClicked = (event: React.MouseEvent<unknown>, rule: RuleTreeItem) => {
+    if (selectedToolId === TOOLS.COMMENT) {
+      event.stopPropagation();
+      // Clicking a rule attaches an (empty, focused) comment annotation. If it
+      // already has one — or it's itself a free-standing comment — do nothing.
+      if (rule.type !== "comment" && rule.comment === undefined) {
+        onRuleChanged(rule.id, { comment: "" });
+      }
+      return;
+    }
     if (selectedToolId === TOOLS.DISABLE_RULE) {
       // Clicking a rule (or container) flips whether it's enabled. Stay in the
       // tool so several rules can be toggled in a row.
@@ -195,6 +211,16 @@ export const RuleList = ({
   };
 
   const _onListClick = (event: React.MouseEvent<unknown>) => {
+    if (selectedToolId === TOOLS.COMMENT) {
+      // Clicks land here only when they miss a rule (clicks on a rule are
+      // stopped in _onRuleClicked). Drop a free-standing comment at that gap.
+      event.stopPropagation();
+      const dropIndex = _dropIndexForEvent(event);
+      const insertAt =
+        dropIndex === undefined || dropIndex < 0 ? rules.length : Math.min(dropIndex, rules.length);
+      onCommentInserted(parentId, insertAt);
+      return;
+    }
     if (selectedToolId === TOOLS.STAMP && stampToolItem && "ruleId" in stampToolItem) {
       const dropIndex = _dropIndexForEvent(event);
       if (dropIndex === undefined || dropIndex === -1) {
@@ -237,10 +263,15 @@ export const RuleList = ({
         onMouseOver={(event) => _onMouseOver(event, r)}
         onMouseOut={(event) => _onMouseOut(event)}
       >
+        {r.type !== "comment" && r.comment !== undefined && (
+          <RuleCommentAnnotation ruleId={r.id} text={r.comment} />
+        )}
         {r.type === CONTAINER_TYPES.EVENT ? (
           <ContentEventGroup rule={r} character={character} />
         ) : r.type === CONTAINER_TYPES.FLOW ? (
           <ContentFlowGroup rule={r} character={character} />
+        ) : r.type === "comment" ? (
+          <ContentComment comment={r} />
         ) : (
           <ContentRule rule={r} />
         )}

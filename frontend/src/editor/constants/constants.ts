@@ -32,6 +32,8 @@ export enum TOOLS {
 
   // Local to the rules sidebar — clicking a rule toggles its enabled status
   DISABLE_RULE = "disable-rule",
+  // Local to the rules sidebar — annotate a rule or drop a free-standing note
+  COMMENT = "comment",
 
   // Used in the recording flow
   IGNORE_SQUARE = "ignore-square",

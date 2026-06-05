@@ -1713,6 +1713,77 @@ html {
   }
 }
 
+// The "comment" tool also lives in the rules sidebar (see note above). Restore
+// a normal cursor, show a pointer over rules/gaps you can click, and a text
+// caret over the comment fields themselves.
+.editor.tool-comment {
+  .tool-supported {
+    cursor: default;
+  }
+  .rules-list,
+  .rules-list .rule-container.tool-supported {
+    cursor: pointer;
+  }
+  .comment-text {
+    cursor: text;
+  }
+}
+
+// ─── Rule sidebar comments ──────────────────────────────────────────────────
+.comment-text {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  resize: none;
+  overflow: hidden;
+  font-family: inherit;
+  font-size: 0.85em;
+  line-height: 1.3em;
+  font-style: italic;
+  color: #5b4636;
+  padding: 1px 3px;
+  outline: none;
+
+  &::placeholder {
+    color: rgba(91, 70, 54, 0.45);
+  }
+}
+
+.rules-list .rule-container.comment {
+  background-color: #fdf6c3;
+  border: 1px solid #e6d97a;
+  border-radius: 4px;
+  margin-bottom: 3px;
+  padding: 3px 4px;
+
+  .comment-body {
+    display: flex;
+    align-items: flex-start;
+    gap: 4px;
+  }
+  .comment-icon {
+    color: #b8a13a;
+    margin-top: 3px;
+  }
+}
+
+.rule-comment-annotation {
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+  background-color: rgba(253, 246, 195, 0.9);
+  border-left: 3px solid #e6d97a;
+  border-radius: 3px;
+  margin: 2px 2px 4px;
+  padding: 1px 3px;
+
+  .comment-icon {
+    color: #b8a13a;
+    margin-top: 3px;
+  }
+}
+
 .flex-horizontal {
   display: flex;
 }
