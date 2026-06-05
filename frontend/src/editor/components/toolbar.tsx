@@ -50,7 +50,7 @@ const Toolbar = () => {
         data-tutorial-id={`toolbar-tool-${toolId}`}
         onClick={() => dispatch(actions.selectToolId(toolId))}
       >
-        <img src={new URL(`../img/sidebar_${toolId}.png`, import.meta.url).href} />
+        <img src={new URL(`../img/sidebar_${toolId}.png`, import.meta.url).href} draggable={false} />
       </Button>
     );
   };
