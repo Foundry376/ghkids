@@ -1,7 +1,6 @@
 import classNames from "classnames";
 import { Button } from "reactstrap";
 
-import { useForgivingClick } from "../../hooks/useForgivingClick";
 import { TOOLS } from "../constants/constants";
 
 interface ToolButtonProps {
@@ -11,13 +10,15 @@ interface ToolButtonProps {
 }
 
 /**
- * A single tool button in the top toolbar. Uses {@link useForgivingClick} so a
- * press that turns into a tiny drag — common when young users nudge the mouse
- * while clicking — still selects the tool instead of being lost.
+ * A single tool button in the top toolbar. The tool is selected on
+ * `pointerdown` rather than `click` so it switches the instant the button is
+ * pressed. This makes selection feel responsive and sidesteps the drag young
+ * users accidentally produce when nudging the mouse: the switch has already
+ * happened before any drag could be interpreted, and (unlike waiting for
+ * release) the cursor never appears to drag the previous tool out of the
+ * button.
  */
 export const ToolButton = ({ toolId, selected, onSelect }: ToolButtonProps) => {
-  const click = useForgivingClick(() => onSelect(toolId));
-
   const classes = classNames({
     "tool-option": true,
     enabled: true,
@@ -25,7 +26,18 @@ export const ToolButton = ({ toolId, selected, onSelect }: ToolButtonProps) => {
   });
 
   return (
-    <Button key={toolId} className={classes} data-tutorial-id={`toolbar-tool-${toolId}`} {...click}>
+    <Button
+      key={toolId}
+      className={classes}
+      data-tutorial-id={`toolbar-tool-${toolId}`}
+      onPointerDown={(e) => {
+        // Only the primary (left) mouse button; touch/pen report 0.
+        if (e.pointerType === "mouse" && e.button !== 0) {
+          return;
+        }
+        onSelect(toolId);
+      }}
+    >
       <img src={new URL(`../img/sidebar_${toolId}.png`, import.meta.url).href} draggable={false} />
     </Button>
   );
