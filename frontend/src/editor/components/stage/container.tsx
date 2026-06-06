@@ -162,6 +162,7 @@ const StageContainer = ({ readonly, immersive }: { readonly?: boolean; immersive
   const stage = getCurrentStageForWorld(world)!;
   const [current, setCurrent] = useState<{ stage: Types.Stage; frameId?: number }>({ stage });
   const intervalRef = useRef<number>();
+  const wasRunningRef = useRef(playback.running);
 
   const doorsByDestStage = useMemo(
     () => collectDoorsByDestinationStage(world, characters),
@@ -170,24 +171,41 @@ const StageContainer = ({ readonly, immersive }: { readonly?: boolean; immersive
   const incomingDoors = stage ? (doorsByDestStage[stage.id] ?? []) : [];
 
   useEffect(() => {
+    // Detect the moment playback transitions from running to stopped. We can't
+    // rely on `running` alone because single-stepping a stopped game also runs
+    // this effect with `running === false` (it dispatches a fresh
+    // `evaluatedTickFrames` instead of flipping `running`), and that case should
+    // still animate its sub-frames.
+    const justStopped = wasRunningRef.current && !playback.running;
+    wasRunningRef.current = playback.running;
+
     if (world.evaluatedTickFrames) {
       const frames = world.evaluatedTickFrames;
-      const setNext = () => {
-        setCurrent((current) => {
-          const nextIdx = frames.findIndex((f) => current.frameId === f.id) + 1;
-          const frame = frames[nextIdx] || null;
-          if (!frame) {
-            clearTimeout(intervalRef.current);
-            return { stage, frameId: current.frameId };
-          }
-          return { stage: { ...stage, actors: frame.actors }, frameId: frame.id };
-        });
-      };
 
-      setNext();
+      // When the user hits stop mid-tick, abandon the remaining sub-frames and
+      // jump straight to the tick's final frame so the stage stops immediately
+      // rather than coasting through the rest of the current tick's animation.
+      if (justStopped) {
+        clearTimeout(intervalRef.current);
+        setCurrent({ stage, frameId: frames[frames.length - 1]?.id });
+      } else {
+        const setNext = () => {
+          setCurrent((current) => {
+            const nextIdx = frames.findIndex((f) => current.frameId === f.id) + 1;
+            const frame = frames[nextIdx] || null;
+            if (!frame) {
+              clearTimeout(intervalRef.current);
+              return { stage, frameId: current.frameId };
+            }
+            return { stage: { ...stage, actors: frame.actors }, frameId: frame.id };
+          });
+        };
 
-      const framerate = playback.running ? playback.speed / frames.length : 100;
-      intervalRef.current = setInterval(setNext, framerate);
+        setNext();
+
+        const framerate = playback.running ? playback.speed / frames.length : 100;
+        intervalRef.current = setInterval(setNext, framerate);
+      }
     } else {
       setCurrent({ stage });
     }
