@@ -2,6 +2,7 @@ import classNames from "classnames";
 import { Button } from "reactstrap";
 
 import { TOOLS } from "../constants/constants";
+import { onPrimaryPointerDown } from "../utils/pointer";
 
 interface ToolButtonProps {
   toolId: TOOLS;
@@ -30,13 +31,7 @@ export const ToolButton = ({ toolId, selected, onSelect }: ToolButtonProps) => {
       key={toolId}
       className={classes}
       data-tutorial-id={`toolbar-tool-${toolId}`}
-      onPointerDown={(e) => {
-        // Only the primary (left) mouse button; touch/pen report 0.
-        if (e.pointerType === "mouse" && e.button !== 0) {
-          return;
-        }
-        onSelect(toolId);
-      }}
+      onPointerDown={onPrimaryPointerDown(() => onSelect(toolId))}
     >
       <img src={new URL(`../img/sidebar_${toolId}.png`, import.meta.url).href} draggable={false} />
     </Button>
