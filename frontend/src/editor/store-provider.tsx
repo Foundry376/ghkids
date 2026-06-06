@@ -90,6 +90,10 @@ export default class StoreProvider extends React.Component<
         redoStack: u.constant([]),
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         stages: (u as any).map({ history: u.constant([]) }),
+        // Drop the transient sub-frame timeline used to animate the last tick.
+        // Persisting it makes reopening a saved world replay that tick's
+        // animation from frame zero on load.
+        world: { evaluatedTickFrames: u.constant([]) },
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } as any,
       this.state.editorStore.getState()
