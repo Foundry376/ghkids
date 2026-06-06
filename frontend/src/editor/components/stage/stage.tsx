@@ -389,11 +389,7 @@ export const Stage = ({
   useGlobalHeldKeys(world.id, playback.running);
 
   // When playback stops, remount the actor sprites so any in-flight CSS
-  // transitions snap straight to their final positions instead of coasting
-  // to a halt. Sprites are stateless, so remounting is cheap and loses no
-  // state (unlike remounting the whole stage, which would reset scroll,
-  // focus and zoom). The transition duration stays set otherwise, so
-  // single-stepping the paused game still animates one frame forward.
+  // transitions snap straight to their final positions.
   const [stoppedGeneration, setStoppedGeneration] = useState(0);
   const wasRunningRef = useRef(playback.running);
   useEffect(() => {
