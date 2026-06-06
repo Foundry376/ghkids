@@ -235,6 +235,11 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
         matchedActors: {},
       };
 
+      // Comments are annotations only — never evaluated.
+      if (rule.type === "comment") {
+        return emptyDetails;
+      }
+
       // Skip disabled rules
       if (rule.enabled === false) {
         return emptyDetails;

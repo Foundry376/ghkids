@@ -18,6 +18,7 @@ import {
   globalModifyScenario,
   stageVariableModifyScenario,
   stageVariableConditionScenario,
+  commentIgnoredScenario,
 } from "./__tests__/scenarios/basic-scenarios";
 import { collisionScenario, coinCollectionScenario } from "./__tests__/scenarios/multi-actor-scenarios";
 import { chaseGameScenario } from "./__tests__/scenarios/chase-game-scenario";
@@ -125,6 +126,12 @@ describe("world-operator integration", () => {
   describe("transforms", () => {
     it("should set actor transform (rotation)", () => {
       runScenario(transformRotationScenario());
+    });
+  });
+
+  describe("comments", () => {
+    it("should ignore free-standing and attached comments during evaluation", () => {
+      runScenario(commentIgnoredScenario());
     });
   });
 

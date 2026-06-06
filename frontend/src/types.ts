@@ -113,6 +113,7 @@ export type RuleTreeEventItem = {
   code?: number | string; // used for key event (legacy numeric keyCode or codako key name)
   id: string;
   enabled?: boolean;
+  comment?: string;
 };
 
 export type RuleTreeFlowItemCheck = {
@@ -129,6 +130,7 @@ export type RuleTreeFlowItemBase = {
   rules: RuleTreeItem[];
   id: string;
   enabled?: boolean;
+  comment?: string;
 
   check?: RuleTreeFlowItemCheck;
 };
@@ -156,7 +158,18 @@ export type RuleTreeFlowItem =
   | RuleTreeFlowItemAll
   | RuleTreeFlowLoopItem;
 
-export type RuleTreeItem = RuleTreeEventItem | RuleTreeFlowItem | Rule;
+/**
+ * A free-standing comment that lives in a character's rule tree (between rules
+ * or inside a container) purely as an annotation. It is never evaluated by the
+ * simulation engine.
+ */
+export type RuleTreeComment = {
+  type: "comment";
+  id: string;
+  text: string;
+};
+
+export type RuleTreeItem = RuleTreeEventItem | RuleTreeFlowItem | Rule | RuleTreeComment;
 
 export type RuleCondition = {
   key: string;
@@ -193,6 +206,7 @@ export type Rule = {
   id: string;
   name: string;
   enabled?: boolean;
+  comment?: string;
 };
 
 export type Actor = {

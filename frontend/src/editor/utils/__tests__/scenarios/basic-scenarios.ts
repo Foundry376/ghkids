@@ -696,3 +696,40 @@ export function stageVariableConditionScenario(): TestScenario {
     },
   };
 }
+
+export function commentIgnoredScenario(): TestScenario {
+  const charId = "char-1";
+  const actorId = "actor-1";
+
+  const ruleActor = makeActor({ id: "rule-actor", characterId: charId });
+  const rule = makeRule({
+    id: "move-right",
+    mainActorId: "rule-actor",
+    actors: { "rule-actor": ruleActor },
+    actions: [{ type: "move", actorId: "rule-actor", delta: { x: 1, y: 0 } }],
+    // An annotation on a rule must not affect evaluation.
+    comment: "moves the actor to the right",
+  });
+  const idleGroup = makeEventGroup({ id: "idle-group", event: "idle", rules: [rule] });
+  // A free-standing comment sitting among the rules must be skipped entirely.
+  const character = makeCharacter({
+    id: charId,
+    name: "Mover",
+    rules: [{ type: "comment", id: "note-1", text: "this character walks" }, idleGroup],
+  });
+  const characters: Characters = { [charId]: character };
+
+  const stageActor = makeActor({ id: actorId, characterId: charId, position: { x: 2, y: 3 } });
+  const stage = makeStage({ id: "stage-1", actors: { [actorId]: stageActor } });
+  const world = makeWorld({ stage });
+
+  return {
+    name: "should ignore free-standing and attached comments during evaluation",
+    characters,
+    world,
+    frames: 1,
+    assertions: (result) => {
+      expectActorPosition(result, actorId, { x: 3, y: 3 });
+    },
+  };
+}

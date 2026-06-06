@@ -1,5 +1,6 @@
 import React, { useContext, useEffect, useRef, useState } from "react";
 
+import { ContentComment, RuleCommentAnnotation } from "./content-comment";
 import { ContentEventGroup } from "./content-event-group";
 import { ContentFlowGroup } from "./content-flow-group";
 import { ContentRule } from "./content-rule";
@@ -32,8 +33,14 @@ export const RuleList = ({
   character: Character;
   collapsed: boolean;
 }) => {
-  const { onRuleMoved, onRuleReRecord, onRuleDeleted, onRuleStamped } =
-    useContext(RuleActionsContext);
+  const {
+    onRuleMoved,
+    onRuleReRecord,
+    onRuleDeleted,
+    onRuleStamped,
+    onRuleChanged,
+    onCommentInserted,
+  } = useContext(RuleActionsContext);
   const selectedToolId = useEditorSelector((state) => state.ui.selectedToolId);
   const stampToolItem = useEditorSelector((s) => s.ui.stampToolItem);
   const selectedRuleId = useEditorSelector((s) => s.ui.selectedRuleId);
@@ -103,6 +110,24 @@ export const RuleList = ({
   };
 
   const _onRuleClicked = (event: React.MouseEvent<unknown>, rule: RuleTreeItem) => {
+    if (selectedToolId === TOOLS.COMMENT) {
+      event.stopPropagation();
+      if (rule.type !== "comment" && rule.comment === undefined) {
+        onRuleChanged(rule.id, { comment: "" });
+      }
+      if (!event.shiftKey) {
+        dispatch(selectToolId(TOOLS.POINTER));
+      }
+      return;
+    }
+    if (selectedToolId === TOOLS.DISABLE_RULE) {
+      event.stopPropagation();
+      onRuleChanged(rule.id, { enabled: rule.enabled === false });
+      if (!event.shiftKey) {
+        dispatch(selectToolId(TOOLS.POINTER));
+      }
+      return;
+    }
     if (selectedToolId === TOOLS.TRASH) {
       event.stopPropagation();
       onRuleDeleted(rule.id, event);
@@ -188,6 +213,19 @@ export const RuleList = ({
   };
 
   const _onListClick = (event: React.MouseEvent<unknown>) => {
+    if (selectedToolId === TOOLS.COMMENT) {
+      // Only fires for clicks that miss a rule, so reuse the drag drop-index
+      // math to find which gap was clicked and insert a free-standing comment.
+      event.stopPropagation();
+      const dropIndex = _dropIndexForEvent(event);
+      const insertAt =
+        dropIndex === undefined || dropIndex < 0 ? rules.length : Math.min(dropIndex, rules.length);
+      onCommentInserted(parentId, insertAt);
+      if (!event.shiftKey) {
+        dispatch(selectToolId(TOOLS.POINTER));
+      }
+      return;
+    }
     if (selectedToolId === TOOLS.STAMP && stampToolItem && "ruleId" in stampToolItem) {
       const dropIndex = _dropIndexForEvent(event);
       if (dropIndex === undefined || dropIndex === -1) {
@@ -230,10 +268,15 @@ export const RuleList = ({
         onMouseOver={(event) => _onMouseOver(event, r)}
         onMouseOut={(event) => _onMouseOut(event)}
       >
+        {r.type !== "comment" && r.comment !== undefined && (
+          <RuleCommentAnnotation ruleId={r.id} text={r.comment} />
+        )}
         {r.type === CONTAINER_TYPES.EVENT ? (
           <ContentEventGroup rule={r} character={character} />
         ) : r.type === CONTAINER_TYPES.FLOW ? (
           <ContentFlowGroup rule={r} character={character} />
+        ) : r.type === "comment" ? (
+          <ContentComment comment={r} />
         ) : (
           <ContentRule rule={r} />
         )}
