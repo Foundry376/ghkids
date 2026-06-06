@@ -64,11 +64,8 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
   let frameAccumulator: FrameAccumulator;
   let crossStageActorsForDestStage: { [destStageId: string]: { [actorId: string]: Actor } } = {};
 
-  // A "repeat N times" loop whose iterations were cut short because a rule
-  // was blocked (e.g. the square ahead was occupied) registers a continuation
-  // here. The settle loop in tick() runs these after the main pass so the loop
-  // can finish its remaining cycles once the board changes — without re-running
-  // the actor's other rules. Cleared at the start of each tick.
+  // Loops blocked partway through register a continuation here; the settle loop
+  // in tick() runs them so they can finish once the board changes. Per tick.
   let loopContinuations = new Map<string, () => boolean>();
 
   // Built once per tick/resetForRule. Members are references to the mutable
@@ -181,9 +178,7 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
       | Character;
 
     function tickRulesTree(struct: RuleTreeContainer): boolean {
-      // "Repeat N times" loops get resumable handling (see runLoopContainer) so
-      // a loop cut short by a blocked square can finish its remaining cycles
-      // later this tick, once another actor moves out of the way.
+      // Loops are resumable (see runLoopContainer); everything else is one pass.
       if ("behavior" in struct && struct.behavior === FLOW_BEHAVIORS.LOOP) {
         return runLoopContainer(struct);
       }
@@ -239,13 +234,10 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
       return 1;
     }
 
-    // Run a loop body for up to `max` iterations, applying the first matching
-    // rule each iteration. Returns how many iterations actually applied a rule.
-    //
-    // We stop at the first iteration that applies nothing: between iterations
-    // only this actor's own actions change the board, so a fully-blocked
-    // iteration means every later one would be blocked too *at this moment*.
-    // That blocked tail is exactly what a settle pass can pick up later.
+    // Apply the loop's first matching rule up to `max` times; return how many
+    // applied. Stops at the first iteration that applies nothing: only this
+    // actor's own actions change the board between iterations, so once an
+    // iteration is fully blocked every later one is too (until a settle pass).
     function runLoopIterations(struct: RuleTreeFlowLoopItem, max: number): number {
       const rules = [...struct.rules];
       let applied = 0;
@@ -268,13 +260,10 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
       return applied;
     }
 
-    // Evaluate a "repeat N times" loop for the first time this tick. If it
-    // applies at least one iteration but is then blocked before finishing, it
-    // is the "winning" branch of its parent (it passed) yet still has unfulfilled
-    // work, so we register a continuation that can run the *remaining* cycles
-    // later — see scheduleLoopContinuation. A loop that applies zero iterations
-    // simply lost to its siblings and is not resumed (resuming it could fire a
-    // branch the parent's flow control already decided against).
+    // Run a loop's first pass. A loop blocked partway gets a continuation for
+    // its remaining cycles. One that applied zero iterations is not resumed: it
+    // lost its parent's flow-control decision, so reviving it later could fire a
+    // branch the flow already rejected.
     function runLoopContainer(struct: RuleTreeFlowLoopItem): boolean {
       const target = loopIterationCount(struct);
       const applied = runLoopIterations(struct, target);
@@ -287,11 +276,9 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
       return applied >= 1;
     }
 
-    // Register (or clear) the ability to resume `struct` for `remaining` more
-    // iterations. The remaining count is carried in the closure rather than in
-    // shared state — each resume re-runs just this loop with a smaller max, and
-    // re-schedules itself with whatever is still left. The continuation only
-    // touches this one loop, so it can never re-fire the actor's other rules.
+    // Schedule a resume of just this loop for `remaining` cycles, carrying the
+    // count in the closure. Touching only the one loop means a resume can never
+    // re-fire the actor's other rules; each resume re-schedules whatever's left.
     function scheduleLoopContinuation(struct: RuleTreeFlowLoopItem, remaining: number) {
       const key = `${me.id}:${struct.id}`;
       if (remaining <= 0) {
@@ -942,9 +929,8 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
     crossStageActorsForDestStage = {};
     loopContinuations = new Map();
 
-    // Each actor is evaluated once, in stage order. We track which actors
-    // applied at least one rule this tick ("acted") so the settle passes
-    // below can leave them alone.
+    // Main pass: evaluate each actor once, in stage order. `acted` records who
+    // applied a rule so the settle passes below don't re-run them.
     const initialActorIds = Object.keys(actors);
     const acted = new Set<string>();
     const visit = (id: string): boolean => {
@@ -961,28 +947,16 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
 
     initialActorIds.forEach((id) => visit(id));
 
-    // Settle passes: actors that haven't acted yet get another chance to
-    // react to the board *after* everyone else has moved — most importantly,
-    // to step into a square that another actor just vacated this tick.
-    // Without this, whether a line of followers keeps its spacing depends on
-    // the (essentially arbitrary) order in which actors are visited.
+    // Settle passes make the result independent of visit order — without them,
+    // whether a follower keeps pace with the actor ahead depends on who is
+    // visited first. Each pass gives unfinished work a second chance against the
+    // now-current board: idle actors re-run their whole tree (e.g. to step into
+    // a just-vacated square), and cut-short loops resume their remaining cycles.
     //
-    // `acted` is sticky for the whole tick, so each actor acts at most once.
-    // That (a) guarantees termination — the acted set only ever grows and is
-    // bounded by the actor count — and (b) preserves spacing: a train of
-    // followers shifts by exactly one square per tick regardless of order.
-    //
-    // Only actors present at the start of the tick are revisited; actors
-    // created mid-tick still wait until the next tick to act, matching the
-    // main pass. We skip settling entirely when nothing moved, since an
-    // unchanged board cannot newly satisfy any rule.
-    //
-    // Two kinds of unfinished work get a second chance each pass:
-    //   1. Idle actors (never acted) re-run their whole rule tree, e.g. to step
-    //      into a square another actor just vacated.
-    //   2. Loops that acted but were cut short resume their remaining cycles
-    //      via the registered continuations — without re-running the actor's
-    //      other rules, so a sibling rule can't fire twice.
+    // Both forms of progress are monotonic — `acted` only grows and loop
+    // `remaining` only shrinks — so this terminates, and each actor still acts
+    // at most once (a train shifts one square per tick). Actors created mid-tick
+    // are not revisited; they wait for the next tick like the main pass.
     let changed = acted.size > 0 || loopContinuations.size > 0;
     while (changed) {
       changed = false;
@@ -995,7 +969,7 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
         }
       }
       // Snapshot: a resume may delete itself, and an idle revisit above may add
-      // a new continuation (picked up on the next pass since `changed` is set).
+      // a new continuation (handled next pass, since `changed` is set).
       for (const resume of [...loopContinuations.values()]) {
         if (resume()) {
           changed = true;

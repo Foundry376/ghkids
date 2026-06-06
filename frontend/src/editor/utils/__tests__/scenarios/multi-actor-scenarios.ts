@@ -123,18 +123,15 @@ export function coinCollectionScenario(): TestScenario {
 // ============================================================================
 // Order-independence ("settle") scenarios
 //
-// These exercise the settle passes in the world operator: an actor that is
-// blocked because a neighbour hasn't moved yet should still get to move once
-// that neighbour vacates the square, regardless of the order actors happen to
-// be visited in. The canonical case is a "train" of followers that should
-// preserve their spacing (each shifts by one) rather than bunching up.
+// An actor blocked only because a neighbour hasn't moved yet should still move
+// once that neighbour vacates, regardless of visit order. The canonical case is
+// a "train" of followers that keeps its spacing rather than bunching up.
 // ============================================================================
 
 /**
- * A character whose only rule is "move one square left if the square to my
- * left is empty". The empty requirement is expressed by extending the rule's
- * extent to cover the (-1, 0) square with no rule actor there, so the square
- * must contain zero stage actors for the rule to match.
+ * A character that moves one square left if that square is empty. The empty
+ * requirement comes from covering (-1, 0) in the extent with no rule actor
+ * there, so the rule matches only when zero stage actors occupy it.
  */
 function makeMoveLeftIfEmptyCharacter(charId: string): Character {
   const ruleActor = makeActor({ id: "self", characterId: charId, position: { x: 0, y: 0 } });
@@ -284,13 +281,10 @@ function makeLoopingMoveLeftCharacter(charId: string, count: number): Character 
 }
 
 /**
- * Scenario: a "dasher" loops up to three left-moves in a single tick, but a
- * one-step blocker sits in its path. Visiting the dasher first means its loop
- * is interrupted after the moves it can make immediately; once the blocker
- * vacates, the loop must resume *the same tick* and use its remaining cycles.
- *
- * Without resumable loops the dasher would stop one square short (the blocked
- * iterations would be silently discarded), so this pins the new behaviour.
+ * A "dasher" loops up to three left-moves per tick, with a one-step blocker in
+ * its path. Visiting the dasher first interrupts its loop; once the blocker
+ * steps aside during settling, the loop must resume its remaining cycles the
+ * same tick. Without resumable loops the dasher stalls one square short.
  */
 export function interruptedLoopResumesScenario(): TestScenario {
   const dasherCharId = "char-dasher";
