@@ -113,7 +113,7 @@ export type RuleTreeEventItem = {
   code?: number | string; // used for key event (legacy numeric keyCode or codako key name)
   id: string;
   enabled?: boolean;
-  comment?: string; // optional author note attached to this item
+  comment?: string;
 };
 
 export type RuleTreeFlowItemCheck = {
@@ -130,7 +130,7 @@ export type RuleTreeFlowItemBase = {
   rules: RuleTreeItem[];
   id: string;
   enabled?: boolean;
-  comment?: string; // optional author note attached to this item
+  comment?: string;
 
   check?: RuleTreeFlowItemCheck;
 };
@@ -206,7 +206,7 @@ export type Rule = {
   id: string;
   name: string;
   enabled?: boolean;
-  comment?: string; // optional author note attached to this rule
+  comment?: string;
 };
 
 export type Actor = {

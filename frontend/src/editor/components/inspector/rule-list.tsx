@@ -112,22 +112,17 @@ export const RuleList = ({
   const _onRuleClicked = (event: React.MouseEvent<unknown>, rule: RuleTreeItem) => {
     if (selectedToolId === TOOLS.COMMENT) {
       event.stopPropagation();
-      // Clicking a rule attaches an (empty, focused) comment annotation. If it
-      // already has one — or it's itself a free-standing comment — do nothing.
       if (rule.type !== "comment" && rule.comment === undefined) {
         onRuleChanged(rule.id, { comment: "" });
       }
-      // One-shot: revert to the pointer unless Shift is held to keep commenting.
       if (!event.shiftKey) {
         dispatch(selectToolId(TOOLS.POINTER));
       }
       return;
     }
     if (selectedToolId === TOOLS.DISABLE_RULE) {
-      // Clicking a rule (or container) flips whether it's enabled.
       event.stopPropagation();
       onRuleChanged(rule.id, { enabled: rule.enabled === false });
-      // One-shot: revert to the pointer unless Shift is held to keep toggling.
       if (!event.shiftKey) {
         dispatch(selectToolId(TOOLS.POINTER));
       }
@@ -219,14 +214,13 @@ export const RuleList = ({
 
   const _onListClick = (event: React.MouseEvent<unknown>) => {
     if (selectedToolId === TOOLS.COMMENT) {
-      // Clicks land here only when they miss a rule (clicks on a rule are
-      // stopped in _onRuleClicked). Drop a free-standing comment at that gap.
+      // Only fires for clicks that miss a rule, so reuse the drag drop-index
+      // math to find which gap was clicked and insert a free-standing comment.
       event.stopPropagation();
       const dropIndex = _dropIndexForEvent(event);
       const insertAt =
         dropIndex === undefined || dropIndex < 0 ? rules.length : Math.min(dropIndex, rules.length);
       onCommentInserted(parentId, insertAt);
-      // One-shot: revert to the pointer unless Shift is held to keep commenting.
       if (!event.shiftKey) {
         dispatch(selectToolId(TOOLS.POINTER));
       }

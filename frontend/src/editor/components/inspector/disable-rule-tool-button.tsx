@@ -6,9 +6,7 @@ import { useEditorSelector } from "../../../hooks/redux";
 import { selectToolId } from "../../actions/ui-actions";
 import { TOOLS } from "../../constants/constants";
 
-// A tool local to the rules sidebar. While active, clicking a rule toggles
-// whether it's enabled — letting you quickly mute/unmute rules without opening
-// each one. Clicking the button again (or picking another tool) exits the mode.
+// Toggles the rules-sidebar-local "disable rule" tool on and off.
 const DisableRuleToolButton = ({ disabled }: { disabled: boolean }) => {
   const dispatch = useDispatch();
   const selectedToolId = useEditorSelector((state) => state.ui.selectedToolId);
