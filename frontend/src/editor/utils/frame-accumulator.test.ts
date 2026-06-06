@@ -132,6 +132,63 @@ describe("FrameAccumulator", () => {
       expect(frames[2].actors["actor2"].position.x).to.equal(6);
     });
 
+    it("should spread changes evenly across a shared LCM timeline", () => {
+      const actors = {
+        actor1: makeActor("actor1", 0, 0),
+        actor2: makeActor("actor2", 5, 5),
+      };
+      const accumulator = new FrameAccumulator(actors);
+
+      // actor1 has 3 changes, actor2 has 2 changes. To deliver each actor's
+      // changes at multiples of its own transition duration, the timeline must
+      // be lcm(3, 2) = 6 frames long. actor1 lands on slots 0/2/4 and actor2 on
+      // slots 0/3 (so actor2's second move starts exactly halfway, when its
+      // first 500ms-equivalent transition would complete).
+      accumulator.push({ ...makeActor("actor1", 1, 0), actionIdx: 0 });
+      accumulator.push({ ...makeActor("actor1", 2, 0), actionIdx: 1 });
+      accumulator.push({ ...makeActor("actor1", 3, 0), actionIdx: 2 });
+      accumulator.push({ ...makeActor("actor2", 6, 5), actionIdx: 0 });
+      accumulator.push({ ...makeActor("actor2", 7, 5), actionIdx: 1 });
+
+      const frames = accumulator.getFrames();
+      expect(frames).to.have.length(6);
+
+      // actor1 advances on slots 0, 2, 4; holds its value on the slots between.
+      const actor1Xs = frames.map((f) => f.actors["actor1"].position.x);
+      expect(actor1Xs).to.deep.equal([1, 1, 2, 2, 3, 3]);
+
+      // actor2 advances on slots 0 and 3, holding otherwise.
+      const actor2Xs = frames.map((f) => f.actors["actor2"].position.x);
+      expect(actor2Xs).to.deep.equal([6, 6, 6, 7, 7, 7]);
+
+      // frameCount stays per-actor so the CSS transition duration matches each
+      // actor's own change count, not the shared timeline length.
+      expect(frames[0].actors["actor1"].frameCount).to.equal(3);
+      expect(frames[0].actors["actor2"].frameCount).to.equal(2);
+    });
+
+    it("should cap the shared timeline length", () => {
+      const actors = {
+        actor1: makeActor("actor1", 0, 0),
+        actor2: makeActor("actor2", 5, 5),
+      };
+      const accumulator = new FrameAccumulator(actors);
+
+      // lcm(97, 89) = 8633, far above the cap. We fall back to rounded slots.
+      for (let i = 0; i < 97; i++) {
+        accumulator.push({ ...makeActor("actor1", i + 1, 0), actionIdx: i });
+      }
+      for (let i = 0; i < 89; i++) {
+        accumulator.push({ ...makeActor("actor2", i + 6, 5), actionIdx: i });
+      }
+
+      const frames = accumulator.getFrames();
+      expect(frames).to.have.length(100);
+      // frameCount still reflects each actor's true change count.
+      expect(frames[0].actors["actor1"].frameCount).to.equal(97);
+      expect(frames[0].actors["actor2"].frameCount).to.equal(89);
+    });
+
     it("should handle deleted actors", () => {
       const actors = { actor1: makeActor("actor1", 0, 0) };
       const accumulator = new FrameAccumulator(actors);
