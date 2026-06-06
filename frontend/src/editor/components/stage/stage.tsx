@@ -82,6 +82,12 @@ interface StageProps {
    */
   interactionMode?: "full" | "selectable";
   immersive?: boolean;
+  /**
+   * True while a tick's sub-frames are actively being played (during playback
+   * or a single step). Enables actor movement transitions even when playback is
+   * stopped, so a single-stepped tick glides while direct manipulation snaps.
+   */
+  animatingTick?: boolean;
   style?: CSSProperties;
   /**
    * Door actors on other stages whose destination points to this stage.
@@ -273,6 +279,7 @@ export const Stage = ({
   world,
   interactionMode = "full",
   style,
+  animatingTick,
   doorsPointingHere,
 }: StageProps) => {
   const stageWidth = getStageWidth(stage);
@@ -1386,7 +1393,9 @@ export const Stage = ({
       ref={(e) => (scrollEl.current = e)}
       data-stage-wrap-id={world.id}
       data-stage-zoom={scale}
-      className={`stage-scroll-wrap tool-supported running-${playback.running}`}
+      className={`stage-scroll-wrap tool-supported running-${playback.running}${
+        playback.running || animatingTick ? " animations-enabled" : ""
+      }`}
     >
       <div
         ref={(e) => (el.current = e)}

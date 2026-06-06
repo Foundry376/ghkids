@@ -363,15 +363,18 @@ html {
 
       &.running-true {
         box-shadow: 0 0 0 4px $tint-color;
-        .animated {
-          transition-timing-function: linear;
-          transition-property: bottom, left;
-        }
       }
-      &.running-false {
-        .animated {
-          transition-property: none;
-        }
+      // A single `animations-enabled` class is the one switch that turns on
+      // actor movement animation. StageContainer applies it while playing or
+      // while a single-stepped tick's sub-frames play out. Without it, actor
+      // position changes come from direct manipulation (dragging/placing
+      // actors) and must snap instantly rather than glide to the destination.
+      .animated {
+        transition-property: none;
+      }
+      &.animations-enabled .animated {
+        transition-timing-function: linear;
+        transition-property: bottom, left;
       }
 
       .stage {

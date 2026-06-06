@@ -161,6 +161,11 @@ const StageContainer = ({ readonly, immersive }: { readonly?: boolean; immersive
    */
   const stage = getCurrentStageForWorld(world)!;
   const [current, setCurrent] = useState<{ stage: Types.Stage; frameId?: number }>({ stage });
+  // True only while we're actively stepping through a tick's sub-frames (either
+  // playing or single-stepping). Movement transitions on actors are CSS-gated to
+  // this so that direct manipulation while stopped (dragging/placing actors)
+  // snaps instantly, while a played or single-stepped tick still glides.
+  const [animatingTick, setAnimatingTick] = useState(false);
   const intervalRef = useRef<number>();
   const wasRunningRef = useRef(playback.running);
 
@@ -187,6 +192,7 @@ const StageContainer = ({ readonly, immersive }: { readonly?: boolean; immersive
       // rather than coasting through the rest of the current tick's animation.
       if (justStopped) {
         clearTimeout(intervalRef.current);
+        setAnimatingTick(false);
         setCurrent({ stage, frameId: frames[frames.length - 1]?.id });
       } else {
         const setNext = () => {
@@ -194,9 +200,17 @@ const StageContainer = ({ readonly, immersive }: { readonly?: boolean; immersive
             const nextIdx = frames.findIndex((f) => current.frameId === f.id) + 1;
             const frame = frames[nextIdx] || null;
             if (!frame) {
+              // No more sub-frames to deliver. This also covers re-runs caused
+              // by direct manipulation (e.g. dragging an actor while stopped),
+              // which carry the same, already-finished frames — so movement
+              // transitions stay off and the manipulation snaps instantly.
               clearTimeout(intervalRef.current);
+              setAnimatingTick(false);
               return { stage, frameId: current.frameId };
             }
+            // A sub-frame is being delivered, so we're mid-tick: enable actor
+            // movement transitions even if playback is stopped (single step).
+            setAnimatingTick(true);
             return { stage: { ...stage, actors: frame.actors }, frameId: frame.id };
           });
         };
@@ -206,13 +220,14 @@ const StageContainer = ({ readonly, immersive }: { readonly?: boolean; immersive
         // Drive sub-frames at the same cadence whether playing or single-
         // stepping: an actor's CSS transition lasts `speed / frameCount`, which
         // only lines up with delivery when sub-frames arrive every
-        // `speed / frames.length` ms. Using a fixed rate while stopped made each
+        // `speed / frames.length` ms. A fixed rate while stopped made each
         // transition finish early and the actor sit still between sub-frames, so
-        // a single step "teleported" through the spaced-out frames with no glide.
+        // a single step "teleported" through the frames with no glide.
         const framerate = playback.speed / frames.length;
         intervalRef.current = setInterval(setNext, framerate);
       }
     } else {
+      setAnimatingTick(false);
       setCurrent({ stage });
     }
 
@@ -231,6 +246,7 @@ const StageContainer = ({ readonly, immersive }: { readonly?: boolean; immersive
               stage={current.stage}
               interactionMode={readonly ? "selectable" : "full"}
               immersive={immersive}
+              animatingTick={animatingTick}
               doorsPointingHere={incomingDoors}
             />
           )}
