@@ -23,7 +23,7 @@ const CommentToolButton = ({ disabled }: { disabled: boolean }) => {
     <Button
       className={classNames("inspector-subnav-tool", { selected: active })}
       disabled={disabled}
-      title="Add a comment — click a rule to annotate it, or click between rules to drop a note"
+      title="Add a comment — click a rule to annotate it, or click between rules to drop a note (hold Shift to add several)"
       onClick={_onToggle}
     >
       <i className="fa fa-comment-o" />

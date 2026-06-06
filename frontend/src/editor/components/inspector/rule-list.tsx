@@ -117,13 +117,20 @@ export const RuleList = ({
       if (rule.type !== "comment" && rule.comment === undefined) {
         onRuleChanged(rule.id, { comment: "" });
       }
+      // One-shot: revert to the pointer unless Shift is held to keep commenting.
+      if (!event.shiftKey) {
+        dispatch(selectToolId(TOOLS.POINTER));
+      }
       return;
     }
     if (selectedToolId === TOOLS.DISABLE_RULE) {
-      // Clicking a rule (or container) flips whether it's enabled. Stay in the
-      // tool so several rules can be toggled in a row.
+      // Clicking a rule (or container) flips whether it's enabled.
       event.stopPropagation();
       onRuleChanged(rule.id, { enabled: rule.enabled === false });
+      // One-shot: revert to the pointer unless Shift is held to keep toggling.
+      if (!event.shiftKey) {
+        dispatch(selectToolId(TOOLS.POINTER));
+      }
       return;
     }
     if (selectedToolId === TOOLS.TRASH) {
@@ -219,6 +226,10 @@ export const RuleList = ({
       const insertAt =
         dropIndex === undefined || dropIndex < 0 ? rules.length : Math.min(dropIndex, rules.length);
       onCommentInserted(parentId, insertAt);
+      // One-shot: revert to the pointer unless Shift is held to keep commenting.
+      if (!event.shiftKey) {
+        dispatch(selectToolId(TOOLS.POINTER));
+      }
       return;
     }
     if (selectedToolId === TOOLS.STAMP && stampToolItem && "ruleId" in stampToolItem) {

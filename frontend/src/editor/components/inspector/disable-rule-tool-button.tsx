@@ -22,7 +22,7 @@ const DisableRuleToolButton = ({ disabled }: { disabled: boolean }) => {
     <Button
       className={classNames("inspector-subnav-tool", { selected: active })}
       disabled={disabled}
-      title="Toggle rules on or off by clicking them"
+      title="Toggle rules on or off by clicking them (hold Shift to toggle several)"
       onClick={_onToggle}
     >
       <i className="fa fa-ban" />
