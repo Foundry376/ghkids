@@ -381,6 +381,21 @@ export const Stage = ({
 
   useGlobalHeldKeys(world.id, playback.running);
 
+  // When playback stops, remount the actor sprites so any in-flight CSS
+  // transitions snap straight to their final positions instead of coasting
+  // to a halt. Sprites are stateless, so remounting is cheap and loses no
+  // state (unlike remounting the whole stage, which would reset scroll,
+  // focus and zoom). The transition duration stays set otherwise, so
+  // single-stepping the paused game still animates one frame forward.
+  const [stoppedGeneration, setStoppedGeneration] = useState(0);
+  const wasRunningRef = useRef(playback.running);
+  useEffect(() => {
+    if (wasRunningRef.current && !playback.running) {
+      setStoppedGeneration((g) => g + 1);
+    }
+    wasRunningRef.current = playback.running;
+  }, [playback.running]);
+
   // Helpers
 
   const selFor = (actorIds: string[]) => {
@@ -1342,7 +1357,7 @@ export const Stage = ({
     const zIndex = characterZOrder.indexOf(actor.characterId);
     return (
       <ActorSprite
-        key={actor.id}
+        key={`${actor.id}::${stoppedGeneration}`}
         selected={selected.includes(actor)}
         zIndex={zIndex >= 0 ? zIndex : undefined}
         onMouseUp={(event) => onMouseUpActor(actor, event)}
