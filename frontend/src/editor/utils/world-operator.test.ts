@@ -25,6 +25,7 @@ import {
   trainFollowerVisitedFirstScenario,
   trainLeaderVisitedFirstScenario,
   longTrainScenario,
+  interruptedLoopResumesScenario,
 } from "./__tests__/scenarios/multi-actor-scenarios";
 import { chaseGameScenario } from "./__tests__/scenarios/chase-game-scenario";
 import { scoreAccumulationScenario } from "./__tests__/scenarios/score-game-scenario";
@@ -139,6 +140,10 @@ describe("world-operator integration", () => {
 
     it("ripples a long train by one square per tick regardless of visit order", () => {
       runScenario(longTrainScenario());
+    });
+
+    it("resumes an interrupted loop's remaining cycles within the same tick", () => {
+      runScenario(interruptedLoopResumesScenario());
     });
   });
 

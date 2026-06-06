@@ -64,6 +64,13 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
   let frameAccumulator: FrameAccumulator;
   let crossStageActorsForDestStage: { [destStageId: string]: { [actorId: string]: Actor } } = {};
 
+  // A "repeat N times" loop whose iterations were cut short because a rule
+  // was blocked (e.g. the square ahead was occupied) registers a continuation
+  // here. The settle loop in tick() runs these after the main pass so the loop
+  // can finish its remaining cycles once the board changes — without re-running
+  // the actor's other rules. Cleared at the start of each tick.
+  let loopContinuations = new Map<string, () => boolean>();
+
   // Built once per tick/resetForRule. Members are references to the mutable
   // closure state above, so in-place mutations during applyRule are visible
   // through ctx without rebuilding it.
@@ -165,66 +172,144 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
       return tickRulesTree(struct);
     }
 
-    function tickRulesTree(
-      struct:
-        | RuleTreeFlowItemFirst
-        | RuleTreeFlowItemRandom
-        | RuleTreeFlowItemAll
-        | RuleTreeFlowLoopItem
-        | RuleTreeEventItem
-        | Character,
-    ) {
-      let rules = [...struct.rules];
+    type RuleTreeContainer =
+      | RuleTreeFlowItemFirst
+      | RuleTreeFlowItemRandom
+      | RuleTreeFlowItemAll
+      | RuleTreeFlowLoopItem
+      | RuleTreeEventItem
+      | Character;
 
+    function tickRulesTree(struct: RuleTreeContainer): boolean {
+      // "Repeat N times" loops get resumable handling (see runLoopContainer) so
+      // a loop cut short by a blocked square can finish its remaining cycles
+      // later this tick, once another actor moves out of the way.
+      if ("behavior" in struct && struct.behavior === FLOW_BEHAVIORS.LOOP) {
+        return runLoopContainer(struct);
+      }
+
+      let rules = [...struct.rules];
       if ("behavior" in struct && struct.behavior === FLOW_BEHAVIORS.RANDOM) {
         rules = shuffleArray(rules);
       }
-
-      // perf note: avoid creating empty evaluatedRuleDetails entries if no rules are evaluated
-      let iterations = 1;
-      if ("behavior" in struct && struct.behavior === FLOW_BEHAVIORS.LOOP) {
-        if ("constant" in struct.loopCount && struct.loopCount.constant) {
-          iterations = struct.loopCount.constant;
-        }
-        if ("variableId" in struct.loopCount && struct.loopCount.variableId) {
-          const actor = actors[me.id];
-          const character = characters[actor.characterId];
-          iterations = Number(
-            getVariableValue(actor, character, struct.loopCount.variableId, "=") ?? "0",
-          );
-        }
-      }
+      const isAll = "behavior" in struct && struct.behavior === FLOW_BEHAVIORS.ALL;
 
       let anyApplied = false;
-      for (let ii = 0; ii < iterations; ii++) {
-        for (const rule of rules) {
-          const details = tickRule(rule);
+      for (const rule of rules) {
+        const details = tickRule(rule);
 
-          // Store details for this rule - always update to avoid stale data
-          evaluatedRuleDetails[me.id] = evaluatedRuleDetails[me.id] || {};
-          evaluatedRuleDetails[me.id][rule.id] = details;
+        // Store details for this rule - always update to avoid stale data
+        evaluatedRuleDetails[me.id] = evaluatedRuleDetails[me.id] || {};
+        evaluatedRuleDetails[me.id][rule.id] = details;
 
-          if (details.passed) {
-            anyApplied = true;
-          }
-          if (details.passed && !("behavior" in struct && struct.behavior === FLOW_BEHAVIORS.ALL)) {
-            break;
-          }
+        if (details.passed) {
+          anyApplied = true;
+        }
+        if (details.passed && !isAll) {
+          break;
         }
       }
 
-      // Store container-level details (simplified - just tracks if any child passed)
+      recordContainerDetails(struct, anyApplied);
+      return anyApplied;
+    }
+
+    // Store container-level details (simplified - just tracks if any child passed)
+    function recordContainerDetails(struct: RuleTreeContainer, passed: boolean) {
       if ("id" in struct) {
         evaluatedRuleDetails[me.id] = evaluatedRuleDetails[me.id] || {};
         evaluatedRuleDetails[me.id][struct.id] = {
-          passed: anyApplied,
+          passed,
           conditions: [],
           squares: [],
           matchedActors: {},
         };
       }
+    }
 
-      return anyApplied;
+    function loopIterationCount(struct: RuleTreeFlowLoopItem): number {
+      if ("constant" in struct.loopCount && struct.loopCount.constant) {
+        return struct.loopCount.constant;
+      }
+      if ("variableId" in struct.loopCount && struct.loopCount.variableId) {
+        const actor = actors[me.id];
+        const character = characters[actor.characterId];
+        return Number(getVariableValue(actor, character, struct.loopCount.variableId, "=") ?? "0");
+      }
+      return 1;
+    }
+
+    // Run a loop body for up to `max` iterations, applying the first matching
+    // rule each iteration. Returns how many iterations actually applied a rule.
+    //
+    // We stop at the first iteration that applies nothing: between iterations
+    // only this actor's own actions change the board, so a fully-blocked
+    // iteration means every later one would be blocked too *at this moment*.
+    // That blocked tail is exactly what a settle pass can pick up later.
+    function runLoopIterations(struct: RuleTreeFlowLoopItem, max: number): number {
+      const rules = [...struct.rules];
+      let applied = 0;
+      while (applied < max) {
+        let iterationApplied = false;
+        for (const rule of rules) {
+          const details = tickRule(rule);
+          evaluatedRuleDetails[me.id] = evaluatedRuleDetails[me.id] || {};
+          evaluatedRuleDetails[me.id][rule.id] = details;
+          if (details.passed) {
+            iterationApplied = true;
+            break; // a loop applies its first matching rule per iteration
+          }
+        }
+        if (!iterationApplied) {
+          break;
+        }
+        applied += 1;
+      }
+      return applied;
+    }
+
+    // Evaluate a "repeat N times" loop for the first time this tick. If it
+    // applies at least one iteration but is then blocked before finishing, it
+    // is the "winning" branch of its parent (it passed) yet still has unfulfilled
+    // work, so we register a continuation that can run the *remaining* cycles
+    // later — see scheduleLoopContinuation. A loop that applies zero iterations
+    // simply lost to its siblings and is not resumed (resuming it could fire a
+    // branch the parent's flow control already decided against).
+    function runLoopContainer(struct: RuleTreeFlowLoopItem): boolean {
+      const target = loopIterationCount(struct);
+      const applied = runLoopIterations(struct, target);
+      if (applied >= 1) {
+        scheduleLoopContinuation(struct, target - applied);
+      } else {
+        loopContinuations.delete(`${me.id}:${struct.id}`);
+      }
+      recordContainerDetails(struct, applied >= 1);
+      return applied >= 1;
+    }
+
+    // Register (or clear) the ability to resume `struct` for `remaining` more
+    // iterations. The remaining count is carried in the closure rather than in
+    // shared state — each resume re-runs just this loop with a smaller max, and
+    // re-schedules itself with whatever is still left. The continuation only
+    // touches this one loop, so it can never re-fire the actor's other rules.
+    function scheduleLoopContinuation(struct: RuleTreeFlowLoopItem, remaining: number) {
+      const key = `${me.id}:${struct.id}`;
+      if (remaining <= 0) {
+        loopContinuations.delete(key);
+        return;
+      }
+      loopContinuations.set(key, () => {
+        if (!actors[me.id]) {
+          loopContinuations.delete(key);
+          return false; // actor was deleted since the loop last ran
+        }
+        const applied = runLoopIterations(struct, remaining);
+        scheduleLoopContinuation(struct, remaining - applied);
+        if (applied >= 1) {
+          recordContainerDetails(struct, true);
+        }
+        return applied >= 1;
+      });
     }
 
     function tickRule(rule: RuleTreeItem): EvaluatedRuleDetails {
@@ -855,6 +940,7 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
     frameAccumulator = new FrameAccumulator(stage.actors);
     evaluatedRuleDetails = {};
     crossStageActorsForDestStage = {};
+    loopContinuations = new Map();
 
     // Each actor is evaluated once, in stage order. We track which actors
     // applied at least one rule this tick ("acted") so the settle passes
@@ -890,7 +976,14 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
     // created mid-tick still wait until the next tick to act, matching the
     // main pass. We skip settling entirely when nothing moved, since an
     // unchanged board cannot newly satisfy any rule.
-    let changed = acted.size > 0;
+    //
+    // Two kinds of unfinished work get a second chance each pass:
+    //   1. Idle actors (never acted) re-run their whole rule tree, e.g. to step
+    //      into a square another actor just vacated.
+    //   2. Loops that acted but were cut short resume their remaining cycles
+    //      via the registered continuations — without re-running the actor's
+    //      other rules, so a sibling rule can't fire twice.
+    let changed = acted.size > 0 || loopContinuations.size > 0;
     while (changed) {
       changed = false;
       for (const id of initialActorIds) {
@@ -898,6 +991,13 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
           continue;
         }
         if (visit(id)) {
+          changed = true;
+        }
+      }
+      // Snapshot: a resume may delete itself, and an idle revisit above may add
+      // a new continuation (picked up on the next pass since `changed` is set).
+      for (const resume of [...loopContinuations.values()]) {
+        if (resume()) {
           changed = true;
         }
       }

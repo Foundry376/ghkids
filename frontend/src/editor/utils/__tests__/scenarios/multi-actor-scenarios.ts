@@ -2,7 +2,7 @@
  * Multi-actor interaction scenarios including collisions and interactions between different actors.
  */
 
-import { Character, Characters } from "../../../../types";
+import { Character, Characters, RuleTreeFlowLoopItem } from "../../../../types";
 import {
   makeActor,
   makeCharacter,
@@ -253,6 +253,79 @@ export function longTrainScenario(): TestScenario {
       expectActorPosition(result, aId, { x: 1, y: 1 });
       expectActorPosition(result, bId, { x: 2, y: 1 });
       expectActorPosition(result, cId, { x: 3, y: 1 });
+    },
+  };
+}
+
+/**
+ * A character that runs a `loop` of "move one square left if empty" up to
+ * `count` times per tick. This is the multi-step-per-tick analogue of the
+ * single-step walker above.
+ */
+function makeLoopingMoveLeftCharacter(charId: string, count: number): Character {
+  const ruleActor = makeActor({ id: "self", characterId: charId, position: { x: 0, y: 0 } });
+  const moveRule = makeRule({
+    id: "move-left-if-empty",
+    mainActorId: "self",
+    actors: { self: ruleActor },
+    actions: [{ type: "move", actorId: "self", delta: { x: -1, y: 0 } }],
+    extent: makeExtent({ xmin: -1, xmax: 0, ymin: 0, ymax: 0 }),
+  });
+  const loopGroup: RuleTreeFlowLoopItem = {
+    type: "group-flow",
+    id: "loop-group",
+    name: "Move several times",
+    behavior: "loop",
+    loopCount: { constant: count },
+    rules: [moveRule],
+  };
+  const idleGroup = makeEventGroup({ id: "idle-group", event: "idle", rules: [loopGroup] });
+  return makeCharacter({ id: charId, name: "Dasher", rules: [idleGroup] });
+}
+
+/**
+ * Scenario: a "dasher" loops up to three left-moves in a single tick, but a
+ * one-step blocker sits in its path. Visiting the dasher first means its loop
+ * is interrupted after the moves it can make immediately; once the blocker
+ * vacates, the loop must resume *the same tick* and use its remaining cycles.
+ *
+ * Without resumable loops the dasher would stop one square short (the blocked
+ * iterations would be silently discarded), so this pins the new behaviour.
+ */
+export function interruptedLoopResumesScenario(): TestScenario {
+  const dasherCharId = "char-dasher";
+  const blockerCharId = "char-blocker";
+  const dasherId = "actor-dasher";
+  const blockerId = "actor-blocker";
+
+  const characters: Characters = {
+    [dasherCharId]: makeLoopingMoveLeftCharacter(dasherCharId, 3),
+    [blockerCharId]: makeMoveLeftIfEmptyCharacter(blockerCharId),
+  };
+
+  // Row 1: [empty x=1][blocker x=2][empty x=3][empty x=4][dasher x=5]
+  const dasher = makeActor({ id: dasherId, characterId: dasherCharId, position: { x: 5, y: 1 } });
+  const blocker = makeActor({ id: blockerId, characterId: blockerCharId, position: { x: 2, y: 1 } });
+  // Insert the dasher first so its loop is interrupted on the main pass (the
+  // blocker is still at x=2 when the dasher reaches x=3) and must resume after
+  // the blocker steps aside during settling.
+  const stage = makeStage({
+    id: "stage-1",
+    actors: { [dasherId]: dasher, [blockerId]: blocker },
+  });
+  const world = makeWorld({ stage });
+
+  return {
+    name: "an interrupted loop resumes its remaining cycles the same tick",
+    characters,
+    world,
+    frames: 1,
+    assertions: (result) => {
+      // Blocker stepped left once: x=2 -> x=1.
+      expectActorPosition(result, blockerId, { x: 1, y: 1 });
+      // Dasher used all three loop cycles: x=5 -> 4 -> 3 -> 2, finishing right
+      // behind the blocker rather than stalling at x=3.
+      expectActorPosition(result, dasherId, { x: 2, y: 1 });
     },
   };
 }
