@@ -199,6 +199,14 @@ html {
         outline: 0;
         padding: 0;
         box-sizing: content-box;
+        // Young users often nudge the cursor while pressing a tool button,
+        // turning a click into a tiny drag. Suppress image dragging and text
+        // selection so the gesture stays a click instead of starting a native
+        // drag of the button's icon.
+        user-select: none;
+        -webkit-user-select: none;
+        -webkit-user-drag: none;
+        touch-action: manipulation;
         &:first-child {
           border-top-left-radius: 0.25rem;
           border-bottom-left-radius: 0.25rem;
@@ -211,6 +219,11 @@ html {
         }
         img {
           margin: 0 2px;
+          // Let presses fall through to the button so the icon can never
+          // become the drag/click target instead of the button itself.
+          pointer-events: none;
+          -webkit-user-drag: none;
+          user-select: none;
         }
       }
     }

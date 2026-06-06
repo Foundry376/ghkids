@@ -1,5 +1,4 @@
 import { Button, ButtonDropdown, DropdownItem, DropdownMenu, DropdownToggle } from "reactstrap";
-import classNames from "classnames";
 import { useContext, useState } from "react";
 import { useDispatch } from "react-redux";
 import { Link } from "react-router-dom";
@@ -14,6 +13,7 @@ import UndoRedoControls from "./undo-redo-controls";
 import { createWorld } from "../../actions/main-actions";
 import { EditorContext } from "../../components/editor-context";
 import { useEditorSelector } from "../../hooks/redux";
+import { ToolButton } from "./tool-button";
 
 const Toolbar = () => {
   const dispatch = useDispatch();
@@ -36,24 +36,14 @@ const Toolbar = () => {
   } = useContext(EditorContext);
   const [open, setOpen] = useState(false);
 
-  const renderTool = (toolId: TOOLS) => {
-    const classes = classNames({
-      "tool-option": true,
-      enabled: true,
-      selected: selectedToolId === toolId,
-    });
-
-    return (
-      <Button
-        key={toolId}
-        className={classes}
-        data-tutorial-id={`toolbar-tool-${toolId}`}
-        onClick={() => dispatch(actions.selectToolId(toolId))}
-      >
-        <img src={new URL(`../img/sidebar_${toolId}.png`, import.meta.url).href} />
-      </Button>
-    );
-  };
+  const renderTool = (toolId: TOOLS) => (
+    <ToolButton
+      key={toolId}
+      toolId={toolId}
+      selected={selectedToolId === toolId}
+      onSelect={(id) => dispatch(actions.selectToolId(id))}
+    />
+  );
 
   const onNameChange = (name: string) => {
     dispatch(updateWorldMetadata("root", { ...metadata, name }));
