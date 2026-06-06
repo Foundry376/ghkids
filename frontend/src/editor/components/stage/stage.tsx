@@ -78,10 +78,10 @@ interface StageProps {
   /** Controls how users can interact with actors on the stage:
    * - "full": All interactions (click, drag, selection rect, tools). Default.
    * - "selectable": Click/select actors but no dragging (used in player).
-   * - "none": No actor interaction; only recording handles remain interactive.
    */
   interactionMode?: "full" | "selectable";
   immersive?: boolean;
+  animatingTick?: boolean;
   style?: CSSProperties;
   /**
    * Door actors on other stages whose destination points to this stage.
@@ -273,6 +273,7 @@ export const Stage = ({
   world,
   interactionMode = "full",
   style,
+  animatingTick,
   doorsPointingHere,
 }: StageProps) => {
   const stageWidth = getStageWidth(stage);
@@ -380,6 +381,17 @@ export const Stage = ({
   );
 
   useGlobalHeldKeys(world.id, playback.running);
+
+  // When playback stops, remount the actor sprites so any in-flight CSS
+  // transitions snap straight to their final positions.
+  const [stoppedGeneration, setStoppedGeneration] = useState(0);
+  const wasRunningRef = useRef(playback.running);
+  useEffect(() => {
+    if (wasRunningRef.current && !playback.running) {
+      setStoppedGeneration((g) => g + 1);
+    }
+    wasRunningRef.current = playback.running;
+  }, [playback.running]);
 
   // Helpers
 
@@ -1342,7 +1354,7 @@ export const Stage = ({
     const zIndex = characterZOrder.indexOf(actor.characterId);
     return (
       <ActorSprite
-        key={actor.id}
+        key={`${actor.id}::${stoppedGeneration}`}
         selected={selected.includes(actor)}
         zIndex={zIndex >= 0 ? zIndex : undefined}
         onMouseUp={(event) => onMouseUpActor(actor, event)}
@@ -1371,7 +1383,9 @@ export const Stage = ({
       ref={(e) => (scrollEl.current = e)}
       data-stage-wrap-id={world.id}
       data-stage-zoom={scale}
-      className={`stage-scroll-wrap tool-supported running-${playback.running}`}
+      className={`stage-scroll-wrap tool-supported running-${playback.running}${
+        playback.running || animatingTick ? " animations-enabled" : ""
+      }`}
     >
       <div
         ref={(e) => (el.current = e)}

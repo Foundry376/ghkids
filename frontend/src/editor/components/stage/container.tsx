@@ -161,7 +161,13 @@ const StageContainer = ({ readonly, immersive }: { readonly?: boolean; immersive
    */
   const stage = getCurrentStageForWorld(world)!;
   const [current, setCurrent] = useState<{ stage: Types.Stage; frameId?: number }>({ stage });
+  // True only while we're actively stepping through a tick's sub-frames (either
+  // playing or single-stepping). Movement transitions on actors are CSS-gated to
+  // this so that direct manipulation while stopped (dragging/placing actors)
+  // snaps instantly, while a played or single-stepped tick still glides.
+  const [animatingTick, setAnimatingTick] = useState(false);
   const intervalRef = useRef<number>();
+  const wasRunningRef = useRef(playback.running);
 
   const doorsByDestStage = useMemo(
     () => collectDoorsByDestinationStage(world, characters),
@@ -170,25 +176,58 @@ const StageContainer = ({ readonly, immersive }: { readonly?: boolean; immersive
   const incomingDoors = stage ? (doorsByDestStage[stage.id] ?? []) : [];
 
   useEffect(() => {
+    // Detect the moment playback transitions from running to stopped. We can't
+    // rely on `running` alone because single-stepping a stopped game also runs
+    // this effect with `running === false` (it dispatches a fresh
+    // `evaluatedTickFrames` instead of flipping `running`), and that case should
+    // still animate its sub-frames.
+    const justStopped = wasRunningRef.current && !playback.running;
+    wasRunningRef.current = playback.running;
+
     if (world.evaluatedTickFrames) {
       const frames = world.evaluatedTickFrames;
-      const setNext = () => {
-        setCurrent((current) => {
-          const nextIdx = frames.findIndex((f) => current.frameId === f.id) + 1;
-          const frame = frames[nextIdx] || null;
-          if (!frame) {
-            clearTimeout(intervalRef.current);
-            return { stage, frameId: current.frameId };
-          }
-          return { stage: { ...stage, actors: frame.actors }, frameId: frame.id };
-        });
-      };
 
-      setNext();
+      // When the user hits stop mid-tick, abandon the remaining sub-frames and
+      // jump straight to the tick's final frame so the stage stops immediately
+      // rather than coasting through the rest of the current tick's animation.
+      if (justStopped) {
+        clearTimeout(intervalRef.current);
+        setAnimatingTick(false);
+        setCurrent({ stage, frameId: frames[frames.length - 1]?.id });
+      } else {
+        const setNext = () => {
+          setCurrent((current) => {
+            const nextIdx = frames.findIndex((f) => current.frameId === f.id) + 1;
+            const frame = frames[nextIdx] || null;
+            if (!frame) {
+              // No more sub-frames to deliver. This also covers re-runs caused
+              // by direct manipulation (e.g. dragging an actor while stopped),
+              // which carry the same, already-finished frames — so movement
+              // transitions stay off and the manipulation snaps instantly.
+              clearTimeout(intervalRef.current);
+              setAnimatingTick(false);
+              return { stage, frameId: current.frameId };
+            }
+            // A sub-frame is being delivered, so we're mid-tick: enable actor
+            // movement transitions even if playback is stopped (single step).
+            setAnimatingTick(true);
+            return { stage: { ...stage, actors: frame.actors }, frameId: frame.id };
+          });
+        };
 
-      const framerate = playback.running ? playback.speed / frames.length : 100;
-      intervalRef.current = setInterval(setNext, framerate);
+        setNext();
+
+        // Drive sub-frames at the same cadence whether playing or single-
+        // stepping: an actor's CSS transition lasts `speed / frameCount`, which
+        // only lines up with delivery when sub-frames arrive every
+        // `speed / frames.length` ms. A fixed rate while stopped made each
+        // transition finish early and the actor sit still between sub-frames, so
+        // a single step "teleported" through the frames with no glide.
+        const framerate = playback.speed / frames.length;
+        intervalRef.current = setInterval(setNext, framerate);
+      }
     } else {
+      setAnimatingTick(false);
       setCurrent({ stage });
     }
 
@@ -207,6 +246,7 @@ const StageContainer = ({ readonly, immersive }: { readonly?: boolean; immersive
               stage={current.stage}
               interactionMode={readonly ? "selectable" : "full"}
               immersive={immersive}
+              animatingTick={animatingTick}
               doorsPointingHere={incomingDoors}
             />
           )}

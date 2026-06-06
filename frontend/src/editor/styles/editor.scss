@@ -365,15 +365,13 @@ html {
 
       &.running-true {
         box-shadow: 0 0 0 4px $tint-color;
-        .animated {
-          transition-timing-function: linear;
-          transition-property: bottom, left;
-        }
       }
-      &.running-false {
-        .animated {
-          transition-property: none;
-        }
+      .animated {
+        transition-property: none;
+      }
+      &.animations-enabled .animated {
+        transition-timing-function: linear;
+        transition-property: bottom, left;
       }
 
       .stage {
