@@ -264,6 +264,13 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
     // its remaining cycles. One that applied zero iterations is not resumed: it
     // lost its parent's flow-control decision, so reviving it later could fire a
     // branch the flow already rejected.
+    //
+    // Known limit: continuations are keyed per loop, not per loop-instance, so
+    // nested loops don't resume perfectly. If an inner loop is interrupted in a
+    // non-final outer iteration, the next outer iteration restarts it and drops
+    // the inner's pending continuation, so the actor may advance fewer cycles
+    // this tick than the counts imply. It never over-applies and catches up on
+    // following ticks; correct nesting would need per-instance resume state.
     function runLoopContainer(struct: RuleTreeFlowLoopItem): boolean {
       const target = loopIterationCount(struct);
       const applied = runLoopIterations(struct, target);
