@@ -78,15 +78,9 @@ interface StageProps {
   /** Controls how users can interact with actors on the stage:
    * - "full": All interactions (click, drag, selection rect, tools). Default.
    * - "selectable": Click/select actors but no dragging (used in player).
-   * - "none": No actor interaction; only recording handles remain interactive.
    */
   interactionMode?: "full" | "selectable";
   immersive?: boolean;
-  /**
-   * True while a tick's sub-frames are actively being played (during playback
-   * or a single step). Enables actor movement transitions even when playback is
-   * stopped, so a single-stepped tick glides while direct manipulation snaps.
-   */
   animatingTick?: boolean;
   style?: CSSProperties;
   /**
