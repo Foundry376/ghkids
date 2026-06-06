@@ -2,11 +2,12 @@
  * Multi-actor interaction scenarios including collisions and interactions between different actors.
  */
 
-import { Characters } from "../../../../types";
+import { Character, Characters, RuleTreeFlowLoopItem } from "../../../../types";
 import {
   makeActor,
   makeCharacter,
   makeEventGroup,
+  makeExtent,
   makeRule,
   makeStage,
   makeWorld,
@@ -115,6 +116,210 @@ export function coinCollectionScenario(): TestScenario {
       expectActorDeleted(result, coinActorId);
       // Player should still exist
       expectActorExists(result, playerActorId);
+    },
+  };
+}
+
+// ============================================================================
+// Order-independence ("settle") scenarios
+//
+// An actor blocked only because a neighbour hasn't moved yet should still move
+// once that neighbour vacates, regardless of visit order. The canonical case is
+// a "train" of followers that keeps its spacing rather than bunching up.
+// ============================================================================
+
+/**
+ * A character that moves one square left if that square is empty. The empty
+ * requirement comes from covering (-1, 0) in the extent with no rule actor
+ * there, so the rule matches only when zero stage actors occupy it.
+ */
+function makeMoveLeftIfEmptyCharacter(charId: string): Character {
+  const ruleActor = makeActor({ id: "self", characterId: charId, position: { x: 0, y: 0 } });
+  const rule = makeRule({
+    id: "move-left-if-empty",
+    mainActorId: "self",
+    actors: { self: ruleActor },
+    actions: [{ type: "move", actorId: "self", delta: { x: -1, y: 0 } }],
+    extent: makeExtent({ xmin: -1, xmax: 0, ymin: 0, ymax: 0 }),
+  });
+  const idleGroup = makeEventGroup({ id: "idle-group", event: "idle", rules: [rule] });
+  return makeCharacter({ id: charId, name: "Walker", rules: [idleGroup] });
+}
+
+/**
+ * Scenario: two actors moving left in single file, with the *follower*
+ * inserted (and therefore visited) before the *leader*. This is the visit
+ * order that previously bunched them together: the follower saw the leader
+ * still blocking its target square and gave up. With the settle pass, the
+ * follower moves once the leader vacates, preserving the one-square gap.
+ */
+export function trainFollowerVisitedFirstScenario(): TestScenario {
+  const charId = "char-walker";
+  const leaderId = "actor-leader";
+  const followerId = "actor-follower";
+
+  const characters: Characters = { [charId]: makeMoveLeftIfEmptyCharacter(charId) };
+
+  const leader = makeActor({ id: leaderId, characterId: charId, position: { x: 2, y: 1 } });
+  const follower = makeActor({ id: followerId, characterId: charId, position: { x: 3, y: 1 } });
+  // Insert the follower first so it is visited before the leader.
+  const stage = makeStage({
+    id: "stage-1",
+    actors: { [followerId]: follower, [leaderId]: leader },
+  });
+  const world = makeWorld({ stage });
+
+  return {
+    name: "train preserves spacing when the follower is visited first",
+    characters,
+    world,
+    frames: 1,
+    assertions: (result) => {
+      // Both move left by one; the gap stays at one square.
+      expectActorPosition(result, leaderId, { x: 1, y: 1 });
+      expectActorPosition(result, followerId, { x: 2, y: 1 });
+    },
+  };
+}
+
+/**
+ * Same as above but with the *leader* visited first. This order already
+ * worked before the settle pass; it's here to prove the new behaviour is
+ * consistent (order-independent), not just shifted to a different order.
+ */
+export function trainLeaderVisitedFirstScenario(): TestScenario {
+  const charId = "char-walker";
+  const leaderId = "actor-leader";
+  const followerId = "actor-follower";
+
+  const characters: Characters = { [charId]: makeMoveLeftIfEmptyCharacter(charId) };
+
+  const leader = makeActor({ id: leaderId, characterId: charId, position: { x: 2, y: 1 } });
+  const follower = makeActor({ id: followerId, characterId: charId, position: { x: 3, y: 1 } });
+  // Insert the leader first so it is visited before the follower.
+  const stage = makeStage({
+    id: "stage-1",
+    actors: { [leaderId]: leader, [followerId]: follower },
+  });
+  const world = makeWorld({ stage });
+
+  return {
+    name: "train preserves spacing when the leader is visited first",
+    characters,
+    world,
+    frames: 1,
+    assertions: (result) => {
+      expectActorPosition(result, leaderId, { x: 1, y: 1 });
+      expectActorPosition(result, followerId, { x: 2, y: 1 });
+    },
+  };
+}
+
+/**
+ * Scenario: a three-actor train, with the actors inserted in the
+ * worst-possible (rightmost-first) order. Fully propagating the train
+ * requires the settle loop to run multiple passes within a single tick.
+ */
+export function longTrainScenario(): TestScenario {
+  const charId = "char-walker";
+  const aId = "actor-a"; // leader, at x=2
+  const bId = "actor-b"; // middle, at x=3
+  const cId = "actor-c"; // tail, at x=4
+
+  const characters: Characters = { [charId]: makeMoveLeftIfEmptyCharacter(charId) };
+
+  const a = makeActor({ id: aId, characterId: charId, position: { x: 2, y: 1 } });
+  const b = makeActor({ id: bId, characterId: charId, position: { x: 3, y: 1 } });
+  const c = makeActor({ id: cId, characterId: charId, position: { x: 4, y: 1 } });
+  // Insert tail-first so the leader (the only one that can move on the main
+  // pass) is visited last, forcing the settle loop to ripple the movement
+  // back through the train over multiple passes.
+  const stage = makeStage({
+    id: "stage-1",
+    actors: { [cId]: c, [bId]: b, [aId]: a },
+  });
+  const world = makeWorld({ stage });
+
+  return {
+    name: "long train shifts by exactly one square per tick in any visit order",
+    characters,
+    world,
+    frames: 1,
+    assertions: (result) => {
+      // The whole train shifts left by one, preserving spacing.
+      expectActorPosition(result, aId, { x: 1, y: 1 });
+      expectActorPosition(result, bId, { x: 2, y: 1 });
+      expectActorPosition(result, cId, { x: 3, y: 1 });
+    },
+  };
+}
+
+/**
+ * A character that runs a `loop` of "move one square left if empty" up to
+ * `count` times per tick. This is the multi-step-per-tick analogue of the
+ * single-step walker above.
+ */
+function makeLoopingMoveLeftCharacter(charId: string, count: number): Character {
+  const ruleActor = makeActor({ id: "self", characterId: charId, position: { x: 0, y: 0 } });
+  const moveRule = makeRule({
+    id: "move-left-if-empty",
+    mainActorId: "self",
+    actors: { self: ruleActor },
+    actions: [{ type: "move", actorId: "self", delta: { x: -1, y: 0 } }],
+    extent: makeExtent({ xmin: -1, xmax: 0, ymin: 0, ymax: 0 }),
+  });
+  const loopGroup: RuleTreeFlowLoopItem = {
+    type: "group-flow",
+    id: "loop-group",
+    name: "Move several times",
+    behavior: "loop",
+    loopCount: { constant: count },
+    rules: [moveRule],
+  };
+  const idleGroup = makeEventGroup({ id: "idle-group", event: "idle", rules: [loopGroup] });
+  return makeCharacter({ id: charId, name: "Dasher", rules: [idleGroup] });
+}
+
+/**
+ * A "dasher" loops up to three left-moves per tick, with a one-step blocker in
+ * its path. Visiting the dasher first interrupts its loop; once the blocker
+ * steps aside during settling, the loop must resume its remaining cycles the
+ * same tick. Without resumable loops the dasher stalls one square short.
+ */
+export function interruptedLoopResumesScenario(): TestScenario {
+  const dasherCharId = "char-dasher";
+  const blockerCharId = "char-blocker";
+  const dasherId = "actor-dasher";
+  const blockerId = "actor-blocker";
+
+  const characters: Characters = {
+    [dasherCharId]: makeLoopingMoveLeftCharacter(dasherCharId, 3),
+    [blockerCharId]: makeMoveLeftIfEmptyCharacter(blockerCharId),
+  };
+
+  // Row 1: [empty x=1][blocker x=2][empty x=3][empty x=4][dasher x=5]
+  const dasher = makeActor({ id: dasherId, characterId: dasherCharId, position: { x: 5, y: 1 } });
+  const blocker = makeActor({ id: blockerId, characterId: blockerCharId, position: { x: 2, y: 1 } });
+  // Insert the dasher first so its loop is interrupted on the main pass (the
+  // blocker is still at x=2 when the dasher reaches x=3) and must resume after
+  // the blocker steps aside during settling.
+  const stage = makeStage({
+    id: "stage-1",
+    actors: { [dasherId]: dasher, [blockerId]: blocker },
+  });
+  const world = makeWorld({ stage });
+
+  return {
+    name: "an interrupted loop resumes its remaining cycles the same tick",
+    characters,
+    world,
+    frames: 1,
+    assertions: (result) => {
+      // Blocker stepped left once: x=2 -> x=1.
+      expectActorPosition(result, blockerId, { x: 1, y: 1 });
+      // Dasher used all three loop cycles: x=5 -> 4 -> 3 -> 2, finishing right
+      // behind the blocker rather than stalling at x=3.
+      expectActorPosition(result, dasherId, { x: 2, y: 1 });
     },
   };
 }

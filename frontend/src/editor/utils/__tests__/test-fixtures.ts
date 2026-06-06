@@ -15,6 +15,7 @@ import {
   RuleAction,
   RuleExtent,
   RuleTreeEventItem,
+  RuleTreeItem,
   Stage,
   World,
 } from "../../../types";
@@ -93,7 +94,9 @@ export function makeEventGroup(
   overrides: Partial<RuleTreeEventItem> & {
     id: string;
     event: "idle" | "key" | "click";
-    rules: Rule[];
+    // RuleTreeEventItem.rules is RuleTreeItem[]; an event group can hold flow
+    // and loop containers, not just bare rules.
+    rules: RuleTreeItem[];
   },
 ): RuleTreeEventItem {
   return {
