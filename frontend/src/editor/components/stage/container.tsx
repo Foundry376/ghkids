@@ -203,7 +203,13 @@ const StageContainer = ({ readonly, immersive }: { readonly?: boolean; immersive
 
         setNext();
 
-        const framerate = playback.running ? playback.speed / frames.length : 100;
+        // Drive sub-frames at the same cadence whether playing or single-
+        // stepping: an actor's CSS transition lasts `speed / frameCount`, which
+        // only lines up with delivery when sub-frames arrive every
+        // `speed / frames.length` ms. Using a fixed rate while stopped made each
+        // transition finish early and the actor sit still between sub-frames, so
+        // a single step "teleported" through the spaced-out frames with no glide.
+        const framerate = playback.speed / frames.length;
         intervalRef.current = setInterval(setNext, framerate);
       }
     } else {
