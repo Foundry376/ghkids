@@ -1348,7 +1348,9 @@ export const Stage = ({
         onMouseUp={(event) => onMouseUpActor(actor, event)}
         onDoubleClick={() => onSelectActor(actor)}
         transitionDuration={
-          animationStyle === "linear" ? playback.speed / (actor.frameCount || 1) : 0
+          playback.running && animationStyle === "linear"
+            ? playback.speed / (actor.frameCount || 1)
+            : 0
         }
         skipTransition={didWrap}
         character={character}
