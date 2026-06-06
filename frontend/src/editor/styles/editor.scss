@@ -36,9 +36,11 @@ html {
   -webkit-touch-callout: none; // prevent tap-to-enlarge sprite image
 }
 
-.editor:not(.tool-pointer) .tool-supported {
-  // These cursors are rendered manually so we can center them and draw them large.
-  // The code is in cursor-support.ts
+// Most tools draw their own large image cursor (see cursor-support.ts), so we
+// hide the real cursor over interactive surfaces. The sidebar-local tools
+// (disable-rule / comment) have no image cursor, so they're excluded here and
+// keep a normal cursor (see their blocks below).
+.editor:not(.tool-pointer):not(.tool-disable-rule):not(.tool-comment) .tool-supported {
   cursor: none;
 }
 
@@ -1696,16 +1698,22 @@ html {
   }
 }
 
-// The "disable rule" tool lives in the rules sidebar. The global rule above
-// hides the cursor for non-pointer tools (they draw their own image cursor),
-// but this tool has no image, so restore a normal cursor and show a pointer
-// over the rules you can click to toggle.
-.editor.tool-disable-rule {
-  .tool-supported {
-    cursor: default;
-  }
-  .rules-list .rule-container.tool-supported {
+// The "disable rule" and "comment" tools live in the rules sidebar and act on
+// whatever rule you click. A rule's inner controls (name label, selects,
+// disclosure triangles) normally swallow the click, so we make them transparent
+// to pointer events here — the click then lands on the rule container and the
+// tool's handler runs. The clickable rows get a pointer cursor to match.
+.editor.tool-disable-rule,
+.editor.tool-comment {
+  .rules-list .rule-container {
     cursor: pointer;
+
+    .name,
+    select,
+    .triangle,
+    .scenario {
+      pointer-events: none;
+    }
 
     &.hovering {
       background-color: rgba(255, 255, 255, 0.25);
@@ -1713,20 +1721,14 @@ html {
   }
 }
 
-// The "comment" tool also lives in the rules sidebar (see note above). Restore
-// a normal cursor, show a pointer over rules/gaps you can click, and a text
-// caret over the comment fields themselves.
-.editor.tool-comment {
-  .tool-supported {
-    cursor: default;
-  }
-  .rules-list,
-  .rules-list .rule-container.tool-supported {
-    cursor: pointer;
-  }
-  .comment-text {
-    cursor: text;
-  }
+// The comment tool still needs its comment fields to be directly editable, and
+// the rule-state toggle remains clickable while disabling rules.
+.editor.tool-comment .rules-list .rule-container .comment-text {
+  pointer-events: auto;
+  cursor: text;
+}
+.editor.tool-disable-rule .rules-list .rule-container .rule-toggle-btn {
+  pointer-events: auto;
 }
 
 // ─── Rule sidebar comments ──────────────────────────────────────────────────
