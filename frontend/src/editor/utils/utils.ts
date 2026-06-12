@@ -15,7 +15,8 @@ export function makeId(
     | "stage"
     | "actor"
     | "character"
-    | "appearance",
+    | "appearance"
+    | "comment",
 ) {
   return `${type}:${crypto.randomUUID().split("-")[0]}`;
 }

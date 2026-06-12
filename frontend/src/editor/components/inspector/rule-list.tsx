@@ -122,7 +122,7 @@ export const RuleList = ({
     }
     if (selectedToolId === TOOLS.DISABLE_RULE) {
       event.stopPropagation();
-      onRuleChanged(rule.id, { enabled: rule.enabled === false });
+      onRuleChanged(rule.id, { enabled: "enabled" in rule && rule.enabled === false });
       if (!event.shiftKey) {
         dispatch(selectToolId(TOOLS.POINTER));
       }
@@ -260,7 +260,7 @@ export const RuleList = ({
         draggable
         key={r.id}
         data-rule-id={r.id}
-        className={`rule-container tool-supported ${r.type} ${dragState.hovering === r.id && "hovering"} ${r.enabled === false && "rule-disabled"} ${selectedRuleId === r.id ? "selected" : ""}`}
+        className={`rule-container tool-supported ${r.type} ${dragState.hovering === r.id && "hovering"} ${"enabled" in r && r.enabled === false && "rule-disabled"} ${selectedRuleId === r.id ? "selected" : ""}`}
         onClick={(event) => _onRuleClicked(event, r)}
         onDoubleClick={(event) => _onRuleDoubleClick(event, r)}
         onDragStart={(event) => _onDragStart(event, r)}
