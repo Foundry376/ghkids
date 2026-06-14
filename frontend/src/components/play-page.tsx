@@ -1,16 +1,18 @@
-import { Button } from "reactstrap";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useDispatch } from "react-redux";
 import { Link, useParams } from "react-router-dom";
+import { Button } from "reactstrap";
 
+import { Store } from "redux";
 import { createWorld, fetchWorld } from "../actions/main-actions";
+import { updatePlaybackState } from "../editor/actions/ui-actions";
+import { RootPlayer } from "../editor/root-player";
+import { getCurrentStage } from "../editor/utils/selectors";
+import { useAppSelector } from "../hooks/redux";
 import { useFullscreen } from "../hooks/useFullscreen";
 import { usePageTitle } from "../hooks/usePageTitle";
-import { RootPlayer } from "../editor/root-player";
+import { EditorState } from "../types";
 import PageMessage from "./common/page-message";
-import { useAppSelector } from "../hooks/redux";
-import { updatePlaybackState } from "../editor/actions/ui-actions";
-import { Store } from "redux";
 
 import "./play-page.scss";
 
@@ -24,6 +26,7 @@ const PlayPage: React.FC = () => {
   const world = worlds && worldId ? worlds[worldId] : null;
 
   const [immersive, setImmersive] = useState(false);
+  const enteringFullscreenRef = useRef(false);
   const editorStoreRef = useRef<Store | null>(null);
   const {
     containerRef,
@@ -46,7 +49,7 @@ const PlayPage: React.FC = () => {
   // controls, the toggle button, etc.), also leave immersive mode so the
   // landing overlay with navigation links reappears.
   useEffect(() => {
-    if (!isFullscreen && immersive) {
+    if (!isFullscreen && immersive && !enteringFullscreenRef.current) {
       if (editorStoreRef.current) {
         editorStoreRef.current.dispatch(updatePlaybackState({ speed: 500, running: false }));
       }
@@ -66,11 +69,19 @@ const PlayPage: React.FC = () => {
     // Attempt to enter fullscreen for a more immersive experience.
     // Silently falls back on platforms that don't support it (e.g. iPhone iOS Safari).
     if (canFullscreen) {
+      // Guard against the exit-fullscreen effect firing during the async transition
+      enteringFullscreenRef.current = true;
       // Delay playback start so the fullscreen transition animation completes
       // before the game begins ticking
       enterFullscreen()
-        .then(() => setTimeout(startPlayback, 400))
-        .catch(() => startPlayback());
+        .then(() => {
+          enteringFullscreenRef.current = false;
+          setTimeout(startPlayback, 400);
+        })
+        .catch(() => {
+          enteringFullscreenRef.current = false;
+          startPlayback();
+        });
     } else {
       startPlayback();
     }
@@ -95,12 +106,24 @@ const PlayPage: React.FC = () => {
     }
   };
 
+  const isOwner = me && me.id === world?.userId;
+  const editLabel = isOwner ? "Open in Editor" : "Remix this Game";
+  const [currentStageName, setCurrentStageName] = useState<string | null>(null);
+
+  useEffect(() => {
+    const store = editorStoreRef.current;
+    if (!store) return;
+    const update = () => {
+      const state = store.getState() as EditorState;
+      setCurrentStageName(getCurrentStage(state)?.name ?? null);
+    };
+    update();
+    return store.subscribe(update);
+  }, [world]);
+
   if (!world || !world.data) {
     return <PageMessage text="Loading..." />;
   }
-
-  const isOwner = me && me.id === world.userId;
-  const editLabel = isOwner ? "Open in Editor" : "Remix this Game";
 
   return (
     <div
@@ -113,11 +136,11 @@ const PlayPage: React.FC = () => {
           Codako
         </Link>
         <div className="play-top-bar__title">
-          <Link to={`/u/${world.user.username}`}>{world.user.username}</Link>
-          <span className="play-top-bar__sep">/</span>
           <span>{world.name}</span>
+          {" by "}
+          <Link to={`/u/${world.user.username}`}>{world.user.username}</Link>
+          {currentStageName && <span className="play-top-bar__stage">: {currentStageName}</span>}
         </div>
-        <div className="play-top-bar__spacer" />
         <div className="play-top-bar__actions">
           {canFullscreen && (
             <Button
@@ -169,9 +192,7 @@ const PlayPage: React.FC = () => {
               </span>
             )}
           </div>
-          {world.description && (
-            <p className="play-landing__description">{world.description}</p>
-          )}
+          {world.description && <p className="play-landing__description">{world.description}</p>}
           <button className="play-landing__play-btn" onClick={onPlay}>
             <i className="fa fa-play" />
             <span>Play</span>
