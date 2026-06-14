@@ -2,6 +2,7 @@ import { Button } from "reactstrap";
 import { useCallback, useEffect } from "react";
 import { useDispatch } from "react-redux";
 import { undo, redo } from "../utils/undo-redo";
+import { isTextInput } from "../utils/utils";
 import { useEditorSelector } from "../../hooks/redux";
 
 const UndoRedoControls = () => {
@@ -19,6 +20,9 @@ const UndoRedoControls = () => {
   useEffect(() => {
     const onGlobalKeydown = (event: KeyboardEvent) => {
       if ((event.target as Element)?.closest(".modal")) {
+        return;
+      }
+      if (isTextInput(event.target)) {
         return;
       }
 

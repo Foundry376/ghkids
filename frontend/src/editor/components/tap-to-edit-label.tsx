@@ -10,37 +10,40 @@ export const TapToEditLabel = ({
   onChange?: (str: string) => void;
 }) => {
   const [editing, setEditing] = useState(false);
-  const el = useRef<HTMLDivElement | null>();
+  const el = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (editing && el.current) {
       el.current.focus();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      document.execCommand("selectAll", false, null as any);
+      const selection = window.getSelection();
+      if (selection) {
+        const range = document.createRange();
+        range.selectNodeContents(el.current);
+        selection.removeAllRanges();
+        selection.addRange(range);
+      }
     }
   }, [editing]);
+
+  const commit = (text: string) => {
+    setEditing(false);
+    if (onChange) {
+      onChange(text.trim());
+    }
+  };
 
   const isUntitled = `${value}`.startsWith("Untitled");
 
   if (!onChange) {
-    return (
-      <div
-        ref={(e) => (el.current = e)}
-        className={`tap-to-edit editing-false ${className}`}
-        dangerouslySetInnerHTML={{ __html: value }}
-      />
-    );
+    return <div className={`tap-to-edit editing-false ${className}`}>{value}</div>;
   }
 
   return (
     <div
       contentEditable={editing}
-      ref={(e) => (el.current = e)}
+      suppressContentEditableWarning
+      ref={el}
       className={`tap-to-edit editing-${editing} enabled ${isUntitled ? "untitled" : ""} ${className}`}
-      dangerouslySetInnerHTML={{ __html: value }}
-      onChange={(e) => {
-        onChange(e.currentTarget.innerText);
-      }}
       onDragStart={(e) => {
         e.stopPropagation();
       }}
@@ -51,15 +54,18 @@ export const TapToEditLabel = ({
           e.preventDefault();
         }
       }}
-      onKeyUp={(e) => {
-        if (e.keyCode === 13) {
+      onKeyDown={(e) => {
+        e.stopPropagation();
+        if (e.key === "Enter") {
+          e.preventDefault();
           e.currentTarget.blur();
         }
       }}
       onBlur={(e) => {
-        setEditing(false);
-        onChange(e.target.innerText);
+        commit(e.currentTarget.textContent || "");
       }}
-    />
+    >
+      {value}
+    </div>
   );
 };

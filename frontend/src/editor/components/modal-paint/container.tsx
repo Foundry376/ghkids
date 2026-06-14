@@ -8,7 +8,7 @@ import { Actor, Character, Characters, EditorState } from "../../../types";
 import { changeCharacterAppearanceName, createCharacterAppearance, upsertCharacter } from "../../actions/characters-actions";
 import { paintCharacterAppearance } from "../../actions/ui-actions";
 import { defaultAppearanceId } from "../../utils/character-helpers";
-import { makeId } from "../../utils/utils";
+import { isTextInput, makeId } from "../../utils/utils";
 
 import AIModal from "./ai-modal";
 import { PaintModel, TOOLS_LIST } from "./paint-model";
@@ -71,17 +71,22 @@ const PaintContainer: React.FC = () => {
     }
   }, [character, appearanceId, model]);
 
-  // Clipboard event handlers
+  // Clipboard event handlers - only active while the paint modal is open
   useEffect(() => {
+    if (!characterId) return;
+
     const handleCopy = (e: Event) => {
+      if (isTextInput(e.target)) return;
       e.preventDefault();
       model.copy();
     };
     const handleCut = (e: Event) => {
+      if (isTextInput(e.target)) return;
       e.preventDefault();
       model.cut();
     };
     const handlePaste = (e: Event) => {
+      if (isTextInput(e.target)) return;
       e.preventDefault();
       model.paste();
     };
@@ -95,7 +100,7 @@ const PaintContainer: React.FC = () => {
       document.body.removeEventListener("cut", handleCut);
       document.body.removeEventListener("paste", handlePaste);
     };
-  }, [model]);
+  }, [model, characterId]);
 
   // File input ref
   const focusRef = useRef<HTMLDivElement>(null);

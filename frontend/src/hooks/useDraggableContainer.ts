@@ -1,9 +1,5 @@
 import { FocusEventHandler, useState } from "react";
-
-const isTextInput = (el: EventTarget | null) =>
-  el instanceof HTMLTextAreaElement ||
-  (el instanceof HTMLInputElement && el.type === "text") ||
-  (el instanceof HTMLElement && el.isContentEditable);
+import { isTextInput } from "../editor/utils/utils";
 
 /**
  * Returns props to spread on a container that is both `draggable` and contains
