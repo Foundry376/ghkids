@@ -78,10 +78,12 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
     // the [1, dim] range: shift to 0-based, mod, then shift back. All four
     // stage settings are read through the stage's variableValues map so a
     // rule action that mutates wrap/width/height takes effect mid-tick.
-    const wrap = (n: number, d: number) => (((n - 1) % d) + d) % d + 1;
+    const wrap = (n: number, d: number) => ((((n - 1) % d) + d) % d) + 1;
     const stageProps = { variableValues: stageVariableValues };
-    const wrapX = getStageVariableValue(BUILTIN_STAGE_VARIABLE_IDS.wrapX, stageVariableValues) === "true";
-    const wrapY = getStageVariableValue(BUILTIN_STAGE_VARIABLE_IDS.wrapY, stageVariableValues) === "true";
+    const wrapX =
+      getStageVariableValue(BUILTIN_STAGE_VARIABLE_IDS.wrapX, stageVariableValues) === "true";
+    const wrapY =
+      getStageVariableValue(BUILTIN_STAGE_VARIABLE_IDS.wrapY, stageVariableValues) === "true";
     const width = getStageWidth(stageProps);
     const height = getStageHeight(stageProps);
     const o = {
@@ -531,13 +533,11 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
 
       // Check if we found all the actors required for conditions + actions
       let hasMissingRequiredActor = false;
-      if (failedAt !== "extent-square") {
-        for (const ruleActorId of getActionAndConditionActorIds(rule)) {
-          if (!stageActorsForRuleActorIds[ruleActorId]) {
-            hasMissingRequiredActor = true;
-            if (!failedAt) failedAt = "missing-required-actor";
-            break;
-          }
+      for (const ruleActorId of getActionAndConditionActorIds(rule)) {
+        if (!stageActorsForRuleActorIds[ruleActorId]) {
+          hasMissingRequiredActor = true;
+          if (!failedAt) failedAt = "missing-required-actor";
+          break;
         }
       }
 
@@ -678,8 +678,7 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
           global.value = applyVariableOperation(
             global.value,
             action.operation,
-            resolveRuleValue(action.value, "=", stageActorForId, ctx) ??
-              "",
+            resolveRuleValue(action.value, "=", stageActorForId, ctx) ?? "",
           );
         } else if (action.type === "stageVariable") {
           if (!stageVariables[action.stageVariable]) {
@@ -687,9 +686,7 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
             return;
           }
           const current = getStageVariableValue(action.stageVariable, stageVariableValues);
-          const value =
-            resolveRuleValue(action.value, "=", stageActorForId, ctx) ??
-            "";
+          const value = resolveRuleValue(action.value, "=", stageActorForId, ctx) ?? "";
           stageVariableValues[action.stageVariable] = applyVariableOperation(
             current,
             action.operation,
@@ -733,8 +730,18 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
             if (doorCharacter?.kind !== "door") {
               return;
             }
-            const destXStr = getVariableValue(door, doorCharacter, DOOR_VARIABLE_IDS.destinationX, "=");
-            const destYStr = getVariableValue(door, doorCharacter, DOOR_VARIABLE_IDS.destinationY, "=");
+            const destXStr = getVariableValue(
+              door,
+              doorCharacter,
+              DOOR_VARIABLE_IDS.destinationX,
+              "=",
+            );
+            const destYStr = getVariableValue(
+              door,
+              doorCharacter,
+              DOOR_VARIABLE_IDS.destinationY,
+              "=",
+            );
             const destStageRaw =
               getVariableValue(door, doorCharacter, DOOR_VARIABLE_IDS.destinationStage, "=") ?? "";
 
@@ -774,9 +781,7 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
               });
             }
           } else if (action.type === "appearance") {
-            stageActor.appearance =
-              resolveRuleValue(action.value, "=", stageActorForId, ctx) ??
-              "";
+            stageActor.appearance = resolveRuleValue(action.value, "=", stageActorForId, ctx) ?? "";
             if (action.animationStyle !== "skip") {
               frameAccumulator?.push({
                 ...stageActor,
@@ -812,9 +817,7 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
                 action.variable,
                 "=",
               ) ?? "0";
-            const value =
-              resolveRuleValue(action.value, "=", stageActorForId, ctx) ??
-              "";
+            const value = resolveRuleValue(action.value, "=", stageActorForId, ctx) ?? "";
             const next = applyVariableOperation(current, action.operation, value);
 
             if (action.variable === "x" || action.variable === "y") {
