@@ -1606,21 +1606,26 @@ html {
     }
 
     &.selected {
-      background-color: $highlight-color;
+      background-image: linear-gradient($highlight-color, $highlight-color);
+      background-blend-mode: multiply;
     }
 
     &.rule-disabled {
-      opacity: 0.5;
+      position: relative;
 
-      .scenario,
-      .header,
-      .name,
-      .conditions {
-        opacity: 0.7;
+      &::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: rgba(150, 150, 150, 0.5);
+        z-index: 100;
+        pointer-events: none;
+        border-radius: inherit;
       }
 
       .rule-toggle-btn {
-        opacity: 1;
+        position: relative;
+        z-index: 101;
       }
     }
   }
@@ -1746,7 +1751,8 @@ html {
     }
 
     &.hovering {
-      background-color: rgba(255, 255, 255, 0.25);
+      background-image: linear-gradient($highlight-color, $highlight-color);
+      background-blend-mode: multiply;
     }
   }
 }
