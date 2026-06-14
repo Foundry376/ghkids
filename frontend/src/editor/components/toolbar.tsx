@@ -28,7 +28,6 @@ const Toolbar = () => {
     save,
     saveAndExit,
     exitWithoutSaving,
-    revertToSaved,
     hasUnsavedChanges,
     isFullscreen,
     canFullscreen,
