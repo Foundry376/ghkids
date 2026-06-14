@@ -133,6 +133,10 @@ html {
       transition: opacity 0.1s ease;
     }
 
+    &.disabled::after {
+      opacity: 1;
+    }
+
     &:hover {
       transform: scale(1.2);
 
@@ -1772,9 +1776,22 @@ html {
   color: #5b4636;
   padding: 1px 3px;
   outline: none;
+  white-space: pre-wrap;
+  word-break: break-word;
 
   &::placeholder {
     color: rgba(91, 70, 54, 0.45);
+  }
+
+  &.collapsed {
+    max-height: 2.4em;
+    cursor: pointer;
+    mask-image: linear-gradient(to bottom, black 50%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to bottom, black 50%, transparent 100%);
+  }
+
+  &.expanded {
+    cursor: pointer;
   }
 }
 
@@ -1788,27 +1805,23 @@ html {
   .comment-body {
     display: flex;
     align-items: flex-start;
-    gap: 4px;
   }
   .comment-icon {
     color: #b8a13a;
-    margin-top: 3px;
   }
 }
 
 .rule-comment-annotation {
   display: flex;
   align-items: flex-start;
-  gap: 4px;
   background-color: rgba(253, 246, 195, 0.9);
-  border-left: 3px solid #e6d97a;
   border-radius: 3px;
-  margin: 2px 2px 4px;
+  margin-top: 4px;
+  margin-bottom: 6px;
   padding: 1px 3px;
 
   .comment-icon {
     color: #b8a13a;
-    margin-top: 3px;
   }
 }
 

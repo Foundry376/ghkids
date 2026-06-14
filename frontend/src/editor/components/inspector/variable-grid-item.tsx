@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Button } from "reactstrap";
+import { useDraggableContainer } from "../../../hooks/useDraggableContainer";
 import { useEditorSelector } from "../../../hooks/redux";
 import { Character, Global, StageVariable } from "../../../types";
 import { getCurrentStageForWorld } from "../../utils/selectors";
@@ -156,6 +157,7 @@ export const VariableGridItem = ({
       definition.type === "background");
 
   const [dropping, setDropping] = useState(false);
+  const { containerProps } = useDraggableContainer();
 
   const _onDragStart = (event: React.DragEvent) => {
     // Don't allow dragging if values are mixed
@@ -268,11 +270,13 @@ export const VariableGridItem = ({
     <div
       className={`variable-box ${readonly ? "variable-readonly" : `variable-set-${value !== undefined && !isMixed}`} dropping-${dropping}`}
       onClick={(e) => onClick(definition.id, e)}
-      draggable={draggable && !isMixed}
+      draggable={draggable && !isMixed && containerProps.draggable}
       onDragStart={_onDragStart}
       onDragOver={_onDragOver}
       onDragLeave={_onDragLeave}
       onDrop={_onDrop}
+      onFocus={containerProps.onFocus}
+      onBlur={containerProps.onBlur}
     >
       <TapToEditLabel
         className="name"

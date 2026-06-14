@@ -23,7 +23,7 @@ const DisableRuleToolButton = ({ disabled }: { disabled: boolean }) => {
       title="Toggle rules on or off by clicking them (hold Shift to toggle several)"
       onClick={_onToggle}
     >
-      <i className="fa fa-ban" />
+      <i className="fa fa-ban" style={{ transform: "scaleX(-1)" }} />
     </Button>
   );
 };

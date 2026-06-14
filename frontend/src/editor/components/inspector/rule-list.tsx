@@ -6,8 +6,9 @@ import { ContentFlowGroup } from "./content-flow-group";
 import { ContentRule } from "./content-rule";
 
 import { useDispatch } from "react-redux";
-import { Character, RuleTreeItem } from "../../../types";
 import { useEditorSelector } from "../../../hooks/redux";
+import { useDraggableContainer } from "../../../hooks/useDraggableContainer";
+import { Character, RuleTreeItem } from "../../../types";
 import { selectRule, selectToolId, selectToolItem } from "../../actions/ui-actions";
 import { TOOLS } from "../../constants/constants";
 import { CONTAINER_TYPES } from "../../utils/world-constants";
@@ -60,6 +61,7 @@ export const RuleList = ({
 
   const _el = useRef<HTMLUListElement>(null);
   const _leaveTimeout = useRef<number>();
+  const { containerProps } = useDraggableContainer();
 
   useEffect(() => {
     if (dragState.dragIndex) {
@@ -257,7 +259,7 @@ export const RuleList = ({
   const items = rules.map((r) => {
     return (
       <li
-        draggable
+        draggable={containerProps.draggable}
         key={r.id}
         data-rule-id={r.id}
         className={`rule-container tool-supported ${r.type} ${dragState.hovering === r.id && "hovering"} ${"enabled" in r && r.enabled === false && "rule-disabled"} ${selectedRuleId === r.id ? "selected" : ""}`}
@@ -299,6 +301,8 @@ export const RuleList = ({
       onDragLeave={_onDragLeave}
       onDrop={_onDrop}
       onClick={_onListClick}
+      onFocus={containerProps.onFocus}
+      onBlur={containerProps.onBlur}
     >
       {items}
     </ul>

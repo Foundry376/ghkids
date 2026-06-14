@@ -27,6 +27,7 @@ import {
 } from "../actions/ui-actions";
 
 import { Character } from "../../types";
+import { useDraggableContainer } from "../../hooks/useDraggableContainer";
 import { useEditorSelector } from "../../hooks/redux";
 import { defaultAppearanceId } from "../utils/character-helpers";
 import { makeId } from "../utils/utils";
@@ -58,6 +59,8 @@ const LibraryItem: React.FC<LibraryItemProps> = ({
   dragType,
   appearance,
 }) => {
+  const { containerProps } = useDraggableContainer();
+
   const onDragStart = useCallback(
     (event: React.DragEvent<HTMLDivElement>) => {
       event.dataTransfer.dropEffect = "copy";
@@ -94,8 +97,10 @@ const LibraryItem: React.FC<LibraryItemProps> = ({
   return (
     <div
       className={classNames({ item: true, selected: selected })}
-      draggable={labelEditable}
+      draggable={labelEditable && containerProps.draggable}
       onDragStart={onDragStart}
+      onFocus={containerProps.onFocus}
+      onBlur={containerProps.onBlur}
       onClick={onClick}
       onDoubleClick={onDoubleClick}
     >
