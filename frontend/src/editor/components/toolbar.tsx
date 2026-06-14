@@ -1,7 +1,7 @@
-import { Button, ButtonDropdown, DropdownItem, DropdownMenu, DropdownToggle } from "reactstrap";
 import { useContext, useState } from "react";
 import { useDispatch } from "react-redux";
 import { Link } from "react-router-dom";
+import { Button, ButtonDropdown, DropdownItem, DropdownMenu, DropdownToggle } from "reactstrap";
 
 import * as actions from "../actions/ui-actions";
 import { updateWorldMetadata } from "../actions/world-actions";
@@ -81,6 +81,10 @@ const Toolbar = () => {
             <i className="fa fa-ellipsis-v" />
           </DropdownToggle>
           <DropdownMenu>
+            <DropdownItem disabled={!hasUnsavedChanges} onClick={() => save()}>
+              <i className="fa fa-save fa-fw" style={{ marginRight: 8 }} />
+              Save
+            </DropdownItem>
             <DropdownItem onClick={() => saveAndExit("/dashboard")}>
               <i className="fa fa-sign-out fa-fw fa-flip-horizontal" style={{ marginRight: 8 }} />
               Save &amp; Exit
@@ -94,17 +98,6 @@ const Toolbar = () => {
             >
               <i className="fa fa-fw" style={{ marginRight: 8 }} />
               Exit Without Saving
-            </DropdownItem>
-            <DropdownItem
-              disabled={!hasUnsavedChanges}
-              onClick={() => {
-                if (window.confirm("Discard all unsaved changes and return to the last saved version?")) {
-                  revertToSaved();
-                }
-              }}
-            >
-              <i className="fa fa-fw" style={{ marginRight: 8 }} />
-              Discard Unsaved Changes
             </DropdownItem>
             <DropdownItem divider />
             <DropdownItem
@@ -164,7 +157,11 @@ const Toolbar = () => {
         </ButtonDropdown>
         <TapToEditLabel className="world-name" value={metadata.name} onChange={onNameChange} />
         {hasUnsavedChanges && (
-          <i className="fa fa-circle" style={{ fontSize: "16px", color: "#ff9800", marginLeft: "8px" }} title="Unsaved changes" />
+          <i
+            className="fa fa-circle"
+            style={{ fontSize: "16px", color: "#ff9800", marginLeft: "8px" }}
+            title="Unsaved changes"
+          />
         )}
       </div>
     );
@@ -182,7 +179,15 @@ const Toolbar = () => {
         <div className="button-group">{[TOOLS.STAMP, TOOLS.TRASH].map(renderTool)}</div>
       </div>
 
-      <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 12 }}>
+      <div
+        style={{
+          flex: 1,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "flex-end",
+          gap: 12,
+        }}
+      >
         <UndoRedoControls />
         <StageSwitcher />
       </div>
