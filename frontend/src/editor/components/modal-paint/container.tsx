@@ -7,7 +7,6 @@ import { Actor, Character, Characters, EditorState } from "../../../types";
 
 import { changeCharacterAppearanceName, createCharacterAppearance, upsertCharacter } from "../../actions/characters-actions";
 import { paintCharacterAppearance } from "../../actions/ui-actions";
-import { defaultAppearanceId } from "../../utils/character-helpers";
 import { isTextInput, makeId } from "../../utils/utils";
 
 import AIModal from "./ai-modal";
@@ -122,14 +121,14 @@ const PaintContainer: React.FC = () => {
     [model],
   );
 
-  const handleAddAppearance = useCallback(() => {
-    if (!characterId || !character) return;
+  const handleDuplicateAppearance = useCallback(() => {
+    if (!characterId || !character || !appearanceId) return;
     const { spritesheet } = character;
-    const existingData = spritesheet.appearances[defaultAppearanceId(spritesheet)];
+    const existingData = spritesheet.appearances[appearanceId];
     const newAppearanceId = makeId("appearance");
     reduxDispatch(createCharacterAppearance(characterId, newAppearanceId, existingData ? existingData[0] : null));
     reduxDispatch(paintCharacterAppearance(characterId, newAppearanceId));
-  }, [characterId, character, reduxDispatch]);
+  }, [characterId, character, appearanceId, reduxDispatch]);
 
   const handleClose = useCallback(() => {
     reduxDispatch(paintCharacterAppearance(null));
@@ -263,13 +262,6 @@ const PaintContainer: React.FC = () => {
             }}
           />
           <Button
-            title="Add Appearance"
-            className="icon"
-            onClick={handleAddAppearance}
-          >
-            <i className="fa fa-plus" />
-          </Button>
-          <Button
             title="Undo"
             className="icon"
             onClick={() => model.undo()}
@@ -322,6 +314,10 @@ const PaintContainer: React.FC = () => {
                 Import Image from File...
               </label>
               <DropdownItem onClick={handleDownloadImage}>Download Sprite as PNG</DropdownItem>
+              <DropdownItem divider />
+              <DropdownItem onClick={handleDuplicateAppearance}>
+                Duplicate as New Appearance...
+              </DropdownItem>
             </DropdownMenu>
             <DropdownToggle className="icon">
               <i className="fa fa-ellipsis-v" />
