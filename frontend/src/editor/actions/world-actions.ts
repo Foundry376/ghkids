@@ -124,6 +124,40 @@ export type ActionSetStageVariableValue = {
   value: string | undefined;
 };
 
+export function setGlobalOrder(
+  worldId: string | undefined,
+  orderedGlobalIds: string[],
+): ActionSetGlobalOrder {
+  return {
+    type: types.SET_GLOBAL_ORDER,
+    worldId,
+    orderedGlobalIds,
+  };
+}
+
+export type ActionSetGlobalOrder = {
+  type: "SET_GLOBAL_ORDER";
+  worldId?: string;
+  orderedGlobalIds: string[];
+};
+
+export function setStageVariableOrder(
+  worldId: string | undefined,
+  orderedStageVariableIds: string[],
+): ActionSetStageVariableOrder {
+  return {
+    type: types.SET_STAGE_VARIABLE_ORDER,
+    worldId,
+    orderedStageVariableIds,
+  };
+}
+
+export type ActionSetStageVariableOrder = {
+  type: "SET_STAGE_VARIABLE_ORDER";
+  worldId?: string;
+  orderedStageVariableIds: string[];
+};
+
 export function updateWorldMetadata(
   worldId: string,
   metadata: World["metadata"],
@@ -146,4 +180,6 @@ export type WorldActions =
   | ActionUpsertStageVariable
   | ActionDeleteStageVariable
   | ActionSetStageVariableValue
+  | ActionSetGlobalOrder
+  | ActionSetStageVariableOrder
   | ActionUpdateWorldMetadata;

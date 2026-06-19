@@ -15,7 +15,7 @@ import { ruleFromRecordingState } from "../components/stage/recording/utils";
 import * as Types from "../constants/action-types";
 import { getCurrentStageForWorld } from "../utils/selectors";
 import { findRule } from "../utils/stage-helpers";
-import { deepClone, makeId } from "../utils/utils";
+import { deepClone, makeId, nextOrder } from "../utils/utils";
 import { CONTAINER_TYPES, FLOW_BEHAVIORS } from "../utils/world-constants";
 import initialState from "./initial-state";
 
@@ -42,6 +42,8 @@ export default function charactersReducer(
     }
 
     case Types.CREATE_CHARACTER_VARIABLE: {
+      const existing = state[action.characterId]?.variables ?? {};
+      const order = nextOrder(Object.values(existing));
       return u.updateIn(
         action.characterId,
         {
@@ -50,11 +52,20 @@ export default function charactersReducer(
               defaultValue: "0",
               name: "Untitled",
               id: action.variableId,
+              ...(order !== undefined ? { order } : {}),
             },
           },
         } as Pick<Character, "variables">,
         state,
       );
+    }
+
+    case Types.SET_CHARACTER_VARIABLE_ORDER: {
+      const updates: Record<string, { order: number }> = {};
+      action.orderedVariableIds.forEach((id, index) => {
+        updates[id] = { order: index };
+      });
+      return u.updateIn(action.characterId, { variables: updates }, state);
     }
 
     case Types.DELETE_CHARACTER_VARIABLE: {

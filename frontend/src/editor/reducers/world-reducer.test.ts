@@ -2,7 +2,10 @@ import { expect } from "chai";
 
 import { EditorState, World, WorldMinimal } from "../../types";
 import {
+  createGlobal,
   createStageVariable,
+  setGlobalOrder,
+  setStageVariableOrder,
   setStageVariableValue,
   upsertStageVariable,
 } from "../actions/world-actions";
@@ -91,6 +94,47 @@ describe("worldReducer stage-variable invariant", () => {
 
       next = reduce(next, setStageVariableValue(WORLDS.ROOT, stageId, "wrapX", undefined));
       expect(next.stages[stageId].variableValues.wrapX).to.equal("false");
+    });
+  });
+
+  describe("variable display ordering", () => {
+    it("leaves a new stage variable unordered while built-ins are unordered", () => {
+      const before = initialState.world as WorldMinimal;
+      const create = createStageVariable(WORLDS.ROOT);
+      const after = reduce(before, create);
+      // Built-ins ship without an explicit order, so the first creation stays
+      // unordered too and falls to the end by insertion order.
+      expect(after.stageVariables[create.stageVariableId].order).to.equal(undefined);
+    });
+
+    it("SET_STAGE_VARIABLE_ORDER stamps a sequential order onto each id", () => {
+      const before = initialState.world as WorldMinimal;
+      const ids = Object.keys(before.stageVariables);
+      const reversed = [...ids].reverse();
+      const after = reduce(before, setStageVariableOrder(WORLDS.ROOT, reversed));
+      reversed.forEach((id, index) => {
+        expect(after.stageVariables[id].order).to.equal(index);
+      });
+    });
+
+    it("appends a new stage variable after an existing order once one is set", () => {
+      const before = initialState.world as WorldMinimal;
+      const ids = Object.keys(before.stageVariables);
+      let next = reduce(before, setStageVariableOrder(WORLDS.ROOT, ids));
+      const create = createStageVariable(WORLDS.ROOT);
+      next = reduce(next, create);
+      expect(next.stageVariables[create.stageVariableId].order).to.equal(ids.length);
+    });
+
+    it("SET_GLOBAL_ORDER stamps a sequential order onto each global id", () => {
+      const before = initialState.world as WorldMinimal;
+      let next = reduce(before, createGlobal(WORLDS.ROOT));
+      const ids = Object.keys(next.globals);
+      const reversed = [...ids].reverse();
+      next = reduce(next, setGlobalOrder(WORLDS.ROOT, reversed));
+      reversed.forEach((id, index) => {
+        expect(next.globals[id].order).to.equal(index);
+      });
     });
   });
 });

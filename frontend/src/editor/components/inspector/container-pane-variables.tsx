@@ -6,12 +6,18 @@ import { Button, ButtonDropdown, DropdownItem, DropdownMenu, DropdownToggle, Mod
 import { DeepPartial } from "redux";
 import { Actor, ActorTransform, Character, Global, RuleTreeItem, StageVariable, WorldMinimal } from "../../../types";
 import { useEditorSelector } from "../../../hooks/redux";
-import { deleteCharacterVariable, upsertCharacter } from "../../actions/characters-actions";
+import {
+  deleteCharacterVariable,
+  setCharacterVariableOrder,
+  upsertCharacter,
+} from "../../actions/characters-actions";
 import { changeActors } from "../../actions/stage-actions";
 import { selectToolId } from "../../actions/ui-actions";
 import {
   deleteGlobal,
   deleteStageVariable,
+  setGlobalOrder,
+  setStageVariableOrder,
   setStageVariableValue,
   upsertGlobal,
   upsertStageVariable,
@@ -291,6 +297,35 @@ type PendingDeleteState = {
 } | null;
 
 /**
+ * Sorts variable definitions by their `order` field, falling back to the
+ * current array (insertion) order for any that haven't been explicitly
+ * ordered yet. Stable so unordered definitions keep their relative order.
+ */
+function sortByOrder<T extends { order?: number }>(defs: T[]): T[] {
+  return defs
+    .map((def, index) => [def, index] as const)
+    .sort((a, b) => (a[0].order ?? Infinity) - (b[0].order ?? Infinity) || a[1] - b[1])
+    .map(([def]) => def);
+}
+
+/**
+ * Produces a new ordering with `sourceId` moved next to `targetId`.
+ */
+function reorderIds(
+  orderedIds: string[],
+  sourceId: string,
+  targetId: string,
+  placeAfter: boolean,
+): string[] {
+  const without = orderedIds.filter((id) => id !== sourceId);
+  let targetIndex = without.indexOf(targetId);
+  if (targetIndex === -1) return orderedIds;
+  if (placeAfter) targetIndex += 1;
+  without.splice(targetIndex, 0, sourceId);
+  return without;
+}
+
+/**
  * Returns the common value across all actors for a given accessor, or undefined if values differ.
  */
 function getCommonValue<T>(actors: Actor[], getValue: (actor: Actor) => T): T | undefined {
@@ -435,6 +470,7 @@ export const ContainerPaneVariables = ({
 
   function _renderCharacterSection() {
     const actorValues = actor ? actor.variableValues : {};
+    const variableDefs = sortByOrder(Object.values(character.variables));
 
     return (
       <div className="variables-grid">
@@ -483,7 +519,7 @@ export const ContainerPaneVariables = ({
             )}
           </>
         )}
-        {Object.values(character.variables).map((definition) => (
+        {variableDefs.map((definition) => (
           <VariableGridItem
             disabled={selectedToolId !== TOOLS.POINTER}
             readonly={readonly}
@@ -497,9 +533,17 @@ export const ContainerPaneVariables = ({
             onChangeDefinition={_onChangeVarDefinition}
             onChangeValue={_onChangeVarValue}
             onBlurValue={(id, value) => _onChangeVarValue(id, value)}
+            onReorder={(sourceId, targetId, placeAfter) =>
+              dispatch(
+                setCharacterVariableOrder(
+                  character.id,
+                  reorderIds(variableDefs.map((v) => v.id), sourceId, targetId, placeAfter),
+                ),
+              )
+            }
           />
         ))}
-        {Object.values(character.variables).length === 0 && (
+        {variableDefs.length === 0 && (
           <div className="empty">
             Add variables (like "age" or "health") that each {character.name} will have.
           </div>
@@ -509,11 +553,13 @@ export const ContainerPaneVariables = ({
   }
 
   function _renderWorldSection() {
+    const globalDefs = sortByOrder(Object.values(world.globals));
     return (
       <div className="variables-grid">
-        {Object.values(world.globals).map((definition) => (
+        {globalDefs.map((definition) => (
           <VariableGridItem
             draggable={true}
+            kind="global"
             actorId={null}
             disabled={selectedToolId !== TOOLS.POINTER}
             readonly={readonly}
@@ -524,6 +570,14 @@ export const ContainerPaneVariables = ({
             onChangeDefinition={_onChangeGlobalDefinition}
             onChangeValue={(id, value) => _onChangeGlobalDefinition(id, { value })}
             onBlurValue={(id, value) => _onChangeGlobalDefinition(id, { value })}
+            onReorder={(sourceId, targetId, placeAfter) =>
+              dispatch(
+                setGlobalOrder(
+                  world.id,
+                  reorderIds(globalDefs.map((g) => g.id), sourceId, targetId, placeAfter),
+                ),
+              )
+            }
           />
         ))}
       </div>
@@ -531,7 +585,7 @@ export const ContainerPaneVariables = ({
   }
 
   function _renderLevelSection() {
-    const definitions = Object.values(world.stageVariables);
+    const definitions = sortByOrder(Object.values(world.stageVariables));
     const values = levelTargetStage ? levelTargetStage.variableValues : {};
     return (
       <div className="variables-grid">
@@ -549,6 +603,14 @@ export const ContainerPaneVariables = ({
             onChangeDefinition={_onRenameStageVariable}
             onChangeValue={_onChangeStageVariableValue}
             onBlurValue={_onChangeStageVariableValue}
+            onReorder={(sourceId, targetId, placeAfter) =>
+              dispatch(
+                setStageVariableOrder(
+                  world.id,
+                  reorderIds(definitions.map((d) => d.id), sourceId, targetId, placeAfter),
+                ),
+              )
+            }
           />
         ))}
         {definitions.length === 0 && (

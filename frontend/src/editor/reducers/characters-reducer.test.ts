@@ -12,7 +12,11 @@ import {
   RuleTreeItem,
 } from "../../types";
 import { deleteCharacter } from "../actions/characters-actions";
-import { deleteCharacterVariable } from "../actions/characters-actions";
+import {
+  createCharacterVariable,
+  deleteCharacterVariable,
+  setCharacterVariableOrder,
+} from "../actions/characters-actions";
 import { deleteGlobal } from "../actions/world-actions";
 import charactersReducer from "./characters-reducer";
 import initialState from "./initial-state";
@@ -342,6 +346,43 @@ describe("characters-reducer scrub", () => {
       expect(aLoopAfter.loopCount).to.deep.equal({ constant: 2 });
       const bLoopAfter = after["hero-b"].rules[0] as RuleTreeFlowLoopItem;
       expect(bLoopAfter.loopCount).to.deep.equal({ variableId: "hp" });
+    });
+  });
+
+  describe("variable display ordering", () => {
+    it("leaves the first created variable unordered, then appends after a set order", () => {
+      const state: Characters = { hero: makeCharacter({ id: "hero" }) };
+
+      const first = createCharacterVariable("hero");
+      let next = reduce(state, first);
+      // No siblings carry an order yet, so the new one stays unordered.
+      expect(next["hero"].variables[first.variableId].order).to.equal(undefined);
+
+      next = reduce(next, setCharacterVariableOrder("hero", [first.variableId]));
+      expect(next["hero"].variables[first.variableId].order).to.equal(0);
+
+      const second = createCharacterVariable("hero");
+      next = reduce(next, second);
+      // Now that an order exists, the new variable appends after it.
+      expect(next["hero"].variables[second.variableId].order).to.equal(1);
+    });
+
+    it("SET_CHARACTER_VARIABLE_ORDER stamps a sequential order onto each id", () => {
+      const state: Characters = {
+        hero: makeCharacter({
+          id: "hero",
+          variables: {
+            a: { id: "a", name: "A", defaultValue: "0" },
+            b: { id: "b", name: "B", defaultValue: "0" },
+            c: { id: "c", name: "C", defaultValue: "0" },
+          },
+        }),
+      };
+
+      const after = reduce(state, setCharacterVariableOrder("hero", ["c", "a", "b"]));
+      expect(after["hero"].variables["c"].order).to.equal(0);
+      expect(after["hero"].variables["a"].order).to.equal(1);
+      expect(after["hero"].variables["b"].order).to.equal(2);
     });
   });
 });

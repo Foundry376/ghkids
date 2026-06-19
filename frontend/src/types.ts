@@ -236,7 +236,7 @@ export type Stage = {
   variableValues: Record<string, string>;
 };
 
-export type StageVariable =
+export type StageVariable = { order?: number } & (
   | {
       id: string;
       name: string;
@@ -255,7 +255,7 @@ export type StageVariable =
       id: "background";
       name: string;
       type: "background";
-    };
+    });
 
 export type AppearanceInfo = {
   anchor: { x: number; y: number };
@@ -288,6 +288,7 @@ export type Character = {
       name: string;
       defaultValue: string;
       type?: "stage";
+      order?: number;
     }
   >;
 };
@@ -340,7 +341,7 @@ export type EvaluatedRuleDetailsMap = {
   };
 };
 
-export type Global =
+export type Global = { order?: number } & (
   | {
       id: string;
       name: string;
@@ -369,7 +370,7 @@ export type Global =
       name: "Camera Follow";
       value: string;
       type: "actor";
-    };
+    });
 
 export type Globals = {
   click: Global;

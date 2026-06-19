@@ -1312,6 +1312,15 @@ html {
       border: 2px solid rgba(91, 192, 222, 0.8);
       background: rgba(91, 192, 222, 0.35);
     }
+    // Drag-to-reorder insertion indicator: a bar on the edge the dragged
+    // variable would drop next to. Uses inset box-shadow so it doesn't shift
+    // the fixed-width grid layout.
+    &.reorder-before {
+      box-shadow: inset 3px 0 0 0 rgba(91, 192, 222, 0.95);
+    }
+    &.reorder-after {
+      box-shadow: inset -3px 0 0 0 rgba(91, 192, 222, 0.95);
+    }
 
     .name {
       background-color: transparent;
