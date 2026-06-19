@@ -209,6 +209,38 @@ describe("Worlds API", () => {
       expect(res.body.data).to.deep.equal({ updated: true });
     });
 
+    it("should not change the thumbnail on a draft save", async () => {
+      const { user, authHeader } = await createTestUser("testuser", "password123");
+
+      const worldRepo = AppDataSource.getRepository(World);
+      const world = await worldRepo.save({
+        name: "Original Name",
+        thumbnail: "saved-thumbnail",
+        userId: user.id,
+      });
+
+      // A draft save (default action) carries the in-progress thumbnail, but it
+      // must not overwrite the committed thumbnail shown on the world card.
+      await request(app)
+        .put(`/worlds/${world.id}?action=saveDraft`)
+        .set("Authorization", authHeader)
+        .send({ thumbnail: "draft-thumbnail", data: { draft: true } })
+        .expect(200);
+
+      const afterDraft = await worldRepo.findOneByOrFail({ id: world.id });
+      expect(afterDraft.thumbnail).to.equal("saved-thumbnail");
+
+      // An explicit save should update the thumbnail.
+      await request(app)
+        .put(`/worlds/${world.id}?action=save`)
+        .set("Authorization", authHeader)
+        .send({ thumbnail: "committed-thumbnail", data: { saved: true } })
+        .expect(200);
+
+      const afterSave = await worldRepo.findOneByOrFail({ id: world.id });
+      expect(afterSave.thumbnail).to.equal("committed-thumbnail");
+    });
+
     it("should return 404 for world owned by different user", async () => {
       const { user: owner } = await createTestUser("owner", "password123");
       const { authHeader: attackerAuth } = await createTestUser("attacker", "password123");

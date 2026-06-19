@@ -113,10 +113,12 @@ const LocalStorageAdapter = {
       delete _value.unsavedData;
       delete _value.unsavedDataUpdatedAt;
     } else {
-      // Default: saveDraft - save to unsavedData and update timestamp
+      // Default: saveDraft - save to unsavedData and update timestamp.
+      // Deliberately do NOT update _value.thumbnail here: the thumbnail
+      // reflects the last committed (saved) state, so it should only change on
+      // an explicit "save", not on draft autosaves.
       _value.unsavedData = json.data;
       if (json.name) _value.name = json.name;
-      if (json.thumbnail) _value.thumbnail = json.thumbnail;
       _value.unsavedDataUpdatedAt = new Date().toISOString();
     }
     try {
