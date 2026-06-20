@@ -31,6 +31,23 @@ export function operandForValueChange(
   throw new Error("Unknown op");
 }
 
+/**
+ * The position shift that keeps a sprite occupying the same squares when its
+ * appearance's anchor square moves from `prevAnchor` to `nextAnchor`.
+ *
+ * A sprite's filled cells are laid out as `position + (filledOffset - anchor)`
+ * in x and `position + (anchor - filledOffset)` in y (world Y is up, but the
+ * sprite image is Y-down, so the y component is inverted — see
+ * `actorFilledPoints`). To hold the artwork still while the anchor moves by
+ * `d = nextAnchor - prevAnchor`, the position must change by `(+d.x, -d.y)`.
+ */
+export function positionDeltaForAnchorChange(prevAnchor: Position, nextAnchor: Position): Position {
+  return {
+    x: nextAnchor.x - prevAnchor.x,
+    y: -(nextAnchor.y - prevAnchor.y),
+  };
+}
+
 export function extentIgnoredPositions(extent: RuleExtent) {
   return Object.keys(extent.ignored).map((k) => {
     const coords = k.split(",").map(Number);

@@ -129,6 +129,7 @@ export default function worldReducer(
     case Types.UPSERT_ACTORS:
     case Types.DELETE_ACTORS:
     case Types.DELETE_CHARACTER:
+    case Types.ADJUST_FOR_APPEARANCE_ANCHOR_CHANGE:
       return u(
         {
           history: u.constant([]),

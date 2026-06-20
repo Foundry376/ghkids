@@ -11,6 +11,7 @@ import {
   RuleTreeFlowLoopItem,
   RuleTreeItem,
 } from "../../types";
+import { adjustForAppearanceAnchorChange } from "../actions/characters-actions";
 import { deleteCharacter } from "../actions/characters-actions";
 import { deleteCharacterVariable } from "../actions/characters-actions";
 import { deleteGlobal } from "../actions/world-actions";
@@ -343,5 +344,122 @@ describe("characters-reducer scrub", () => {
       const bLoopAfter = after["hero-b"].rules[0] as RuleTreeFlowLoopItem;
       expect(bLoopAfter.loopCount).to.deep.equal({ variableId: "hp" });
     });
+  });
+});
+
+describe("characters-reducer ADJUST_FOR_APPEARANCE_ANCHOR_CHANGE", () => {
+  function actorAt(
+    id: string,
+    characterId: string,
+    appearance: string,
+    position: { x: number; y: number },
+  ): Actor {
+    return { id, characterId, appearance, position, variableValues: {} };
+  }
+
+  it("shifts a non-main affected actor so its artwork stays in the same squares", () => {
+    // Anchor (0,1) -> (1,1): the anchor square moved one cell right within the
+    // sprite, so the actor's position must move one cell right (user's example).
+    const main = actorAt("m", "ground", "idle", { x: 0, y: 0 });
+    const hero = actorAt("h", "hero", "stand", { x: 2, y: 3 });
+    const rule = makeRule({ id: "r1", mainActorId: "m", actors: { m: main, h: hero } });
+
+    const before: Characters = { hero: makeCharacter({ id: "hero", rules: [rule] }) };
+    const after = reduce(
+      before,
+      adjustForAppearanceAnchorChange("hero", "stand", { x: 0, y: 1 }, { x: 1, y: 1 }),
+    );
+
+    const r = after.hero.rules[0] as Rule;
+    expect(r.actors.h.position).to.deep.equal({ x: 3, y: 3 });
+    expect(r.actors.m.position).to.deep.equal({ x: 0, y: 0 });
+    expect(r.extent).to.deep.equal({ xmin: 0, xmax: 0, ymin: 0, ymax: 0, ignored: {} });
+  });
+
+  it("inverts the y axis (world is Y-up, sprite image is Y-down)", () => {
+    // Anchor (0,0) -> (0,1): moving the anchor one cell DOWN in image space
+    // means the actor position moves one cell DOWN in world space (y - 1).
+    const main = actorAt("m", "ground", "idle", { x: 0, y: 0 });
+    const hero = actorAt("h", "hero", "stand", { x: 2, y: 3 });
+    const rule = makeRule({ id: "r1", mainActorId: "m", actors: { m: main, h: hero } });
+
+    const before: Characters = { hero: makeCharacter({ id: "hero", rules: [rule] }) };
+    const after = reduce(
+      before,
+      adjustForAppearanceAnchorChange("hero", "stand", { x: 0, y: 0 }, { x: 0, y: 1 }),
+    );
+
+    const r = after.hero.rules[0] as Rule;
+    expect(r.actors.h.position).to.deep.equal({ x: 2, y: 2 });
+  });
+
+  it("keeps the main actor at (0,0) by translating the rest of the rule", () => {
+    // The main actor uses the changed appearance. It must stay at the rule
+    // origin, so every other actor and the extent shift the opposite way.
+    const main = actorAt("m", "hero", "stand", { x: 0, y: 0 });
+    const other = actorAt("o", "block", "b", { x: 1, y: 2 });
+    const rule = makeRule({ id: "r1", mainActorId: "m", actors: { m: main, o: other } });
+    rule.extent = { xmin: 0, xmax: 2, ymin: 0, ymax: 2, ignored: { "1,1": true } };
+
+    const before: Characters = { hero: makeCharacter({ id: "hero", rules: [rule] }) };
+    const after = reduce(
+      before,
+      adjustForAppearanceAnchorChange("hero", "stand", { x: 0, y: 0 }, { x: 1, y: 0 }),
+    );
+
+    const r = after.hero.rules[0] as Rule;
+    // d = (1, 0), main moved +1 then frame translated -1 => back to origin.
+    expect(r.actors.m.position).to.deep.equal({ x: 0, y: 0 });
+    // Unaffected actor follows the frame translation (-1, 0).
+    expect(r.actors.o.position).to.deep.equal({ x: 0, y: 2 });
+    expect(r.extent).to.deep.equal({
+      xmin: -1,
+      xmax: 1,
+      ymin: 0,
+      ymax: 2,
+      ignored: { "0,1": true },
+    });
+  });
+
+  it("adjusts move/create offsets so the after-state also stays put", () => {
+    const main = actorAt("m", "ground", "idle", { x: 0, y: 0 });
+    const hero = actorAt("h", "hero", "stand", { x: 1, y: 1 });
+    const rule = makeRule({
+      id: "r1",
+      mainActorId: "m",
+      actors: { m: main, h: hero },
+      actions: [
+        { type: "move", actorId: "h", offset: { x: 3, y: 0 } },
+        {
+          type: "create",
+          actorId: "new-hero",
+          actor: actorAt("new-hero", "hero", "stand", { x: 0, y: 0 }),
+          offset: { x: 5, y: 0 },
+        },
+      ],
+    });
+
+    const before: Characters = { hero: makeCharacter({ id: "hero", rules: [rule] }) };
+    const after = reduce(
+      before,
+      adjustForAppearanceAnchorChange("hero", "stand", { x: 0, y: 0 }, { x: 1, y: 0 }),
+    );
+
+    const r = after.hero.rules[0] as Rule;
+    // main not affected, both targets affected => offsets shift by d = (1, 0).
+    expect(r.actors.h.position).to.deep.equal({ x: 2, y: 1 });
+    expect((r.actions[0] as { offset: { x: number; y: number } }).offset).to.deep.equal({ x: 4, y: 0 });
+    expect((r.actions[1] as { offset: { x: number; y: number } }).offset).to.deep.equal({ x: 6, y: 0 });
+  });
+
+  it("does nothing when the anchor did not move", () => {
+    const main = actorAt("m", "hero", "stand", { x: 0, y: 0 });
+    const rule = makeRule({ id: "r1", mainActorId: "m", actors: { m: main } });
+    const before: Characters = { hero: makeCharacter({ id: "hero", rules: [rule] }) };
+    const after = reduce(
+      before,
+      adjustForAppearanceAnchorChange("hero", "stand", { x: 1, y: 1 }, { x: 1, y: 1 }),
+    );
+    expect(after).to.equal(before);
   });
 });
