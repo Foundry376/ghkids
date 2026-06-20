@@ -39,7 +39,7 @@ const TickClock: React.FC<TickClockProps> = ({ running, speed, tickKey }) => {
   // high-speed ticks batch into a single render (the hand just glides 60° once
   // instead of blurring), rather than free-spinning on a CSS timer.
   const rotation = tickCount * 30;
-  const transitionDuration = running ? Math.round(speed * 0.9) : 150;
+  const transitionDuration = running ? Math.round(speed) : 150;
 
   return (
     <div
