@@ -34,6 +34,29 @@ export function applyAnchorAdjustment(
   position.y -= y;
 }
 
+/**
+ * The shift to apply to an actor's `position` so its artwork stays in exactly
+ * the same squares when its appearance's anchor square moves from `prevAnchor`
+ * to `nextAnchor`.
+ *
+ * The anchor's contribution to where a sprite renders is `applyAnchorAdjustment`
+ * (the transformed anchor, with the y component flipped because world Y is up
+ * while the image is Y-down), so the position must move by the change in that
+ * contribution. We get it by transforming both anchors and subtracting; the
+ * width/height terms in `pointApplyingTransform` are constants that cancel in
+ * the subtraction, so the sprite's dimensions are not needed here.
+ */
+export function positionDeltaForAnchorChange(
+  prevAnchor: Position,
+  nextAnchor: Position,
+  transform: Actor["transform"],
+): Position {
+  const dims = { width: 0, height: 0 }; // cancels in the subtraction below
+  const [px, py] = pointApplyingTransform(prevAnchor.x, prevAnchor.y, dims, transform);
+  const [nx, ny] = pointApplyingTransform(nextAnchor.x, nextAnchor.y, dims, transform);
+  return { x: nx - px, y: -(ny - py) };
+}
+
 export function actorFillsPoint(actor: Actor, characters: Characters, point: Position): boolean {
   return actorFilledPoints(actor, characters).some((p) => p.x === point.x && p.y === point.y);
 }

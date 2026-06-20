@@ -393,6 +393,25 @@ describe("characters-reducer ADJUST_FOR_APPEARANCE_ANCHOR_CHANGE", () => {
     expect(r.actors.h.position).to.deep.equal({ x: 2, y: 2 });
   });
 
+  it("uses a transform-aware delta for rotated/flipped actors", () => {
+    // For a 90°-rotated actor the anchor axes are swapped, so moving the anchor
+    // one cell right in image space shifts the world position one cell DOWN
+    // rather than right. (anchor (0,0)->(1,0), transform "90" => delta (0,-1).)
+    const main = actorAt("m", "ground", "idle", { x: 0, y: 0 });
+    const hero = actorAt("h", "hero", "stand", { x: 2, y: 3 });
+    hero.transform = "90";
+    const rule = makeRule({ id: "r1", mainActorId: "m", actors: { m: main, h: hero } });
+
+    const before: Characters = { hero: makeCharacter({ id: "hero", rules: [rule] }) };
+    const after = reduce(
+      before,
+      adjustForAppearanceAnchorChange("hero", "stand", { x: 0, y: 0 }, { x: 1, y: 0 }),
+    );
+
+    const r = after.hero.rules[0] as Rule;
+    expect(r.actors.h.position).to.deep.equal({ x: 2, y: 2 });
+  });
+
   it("keeps the main actor at (0,0) by translating the rest of the rule", () => {
     // The main actor uses the changed appearance. It must stay at the rule
     // origin, so every other actor and the extent shift the opposite way.

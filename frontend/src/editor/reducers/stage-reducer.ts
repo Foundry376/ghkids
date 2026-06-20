@@ -3,7 +3,7 @@ import u from "updeep";
 import { Position, Stage } from "../../types";
 import { Actions } from "../actions";
 import * as Types from "../constants/action-types";
-import { positionDeltaForAnchorChange } from "../utils/recording-helpers";
+import { pointByAdding, positionDeltaForAnchorChange } from "../utils/stage-helpers";
 
 export default function stageReducer(state: Stage, action: Actions) {
   if ("stageId" in action && action.stageId && action.stageId !== state.id) {
@@ -20,16 +20,17 @@ export default function stageReducer(state: Stage, action: Actions) {
     }
     case Types.ADJUST_FOR_APPEARANCE_ANCHOR_CHANGE: {
       // Moving an appearance's anchor shifts where its artwork renders relative
-      // to an actor's position, so nudge placed actors the opposite way to keep
-      // them in the same squares.
-      const d = positionDeltaForAnchorChange(action.prevAnchor, action.nextAnchor);
-      if (d.x === 0 && d.y === 0) {
+      // to an actor's position, so nudge placed actors by the same (transform-
+      // aware) delta to keep them in the same squares.
+      const { prevAnchor, nextAnchor } = action;
+      if (prevAnchor.x === nextAnchor.x && prevAnchor.y === nextAnchor.y) {
         return state;
       }
       const updates: Record<string, { position: Position }> = {};
       for (const [id, actor] of Object.entries(state.actors)) {
         if (actor.characterId === action.characterId && actor.appearance === action.appearanceId) {
-          updates[id] = { position: { x: actor.position.x + d.x, y: actor.position.y + d.y } };
+          const d = positionDeltaForAnchorChange(prevAnchor, nextAnchor, actor.transform);
+          updates[id] = { position: pointByAdding(actor.position, d) };
         }
       }
       if (Object.keys(updates).length === 0) {
