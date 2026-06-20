@@ -142,14 +142,9 @@ router.put("/worlds/:objectId", userFromBasicAuth, async (req, res) => {
   // Handle different save actions
   if (action === "save") {
     // Save: copy unsavedData to data, clear unsavedData and timestamp
-    if (world.unsavedData) {
-      world.data = world.unsavedData as Record<string, unknown>;
-      world.unsavedData = null;
-      world.unsavedDataUpdatedAt = null;
-    } else if (req.body.data) {
-      // If no unsavedData but data provided, save directly to data
-      world.data = req.body.data;
-    }
+    world.data = req.body.data || (world.unsavedData as Record<string, unknown>);
+    world.unsavedData = null;
+    world.unsavedDataUpdatedAt = null;
     // Also update name and thumbnail if provided
     world.name = req.body.name || world.name;
     world.thumbnail = req.body.thumbnail || world.thumbnail;
