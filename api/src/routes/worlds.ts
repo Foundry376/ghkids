@@ -162,9 +162,13 @@ router.put("/worlds/:objectId", userFromBasicAuth, async (req, res) => {
     world.unsavedData = null;
     world.unsavedDataUpdatedAt = null;
   } else {
-    // Default: saveDraft - save to unsavedData and update timestamp
+    // Default: saveDraft - save to unsavedData and update timestamp.
+    // Note: we deliberately do NOT update world.thumbnail here. The thumbnail
+    // represents the last committed (saved) state of the world, so it should
+    // only change on an explicit "save". Updating it during draft autosaves
+    // would make the world card reflect unsaved changes even after the user
+    // exits without saving or reverts to the saved version.
     world.name = req.body.name || world.name;
-    world.thumbnail = req.body.thumbnail || world.thumbnail;
     if (req.body.data) {
       world.unsavedData = req.body.data;
       world.unsavedDataUpdatedAt = new Date();
