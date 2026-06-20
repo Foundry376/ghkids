@@ -1,4 +1,12 @@
-<!-- LAST_COMMIT: 8d50cea176bd4aaadf977b2bc7f074c224b58a2a -->
+<!-- LAST_COMMIT: 4f10781d8b792eb60a88ff45671d49fa5442791c -->
+
+## [2026-06-20]
+
+Moving the anchor square in the sprite editor no longer drags your artwork out of place. When you pick a new anchor square, Codako now nudges every rule and every actor already on a stage that uses that picture so it stays in exactly the same squares it was in before.
+
+### Fixed
+
+- Changing an appearance's anchor square now shifts the actors in your rules (and any actors placed on stages) so the sprite keeps occupying the same squares, instead of silently moving the artwork.
 
 ## [2026-05-29]
 
