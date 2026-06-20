@@ -778,15 +778,6 @@ html {
     }
   }
 
-  @keyframes tick-clock-spin {
-    from {
-      transform: rotate(0deg);
-    }
-    to {
-      transform: rotate(360deg);
-    }
-  }
-
   .library-container {
     display: flex;
     flex-direction: row;
