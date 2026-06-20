@@ -1,5 +1,5 @@
 import { DeepPartial } from "redux";
-import { Global, StageVariable, World } from "../../types";
+import { Global, GridPosition, StageVariable, World } from "../../types";
 import * as types from "../constants/action-types";
 import { makeId } from "../utils/utils";
 
@@ -124,38 +124,38 @@ export type ActionSetStageVariableValue = {
   value: string | undefined;
 };
 
-export function setGlobalOrder(
+export function setGlobalPositions(
   worldId: string | undefined,
-  orderedGlobalIds: string[],
-): ActionSetGlobalOrder {
+  positions: Record<string, GridPosition>,
+): ActionSetGlobalPositions {
   return {
-    type: types.SET_GLOBAL_ORDER,
+    type: types.SET_GLOBAL_POSITIONS,
     worldId,
-    orderedGlobalIds,
+    positions,
   };
 }
 
-export type ActionSetGlobalOrder = {
-  type: "SET_GLOBAL_ORDER";
+export type ActionSetGlobalPositions = {
+  type: "SET_GLOBAL_POSITIONS";
   worldId?: string;
-  orderedGlobalIds: string[];
+  positions: Record<string, GridPosition>;
 };
 
-export function setStageVariableOrder(
+export function setStageVariablePositions(
   worldId: string | undefined,
-  orderedStageVariableIds: string[],
-): ActionSetStageVariableOrder {
+  positions: Record<string, GridPosition>,
+): ActionSetStageVariablePositions {
   return {
-    type: types.SET_STAGE_VARIABLE_ORDER,
+    type: types.SET_STAGE_VARIABLE_POSITIONS,
     worldId,
-    orderedStageVariableIds,
+    positions,
   };
 }
 
-export type ActionSetStageVariableOrder = {
-  type: "SET_STAGE_VARIABLE_ORDER";
+export type ActionSetStageVariablePositions = {
+  type: "SET_STAGE_VARIABLE_POSITIONS";
   worldId?: string;
-  orderedStageVariableIds: string[];
+  positions: Record<string, GridPosition>;
 };
 
 export function updateWorldMetadata(
@@ -180,6 +180,6 @@ export type WorldActions =
   | ActionUpsertStageVariable
   | ActionDeleteStageVariable
   | ActionSetStageVariableValue
-  | ActionSetGlobalOrder
-  | ActionSetStageVariableOrder
+  | ActionSetGlobalPositions
+  | ActionSetStageVariablePositions
   | ActionUpdateWorldMetadata;

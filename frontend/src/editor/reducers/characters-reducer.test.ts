@@ -15,7 +15,7 @@ import { deleteCharacter } from "../actions/characters-actions";
 import {
   createCharacterVariable,
   deleteCharacterVariable,
-  setCharacterVariableOrder,
+  setCharacterVariablePositions,
 } from "../actions/characters-actions";
 import { deleteGlobal } from "../actions/world-actions";
 import charactersReducer from "./characters-reducer";
@@ -349,40 +349,39 @@ describe("characters-reducer scrub", () => {
     });
   });
 
-  describe("variable display ordering", () => {
-    it("leaves the first created variable unordered, then appends after a set order", () => {
+  describe("variable grid positions", () => {
+    it("places newly created variables bottom-left, one row lower each time", () => {
       const state: Characters = { hero: makeCharacter({ id: "hero" }) };
 
       const first = createCharacterVariable("hero");
       let next = reduce(state, first);
-      // No siblings carry an order yet, so the new one stays unordered.
-      expect(next["hero"].variables[first.variableId].order).to.equal(undefined);
-
-      next = reduce(next, setCharacterVariableOrder("hero", [first.variableId]));
-      expect(next["hero"].variables[first.variableId].order).to.equal(0);
+      expect(next["hero"].variables[first.variableId].position).to.deep.equal({ col: 0, row: 0 });
 
       const second = createCharacterVariable("hero");
       next = reduce(next, second);
-      // Now that an order exists, the new variable appends after it.
-      expect(next["hero"].variables[second.variableId].order).to.equal(1);
+      expect(next["hero"].variables[second.variableId].position).to.deep.equal({ col: 0, row: 1 });
     });
 
-    it("SET_CHARACTER_VARIABLE_ORDER stamps a sequential order onto each id", () => {
+    it("SET_CHARACTER_VARIABLE_POSITIONS replaces the position for each given id", () => {
       const state: Characters = {
         hero: makeCharacter({
           id: "hero",
           variables: {
-            a: { id: "a", name: "A", defaultValue: "0" },
-            b: { id: "b", name: "B", defaultValue: "0" },
-            c: { id: "c", name: "C", defaultValue: "0" },
+            a: { id: "a", name: "A", defaultValue: "0", position: { col: 0, row: 0 } },
+            b: { id: "b", name: "B", defaultValue: "0", position: { col: 1, row: 0 } },
           },
         }),
       };
 
-      const after = reduce(state, setCharacterVariableOrder("hero", ["c", "a", "b"]));
-      expect(after["hero"].variables["c"].order).to.equal(0);
-      expect(after["hero"].variables["a"].order).to.equal(1);
-      expect(after["hero"].variables["b"].order).to.equal(2);
+      const after = reduce(
+        state,
+        setCharacterVariablePositions("hero", {
+          a: { col: 1, row: 0 },
+          b: { col: 0, row: 0 },
+        }),
+      );
+      expect(after["hero"].variables["a"].position).to.deep.equal({ col: 1, row: 0 });
+      expect(after["hero"].variables["b"].position).to.deep.equal({ col: 0, row: 0 });
     });
   });
 });

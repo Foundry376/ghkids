@@ -4,11 +4,12 @@ import { EditorState, World, WorldMinimal } from "../../types";
 import {
   createGlobal,
   createStageVariable,
-  setGlobalOrder,
-  setStageVariableOrder,
+  setGlobalPositions,
+  setStageVariablePositions,
   setStageVariableValue,
   upsertStageVariable,
 } from "../actions/world-actions";
+import { BUILTIN_GLOBAL_IDS } from "../utils/variable-layout";
 import { CREATE_STAGE } from "../constants/action-types";
 import { WORLDS } from "../constants/constants";
 import { makeId } from "../utils/utils";
@@ -97,44 +98,41 @@ describe("worldReducer stage-variable invariant", () => {
     });
   });
 
-  describe("variable display ordering", () => {
-    it("leaves a new stage variable unordered while built-ins are unordered", () => {
+  describe("variable grid positions", () => {
+    it("places a new stage variable bottom-left, ignoring position-less built-ins", () => {
       const before = initialState.world as WorldMinimal;
       const create = createStageVariable(WORLDS.ROOT);
       const after = reduce(before, create);
-      // Built-ins ship without an explicit order, so the first creation stays
-      // unordered too and falls to the end by insertion order.
-      expect(after.stageVariables[create.stageVariableId].order).to.equal(undefined);
+      expect(after.stageVariables[create.stageVariableId].position).to.deep.equal({ col: 0, row: 0 });
     });
 
-    it("SET_STAGE_VARIABLE_ORDER stamps a sequential order onto each id", () => {
+    it("stacks successive new stage variables down column 0", () => {
       const before = initialState.world as WorldMinimal;
-      const ids = Object.keys(before.stageVariables);
-      const reversed = [...ids].reverse();
-      const after = reduce(before, setStageVariableOrder(WORLDS.ROOT, reversed));
-      reversed.forEach((id, index) => {
-        expect(after.stageVariables[id].order).to.equal(index);
-      });
+      const first = createStageVariable(WORLDS.ROOT);
+      let next = reduce(before, first);
+      const second = createStageVariable(WORLDS.ROOT);
+      next = reduce(next, second);
+      expect(next.stageVariables[first.stageVariableId].position).to.deep.equal({ col: 0, row: 0 });
+      expect(next.stageVariables[second.stageVariableId].position).to.deep.equal({ col: 0, row: 1 });
     });
 
-    it("appends a new stage variable after an existing order once one is set", () => {
+    it("SET_STAGE_VARIABLE_POSITIONS replaces the position for the given id", () => {
       const before = initialState.world as WorldMinimal;
-      const ids = Object.keys(before.stageVariables);
-      let next = reduce(before, setStageVariableOrder(WORLDS.ROOT, ids));
       const create = createStageVariable(WORLDS.ROOT);
-      next = reduce(next, create);
-      expect(next.stageVariables[create.stageVariableId].order).to.equal(ids.length);
+      let next = reduce(before, create);
+      next = reduce(
+        next,
+        setStageVariablePositions(WORLDS.ROOT, { [create.stageVariableId]: { col: 1, row: 2 } }),
+      );
+      expect(next.stageVariables[create.stageVariableId].position).to.deep.equal({ col: 1, row: 2 });
     });
 
-    it("SET_GLOBAL_ORDER stamps a sequential order onto each global id", () => {
+    it("SET_GLOBAL_POSITIONS replaces the position for the given id", () => {
       const before = initialState.world as WorldMinimal;
       let next = reduce(before, createGlobal(WORLDS.ROOT));
-      const ids = Object.keys(next.globals);
-      const reversed = [...ids].reverse();
-      next = reduce(next, setGlobalOrder(WORLDS.ROOT, reversed));
-      reversed.forEach((id, index) => {
-        expect(next.globals[id].order).to.equal(index);
-      });
+      const userId = Object.keys(next.globals).find((id) => !BUILTIN_GLOBAL_IDS.has(id))!;
+      next = reduce(next, setGlobalPositions(WORLDS.ROOT, { [userId]: { col: 1, row: 3 } }));
+      expect(next.globals[userId].position).to.deep.equal({ col: 1, row: 3 });
     });
   });
 });

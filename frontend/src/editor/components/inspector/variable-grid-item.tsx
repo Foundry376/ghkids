@@ -4,6 +4,7 @@ import { useDraggableContainer } from "../../../hooks/useDraggableContainer";
 import { useEditorSelector } from "../../../hooks/redux";
 import { Character, Global, StageVariable } from "../../../types";
 import { getCurrentStageForWorld } from "../../utils/selectors";
+import { beginVariableDrag } from "../../utils/variable-layout";
 import {
   BackgroundEditorModal,
   BackgroundPreview,
@@ -122,7 +123,7 @@ export const VariableGridItem = ({
   onBlurValue,
   onChangeValue,
   onClick,
-  onReorder,
+  style,
 }: {
   actorId: string | null;
   /** Selects the drag payload shape and how the displayed value relates to the definition. */
@@ -138,12 +139,8 @@ export const VariableGridItem = ({
   onChangeDefinition: (id: string, partial: Partial<Character["variables"][0]>) => void;
   onBlurValue: (id: string, value: string | undefined) => void;
   onClick: (id: string, event: React.MouseEvent) => void;
-  /**
-   * When provided, the box becomes a drop target for other variable boxes in
-   * the same section, enabling drag-to-reorder. `placeAfter` indicates whether
-   * the dragged variable should land after this one (drop on the right half).
-   */
-  onReorder?: (sourceId: string, targetId: string, placeAfter: boolean) => void;
+  /** Absolute positioning applied by the arrangement canvas. */
+  style?: React.CSSProperties;
 }) => {
   const defaultValue = "defaultValue" in definition ? definition.defaultValue : undefined;
   const displayValue = isMixed ? "" : (value !== undefined ? value : defaultValue);
@@ -164,8 +161,6 @@ export const VariableGridItem = ({
       definition.type === "background");
 
   const [dropping, setDropping] = useState(false);
-  // Which side an in-flight reorder drag would drop on (null = not reordering).
-  const [reorderSide, setReorderSide] = useState<"before" | "after" | null>(null);
   const { containerProps } = useDraggableContainer();
 
   const _onDragStart = (event: React.DragEvent) => {
@@ -186,33 +181,37 @@ export const VariableGridItem = ({
     } else {
       payload = { globalId: definition.id, value: dragValue || "" };
     }
-    // Reorder metadata, read on drop onto a sibling box in the same section.
-    // The drag payload type stays "variable" so dragging into the rule editor
-    // keeps working unchanged.
+    // Arrangement metadata, read by the canvas on drop. The payload type stays
+    // "variable" so dragging into the rule editor keeps working unchanged.
     payload.reorderKind = kind;
     payload.reorderId = definition.id;
     event.dataTransfer.setData("variable", JSON.stringify(payload));
+
+    // Record where inside the box the pointer grabbed it so the canvas can snap
+    // by the box's top-left rather than the cursor, and which section this drag
+    // belongs to so the canvas ignores foreign drags (sprites, Appearance, …).
+    const rect = event.currentTarget.getBoundingClientRect();
+    beginVariableDrag({
+      id: definition.id,
+      kind,
+      offsetX: event.clientX - rect.left,
+      offsetY: event.clientY - rect.top,
+    });
+  };
+
+  const _onDragEnd = () => {
+    beginVariableDrag(null);
   };
 
   const _onDragOver = (event: React.DragEvent) => {
     if (type === "actor" && event.dataTransfer.types.includes("sprite")) {
       event.preventDefault();
       setDropping(true);
-      return;
-    }
-    if (onReorder && event.dataTransfer.types.includes("variable")) {
-      // The payload isn't readable during dragover, so we can't yet rule out a
-      // different-section variable; that's verified on drop. Here we just show
-      // the insertion side based on the pointer position.
-      event.preventDefault();
-      const rect = event.currentTarget.getBoundingClientRect();
-      setReorderSide(event.clientX < rect.left + rect.width / 2 ? "before" : "after");
     }
   };
 
   const _onDragLeave = () => {
     setDropping(false);
-    setReorderSide(null);
   };
 
   const _onDrop = (event: React.DragEvent) => {
@@ -221,24 +220,8 @@ export const VariableGridItem = ({
       onChangeValue(definition.id, dragAnchorActorId);
       event.preventDefault();
       event.stopPropagation();
-    } else if (onReorder && event.dataTransfer.types.includes("variable")) {
-      try {
-        const payload = JSON.parse(event.dataTransfer.getData("variable"));
-        if (
-          payload.reorderKind === kind &&
-          payload.reorderId &&
-          payload.reorderId !== definition.id
-        ) {
-          onReorder(payload.reorderId, definition.id, reorderSide === "after");
-          event.preventDefault();
-          event.stopPropagation();
-        }
-      } catch {
-        // Not a JSON reorder payload — ignore.
-      }
     }
     setDropping(false);
-    setReorderSide(null);
   };
 
   let content = null;
@@ -308,10 +291,12 @@ export const VariableGridItem = ({
 
   return (
     <div
-      className={`variable-box ${readonly ? "variable-readonly" : `variable-set-${value !== undefined && !isMixed}`} dropping-${dropping} ${reorderSide ? `reorder-${reorderSide}` : ""}`}
+      className={`variable-box ${readonly ? "variable-readonly" : `variable-set-${value !== undefined && !isMixed}`} dropping-${dropping}`}
+      style={style}
       onClick={(e) => onClick(definition.id, e)}
       draggable={draggable && !isMixed && containerProps.draggable}
       onDragStart={_onDragStart}
+      onDragEnd={_onDragEnd}
       onDragOver={_onDragOver}
       onDragLeave={_onDragLeave}
       onDrop={_onDrop}

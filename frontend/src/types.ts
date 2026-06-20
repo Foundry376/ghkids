@@ -236,7 +236,9 @@ export type Stage = {
   variableValues: Record<string, string>;
 };
 
-export type StageVariable = { order?: number } & (
+export type GridPosition = { col: number; row: number };
+
+export type StageVariable = { position?: GridPosition } & (
   | {
       id: string;
       name: string;
@@ -288,7 +290,7 @@ export type Character = {
       name: string;
       defaultValue: string;
       type?: "stage";
-      order?: number;
+      position?: GridPosition;
     }
   >;
 };
@@ -341,7 +343,7 @@ export type EvaluatedRuleDetailsMap = {
   };
 };
 
-export type Global = { order?: number } & (
+export type Global = { position?: GridPosition } & (
   | {
       id: string;
       name: string;

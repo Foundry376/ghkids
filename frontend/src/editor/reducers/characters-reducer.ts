@@ -15,7 +15,8 @@ import { ruleFromRecordingState } from "../components/stage/recording/utils";
 import * as Types from "../constants/action-types";
 import { getCurrentStageForWorld } from "../utils/selectors";
 import { findRule } from "../utils/stage-helpers";
-import { deepClone, makeId, nextOrder } from "../utils/utils";
+import { deepClone, makeId } from "../utils/utils";
+import { nextPosition } from "../utils/variable-layout";
 import { CONTAINER_TYPES, FLOW_BEHAVIORS } from "../utils/world-constants";
 import initialState from "./initial-state";
 
@@ -43,7 +44,6 @@ export default function charactersReducer(
 
     case Types.CREATE_CHARACTER_VARIABLE: {
       const existing = state[action.characterId]?.variables ?? {};
-      const order = nextOrder(Object.values(existing));
       return u.updateIn(
         action.characterId,
         {
@@ -52,7 +52,7 @@ export default function charactersReducer(
               defaultValue: "0",
               name: "Untitled",
               id: action.variableId,
-              ...(order !== undefined ? { order } : {}),
+              position: nextPosition(Object.values(existing)),
             },
           },
         } as Pick<Character, "variables">,
@@ -60,11 +60,11 @@ export default function charactersReducer(
       );
     }
 
-    case Types.SET_CHARACTER_VARIABLE_ORDER: {
-      const updates: Record<string, { order: number }> = {};
-      action.orderedVariableIds.forEach((id, index) => {
-        updates[id] = { order: index };
-      });
+    case Types.SET_CHARACTER_VARIABLE_POSITIONS: {
+      const updates: Record<string, { position: unknown }> = {};
+      for (const [id, position] of Object.entries(action.positions)) {
+        updates[id] = { position: u.constant(position) };
+      }
       return u.updateIn(action.characterId, { variables: updates }, state);
     }
 

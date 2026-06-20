@@ -8,7 +8,7 @@ import { Actor, ActorTransform, Character, Global, RuleTreeItem, StageVariable, 
 import { useEditorSelector } from "../../../hooks/redux";
 import {
   deleteCharacterVariable,
-  setCharacterVariableOrder,
+  setCharacterVariablePositions,
   upsertCharacter,
 } from "../../actions/characters-actions";
 import { changeActors } from "../../actions/stage-actions";
@@ -16,8 +16,8 @@ import { selectToolId } from "../../actions/ui-actions";
 import {
   deleteGlobal,
   deleteStageVariable,
-  setGlobalOrder,
-  setStageVariableOrder,
+  setGlobalPositions,
+  setStageVariablePositions,
   setStageVariableValue,
   upsertGlobal,
   upsertStageVariable,
@@ -25,9 +25,12 @@ import {
 import { TOOLS } from "../../constants/constants";
 import { getCurrentStageForWorld } from "../../utils/selectors";
 import { findRules, FindRulesResult, ruleUsesVariable } from "../../utils/stage-helpers";
+import { isBuiltinStageVariableId } from "../../utils/builtin-stage-variables";
+import { BUILTIN_GLOBAL_IDS } from "../../utils/variable-layout";
 import Sprite from "../sprites/sprite";
 import AddVariableButton, { VariablesSubTab } from "./add-variable-button";
 import { TransformEditorModal } from "./transform-editor";
+import { VariableCanvas } from "./variable-canvas";
 import { TransformImages, TransformLabels } from "./transform-images";
 import { VariableGridItem } from "./variable-grid-item";
 
@@ -297,35 +300,6 @@ type PendingDeleteState = {
 } | null;
 
 /**
- * Sorts variable definitions by their `order` field, falling back to the
- * current array (insertion) order for any that haven't been explicitly
- * ordered yet. Stable so unordered definitions keep their relative order.
- */
-function sortByOrder<T extends { order?: number }>(defs: T[]): T[] {
-  return defs
-    .map((def, index) => [def, index] as const)
-    .sort((a, b) => (a[0].order ?? Infinity) - (b[0].order ?? Infinity) || a[1] - b[1])
-    .map(([def]) => def);
-}
-
-/**
- * Produces a new ordering with `sourceId` moved next to `targetId`.
- */
-function reorderIds(
-  orderedIds: string[],
-  sourceId: string,
-  targetId: string,
-  placeAfter: boolean,
-): string[] {
-  const without = orderedIds.filter((id) => id !== sourceId);
-  let targetIndex = without.indexOf(targetId);
-  if (targetIndex === -1) return orderedIds;
-  if (placeAfter) targetIndex += 1;
-  without.splice(targetIndex, 0, sourceId);
-  return without;
-}
-
-/**
  * Returns the common value across all actors for a given accessor, or undefined if values differ.
  */
 function getCommonValue<T>(actors: Actor[], getValue: (actor: Actor) => T): T | undefined {
@@ -470,12 +444,15 @@ export const ContainerPaneVariables = ({
 
   function _renderCharacterSection() {
     const actorValues = actor ? actor.variableValues : {};
-    const variableDefs = sortByOrder(Object.values(character.variables));
+    const variableDefs = Object.values(character.variables);
+    // Moving boxes reuses the per-actor drag, so it follows the same gate as
+    // dragging a character variable: an actor must be selected with the pointer.
+    const canMove = !readonly && !!actor && selectedToolId === TOOLS.POINTER;
 
     return (
-      <div className="variables-grid">
+      <>
         {actor && (
-          <>
+          <div className="variables-grid">
             {readonly ? (
               <ReadonlyAppearanceGridItem
                 spritesheet={character.spritesheet}
@@ -517,108 +494,127 @@ export const ContainerPaneVariables = ({
                 />
               </>
             )}
-          </>
+          </div>
         )}
-        {variableDefs.map((definition) => (
-          <VariableGridItem
-            disabled={selectedToolId !== TOOLS.POINTER}
-            readonly={readonly}
-            draggable={!!actor && selectedToolId === TOOLS.POINTER}
-            actorId={actor ? actor.id : null}
-            key={definition.id}
-            definition={definition}
-            value={actorValues[definition.id]}
-            isMixed={isVariableValueMixed(actors, definition.id)}
-            onClick={_onClickVar}
-            onChangeDefinition={_onChangeVarDefinition}
-            onChangeValue={_onChangeVarValue}
-            onBlurValue={(id, value) => _onChangeVarValue(id, value)}
-            onReorder={(sourceId, targetId, placeAfter) =>
-              dispatch(
-                setCharacterVariableOrder(
-                  character.id,
-                  reorderIds(variableDefs.map((v) => v.id), sourceId, targetId, placeAfter),
-                ),
-              )
-            }
-          />
-        ))}
+        <VariableCanvas
+          items={variableDefs}
+          kind="actor"
+          enabled={canMove}
+          onMove={(positions) => dispatch(setCharacterVariablePositions(character.id, positions))}
+          renderItem={(id, style) => {
+            const definition = character.variables[id];
+            return (
+              <VariableGridItem
+                style={style}
+                disabled={selectedToolId !== TOOLS.POINTER}
+                readonly={readonly}
+                draggable={!!actor && selectedToolId === TOOLS.POINTER}
+                actorId={actor ? actor.id : null}
+                definition={definition}
+                value={actorValues[definition.id]}
+                isMixed={isVariableValueMixed(actors, definition.id)}
+                onClick={_onClickVar}
+                onChangeDefinition={_onChangeVarDefinition}
+                onChangeValue={_onChangeVarValue}
+                onBlurValue={(varId, value) => _onChangeVarValue(varId, value)}
+              />
+            );
+          }}
+        />
         {variableDefs.length === 0 && (
           <div className="empty">
             Add variables (like "age" or "health") that each {character.name} will have.
           </div>
         )}
-      </div>
+      </>
+    );
+  }
+
+  function _renderGlobal(definition: Global, style?: React.CSSProperties) {
+    return (
+      <VariableGridItem
+        style={style}
+        draggable={true}
+        kind="global"
+        actorId={null}
+        disabled={selectedToolId !== TOOLS.POINTER}
+        readonly={readonly}
+        definition={definition}
+        value={definition.value || ""}
+        onClick={_onClickGlobal}
+        onChangeDefinition={_onChangeGlobalDefinition}
+        onChangeValue={(id, value) => _onChangeGlobalDefinition(id, { value })}
+        onBlurValue={(id, value) => _onChangeGlobalDefinition(id, { value })}
+      />
     );
   }
 
   function _renderWorldSection() {
-    const globalDefs = sortByOrder(Object.values(world.globals));
+    const allGlobals = Object.values(world.globals);
+    const builtins = allGlobals.filter((g) => BUILTIN_GLOBAL_IDS.has(g.id));
+    const userGlobals = allGlobals.filter((g) => !BUILTIN_GLOBAL_IDS.has(g.id));
     return (
-      <div className="variables-grid">
-        {globalDefs.map((definition) => (
-          <VariableGridItem
-            draggable={true}
-            kind="global"
-            actorId={null}
-            disabled={selectedToolId !== TOOLS.POINTER}
-            readonly={readonly}
-            key={definition.id}
-            definition={definition}
-            value={definition.value || ""}
-            onClick={_onClickGlobal}
-            onChangeDefinition={_onChangeGlobalDefinition}
-            onChangeValue={(id, value) => _onChangeGlobalDefinition(id, { value })}
-            onBlurValue={(id, value) => _onChangeGlobalDefinition(id, { value })}
-            onReorder={(sourceId, targetId, placeAfter) =>
-              dispatch(
-                setGlobalOrder(
-                  world.id,
-                  reorderIds(globalDefs.map((g) => g.id), sourceId, targetId, placeAfter),
-                ),
-              )
-            }
-          />
-        ))}
-      </div>
+      <>
+        <div className="variables-grid">
+          {builtins.map((definition) => (
+            <React.Fragment key={definition.id}>{_renderGlobal(definition)}</React.Fragment>
+          ))}
+        </div>
+        <VariableCanvas
+          items={userGlobals}
+          kind="global"
+          enabled={!readonly && selectedToolId === TOOLS.POINTER}
+          onMove={(positions) => dispatch(setGlobalPositions(world.id, positions))}
+          renderItem={(id, style) => _renderGlobal(world.globals[id], style)}
+        />
+      </>
+    );
+  }
+
+  function _renderStageVariable(definition: StageVariable, style?: React.CSSProperties) {
+    const values = levelTargetStage ? levelTargetStage.variableValues : {};
+    return (
+      <VariableGridItem
+        style={style}
+        draggable={true}
+        actorId={null}
+        kind="stageVariable"
+        disabled={selectedToolId !== TOOLS.POINTER}
+        readonly={readonly}
+        definition={definition}
+        value={values[definition.id] ?? ""}
+        onClick={_onClickStageVariable}
+        onChangeDefinition={_onRenameStageVariable}
+        onChangeValue={_onChangeStageVariableValue}
+        onBlurValue={_onChangeStageVariableValue}
+      />
     );
   }
 
   function _renderLevelSection() {
-    const definitions = sortByOrder(Object.values(world.stageVariables));
-    const values = levelTargetStage ? levelTargetStage.variableValues : {};
+    const allDefs = Object.values(world.stageVariables);
+    const builtins = allDefs.filter((d) => isBuiltinStageVariableId(d.id));
+    const userDefs = allDefs.filter((d) => !isBuiltinStageVariableId(d.id));
     return (
-      <div className="variables-grid">
-        {definitions.map((definition) => (
-          <VariableGridItem
-            draggable={true}
-            actorId={null}
-            kind="stageVariable"
-            disabled={selectedToolId !== TOOLS.POINTER}
-            readonly={readonly}
-            key={definition.id}
-            definition={definition}
-            value={values[definition.id] ?? ""}
-            onClick={_onClickStageVariable}
-            onChangeDefinition={_onRenameStageVariable}
-            onChangeValue={_onChangeStageVariableValue}
-            onBlurValue={_onChangeStageVariableValue}
-            onReorder={(sourceId, targetId, placeAfter) =>
-              dispatch(
-                setStageVariableOrder(
-                  world.id,
-                  reorderIds(definitions.map((d) => d.id), sourceId, targetId, placeAfter),
-                ),
-              )
-            }
-          />
-        ))}
-        {definitions.length === 0 && (
+      <>
+        <div className="variables-grid">
+          {builtins.map((definition) => (
+            <React.Fragment key={definition.id}>{_renderStageVariable(definition)}</React.Fragment>
+          ))}
+        </div>
+        <VariableCanvas
+          items={userDefs}
+          kind="stageVariable"
+          enabled={!readonly && selectedToolId === TOOLS.POINTER}
+          onMove={(positions) => dispatch(setStageVariablePositions(world.id, positions))}
+          renderItem={(id, style) => _renderStageVariable(world.stageVariables[id], style)}
+        />
+        {userDefs.length === 0 && (
           <div className="empty">
             Add a Level Variable (like "difficulty") that every Level has, with values set per Level.
           </div>
         )}
-      </div>
+      </>
     );
   }
 

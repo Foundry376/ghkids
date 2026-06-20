@@ -1,5 +1,5 @@
 import { DeepPartial } from "redux";
-import { Character, RuleTreeEventItem } from "../../types";
+import { Character, GridPosition, RuleTreeEventItem } from "../../types";
 import * as types from "../constants/action-types";
 import { DOOR_VARIABLE_IDS } from "../utils/door-constants";
 import { makeId } from "../utils/utils";
@@ -233,21 +233,21 @@ export type ActionSetCharacterZOrder = {
   characterZOrder: string[];
 };
 
-export function setCharacterVariableOrder(
+export function setCharacterVariablePositions(
   characterId: string,
-  orderedVariableIds: string[],
-): ActionSetCharacterVariableOrder {
+  positions: Record<string, GridPosition>,
+): ActionSetCharacterVariablePositions {
   return {
-    type: types.SET_CHARACTER_VARIABLE_ORDER,
+    type: types.SET_CHARACTER_VARIABLE_POSITIONS,
     characterId,
-    orderedVariableIds,
+    positions,
   };
 }
 
-export type ActionSetCharacterVariableOrder = {
-  type: "SET_CHARACTER_VARIABLE_ORDER";
+export type ActionSetCharacterVariablePositions = {
+  type: "SET_CHARACTER_VARIABLE_POSITIONS";
   characterId: string;
-  orderedVariableIds: string[];
+  positions: Record<string, GridPosition>;
 };
 
 export type CharacterActions =
@@ -259,4 +259,4 @@ export type CharacterActions =
   | ActionCreateCharacterEventContainer
   | ActionCreateCharacterFlowContainer
   | ActionSetCharacterZOrder
-  | ActionSetCharacterVariableOrder;
+  | ActionSetCharacterVariablePositions;

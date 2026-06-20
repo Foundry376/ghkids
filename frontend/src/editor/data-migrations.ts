@@ -4,9 +4,11 @@ import { Game } from "../types";
 import {
   BUILTIN_STAGE_VARIABLE_INITIAL_VALUES,
   BUILTIN_STAGE_VARIABLES,
+  isBuiltinStageVariableId,
 } from "./utils/builtin-stage-variables";
 import { migrateGameCoordinates } from "./utils/coordinate-migration";
 import { makeId } from "./utils/utils";
+import { BUILTIN_GLOBAL_IDS } from "./utils/variable-layout";
 
 export function applyValueChanges(value: any) {
   if (value === "none") {
@@ -141,6 +143,11 @@ export function applyDataMigrations(game: Game): Game {
   applyStageVariableMigrations(result.data?.world);
   applyStageVariableMigrations(result.unsavedData?.world);
 
+  // Give pre-existing user variables a 2-column grid position so the new
+  // free-form arrangement starts out matching their prior flowed layout.
+  applyVariablePositionMigrations(result.data);
+  applyVariablePositionMigrations(result.unsavedData);
+
   const migrated = JSON.stringify(result);
 
   if (migrated !== nonmigrated) {
@@ -167,6 +174,47 @@ export function applyDataMigrations(game: Game): Game {
   stripLegacyStageDimensions(finalResult.data?.world);
   stripLegacyStageDimensions(finalResult.unsavedData?.world);
   return finalResult;
+}
+
+/**
+ * Backfill 2-D grid positions for user variables (character variables, user
+ * globals, user stage variables). Lays them out into 2 columns in their
+ * current display order — preserving the prior flowed appearance — and strips
+ * the obsolete `order` field. Built-ins are pinned in a header and skipped.
+ * Idempotent: definitions that already carry a `position` are left untouched.
+ */
+function applyVariablePositionMigrations(data: any) {
+  if (!data) return;
+  if (data.characters) {
+    for (const character of Object.values<any>(data.characters)) {
+      layoutVariablePositions(character?.variables, () => false);
+    }
+  }
+  if (data.world) {
+    layoutVariablePositions(data.world.globals, (id) => BUILTIN_GLOBAL_IDS.has(id));
+    layoutVariablePositions(data.world.stageVariables, isBuiltinStageVariableId);
+  }
+}
+
+function layoutVariablePositions(
+  defs: Record<string, any> | undefined,
+  isBuiltin: (id: string) => boolean,
+) {
+  if (!defs) return;
+  const userDefs = Object.values(defs).filter((d: any) => d && !isBuiltin(d.id));
+  // Preserve current display order: by `order` when present (worlds saved from
+  // an interim build), else insertion order.
+  const ordered = userDefs
+    .map((d: any, index: number) => [d, index] as const)
+    .sort((a, b) => (a[0].order ?? Infinity) - (b[0].order ?? Infinity) || a[1] - b[1])
+    .map(([d]) => d);
+
+  ordered.forEach((d: any, i: number) => {
+    if (!d.position) {
+      d.position = { col: i % 2, row: Math.floor(i / 2) };
+    }
+    delete d.order;
+  });
 }
 
 /**

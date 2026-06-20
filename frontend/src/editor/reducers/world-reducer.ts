@@ -8,8 +8,18 @@ import { Actions } from "../actions";
 import * as Types from "../constants/action-types";
 import { isBuiltinStageVariableId } from "../utils/builtin-stage-variables";
 import { getCurrentStageForWorld } from "../utils/selectors";
-import { nextOrder } from "../utils/utils";
+import { GridPosition } from "../../types";
+import { nextPosition } from "../utils/variable-layout";
 import WorldOperator from "../utils/world-operator";
+
+/** Builds an updeep patch that replaces each id's `position` wholesale. */
+function positionUpdates(positions: Record<string, GridPosition>) {
+  const updates: Record<string, { position: unknown }> = {};
+  for (const [id, position] of Object.entries(positions)) {
+    updates[id] = { position: u.constant(position) };
+  }
+  return updates;
+}
 
 export default function worldReducer(
   state: WorldMinimal,
@@ -31,25 +41,17 @@ export default function worldReducer(
     case Types.UPDATE_WORLD_METADATA: {
       return u({ metadata: action.metadata }, state);
     }
-    case Types.SET_GLOBAL_ORDER: {
-      const updates: Record<string, { order: number }> = {};
-      action.orderedGlobalIds.forEach((id, index) => {
-        updates[id] = { order: index };
-      });
-      return u({ globals: updates }, state);
+    case Types.SET_GLOBAL_POSITIONS: {
+      return u({ globals: positionUpdates(action.positions) }, state);
     }
-    case Types.SET_STAGE_VARIABLE_ORDER: {
-      const updates: Record<string, { order: number }> = {};
-      action.orderedStageVariableIds.forEach((id, index) => {
-        updates[id] = { order: index };
-      });
-      return u({ stageVariables: updates }, state);
+    case Types.SET_STAGE_VARIABLE_POSITIONS: {
+      return u({ stageVariables: positionUpdates(action.positions) }, state);
     }
     case Types.UPSERT_GLOBAL: {
       const isCreating = !state.globals[action.globalId];
-      const order = isCreating ? nextOrder(Object.values(state.globals)) : undefined;
-      const changes =
-        order !== undefined ? { ...action.changes, order } : action.changes;
+      const changes = isCreating
+        ? { ...action.changes, position: nextPosition(Object.values(state.globals)) }
+        : action.changes;
       return u({ globals: { [action.globalId]: changes } }, state);
     }
     case Types.DELETE_GLOBAL: {
@@ -57,9 +59,9 @@ export default function worldReducer(
     }
     case Types.UPSERT_STAGE_VARIABLE: {
       const isCreating = !state.stageVariables[action.stageVariableId];
-      const order = isCreating ? nextOrder(Object.values(state.stageVariables)) : undefined;
-      const changes =
-        order !== undefined ? { ...action.changes, order } : action.changes;
+      const changes = isCreating
+        ? { ...action.changes, position: nextPosition(Object.values(state.stageVariables)) }
+        : action.changes;
       const nextState = u(
         { stageVariables: { [action.stageVariableId]: changes } },
         state,
