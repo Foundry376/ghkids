@@ -1,5 +1,5 @@
 import { DeepPartial } from "redux";
-import { Character, RuleTreeEventItem } from "../../types";
+import { Character, Position, RuleTreeEventItem } from "../../types";
 import * as types from "../constants/action-types";
 import { DOOR_VARIABLE_IDS } from "../utils/door-constants";
 import { makeId } from "../utils/utils";
@@ -221,6 +221,39 @@ export function changeCharacterAppearanceName(
   });
 }
 
+/**
+ * When an appearance's anchor square is moved in the paint editor, the sprite
+ * would visually shift on every rule and stage that uses it (the anchor square
+ * is the cell that sits at the actor's `position`). This action walks every
+ * rule and every stage actor that uses `characterId` + `appearanceId` and
+ * shifts their positions so the artwork stays in exactly the same squares.
+ *
+ * Handled by both the characters reducer (rules) and the stage reducer
+ * (placed actors).
+ */
+export function adjustForAppearanceAnchorChange(
+  characterId: string,
+  appearanceId: string,
+  prevAnchor: Position,
+  nextAnchor: Position,
+): ActionAdjustForAppearanceAnchorChange {
+  return {
+    type: types.ADJUST_FOR_APPEARANCE_ANCHOR_CHANGE,
+    characterId,
+    appearanceId,
+    prevAnchor,
+    nextAnchor,
+  };
+}
+
+export type ActionAdjustForAppearanceAnchorChange = {
+  type: "ADJUST_FOR_APPEARANCE_ANCHOR_CHANGE";
+  characterId: string;
+  appearanceId: string;
+  prevAnchor: Position;
+  nextAnchor: Position;
+};
+
 export function setCharacterZOrder(characterZOrder: string[]): ActionSetCharacterZOrder {
   return {
     type: types.SET_CHARACTER_Z_ORDER,
@@ -241,4 +274,5 @@ export type CharacterActions =
   | ActionDeleteCharacterVariable
   | ActionCreateCharacterEventContainer
   | ActionCreateCharacterFlowContainer
+  | ActionAdjustForAppearanceAnchorChange
   | ActionSetCharacterZOrder;

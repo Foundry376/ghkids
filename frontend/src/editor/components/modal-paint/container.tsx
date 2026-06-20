@@ -5,7 +5,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { makeRequest } from "../../../helpers/api";
 import { Actor, Character, Characters, EditorState } from "../../../types";
 
-import { changeCharacterAppearanceName, createCharacterAppearance, upsertCharacter } from "../../actions/characters-actions";
+import { adjustForAppearanceAnchorChange, changeCharacterAppearanceName, createCharacterAppearance, upsertCharacter } from "../../actions/characters-actions";
 import { paintCharacterAppearance } from "../../actions/ui-actions";
 import { isTextInput, makeId } from "../../utils/utils";
 
@@ -171,8 +171,23 @@ const PaintContainer: React.FC = () => {
     // Close modal first
     reduxDispatch(paintCharacterAppearance(null));
 
+    // If the anchor square moved, shift every rule and placed actor that uses
+    // this appearance so the artwork stays in exactly the same squares.
+    const prevAnchor = character.spritesheet.appearanceInfo?.[appearanceId]?.anchor || {
+      x: 0,
+      y: 0,
+    };
+
     // Update character data after small delay
     setTimeout(() => {
+      reduxDispatch(
+        adjustForAppearanceAnchorChange(
+          characterId,
+          appearanceId,
+          prevAnchor,
+          saveData.anchorSquare,
+        ),
+      );
       reduxDispatch(
         upsertCharacter(characterId, {
           name: generatedSpriteName || character.name,
