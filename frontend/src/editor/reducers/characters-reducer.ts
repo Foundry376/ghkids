@@ -43,7 +43,8 @@ export default function charactersReducer(
     }
 
     case Types.CREATE_CHARACTER_VARIABLE: {
-      const existing = state[action.characterId]?.variables ?? {};
+      const layout = state[action.characterId]?.variableLayout ?? {};
+      const position = nextPosition(Object.values(layout).map((position) => ({ position })));
       return u.updateIn(
         action.characterId,
         {
@@ -52,20 +53,20 @@ export default function charactersReducer(
               defaultValue: "0",
               name: "Untitled",
               id: action.variableId,
-              position: nextPosition(Object.values(existing)),
             },
           },
-        } as Pick<Character, "variables">,
+          variableLayout: { [action.variableId]: u.constant(position) },
+        } as Pick<Character, "variables" | "variableLayout">,
         state,
       );
     }
 
     case Types.SET_CHARACTER_VARIABLE_POSITIONS: {
-      const updates: Record<string, { position: unknown }> = {};
+      const updates: Record<string, unknown> = {};
       for (const [id, position] of Object.entries(action.positions)) {
-        updates[id] = { position: u.constant(position) };
+        updates[id] = u.constant(position);
       }
-      return u.updateIn(action.characterId, { variables: updates }, state);
+      return u.updateIn(action.characterId, { variableLayout: updates }, state);
     }
 
     case Types.DELETE_CHARACTER_VARIABLE: {
@@ -78,6 +79,7 @@ export default function charactersReducer(
         action.characterId,
         {
           variables: u.omit(action.variableId),
+          variableLayout: u.omit(action.variableId),
         },
         scrubbed,
       );

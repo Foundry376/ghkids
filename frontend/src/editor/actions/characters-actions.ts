@@ -38,6 +38,11 @@ export function createCharacter(newId: string): ActionUpsertCharacter {
         },
       },
       variables: {},
+      variableLayout: {
+        appearance: { col: 0, row: 0 },
+        x: { col: 1, row: 0 },
+        y: { col: 0, row: 1 },
+      },
     },
   };
 }
@@ -78,6 +83,14 @@ export function createDoorCharacter(newId: string): ActionUpsertCharacter {
           defaultValue: "",
           type: "stage",
         },
+      },
+      variableLayout: {
+        appearance: { col: 0, row: 0 },
+        x: { col: 1, row: 0 },
+        y: { col: 0, row: 1 },
+        [DOOR_VARIABLE_IDS.destinationX]: { col: 1, row: 1 },
+        [DOOR_VARIABLE_IDS.destinationY]: { col: 0, row: 2 },
+        [DOOR_VARIABLE_IDS.destinationStage]: { col: 1, row: 2 },
       },
     },
   };

@@ -4,11 +4,10 @@ import { Game } from "../types";
 import {
   BUILTIN_STAGE_VARIABLE_INITIAL_VALUES,
   BUILTIN_STAGE_VARIABLES,
-  isBuiltinStageVariableId,
 } from "./utils/builtin-stage-variables";
 import { migrateGameCoordinates } from "./utils/coordinate-migration";
 import { makeId } from "./utils/utils";
-import { BUILTIN_GLOBAL_IDS } from "./utils/variable-layout";
+import { CHARACTER_BUILTIN_VARIABLE_IDS, resolveLayout } from "./utils/variable-layout";
 
 export function applyValueChanges(value: any) {
   if (value === "none") {
@@ -177,44 +176,51 @@ export function applyDataMigrations(game: Game): Game {
 }
 
 /**
- * Backfill 2-D grid positions for user variables (character variables, user
- * globals, user stage variables). Lays them out into 2 columns in their
- * current display order — preserving the prior flowed appearance — and strips
- * the obsolete `order` field. Built-ins are pinned in a header and skipped.
- * Idempotent: definitions that already carry a `position` are left untouched.
+ * Backfill 2-D grid positions so every variable box can be freely arranged.
+ * Globals and stage variables (built-ins included) get a `position` on each
+ * definition; the Character section's layout — including the Appearance/x/y
+ * pseudo-boxes — is tracked in `character.variableLayout`. Existing positions
+ * are preserved (idempotent) and the obsolete `order` field is stripped.
  */
 function applyVariablePositionMigrations(data: any) {
   if (!data) return;
   if (data.characters) {
     for (const character of Object.values<any>(data.characters)) {
-      layoutVariablePositions(character?.variables, () => false);
+      migrateCharacterLayout(character);
     }
   }
   if (data.world) {
-    layoutVariablePositions(data.world.globals, (id) => BUILTIN_GLOBAL_IDS.has(id));
-    layoutVariablePositions(data.world.stageVariables, isBuiltinStageVariableId);
+    stampDefinitionPositions(data.world.globals);
+    stampDefinitionPositions(data.world.stageVariables);
   }
 }
 
-function layoutVariablePositions(
-  defs: Record<string, any> | undefined,
-  isBuiltin: (id: string) => boolean,
-) {
+/** Give every definition in `defs` a `position`, keeping any already set. */
+function stampDefinitionPositions(defs: Record<string, any> | undefined) {
   if (!defs) return;
-  const userDefs = Object.values(defs).filter((d: any) => d && !isBuiltin(d.id));
-  // Preserve current display order: by `order` when present (worlds saved from
-  // an interim build), else insertion order.
-  const ordered = userDefs
-    .map((d: any, index: number) => [d, index] as const)
-    .sort((a, b) => (a[0].order ?? Infinity) - (b[0].order ?? Infinity) || a[1] - b[1])
-    .map(([d]) => d);
+  const items = Object.values<any>(defs);
+  const layout = resolveLayout(items);
+  for (const def of items) {
+    def.position = layout.get(def.id);
+    delete def.order;
+  }
+}
 
-  ordered.forEach((d: any, i: number) => {
-    if (!d.position) {
-      d.position = { col: i % 2, row: Math.floor(i / 2) };
+function migrateCharacterLayout(character: any) {
+  if (!character) return;
+  // Always drop stale per-variable position/order left by interim builds.
+  if (character.variables) {
+    for (const def of Object.values<any>(character.variables)) {
+      delete def.position;
+      delete def.order;
     }
-    delete d.order;
-  });
+  }
+  if (character.variableLayout) return; // already arranged
+
+  const variableIds = character.variables ? Object.keys(character.variables) : [];
+  const items = [...CHARACTER_BUILTIN_VARIABLE_IDS, ...variableIds].map((id) => ({ id }));
+  const layout = resolveLayout(items);
+  character.variableLayout = Object.fromEntries(layout);
 }
 
 /**

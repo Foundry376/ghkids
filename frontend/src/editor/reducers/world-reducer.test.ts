@@ -99,11 +99,13 @@ describe("worldReducer stage-variable invariant", () => {
   });
 
   describe("variable grid positions", () => {
-    it("places a new stage variable bottom-left, ignoring position-less built-ins", () => {
+    it("places a new stage variable bottom-left, below the built-ins", () => {
+      // The six built-in stage variables fill rows 0–2, so the first user
+      // variable lands on a fresh row 3.
       const before = initialState.world as WorldMinimal;
       const create = createStageVariable(WORLDS.ROOT);
       const after = reduce(before, create);
-      expect(after.stageVariables[create.stageVariableId].position).to.deep.equal({ col: 0, row: 0 });
+      expect(after.stageVariables[create.stageVariableId].position).to.deep.equal({ col: 0, row: 3 });
     });
 
     it("stacks successive new stage variables down column 0", () => {
@@ -112,8 +114,8 @@ describe("worldReducer stage-variable invariant", () => {
       let next = reduce(before, first);
       const second = createStageVariable(WORLDS.ROOT);
       next = reduce(next, second);
-      expect(next.stageVariables[first.stageVariableId].position).to.deep.equal({ col: 0, row: 0 });
-      expect(next.stageVariables[second.stageVariableId].position).to.deep.equal({ col: 0, row: 1 });
+      expect(next.stageVariables[first.stageVariableId].position).to.deep.equal({ col: 0, row: 3 });
+      expect(next.stageVariables[second.stageVariableId].position).to.deep.equal({ col: 0, row: 4 });
     });
 
     it("SET_STAGE_VARIABLE_POSITIONS replaces the position for the given id", () => {

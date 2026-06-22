@@ -355,11 +355,27 @@ describe("characters-reducer scrub", () => {
 
       const first = createCharacterVariable("hero");
       let next = reduce(state, first);
-      expect(next["hero"].variables[first.variableId].position).to.deep.equal({ col: 0, row: 0 });
+      expect(next["hero"].variableLayout![first.variableId]).to.deep.equal({ col: 0, row: 0 });
 
       const second = createCharacterVariable("hero");
       next = reduce(next, second);
-      expect(next["hero"].variables[second.variableId].position).to.deep.equal({ col: 0, row: 1 });
+      expect(next["hero"].variableLayout![second.variableId]).to.deep.equal({ col: 0, row: 1 });
+    });
+
+    it("places a new variable below the seeded appearance/position boxes", () => {
+      const state: Characters = {
+        hero: makeCharacter({
+          id: "hero",
+          variableLayout: {
+            appearance: { col: 0, row: 0 },
+            x: { col: 1, row: 0 },
+            y: { col: 0, row: 1 },
+          },
+        }),
+      };
+      const create = createCharacterVariable("hero");
+      const next = reduce(state, create);
+      expect(next["hero"].variableLayout![create.variableId]).to.deep.equal({ col: 0, row: 2 });
     });
 
     it("SET_CHARACTER_VARIABLE_POSITIONS replaces the position for each given id", () => {
@@ -367,9 +383,10 @@ describe("characters-reducer scrub", () => {
         hero: makeCharacter({
           id: "hero",
           variables: {
-            a: { id: "a", name: "A", defaultValue: "0", position: { col: 0, row: 0 } },
-            b: { id: "b", name: "B", defaultValue: "0", position: { col: 1, row: 0 } },
+            a: { id: "a", name: "A", defaultValue: "0" },
+            b: { id: "b", name: "B", defaultValue: "0" },
           },
+          variableLayout: { a: { col: 0, row: 0 }, b: { col: 1, row: 0 } },
         }),
       };
 
@@ -380,8 +397,20 @@ describe("characters-reducer scrub", () => {
           b: { col: 0, row: 0 },
         }),
       );
-      expect(after["hero"].variables["a"].position).to.deep.equal({ col: 1, row: 0 });
-      expect(after["hero"].variables["b"].position).to.deep.equal({ col: 0, row: 0 });
+      expect(after["hero"].variableLayout!["a"]).to.deep.equal({ col: 1, row: 0 });
+      expect(after["hero"].variableLayout!["b"]).to.deep.equal({ col: 0, row: 0 });
+    });
+
+    it("DELETE_CHARACTER_VARIABLE also drops the box from the layout", () => {
+      const state: Characters = {
+        hero: makeCharacter({
+          id: "hero",
+          variables: { a: { id: "a", name: "A", defaultValue: "0" } },
+          variableLayout: { a: { col: 1, row: 1 } },
+        }),
+      };
+      const after = reduce(state, deleteCharacterVariable("hero", "a"));
+      expect(after["hero"].variableLayout).to.deep.equal({});
     });
   });
 });

@@ -26,7 +26,11 @@ import { TOOLS } from "../../constants/constants";
 import { getCurrentStageForWorld } from "../../utils/selectors";
 import { findRules, FindRulesResult, ruleUsesVariable } from "../../utils/stage-helpers";
 import { isBuiltinStageVariableId } from "../../utils/builtin-stage-variables";
-import { BUILTIN_GLOBAL_IDS, CONTENT_WIDTH } from "../../utils/variable-layout";
+import {
+  beginVariableDrag,
+  CHARACTER_BUILTIN_VARIABLE_IDS,
+  CHARACTER_CELL_HEIGHT,
+} from "../../utils/variable-layout";
 import Sprite from "../sprites/sprite";
 import AddVariableButton, { VariablesSubTab } from "./add-variable-button";
 import { TransformEditorModal } from "./transform-editor";
@@ -34,8 +38,16 @@ import { VariableCanvas } from "./variable-canvas";
 import { TransformImages, TransformLabels } from "./transform-images";
 import { VariableGridItem } from "./variable-grid-item";
 
-const ReadonlyGridItem = ({ name, value }: { name: string; value: string | number | undefined }) => (
-  <div className="variable-box variable-readonly">
+const ReadonlyGridItem = ({
+  name,
+  value,
+  style,
+}: {
+  name: string;
+  value: string | number | undefined;
+  style?: React.CSSProperties;
+}) => (
+  <div className="variable-box variable-readonly" style={style}>
     <div className="name">{name}</div>
     <div className="value">{value !== undefined ? String(value) : "—"}</div>
   </div>
@@ -44,11 +56,13 @@ const ReadonlyGridItem = ({ name, value }: { name: string; value: string | numbe
 const ReadonlyAppearanceGridItem = ({
   spritesheet,
   appearance,
+  style,
 }: {
   spritesheet: Character["spritesheet"];
   appearance: string | undefined;
+  style?: React.CSSProperties;
 }) => (
-  <div className="variable-box variable-readonly" draggable={false}>
+  <div className="variable-box variable-readonly" draggable={false} style={style}>
     <div className="name">Appearance</div>
     <div className="value" style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
       {appearance !== undefined ? (
@@ -68,16 +82,19 @@ type AppearanceGridItemProps = {
   /** When undefined, shows placeholder (mixed values across multiple actors) */
   transform: ActorTransform | undefined;
   onChange: (appearanceId: string, transform: ActorTransform) => void;
+  draggable?: boolean;
+  style?: React.CSSProperties;
 };
 
-const AppearanceGridItem = ({ actor, spritesheet, appearance, transform, onChange }: AppearanceGridItemProps) => {
+const AppearanceGridItem = ({ actor, spritesheet, appearance, transform, onChange, draggable = true, style }: AppearanceGridItemProps) => {
   const [open, setOpen] = useState(false);
   const isMixedAppearance = appearance === undefined;
   const isMixedTransform = transform === undefined;
+  const canDrag = draggable && !isMixedAppearance;
 
   const _onDragStart = (event: React.DragEvent) => {
     // Only allow dragging if we have consistent appearance values
-    if (isMixedAppearance) {
+    if (!canDrag) {
       event.preventDefault();
       return;
     }
@@ -89,12 +106,22 @@ const AppearanceGridItem = ({ actor, spritesheet, appearance, transform, onChang
         variableId: "appearance",
         actorId: actor.id,
         value: appearance,
+        // Lets the arrangement canvas treat this as a movable "appearance" box.
+        reorderKind: "actor",
+        reorderId: "appearance",
       }),
     );
+    const rect = event.currentTarget.getBoundingClientRect();
+    beginVariableDrag({
+      id: "appearance",
+      kind: "actor",
+      offsetX: event.clientX - rect.left,
+      offsetY: event.clientY - rect.top,
+    });
   };
 
   return (
-    <div className={`variable-box variable-set-${!isMixedAppearance}`} draggable={!isMixedAppearance} onDragStart={_onDragStart}>
+    <div className={`variable-box variable-set-${!isMixedAppearance}`} style={style} draggable={canDrag} onDragStart={_onDragStart} onDragEnd={() => beginVariableDrag(null)}>
       <div className="name">Appearance</div>
       {isMixedAppearance ? (
         <Button size="sm" style={{ width: "100%", opacity: 0.5 }} disabled>
@@ -205,14 +232,17 @@ type PositionGridItemProps = {
   /** When undefined, shows empty input (mixed values across multiple actors) */
   value: number | undefined;
   onChange: (value: number) => void;
+  draggable?: boolean;
+  style?: React.CSSProperties;
 };
 
-const PositionGridItem = ({ actor, coordinate, value, onChange }: PositionGridItemProps) => {
+const PositionGridItem = ({ actor, coordinate, value, onChange, draggable = true, style }: PositionGridItemProps) => {
   const isMixed = value === undefined;
+  const canDrag = draggable && !isMixed;
 
   const _onDragStart = (event: React.DragEvent) => {
     // Only allow dragging if we have a single consistent value
-    if (isMixed) {
+    if (!canDrag) {
       event.preventDefault();
       return;
     }
@@ -224,12 +254,22 @@ const PositionGridItem = ({ actor, coordinate, value, onChange }: PositionGridIt
         variableId: coordinate,
         actorId: actor.id,
         value: String(value),
+        // Lets the arrangement canvas treat this as a movable "x"/"y" box.
+        reorderKind: "actor",
+        reorderId: coordinate,
       }),
     );
+    const rect = event.currentTarget.getBoundingClientRect();
+    beginVariableDrag({
+      id: coordinate,
+      kind: "actor",
+      offsetX: event.clientX - rect.left,
+      offsetY: event.clientY - rect.top,
+    });
   };
 
   return (
-    <div className={`variable-box variable-set-${!isMixed}`} draggable={!isMixed} onDragStart={_onDragStart}>
+    <div className={`variable-box variable-set-${!isMixed}`} style={style} draggable={canDrag} onDragStart={_onDragStart} onDragEnd={() => beginVariableDrag(null)}>
       <div className="name">{coordinate === "x" ? "Horizontal" : "Vertical"}</div>
       <input
         className="value"
@@ -442,86 +482,93 @@ export const ContainerPaneVariables = ({
     }
   };
 
-  function _renderCharacterSection() {
+  function _renderCharacterItem(id: string, style: React.CSSProperties) {
+    if (id === "appearance") {
+      return readonly ? (
+        <ReadonlyAppearanceGridItem
+          style={style}
+          spritesheet={character.spritesheet}
+          appearance={getCommonValue(actors, (a) => a.appearance)}
+        />
+      ) : (
+        <AppearanceGridItem
+          style={style}
+          draggable={!readonly && selectedToolId === TOOLS.POINTER}
+          actor={actor!}
+          spritesheet={character.spritesheet}
+          appearance={getCommonValue(actors, (a) => a.appearance)}
+          transform={getCommonValue(actors, (a) => a.transform)}
+          onChange={(appearance, transform) => {
+            dispatch(changeActors(selectedActors!, { appearance, transform }));
+          }}
+        />
+      );
+    }
+    if (id === "x" || id === "y") {
+      const value = getCommonValue(actors, (a) => a.position[id]);
+      return readonly ? (
+        <ReadonlyGridItem style={style} name={id === "x" ? "Horizontal" : "Vertical"} value={value} />
+      ) : (
+        <PositionGridItem
+          style={style}
+          draggable={!readonly && selectedToolId === TOOLS.POINTER}
+          actor={actor!}
+          coordinate={id}
+          value={value}
+          onChange={(v) => {
+            dispatch(changeActors(selectedActors!, { position: { ...actor!.position, [id]: v } }));
+          }}
+        />
+      );
+    }
+    const definition = character.variables[id];
     const actorValues = actor ? actor.variableValues : {};
-    const variableDefs = Object.values(character.variables);
+    return (
+      <VariableGridItem
+        style={style}
+        disabled={selectedToolId !== TOOLS.POINTER}
+        readonly={readonly}
+        draggable={!!actor && selectedToolId === TOOLS.POINTER}
+        actorId={actor ? actor.id : null}
+        definition={definition}
+        value={actorValues[definition.id]}
+        isMixed={isVariableValueMixed(actors, definition.id)}
+        onClick={_onClickVar}
+        onChangeDefinition={_onChangeVarDefinition}
+        onChangeValue={_onChangeVarValue}
+        onBlurValue={(varId, value) => _onChangeVarValue(varId, value)}
+      />
+    );
+  }
+
+  function _renderCharacterSection() {
+    const layout = character.variableLayout ?? {};
     // Moving boxes reuses the per-actor drag, so it follows the same gate as
     // dragging a character variable: an actor must be selected with the pointer.
     const canMove = !readonly && !!actor && selectedToolId === TOOLS.POINTER;
 
+    // With an actor selected, show the Appearance/position pseudo-boxes at
+    // their saved cells alongside the variables. In the non-interactive
+    // "Defaults" view (no actor) those boxes don't exist, so compact the
+    // variables to the top instead of leaving holes where they'd sit.
+    const items = actor
+      ? [...CHARACTER_BUILTIN_VARIABLE_IDS, ...Object.keys(character.variables)].map((id) => ({
+          id,
+          position: layout[id],
+        }))
+      : Object.keys(character.variables).map((id) => ({ id }));
+
     return (
       <>
-        {actor && (
-          <div className="variables-grid" style={{ width: CONTENT_WIDTH }}>
-            {readonly ? (
-              <ReadonlyAppearanceGridItem
-                spritesheet={character.spritesheet}
-                appearance={getCommonValue(actors, (a) => a.appearance)}
-              />
-            ) : (
-              <AppearanceGridItem
-                actor={actor}
-                spritesheet={character.spritesheet}
-                appearance={getCommonValue(actors, (a) => a.appearance)}
-                transform={getCommonValue(actors, (a) => a.transform)}
-                onChange={(appearance, transform) => {
-                  dispatch(changeActors(selectedActors!, { appearance, transform }));
-                }}
-              />
-            )}
-            {readonly ? (
-              <>
-                <ReadonlyGridItem name="Horizontal" value={getCommonValue(actors, (a) => a.position.x)} />
-                <ReadonlyGridItem name="Vertical" value={getCommonValue(actors, (a) => a.position.y)} />
-              </>
-            ) : (
-              <>
-                <PositionGridItem
-                  actor={actor}
-                  coordinate="x"
-                  value={getCommonValue(actors, (a) => a.position.x)}
-                  onChange={(x) => {
-                    dispatch(changeActors(selectedActors!, { position: { ...actor.position, x } }));
-                  }}
-                />
-                <PositionGridItem
-                  actor={actor}
-                  coordinate="y"
-                  value={getCommonValue(actors, (a) => a.position.y)}
-                  onChange={(y) => {
-                    dispatch(changeActors(selectedActors!, { position: { ...actor.position, y } }));
-                  }}
-                />
-              </>
-            )}
-          </div>
-        )}
         <VariableCanvas
-          items={variableDefs}
+          items={items}
           kind="actor"
           enabled={canMove}
+          cellHeight={CHARACTER_CELL_HEIGHT}
           onMove={(positions) => dispatch(setCharacterVariablePositions(character.id, positions))}
-          renderItem={(id, style) => {
-            const definition = character.variables[id];
-            return (
-              <VariableGridItem
-                style={style}
-                disabled={selectedToolId !== TOOLS.POINTER}
-                readonly={readonly}
-                draggable={!!actor && selectedToolId === TOOLS.POINTER}
-                actorId={actor ? actor.id : null}
-                definition={definition}
-                value={actorValues[definition.id]}
-                isMixed={isVariableValueMixed(actors, definition.id)}
-                onClick={_onClickVar}
-                onChangeDefinition={_onChangeVarDefinition}
-                onChangeValue={_onChangeVarValue}
-                onBlurValue={(varId, value) => _onChangeVarValue(varId, value)}
-              />
-            );
-          }}
+          renderItem={_renderCharacterItem}
         />
-        {variableDefs.length === 0 && (
+        {Object.keys(character.variables).length === 0 && (
           <div className="empty">
             Add variables (like "age" or "health") that each {character.name} will have.
           </div>
@@ -550,24 +597,14 @@ export const ContainerPaneVariables = ({
   }
 
   function _renderWorldSection() {
-    const allGlobals = Object.values(world.globals);
-    const builtins = allGlobals.filter((g) => BUILTIN_GLOBAL_IDS.has(g.id));
-    const userGlobals = allGlobals.filter((g) => !BUILTIN_GLOBAL_IDS.has(g.id));
     return (
-      <>
-        <div className="variables-grid" style={{ width: CONTENT_WIDTH }}>
-          {builtins.map((definition) => (
-            <React.Fragment key={definition.id}>{_renderGlobal(definition)}</React.Fragment>
-          ))}
-        </div>
-        <VariableCanvas
-          items={userGlobals}
-          kind="global"
-          enabled={!readonly && selectedToolId === TOOLS.POINTER}
-          onMove={(positions) => dispatch(setGlobalPositions(world.id, positions))}
-          renderItem={(id, style) => _renderGlobal(world.globals[id], style)}
-        />
-      </>
+      <VariableCanvas
+        items={Object.values(world.globals)}
+        kind="global"
+        enabled={!readonly && selectedToolId === TOOLS.POINTER}
+        onMove={(positions) => dispatch(setGlobalPositions(world.id, positions))}
+        renderItem={(id, style) => _renderGlobal(world.globals[id], style)}
+      />
     );
   }
 
@@ -592,24 +629,18 @@ export const ContainerPaneVariables = ({
   }
 
   function _renderLevelSection() {
-    const allDefs = Object.values(world.stageVariables);
-    const builtins = allDefs.filter((d) => isBuiltinStageVariableId(d.id));
-    const userDefs = allDefs.filter((d) => !isBuiltinStageVariableId(d.id));
+    const defs = Object.values(world.stageVariables);
+    const userCount = defs.filter((d) => !isBuiltinStageVariableId(d.id)).length;
     return (
       <>
-        <div className="variables-grid" style={{ width: CONTENT_WIDTH }}>
-          {builtins.map((definition) => (
-            <React.Fragment key={definition.id}>{_renderStageVariable(definition)}</React.Fragment>
-          ))}
-        </div>
         <VariableCanvas
-          items={userDefs}
+          items={defs}
           kind="stageVariable"
           enabled={!readonly && selectedToolId === TOOLS.POINTER}
           onMove={(positions) => dispatch(setStageVariablePositions(world.id, positions))}
           renderItem={(id, style) => _renderStageVariable(world.stageVariables[id], style)}
         />
-        {userDefs.length === 0 && (
+        {userCount === 0 && (
           <div className="empty">
             Add a Level Variable (like "difficulty") that every Level has, with values set per Level.
           </div>

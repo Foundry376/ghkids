@@ -1283,27 +1283,9 @@ html {
   }
 }
 
-// Built-in boxes (Appearance, Width, …) flow in a pinned header grid; the
-// user's own variables sit on a free-form snap-grid canvas below it.
-.variables-grid {
-  display: flex;
-  flex-wrap: wrap;
-  // Boxes sit at fixed columns (first flush-left, second one CELL_WIDTH over);
-  // the whole block is sized to CONTENT_WIDTH and centered via `margin: auto`,
-  // matching the canvas below. The 15px column gap is CELL_WIDTH − box width.
-  justify-content: flex-start;
-  column-gap: 15px;
-  align-items: baseline;
-  margin: 8px auto;
-  // width is set inline to CONTENT_WIDTH so it stays in sync with the canvas.
-
-  // The flow grid needs vertical spacing between rows; canvas boxes are
-  // absolutely positioned and get none.
-  .variable-box {
-    margin: 8px 0;
-  }
-}
-
+// Every variable box (built-in and user) sits on a free-form snap-grid canvas.
+// The canvas is sized to CONTENT_WIDTH (set inline) and centered with
+// `margin: auto`; boxes within it are absolutely positioned by the component.
 .variables-canvas {
   position: relative;
   margin: 8px auto;
@@ -1316,10 +1298,7 @@ html {
     background: rgba(91, 192, 222, 0.18);
     pointer-events: none;
   }
-}
 
-.variables-grid,
-.variables-canvas {
   .variable-box {
     width: 110px;
     padding: 5px;
@@ -1518,7 +1497,6 @@ html {
 }
 
 .tool-trash {
-  .variables-grid,
   .variables-canvas {
     .variable-box:hover {
       background-color: $trash-hover-color;

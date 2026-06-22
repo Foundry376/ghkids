@@ -19,31 +19,37 @@ export const BUILTIN_STAGE_VARIABLES: Record<string, StageVariable> = {
     id: "width",
     name: "Width",
     type: "number",
+    position: { col: 0, row: 0 },
   },
   [BUILTIN_STAGE_VARIABLE_IDS.wrapX]: {
     id: "wrapX",
     name: "Wrap Horizontally",
     type: "boolean",
+    position: { col: 1, row: 0 },
   },
   [BUILTIN_STAGE_VARIABLE_IDS.height]: {
     id: "height",
     name: "Height",
     type: "number",
+    position: { col: 0, row: 1 },
   },
   [BUILTIN_STAGE_VARIABLE_IDS.wrapY]: {
     id: "wrapY",
     name: "Wrap Vertically",
     type: "boolean",
+    position: { col: 1, row: 1 },
   },
   [BUILTIN_STAGE_VARIABLE_IDS.tileSize]: {
     id: "tileSize",
     name: "Tile Size",
     type: "number",
+    position: { col: 0, row: 2 },
   },
   [BUILTIN_STAGE_VARIABLE_IDS.background]: {
     id: "background",
     name: "Background",
     type: "background",
+    position: { col: 1, row: 2 },
   },
 };
 

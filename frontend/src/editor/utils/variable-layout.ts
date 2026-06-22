@@ -7,17 +7,25 @@ import { GridPosition } from "../../types";
 export const GRID_COLUMNS = 2;
 export const CELL_WIDTH = 135;
 export const CELL_HEIGHT = 80;
+// The Character tab's Appearance box (sprite dropdown + "Turn…" button) is
+// taller than a plain value box, so that tab uses taller rows to keep every
+// cell uniform. Positions are stored as row/col indices, so cell height is a
+// pure render concern and can differ per section.
+export const CHARACTER_CELL_HEIGHT = 96;
 // Visual footprint of a single box within its cell (used for the drop preview).
 export const BOX_WIDTH = 120;
-export const BOX_HEIGHT = 68;
 // Width of the filled columns (last column's left edge + a box). Both the
 // pinned header grid and the canvas use this so the block can be centered as a
 // unit and the two surfaces keep identical column positions.
 export const CONTENT_WIDTH = (GRID_COLUMNS - 1) * CELL_WIDTH + BOX_WIDTH;
 
-// Built-in world globals are pinned in a fixed header rather than placed on the
-// arrangement canvas (they're engine-managed and some only apply contextually).
 export const BUILTIN_GLOBAL_IDS = new Set(["click", "keypress", "selectedStageId", "cameraFollow"]);
+
+// Pseudo-variable ids for the Character tab's built-in boxes (Appearance and
+// the actor's position). They aren't entries in `character.variables`, so their
+// arrangement is tracked in `character.variableLayout` under these ids, in this
+// default reading order.
+export const CHARACTER_BUILTIN_VARIABLE_IDS = ["appearance", "x", "y"] as const;
 
 type Positioned = { id: string; position?: GridPosition | null };
 
@@ -70,12 +78,15 @@ export function resolveLayout<T extends Positioned>(defs: T[]): Map<string, Grid
 }
 
 /** Total pixel height needed to show every row in a resolved layout. */
-export function layoutHeight(layout: Map<string, GridPosition>): number {
+export function layoutHeight(
+  layout: Map<string, GridPosition>,
+  cellHeight: number = CELL_HEIGHT,
+): number {
   let maxRow = -1;
   layout.forEach((p) => {
     maxRow = Math.max(maxRow, p.row);
   });
-  return (maxRow + 1) * CELL_HEIGHT;
+  return (maxRow + 1) * cellHeight;
 }
 
 /**
@@ -89,9 +100,10 @@ export function cellFromPoint(
   rect: { left: number; top: number },
   offsetX: number,
   offsetY: number,
+  cellHeight: number = CELL_HEIGHT,
 ): GridPosition {
   const col = Math.round((clientX - rect.left - offsetX) / CELL_WIDTH);
-  const row = Math.round((clientY - rect.top - offsetY) / CELL_HEIGHT);
+  const row = Math.round((clientY - rect.top - offsetY) / cellHeight);
   return {
     col: Math.min(Math.max(col, 0), GRID_COLUMNS - 1),
     row: Math.max(row, 0),

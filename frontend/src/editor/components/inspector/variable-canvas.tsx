@@ -2,7 +2,6 @@ import React, { useMemo, useRef, useState } from "react";
 
 import { GridPosition } from "../../../types";
 import {
-  BOX_HEIGHT,
   BOX_WIDTH,
   CELL_HEIGHT,
   CELL_WIDTH,
@@ -13,22 +12,19 @@ import {
   resolveLayout,
 } from "../../utils/variable-layout";
 
-// One empty row of slack below the lowest box so a box can always be dragged
-// down into a fresh bottom row.
-const DROP_BUFFER = CELL_HEIGHT;
-
 type CanvasItem = { id: string; position?: GridPosition };
 
 /**
- * Free-form arrangement surface for one section's user variables. Boxes are
- * absolutely positioned on a 2-column snap grid; dragging a box onto a cell
- * moves it there (swapping with whatever already occupies that cell). Built-in
- * boxes are rendered elsewhere (a pinned header), not here.
+ * Free-form arrangement surface for one section's variable boxes (built-in and
+ * user alike). Boxes are absolutely positioned on a 2-column snap grid;
+ * dragging a box onto a cell moves it there, swapping with whatever already
+ * occupies that cell.
  */
 export const VariableCanvas = ({
   items,
   kind,
   enabled,
+  cellHeight = CELL_HEIGHT,
   onMove,
   renderItem,
 }: {
@@ -37,6 +33,8 @@ export const VariableCanvas = ({
   kind: "actor" | "global" | "stageVariable";
   /** When false (e.g. readonly recording view) boxes render but don't move. */
   enabled: boolean;
+  /** Row pitch in px; the Character tab uses a taller value to fit Appearance. */
+  cellHeight?: number;
   onMove: (positions: Record<string, GridPosition>) => void;
   renderItem: (id: string, style: React.CSSProperties) => React.ReactNode;
 }) => {
@@ -46,7 +44,7 @@ export const VariableCanvas = ({
   const layout = useMemo(() => resolveLayout(items), [items]);
 
   // True when the in-flight drag is one of this canvas's own boxes (not a
-  // sprite, an Appearance box, a pinned built-in, or another section's box).
+  // sprite, or a box from another section).
   const isOwnDrag = () => {
     const drag = getActiveVariableDrag();
     return !!drag && drag.kind === kind && items.some((it) => it.id === drag.id);
@@ -61,6 +59,7 @@ export const VariableCanvas = ({
       ref.current.getBoundingClientRect(),
       drag.offsetX,
       drag.offsetY,
+      cellHeight,
     );
   };
 
@@ -110,7 +109,9 @@ export const VariableCanvas = ({
     <div
       ref={ref}
       className="variables-canvas"
-      style={{ width: CONTENT_WIDTH, minHeight: layoutHeight(layout) + DROP_BUFFER }}
+      // One empty row of slack below the lowest box so a box can always be
+      // dragged down into a fresh bottom row.
+      style={{ width: CONTENT_WIDTH, minHeight: layoutHeight(layout, cellHeight) + cellHeight }}
       onDragOver={_onDragOver}
       onDragLeave={_onDragLeave}
       onDrop={_onDrop}
@@ -122,7 +123,7 @@ export const VariableCanvas = ({
             {renderItem(item.id, {
               position: "absolute",
               left: pos.col * CELL_WIDTH,
-              top: pos.row * CELL_HEIGHT,
+              top: pos.row * cellHeight,
             })}
           </React.Fragment>
         );
@@ -132,9 +133,9 @@ export const VariableCanvas = ({
           className="variable-drop-preview"
           style={{
             left: previewCell.col * CELL_WIDTH,
-            top: previewCell.row * CELL_HEIGHT,
+            top: previewCell.row * cellHeight,
             width: BOX_WIDTH,
-            height: BOX_HEIGHT,
+            height: cellHeight - 12,
           }}
         />
       )}

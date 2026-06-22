@@ -81,6 +81,54 @@ describe("data-migrations", () => {
       description: null,
     });
 
+    describe("variable position migrations", () => {
+      it("stamps grid positions on built-in globals and stage variables", () => {
+        const base = makeMinimalGame({});
+        const game = makeMinimalGame({
+          world: {
+            ...base.data.world,
+            stageVariables: {
+              score: { id: "score", name: "Score", defaultValue: "0" },
+            },
+          } as Game["data"]["world"],
+        });
+        const { world } = applyDataMigrations(game).data;
+        // Globals are laid out in insertion order.
+        expect(world.globals.click.position).to.deep.equal({ col: 0, row: 0 });
+        expect(world.globals.keypress.position).to.deep.equal({ col: 1, row: 0 });
+        // The six built-in stage variables fill rows 0–2; the user's "score"
+        // flows onto a fresh row below them.
+        expect(world.stageVariables.width.position).to.deep.equal({ col: 0, row: 0 });
+        expect(world.stageVariables.background.position).to.deep.equal({ col: 1, row: 2 });
+        expect(world.stageVariables.score.position).to.deep.equal({ col: 0, row: 3 });
+      });
+
+      it("builds character.variableLayout with appearance/x/y ahead of variables", () => {
+        const game = makeMinimalGame({
+          characters: {
+            hero: {
+              id: "hero",
+              name: "Hero",
+              rules: [],
+              spritesheet: { appearances: { idle: [] }, appearanceNames: { idle: "Idle" } },
+              variables: {
+                hp: { id: "hp", name: "HP", defaultValue: "10" },
+                mp: { id: "mp", name: "MP", defaultValue: "5" },
+              },
+            },
+          } as unknown as Game["data"]["characters"],
+        });
+        const { characters } = applyDataMigrations(game).data;
+        expect(characters.hero.variableLayout).to.deep.equal({
+          appearance: { col: 0, row: 0 },
+          x: { col: 1, row: 0 },
+          y: { col: 0, row: 1 },
+          hp: { col: 1, row: 1 },
+          mp: { col: 0, row: 2 },
+        });
+      });
+    });
+
     describe("transform migrations", () => {
       it("should migrate actor transforms from 'none' to '0'", () => {
         const game = makeMinimalGame({

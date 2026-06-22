@@ -290,9 +290,14 @@ export type Character = {
       name: string;
       defaultValue: string;
       type?: "stage";
-      position?: GridPosition;
     }
   >;
+  /**
+   * Grid arrangement of the Variables tab's Character section, keyed by box id:
+   * the pseudo-ids in CHARACTER_BUILTIN_VARIABLE_IDS (appearance/x/y) plus each
+   * entry in `variables`.
+   */
+  variableLayout?: Record<string, GridPosition>;
 };
 
 /** Detailed evaluation result for a single condition */
