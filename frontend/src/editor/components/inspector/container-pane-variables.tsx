@@ -26,7 +26,7 @@ import { TOOLS } from "../../constants/constants";
 import { getCurrentStageForWorld } from "../../utils/selectors";
 import { findRules, FindRulesResult, ruleUsesVariable } from "../../utils/stage-helpers";
 import { isBuiltinStageVariableId } from "../../utils/builtin-stage-variables";
-import { BUILTIN_GLOBAL_IDS } from "../../utils/variable-layout";
+import { BUILTIN_GLOBAL_IDS, CONTENT_WIDTH } from "../../utils/variable-layout";
 import Sprite from "../sprites/sprite";
 import AddVariableButton, { VariablesSubTab } from "./add-variable-button";
 import { TransformEditorModal } from "./transform-editor";
@@ -452,7 +452,7 @@ export const ContainerPaneVariables = ({
     return (
       <>
         {actor && (
-          <div className="variables-grid">
+          <div className="variables-grid" style={{ width: CONTENT_WIDTH }}>
             {readonly ? (
               <ReadonlyAppearanceGridItem
                 spritesheet={character.spritesheet}
@@ -555,7 +555,7 @@ export const ContainerPaneVariables = ({
     const userGlobals = allGlobals.filter((g) => !BUILTIN_GLOBAL_IDS.has(g.id));
     return (
       <>
-        <div className="variables-grid">
+        <div className="variables-grid" style={{ width: CONTENT_WIDTH }}>
           {builtins.map((definition) => (
             <React.Fragment key={definition.id}>{_renderGlobal(definition)}</React.Fragment>
           ))}
@@ -597,7 +597,7 @@ export const ContainerPaneVariables = ({
     const userDefs = allDefs.filter((d) => !isBuiltinStageVariableId(d.id));
     return (
       <>
-        <div className="variables-grid">
+        <div className="variables-grid" style={{ width: CONTENT_WIDTH }}>
           {builtins.map((definition) => (
             <React.Fragment key={definition.id}>{_renderStageVariable(definition)}</React.Fragment>
           ))}

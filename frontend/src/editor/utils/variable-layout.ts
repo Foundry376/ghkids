@@ -10,6 +10,10 @@ export const CELL_HEIGHT = 80;
 // Visual footprint of a single box within its cell (used for the drop preview).
 export const BOX_WIDTH = 120;
 export const BOX_HEIGHT = 68;
+// Width of the filled columns (last column's left edge + a box). Both the
+// pinned header grid and the canvas use this so the block can be centered as a
+// unit and the two surfaces keep identical column positions.
+export const CONTENT_WIDTH = (GRID_COLUMNS - 1) * CELL_WIDTH + BOX_WIDTH;
 
 // Built-in world globals are pinned in a fixed header rather than placed on the
 // arrangement canvas (they're engine-managed and some only apply contextually).

@@ -1288,13 +1288,14 @@ html {
 .variables-grid {
   display: flex;
   flex-wrap: wrap;
-  // Match the snap canvas exactly: first box flush-left, second box one
-  // CELL_WIDTH over. `space-around` used to inset the row ~15px from the left,
-  // which made the pinned built-ins sit further right than the canvas boxes.
-  // The 15px column gap is CELL_WIDTH (135) − box width (120).
+  // Boxes sit at fixed columns (first flush-left, second one CELL_WIDTH over);
+  // the whole block is sized to CONTENT_WIDTH and centered via `margin: auto`,
+  // matching the canvas below. The 15px column gap is CELL_WIDTH − box width.
   justify-content: flex-start;
   column-gap: 15px;
   align-items: baseline;
+  margin: 8px auto;
+  // width is set inline to CONTENT_WIDTH so it stays in sync with the canvas.
 
   // The flow grid needs vertical spacing between rows; canvas boxes are
   // absolutely positioned and get none.
@@ -1305,7 +1306,7 @@ html {
 
 .variables-canvas {
   position: relative;
-  margin: 8px 0;
+  margin: 8px auto;
 
   // Snap-target preview shown under the cursor while dragging a box.
   .variable-drop-preview {

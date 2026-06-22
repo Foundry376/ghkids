@@ -6,6 +6,7 @@ import {
   BOX_WIDTH,
   CELL_HEIGHT,
   CELL_WIDTH,
+  CONTENT_WIDTH,
   cellFromPoint,
   getActiveVariableDrag,
   layoutHeight,
@@ -109,7 +110,7 @@ export const VariableCanvas = ({
     <div
       ref={ref}
       className="variables-canvas"
-      style={{ minHeight: layoutHeight(layout) + DROP_BUFFER }}
+      style={{ width: CONTENT_WIDTH, minHeight: layoutHeight(layout) + DROP_BUFFER }}
       onDragOver={_onDragOver}
       onDragLeave={_onDragLeave}
       onDrop={_onDrop}
