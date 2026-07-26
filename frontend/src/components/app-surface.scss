@@ -1,0 +1,587 @@
+/* ============================================================
+   App surface — the shared look of the pages *inside* Codako
+   (start menu, lessons, My Games). These sit on the editor's
+   warm pixel canvas so it's obvious you've stepped out of the
+   marketing site and into the playground.
+
+   Everything here snaps to a 4px pixel unit, and shadows are
+   hard offsets rather than blurs — the same medium the stage,
+   sprites and icons are drawn in.
+   ============================================================ */
+
+$px: 4px;
+
+$app-ink: #3c3830;
+$app-ink-soft: #7c7466;
+$app-paper: #f2eee4;
+$app-tile: #fffdf7;
+$app-line: #d8d0be;
+$app-green: #6db33f;
+$app-cyan: #5bc0de;
+$app-amber: #e2a12b;
+
+$app-display:
+  "Avenir Next", "Segoe UI", system-ui, -apple-system, "Helvetica Neue", sans-serif;
+$app-body: system-ui, -apple-system, "Segoe UI", "Helvetica Neue", sans-serif;
+$app-utility: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+.app-surface {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  background: $app-paper url(../editor/img/background.png) top left;
+  color: $app-ink;
+  font-family: $app-body;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ---- Shared bits ---- */
+
+.app-eyebrow {
+  font-family: $app-utility;
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: $app-ink-soft;
+}
+
+.app-wordmark {
+  font-family: $app-display;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: $app-ink;
+  text-shadow: $px $px 0 rgba($app-green, 0.9);
+}
+
+/* Cards, tiles and buttons all cast the same hard pixel shadow. */
+@mixin pixel-raise($depth: $px * 1.5, $color: rgba(60, 56, 48, 0.28)) {
+  box-shadow: $depth $depth 0 $color;
+}
+
+/* ---- Way back to the start menu ----
+   Sits in the content column where a page's eyebrow would go, so it reads as
+   part of the page's own heading rather than a second, competing header. */
+
+.app-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  padding: 6px 14px 6px 10px;
+  border: 2px solid $app-line;
+  border-radius: 0;
+  background: $app-tile;
+  color: $app-ink;
+  font-family: $app-body;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  @include pixel-raise($px, rgba(60, 56, 48, 0.2));
+  transition:
+    transform 0.12s steps(2),
+    box-shadow 0.12s steps(2),
+    border-color 0.12s;
+
+  &:hover {
+    color: $app-ink;
+    text-decoration: none;
+    border-color: $app-ink;
+    transform: translate(-2px, -2px);
+    @include pixel-raise($px + 2px, rgba(60, 56, 48, 0.26));
+  }
+  &:active {
+    transform: translate(0, 0);
+    box-shadow: none;
+  }
+  &:focus-visible {
+    outline: 3px dashed $app-cyan;
+    outline-offset: 3px;
+  }
+}
+
+/* Waiting, drawn in the same medium as everything else: three squares that
+   light up in turn instead of a spinning circle. */
+
+.pixel-spinner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 64px;
+  margin-bottom: 12px;
+
+  i {
+    display: block;
+    width: 12px;
+    height: 12px;
+    background: $app-green;
+    opacity: 0.2;
+    animation: pixel-spinner-step 0.9s steps(1, end) infinite;
+
+    &:nth-child(2) {
+      animation-delay: 0.3s;
+    }
+    &:nth-child(3) {
+      animation-delay: 0.6s;
+    }
+  }
+}
+
+@keyframes pixel-spinner-step {
+  0%,
+  33% {
+    opacity: 1;
+  }
+  34%,
+  100% {
+    opacity: 0.2;
+  }
+}
+
+/* The one door from the marketing site into the app. */
+.app-cta {
+  display: inline-flex;
+  align-items: center;
+  padding: 15px 34px;
+  background: #fff;
+  border: 2px solid rgba(20, 18, 14, 0.25);
+  border-radius: 0;
+  color: $app-ink;
+  font-family: $app-display;
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  cursor: pointer;
+  @include pixel-raise($px * 1.5, rgba(20, 18, 14, 0.45));
+  transition:
+    transform 0.12s steps(2),
+    box-shadow 0.12s steps(2);
+
+  &:hover {
+    color: $app-ink;
+    text-decoration: none;
+    transform: translate(-$px, -$px);
+    @include pixel-raise($px * 2.5, rgba(20, 18, 14, 0.5));
+  }
+  &:active {
+    transform: translate(0, 0);
+    box-shadow: none;
+  }
+  &:focus-visible {
+    outline: 3px dashed $app-cyan;
+    outline-offset: 4px;
+  }
+}
+
+/* ============================================================
+   Start menu
+   ============================================================ */
+
+.start-page {
+  align-items: center;
+  justify-content: center;
+  padding: 40px 24px 56px;
+
+  &__masthead {
+    text-align: center;
+    margin-bottom: 40px;
+  }
+
+  &__wordmark {
+    font-size: clamp(44px, 8vw, 76px);
+    line-height: 1;
+    margin: 0 0 12px;
+  }
+
+  &__prompt {
+    font-size: 17px;
+    color: $app-ink-soft;
+    margin: 0;
+  }
+
+  &__menu {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 20px;
+    width: 100%;
+    max-width: 780px;
+  }
+}
+
+.start-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 24px;
+  min-height: 200px;
+  text-align: left;
+  background: $app-tile;
+  border: 2px solid $app-line;
+  border-radius: 0;
+  color: $app-ink;
+  cursor: pointer;
+  transition:
+    transform 0.12s steps(2),
+    box-shadow 0.12s steps(2),
+    border-color 0.12s;
+  @include pixel-raise();
+
+  .pixel-icon {
+    margin-bottom: 12px;
+  }
+
+  &__text {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  &__title {
+    font-family: $app-display;
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+
+  &__caption {
+    font-size: 14px;
+    color: $app-ink-soft;
+  }
+
+  &:hover,
+  &:focus-visible {
+    border-color: $app-ink;
+    transform: translate(-$px, -$px);
+    outline: none;
+    @include pixel-raise($px * 2.5);
+  }
+
+  /* The editor marks a selected stage square with a dashed cyan ring; the
+     keyboard cursor here is the same idea, so it reads as "you are on this
+     square" rather than a generic focus outline. */
+  &:focus-visible {
+    outline: 3px dashed $app-cyan;
+    outline-offset: 4px;
+  }
+
+  &:active {
+    transform: translate(0, 0);
+    box-shadow: none;
+  }
+
+  /* Disabled only while the tile is working — it keeps its normal colors so
+     it still reads as the thing you just picked. */
+  &:disabled {
+    color: $app-ink;
+    cursor: default;
+    transform: none;
+    @include pixel-raise();
+  }
+
+  &--quiet {
+    background: transparent;
+    border-style: dashed;
+    box-shadow: none;
+    min-height: 0;
+    flex-direction: row;
+    align-items: center;
+    gap: 16px;
+    padding: 16px 24px;
+    grid-column: 1 / -1;
+
+    .pixel-icon {
+      margin-bottom: 0;
+    }
+
+    .start-tile__title {
+      font-size: 18px;
+      color: $app-ink-soft;
+    }
+
+    &:hover,
+    &:focus-visible {
+      background: rgba(255, 253, 247, 0.7);
+      transform: none;
+      box-shadow: none;
+    }
+  }
+}
+
+/* ============================================================
+   Lessons
+   ============================================================ */
+
+.learn-page {
+  &__body {
+    flex: 1;
+    width: 100%;
+    max-width: 1040px;
+    margin: 0 auto;
+    padding: 32px 24px 56px;
+  }
+
+  &__intro {
+    max-width: 620px;
+    margin-bottom: 32px;
+
+    h1 {
+      font-family: $app-display;
+      font-size: 32px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      margin: 0 0 8px;
+    }
+    p {
+      color: $app-ink-soft;
+      margin: 0;
+    }
+  }
+
+  &__list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 24px;
+  }
+
+  &__pending {
+    margin-top: 24px;
+    color: $app-ink;
+  }
+}
+
+.lesson-card {
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  text-align: left;
+  background: $app-tile;
+  border: 2px solid $app-line;
+  border-radius: 0;
+  color: $app-ink;
+  cursor: pointer;
+  overflow: hidden;
+  transition:
+    transform 0.12s steps(2),
+    box-shadow 0.12s steps(2),
+    border-color 0.12s;
+  @include pixel-raise();
+
+  &__shot {
+    display: block;
+    position: relative;
+    aspect-ratio: 16 / 10;
+    background-color: #cfd8c8;
+    background-size: cover;
+    background-position: center;
+    border-bottom: 2px solid $app-line;
+  }
+
+  &__number {
+    position: absolute;
+    top: 0;
+    left: 0;
+    padding: 4px 10px;
+    background: $app-ink;
+    color: $app-paper;
+    font-family: $app-utility;
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+  }
+
+  &__play {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    background: rgba(60, 56, 48, 0.35);
+    color: #fff;
+    font-size: 34px;
+    transition: opacity 0.15s;
+  }
+
+  &__body {
+    display: block;
+    padding: 16px 18px 20px;
+  }
+
+  &__title {
+    display: block;
+    font-family: $app-display;
+    font-size: 19px;
+    font-weight: 700;
+    margin: 0 0 6px;
+  }
+
+  &__caption {
+    display: block;
+    font-size: 14px;
+    color: $app-ink-soft;
+    margin: 0;
+  }
+
+  &:hover,
+  &:focus-visible {
+    border-color: $app-ink;
+    transform: translate(-$px, -$px);
+    outline: none;
+    @include pixel-raise($px * 2.5);
+
+    .lesson-card__play {
+      opacity: 1;
+    }
+  }
+
+  &:focus-visible {
+    outline: 3px dashed $app-cyan;
+    outline-offset: 4px;
+  }
+}
+
+/* ============================================================
+   My Games
+   ============================================================ */
+
+.games-page {
+  &__body {
+    flex: 1;
+    width: 100%;
+    max-width: 1040px;
+    margin: 0 auto;
+    padding: 32px 24px 56px;
+  }
+
+  &__heading {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 24px;
+
+    h1 {
+      font-family: $app-display;
+      font-size: 32px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      margin: 0 0 8px;
+    }
+    p {
+      color: $app-ink-soft;
+      margin: 0;
+    }
+  }
+
+  &__new {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 18px;
+    background: $app-green;
+    border: 2px solid #55912f;
+    border-radius: 0;
+    color: #fff;
+    font-family: $app-display;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    @include pixel-raise($px, rgba(60, 56, 48, 0.28));
+
+    &:hover {
+      transform: translate(-1px, -1px);
+      @include pixel-raise($px + 2px, rgba(60, 56, 48, 0.3));
+    }
+    &:active {
+      transform: translate($px, $px);
+      box-shadow: none;
+    }
+    &:focus-visible {
+      outline: 3px dashed $app-cyan;
+      outline-offset: 3px;
+    }
+  }
+
+  /* The shared world-list markup is bootstrap-flavored; restate it here in
+     the app's pixel language rather than forking the component. */
+  .world-list {
+    margin: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 24px;
+
+    .world-card {
+      width: auto;
+      margin: 0;
+      display: flex;
+      background: $app-tile;
+      border: 2px solid $app-line;
+      border-radius: 0;
+      @include pixel-raise();
+    }
+
+    .world-thumbnail {
+      height: 170px;
+      border-bottom: 2px solid $app-line;
+    }
+
+    .card-title {
+      font-family: $app-display;
+      font-weight: 700;
+      font-size: 18px;
+      color: $app-ink;
+    }
+  }
+
+  .page-message {
+    padding: 60px 20px;
+    color: $app-ink-soft;
+  }
+}
+
+/* ---- Responsive ---- */
+
+@media (max-width: 760px) {
+  .start-page__menu {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .start-tile {
+    min-height: 0;
+    padding: 20px;
+    flex-direction: row;
+    align-items: center;
+    gap: 16px;
+
+    .pixel-icon,
+    .pixel-spinner {
+      margin-bottom: 0;
+      flex-shrink: 0;
+    }
+
+    .pixel-spinner {
+      height: 48px;
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .start-tile,
+  .lesson-card,
+  .app-back,
+  .app-cta,
+  .games-page__new {
+    transition: none;
+
+    &:hover,
+    &:focus-visible {
+      transform: none;
+    }
+  }
+
+  /* The busy caption carries the message; the squares just sit there lit. */
+  .pixel-spinner i {
+    animation: none;
+    opacity: 1;
+  }
+}

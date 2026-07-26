@@ -48,21 +48,7 @@ export default class StoreProvider extends React.Component<
   getStateForStore = (world: Game): StoreProviderState => {
     const { data, name, id, published, description } = world;
 
-    const bgParam = new URLSearchParams(window.location.search).get("bg");
-    const baseState = !data && bgParam
-      ? u(
-          {
-            world: {
-              stages: {
-                "5233a60cfd685f755e000002": {
-                  variableValues: { background: `url(${bgParam})` },
-                },
-              },
-            },
-          },
-          initialData,
-        )
-      : data || initialData;
+    const baseState = data || initialData;
 
     const fullState = u(
       {

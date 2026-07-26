@@ -10,11 +10,13 @@ import ForgotPasswordPage from "./components/forgot-password-page";
 import HomePage from "./components/home-page";
 import JoinPage from "./components/join-page";
 import JoinSendWorldsPage from "./components/join-send-worlds-page";
+import LearnPage from "./components/learn-page";
 import LoginPage from "./components/login-page";
 import NotFoundPage from "./components/not-found-page";
 import PlayPage from "./components/play-page";
 import ProfilePage from "./components/profile-page";
 import ResetPasswordPage from "./components/reset-password-page";
+import StartPage from "./components/start-page";
 
 export default (
   <Routes>
@@ -34,6 +36,9 @@ export default (
       <Route path="editor/:worldId" element={<EditorPage />} />
       <Route path="u/:username" element={<ProfilePage />} />
 
+      {/* Inside the app: no site nav, no footer (see app.tsx) */}
+      <Route path="start" element={<StartPage />} />
+      <Route path="learn" element={<LearnPage />} />
       <Route path="dashboard" element={<DashboardPage />} />
 
       <Route path="*" element={<NotFoundPage />} />

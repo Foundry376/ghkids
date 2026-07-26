@@ -94,11 +94,7 @@ export function deleteWorld(id: ID) {
   };
 }
 
-export function createWorld({
-  from,
-  fork,
-  initialBackground,
-}: { from?: ID | "tutorial"; fork?: string; initialBackground?: string } = {}) {
+export function createWorld({ from, fork }: { from?: ID | "tutorial"; fork?: string } = {}) {
   return async function (_dispatch: Dispatch<MainActions>) {
     let qs = "";
     if (from === "tutorial") {
@@ -106,16 +102,16 @@ export function createWorld({
     } else if (fork) {
       qs = "tutorial=fork";
     }
-    if (initialBackground) {
-      qs += (qs ? "&" : "") + `bg=${encodeURIComponent(initialBackground)}`;
-    }
 
     if (window.store.getState().me) {
-      makeRequest<{ id: string }>(`/worlds`, { query: { from, fork }, method: "POST" }).then(
-        (created) => {
-          window.location.href = `/editor/${created.id}?${qs}`;
-        },
-      );
+      // Returned so callers can show progress until the redirect happens —
+      // creating a world server-side can take a few seconds.
+      return makeRequest<{ id: string }>(`/worlds`, {
+        query: { from, fork },
+        method: "POST",
+      }).then((created) => {
+        window.location.href = `/editor/${created.id}?${qs}`;
+      });
     } else {
       const template = from ? await makeRequest<World>(`/worlds/${from}`) : {};
       const storageKey = `ls-${Date.now()}`;

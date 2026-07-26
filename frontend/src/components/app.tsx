@@ -107,13 +107,17 @@ const App = () => {
     );
   };
 
-  const isEditor = location.pathname.startsWith("/editor");
   const isLogin = location.pathname.startsWith("/login");
-  const isPlay = location.pathname.startsWith("/play");
 
-  const hidesNav = isLogin || isEditor || isPlay;
-  const hidesFooter = isLogin || isEditor || isPlay;
-  const unwrapped = isEditor || isPlay;
+  // Pages that are the app itself rather than the marketing site. They carry
+  // their own navigation, fill the window, and never show the site chrome.
+  const isInApp = ["/editor", "/play", "/start", "/learn", "/dashboard"].some((p) =>
+    location.pathname.startsWith(p),
+  );
+
+  const hidesNav = isLogin || isInApp;
+  const hidesFooter = isLogin || isInApp;
+  const unwrapped = isInApp;
   const content = unwrapped ? (
     <Outlet />
   ) : (

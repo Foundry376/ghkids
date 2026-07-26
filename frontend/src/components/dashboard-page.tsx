@@ -1,21 +1,29 @@
-import { Button, Col, Container, Modal, ModalBody, Row } from "reactstrap";
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import { useDispatch } from "react-redux";
+import { Link } from "react-router-dom";
 
 import { createWorld, deleteWorld, fetchWorldsForUser } from "../actions/main-actions";
 import { useAppSelector } from "../hooks/redux";
+import { usePageTitle } from "../hooks/usePageTitle";
 import WorldList from "./common/world-list";
-import { PresetBackgroundPicker } from "./common/preset-background-picker";
 
+import "./app-surface.scss";
+
+/**
+ * "Open a Game" — the player's own games, inside the app rather than on the
+ * marketing site, so it carries the app surface and its own way back to the
+ * start menu instead of the site navigation.
+ */
 const DashboardPage: React.FC = () => {
   const dispatch = useDispatch();
-  const [showingBackgroundPicker, setShowingBackgroundPicker] = useState(false);
   const worlds = useAppSelector((state) => {
     if (!state.worlds || !state.me) return undefined;
     return Object.values(state.worlds)
       .filter((w) => w.userId === state.me?.id)
       .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
   });
+
+  usePageTitle("My Games");
 
   useEffect(() => {
     if (!window.store.getState().me) {
@@ -26,83 +34,34 @@ const DashboardPage: React.FC = () => {
     dispatch(fetchWorldsForUser("me"));
   }, [dispatch]);
 
-  const showTutorialPrompt = worlds && worlds.length === 0;
-
   return (
-    <Container style={{ marginTop: 30 }} className="dashboard">
-      <Modal isOpen={showingBackgroundPicker} backdrop centered size="lg" toggle={() => setShowingBackgroundPicker(false)}>
-        <div className="modal-header">
-          <h4 style={{ marginBottom: 0 }}>Pick a background</h4>
+    <div className="app-surface games-page">
+      <div className="games-page__body">
+        <div className="games-page__heading">
+          <div>
+            <Link className="app-back" to="/start">
+              <span aria-hidden="true">&larr;</span> Menu
+            </Link>
+            <h1>My Games</h1>
+            <p>
+              {worlds && worlds.length === 0
+                ? "Nothing saved yet — make your first game."
+                : "Pick up where you left off."}
+            </p>
+          </div>
+          <button type="button" className="games-page__new" onClick={() => dispatch(createWorld())}>
+            New Game
+          </button>
         </div>
-        <ModalBody>
-          <PresetBackgroundPicker
-            onSelect={(bg) => { setShowingBackgroundPicker(false); dispatch(createWorld({ initialBackground: bg })); }}
-            onSkip={() => { setShowingBackgroundPicker(false); dispatch(createWorld()); }}
-          />
-        </ModalBody>
-      </Modal>
-      <Row>
-        <Col md={9}>
-          {showTutorialPrompt && (
-            <div className="card card-body tutorial-cta">
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  maxWidth: 600,
-                  margin: "auto",
-                }}
-              >
-                <div style={{ flex: 1 }}>
-                  <p>
-                    Welcome to Codako! This is your profile page. To get started, let's make a
-                    game together!
-                  </p>
-                  <Button
-                    color="success"
-                    className="float-xs-right"
-                    onClick={() => dispatch(createWorld({ from: "tutorial" }))}
-                  >
-                    Start Tutorial
-                  </Button>
-                </div>
-                <img
-                  className="tutorial-cta-girl"
-                  src={new URL("../img/get-started-girl.png", import.meta.url).href}
-                />
-              </div>
-            </div>
-          )}
-          <div className="card card-body">
-            <div style={{ display: "flex", justifyContent: "space-between" }}>
-              <h5>My Games</h5>
 
-              <Button
-                size="sm"
-                color={showTutorialPrompt ? undefined : "success"}
-                onClick={() => setShowingBackgroundPicker(true)}
-              >
-                New Game
-              </Button>
-            </div>
-            <hr />
-            <WorldList
-              worlds={worlds ?? null}
-              onDeleteWorld={(s) => dispatch(deleteWorld(s.id))}
-              onDuplicateWorld={(s) => dispatch(createWorld({ from: s.id }))}
-              canEdit
-            />
-          </div>
-        </Col>
-        <Col md={3}>
-          <div className="dashboard-sidebar">
-            <h5>Learn Codako</h5>
-            <hr />
-            Youtube videos go here
-          </div>
-        </Col>
-      </Row>
-    </Container>
+        <WorldList
+          worlds={worlds ?? null}
+          onDeleteWorld={(s) => dispatch(deleteWorld(s.id))}
+          onDuplicateWorld={(s) => dispatch(createWorld({ from: s.id }))}
+          canEdit
+        />
+      </div>
+    </div>
   );
 };
 
