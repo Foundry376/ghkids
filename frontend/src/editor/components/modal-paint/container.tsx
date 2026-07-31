@@ -9,7 +9,7 @@ import { adjustForAppearanceAnchorChange, changeCharacterAppearanceName, createC
 import { paintCharacterAppearance } from "../../actions/ui-actions";
 import { isTextInput, makeId } from "../../utils/utils";
 
-import AIModal from "./ai-modal";
+import AIModal, { AIMode } from "./ai-modal";
 import NameModal from "./name-modal";
 import { PaintModel, TOOLS_LIST } from "./paint-model";
 import PixelCanvas from "./pixel-canvas";
@@ -253,7 +253,7 @@ const PaintContainer: React.FC = () => {
     }
   }, [model, character, appearanceId]);
 
-  const [aiModalOpen, setAiModalOpen] = useState(false);
+  const [aiMode, setAiMode] = useState<AIMode | null>(null);
 
   // Get current state from model
   const state = model.getState();
@@ -505,8 +505,15 @@ const PaintContainer: React.FC = () => {
           </div>
         </ModalBody>
         <ModalFooter>
-          <Button onClick={() => setAiModalOpen(true)}>
-            <i className="fa fa-magic" style={{ color: "#7b5ea7" }} /> Draw with AI
+          <Button onClick={() => setAiMode("draw")}>
+            <i className="fa fa-paint-brush" style={{ color: "#7b5ea7" }} /> Draw with AI
+          </Button>{" "}
+          <Button
+            onClick={() => setAiMode("edit")}
+            disabled={!imageData}
+            title={imageData ? undefined : "Draw or import something first to edit it with AI"}
+          >
+            <i className="fa fa-pencil" style={{ color: "#7b5ea7" }} /> Edit with AI
           </Button>
           <div style={{ flex: 1 }} />
           <Button key="cancel" onClick={handleClose}>
@@ -522,7 +529,12 @@ const PaintContainer: React.FC = () => {
           </Button>
         </ModalFooter>
       </div>
-      <AIModal model={model} isOpen={aiModalOpen} onClose={() => setAiModalOpen(false)} />
+      <AIModal
+        model={model}
+        isOpen={aiMode !== null}
+        mode={aiMode ?? "draw"}
+        onClose={() => setAiMode(null)}
+      />
       <NameModal
         isOpen={nameModalOpen}
         proposedName={proposedName}
