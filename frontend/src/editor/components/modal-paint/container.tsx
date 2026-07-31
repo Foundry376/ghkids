@@ -134,9 +134,7 @@ const PaintContainer: React.FC = () => {
     reduxDispatch(paintCharacterAppearance(null));
   }, [reduxDispatch]);
 
-  const [isSaving, setIsSaving] = useState(false);
-
-  const handleCloseAndSave = useCallback(async () => {
+  const handleCloseAndSave = useCallback(() => {
     if (!characterId || !appearanceId || !character) return;
 
     const saveData = model.getSaveData(character, appearanceId);
@@ -149,22 +147,12 @@ const PaintContainer: React.FC = () => {
       return;
     }
 
-    // Generate name if untitled
+    // Generate name if untitled - use AI-generated name from state if available
     let generatedSpriteName = "";
     if (character.name === "Untitled") {
-      setIsSaving(true);
-      try {
-        const nameResp = await makeRequest<{ name?: string }>("/generate-sprite-name", {
-          method: "POST",
-          json: { imageData: saveData.imageDataURL },
-        });
-        if (nameResp?.name) {
-          generatedSpriteName = nameResp.name;
-        }
-      } catch (err) {
-        console.error("Failed to auto-generate sprite name:", err);
-      } finally {
-        setIsSaving(false);
+      const aiSpriteName = model.getState().spriteName;
+      if (aiSpriteName) {
+        generatedSpriteName = aiSpriteName;
       }
     }
 
@@ -486,7 +474,7 @@ const PaintContainer: React.FC = () => {
             <i className="fa fa-magic" style={{ color: "#7b5ea7" }} /> Draw with AI
           </Button>
           <div style={{ flex: 1 }} />
-          <Button key="cancel" onClick={handleClose} disabled={isSaving}>
+          <Button key="cancel" onClick={handleClose}>
             Cancel
           </Button>{" "}
           <Button
@@ -494,9 +482,7 @@ const PaintContainer: React.FC = () => {
             key="save"
             data-tutorial-id="paint-save-and-close"
             onClick={handleCloseAndSave}
-            disabled={isSaving}
           >
-            {isSaving && <i className="fa fa-spinner fa-spin" style={{ marginRight: 6 }} />}
             Done
           </Button>
         </ModalFooter>
