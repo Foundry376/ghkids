@@ -78,7 +78,7 @@ const AIModal: React.FC<AIModalProps> = ({ model, isOpen, onClose }) => {
 
   const handleUseIt = () => {
     if (resultImageData) {
-      model.applyAIResult(resultImageData, resultName);
+      model.applyAIResult(resultImageData, resultName, description.trim());
     }
     handleClose();
   };

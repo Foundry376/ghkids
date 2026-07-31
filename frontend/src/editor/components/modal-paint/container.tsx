@@ -10,6 +10,7 @@ import { paintCharacterAppearance } from "../../actions/ui-actions";
 import { isTextInput, makeId } from "../../utils/utils";
 
 import AIModal from "./ai-modal";
+import NameModal from "./name-modal";
 import { PaintModel, TOOLS_LIST } from "./paint-model";
 import PixelCanvas from "./pixel-canvas";
 import PixelColorPicker from "./pixel-color-picker";
@@ -17,6 +18,11 @@ import { PixelToolSize } from "./pixel-tool-size";
 import PixelToolbar from "./pixel-toolbar";
 import SpriteVariablesPanel from "./sprite-variables-panel";
 import VariableOverlay from "./variable-overlay";
+
+const SAVE_ERROR_MESSAGE =
+  `Sorry, an error occurred and we're unable to save your image. Did you copy/paste,` +
+  ` import from a file, or use the AI Generation feature? Please let me know at` +
+  ` ben@foundry376.com and include what browser you're using!`;
 
 const PaintContainer: React.FC = () => {
   const reduxDispatch = useDispatch();
@@ -134,29 +140,21 @@ const PaintContainer: React.FC = () => {
     reduxDispatch(paintCharacterAppearance(null));
   }, [reduxDispatch]);
 
-  const handleCloseAndSave = useCallback(() => {
+  const [nameModalOpen, setNameModalOpen] = useState(false);
+  const [proposedName, setProposedName] = useState("");
+  const [isGeneratingName, setIsGeneratingName] = useState(false);
+
+  const saveAndClose = useCallback((generatedSpriteName?: string) => {
     if (!characterId || !appearanceId || !character) return;
 
     const saveData = model.getSaveData(character, appearanceId);
     if (!saveData) {
-      alert(
-        `Sorry, an error occurred and we're unable to save your image. Did you copy/paste,` +
-          ` import from a file, or use the AI Generation feature? Please let me know at` +
-          ` ben@foundry376.com and include what browser you're using!`,
-      );
+      alert(SAVE_ERROR_MESSAGE);
       return;
     }
 
-    // Generate name if untitled - use AI-generated name from state if available
-    let generatedSpriteName = "";
-    if (character.name === "Untitled") {
-      const aiSpriteName = model.getState().spriteName;
-      if (aiSpriteName) {
-        generatedSpriteName = aiSpriteName;
-      }
-    }
-
     // Close modal first
+    setNameModalOpen(false);
     reduxDispatch(paintCharacterAppearance(null));
 
     // If the anchor square moved, shift every rule and placed actor that uses
@@ -201,6 +199,43 @@ const PaintContainer: React.FC = () => {
       );
     }, 10);
   }, [characterId, appearanceId, character, reduxDispatch, model]);
+
+  // Unnamed sprites are named by the user before saving, with an AI proposal
+  // prefilled from the artwork and (if it was drawn with AI) the user's prompt.
+  const handleCloseAndSave = useCallback(async () => {
+    if (!characterId || !appearanceId || !character) return;
+
+    if (character.name !== "Untitled") {
+      saveAndClose();
+      return;
+    }
+
+    const saveData = model.getSaveData(character, appearanceId);
+    if (!saveData) {
+      alert(SAVE_ERROR_MESSAGE);
+      return;
+    }
+
+    const { spriteName, aiPrompt } = model.getState();
+    setProposedName("");
+    setIsGeneratingName(true);
+    setNameModalOpen(true);
+
+    try {
+      const resp = await makeRequest<{ name?: string }>("/generate-sprite-name", {
+        method: "POST",
+        json: aiPrompt
+          ? { prompt: aiPrompt }
+          : { imageData: saveData.imageDataURL },
+      });
+      setProposedName(resp?.name || spriteName);
+    } catch (err) {
+      console.error("Failed to auto-generate sprite name:", err);
+      setProposedName(spriteName);
+    } finally {
+      setIsGeneratingName(false);
+    }
+  }, [characterId, appearanceId, character, model, saveAndClose]);
 
   const handleChooseFile = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -488,6 +523,13 @@ const PaintContainer: React.FC = () => {
         </ModalFooter>
       </div>
       <AIModal model={model} isOpen={aiModalOpen} onClose={() => setAiModalOpen(false)} />
+      <NameModal
+        isOpen={nameModalOpen}
+        proposedName={proposedName}
+        isGenerating={isGeneratingName}
+        onSave={(name) => saveAndClose(name)}
+        onCancel={() => setNameModalOpen(false)}
+      />
     </Modal>
   );
 };

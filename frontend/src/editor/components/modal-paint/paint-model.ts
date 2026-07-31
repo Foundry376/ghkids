@@ -55,6 +55,7 @@ export interface PaintState {
   visibleVariables: Record<string, boolean>;
   dropdownOpen: boolean;
   spriteName: string;
+  aiPrompt: string;
 }
 
 const INITIAL_STATE: PaintState = {
@@ -74,6 +75,7 @@ const INITIAL_STATE: PaintState = {
   visibleVariables: {},
   dropdownOpen: false,
   spriteName: "",
+  aiPrompt: "",
 };
 
 function pixelSizeToFit(imageData: ImageData): number {
@@ -318,6 +320,7 @@ export class PaintModel {
     empty.clearPixelsInRect(0, 0, empty.width, empty.height);
     this.setStateWithCheckpoint({
       spriteName: "",
+      aiPrompt: "",
       imageData: empty,
       selectionOffset: { x: 0, y: 0 },
       selectionImageData: null,
@@ -679,7 +682,7 @@ export class PaintModel {
     }
   }
 
-  applyAIResult(newImageData: PixelImageData, spriteName?: string): void {
+  applyAIResult(newImageData: PixelImageData, spriteName?: string, aiPrompt?: string): void {
     this.setStateWithCheckpoint({
       imageData: newImageData,
       selectionImageData: null,
@@ -687,6 +690,9 @@ export class PaintModel {
     });
     if (spriteName) {
       this.setState({ spriteName });
+    }
+    if (aiPrompt) {
+      this.setState({ aiPrompt });
     }
   }
 
