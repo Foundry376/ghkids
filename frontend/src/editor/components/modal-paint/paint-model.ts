@@ -550,9 +550,10 @@ export class PaintModel {
           (rawImageData) => {
             CreatePixelImageData.call(rawImageData as PixelImageData);
 
+            const name = data.name?.toLowerCase();
             const magicWandTool = TOOLS_LIST.find((t) => t.name === "magicWand");
             if (!magicWandTool) {
-              resolve({ imageData: rawImageData as PixelImageData, name: data.name });
+              resolve({ imageData: rawImageData as PixelImageData, name });
               return;
             }
 
@@ -577,7 +578,7 @@ export class PaintModel {
             const resultImageData = (afterMouseup as Partial<PaintState>).imageData;
             resolve({
               imageData: (resultImageData ?? rawImageData) as PixelImageData,
-              name: data.name,
+              name,
             });
           },
         );

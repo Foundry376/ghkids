@@ -70,7 +70,7 @@ router.get("/generate-sprite", userFromBasicAuth, async (req, res) => {
     console.log("Image saved locally as 'image.png'");
 
     const namePrompt = `Give a short, straightforward name for a sprite described as: ${prompt}. For example, if the sprite is a cute mouse, respond with "Mouse". Respond with only the name.`;
-    let spriteName = "Unnamed Sprite";
+    let spriteName = "unnamed sprite";
     try {
       const nameResponse = await openai.chat.completions.create({
         model: "gpt-4.1-mini",
@@ -81,7 +81,7 @@ router.get("/generate-sprite", userFromBasicAuth, async (req, res) => {
         max_tokens: 10,
         temperature: 0.9,
       });
-      spriteName = nameResponse.choices[0]?.message?.content?.trim() || "Unnamed Sprite";
+      spriteName = (nameResponse.choices[0]?.message?.content?.trim() || "unnamed sprite").toLowerCase();
     } catch (err) {
       console.error("Error generating sprite name:", err);
     }
@@ -130,7 +130,7 @@ router.post("/generate-sprite-name", userFromBasicAuth, async (req, res) => {
       max_tokens: 10,
       temperature: 0.9,
     });
-    const name = completion.choices[0]?.message?.content?.trim() || "Unnamed Sprite";
+    const name = (completion.choices[0]?.message?.content?.trim() || "unnamed sprite").toLowerCase();
     console.log("Generated sprite name:", name, { hasPrompt: !!prompt, hasImage: !!imageData });
     res.setHeader("Access-Control-Allow-Origin", "*");
     res.setHeader("Content-Type", "application/json");

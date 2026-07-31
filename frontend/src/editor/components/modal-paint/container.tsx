@@ -205,7 +205,7 @@ const PaintContainer: React.FC = () => {
   const handleCloseAndSave = useCallback(async () => {
     if (!characterId || !appearanceId || !character) return;
 
-    if (character.name !== "Untitled") {
+    if (character.name.toLowerCase() !== "untitled") {
       saveAndClose();
       return;
     }
@@ -228,10 +228,10 @@ const PaintContainer: React.FC = () => {
           ? { prompt: aiPrompt }
           : { imageData: saveData.imageDataURL },
       });
-      setProposedName(resp?.name || spriteName);
+      setProposedName((resp?.name || spriteName).toLowerCase());
     } catch (err) {
       console.error("Failed to auto-generate sprite name:", err);
-      setProposedName(spriteName);
+      setProposedName(spriteName.toLowerCase());
     } finally {
       setIsGeneratingName(false);
     }
