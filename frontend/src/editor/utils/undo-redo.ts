@@ -40,15 +40,66 @@ type StateWithStacks = EditorState & {
   redoStack: Delta[];
 };
 
+// Keys of a world that are produced by running the game rather than authored
+// by the user. Every tick rewrites them, and ticks are deliberately kept off
+// the undo stack, so a diff that described them could never be applied again
+// once the game had run on - the actors and rules it points at are gone.
+// They're also by far the largest part of the state (`history` holds up to 500
+// deltas), which made every diff slow.
+const DERIVED_WORLD_KEYS = ["history", "evaluatedRuleDetails", "evaluatedTickFrames", "input"];
+
+function omitDerivedWorldState<T>(world: T): T {
+  if (!world || typeof world !== "object") {
+    return world;
+  }
+  const next = { ...world } as Record<string, unknown>;
+  for (const key of DERIVED_WORLD_KEYS) {
+    delete next[key];
+  }
+  return next as T;
+}
+
+/** Returns a shallow copy of the state with derived playback state removed. */
+function omitDerivedState(state: StateWithStacks): StateWithStacks {
+  if (!state || typeof state !== "object") {
+    return state;
+  }
+  const next = { ...state, world: omitDerivedWorldState(state.world) };
+  if (next.recording) {
+    // The recording's before / after worlds are ticked when the user previews
+    // a rule, so they carry the same derived state as the main world.
+    next.recording = {
+      ...next.recording,
+      beforeWorld: omitDerivedWorldState(next.recording.beforeWorld),
+      afterWorld: omitDerivedWorldState(next.recording.afterWorld),
+    };
+  }
+  return next;
+}
+
 function shift(
   state: StateWithStacks,
   sourceStackName: "undoStack" | "redoStack",
-  targetStackName: "undoStack" | "redoStack"
+  targetStackName: "undoStack" | "redoStack",
+  prepareForShift?: (state: StateWithStacks) => StateWithStacks
 ): StateWithStacks {
-  let nextState = deepClone(state) as StateWithStacks;
+  if (state[sourceStackName].length === 0) {
+    return state;
+  }
+
+  let nextState = deepClone(prepareForShift ? prepareForShift(state) : state) as StateWithStacks;
   const diff = nextState[sourceStackName].pop();
   if (diff) {
-    nextState = patcher.patch(nextState, diff) as StateWithStacks;
+    try {
+      nextState = patcher.patch(nextState, diff) as StateWithStacks;
+    } catch (error) {
+      // The diff was computed against a state we can no longer reconstruct,
+      // so it (and everything beneath it, which was recorded on top of it)
+      // can't be applied. Drop the stacks rather than taking the editor down
+      // with an unhandled exception.
+      console.error("Undo/redo: discarding the stacks, a diff could not be applied.", error);
+      return Object.assign({}, state, { undoStack: [], redoStack: [] });
+    }
     nextState[targetStackName].push(patcher.reverse(diff)!);
   }
   return nextState;
@@ -77,18 +128,26 @@ function diffByApplyingOptions(
 interface UndoRedoReducerConfig {
   trackedKeys?: string[];
   ignoredActions?: string[];
+  /**
+   * Called with the current state before an undo / redo diff is applied, to
+   * give the caller a chance to return the state to the point the diff was
+   * recorded at. (Ignored actions move the state without leaving a diff
+   * behind, so it can have drifted since.)
+   */
+  prepareForShift?: (state: StateWithStacks) => StateWithStacks;
 }
 
 export const undoRedoReducerFactory = ({
   trackedKeys,
   ignoredActions = [],
+  prepareForShift,
 }: UndoRedoReducerConfig = {}) => {
   return (state: StateWithStacks, action: UndoRedoAction | { type: string }): StateWithStacks => {
     if (action.type === PERFORM_UNDO) {
-      return shift(state, "undoStack", "redoStack");
+      return shift(state, "undoStack", "redoStack", prepareForShift);
     }
     if (action.type === PERFORM_REDO) {
-      return shift(state, "redoStack", "undoStack");
+      return shift(state, "redoStack", "undoStack", prepareForShift);
     }
     if (action.type === PUSH_STACK) {
       const pushAction = action as PushStackAction;
@@ -123,7 +182,10 @@ export const undoRedoMiddleware: Middleware = (store) => (next) => (action) => {
   const after = store.getState();
 
   const t = Date.now();
-  const diff = patcher.diff(after, before);
+  const diff = patcher.diff(
+    omitDerivedState(after as StateWithStacks),
+    omitDerivedState(before as StateWithStacks)
+  );
   if (Date.now() - t > 50) {
     console.warn("Spent more than 50ms creating the undo/redo diff.");
   }

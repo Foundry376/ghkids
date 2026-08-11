@@ -8,7 +8,7 @@ import { Actions } from "../actions";
 import * as Types from "../constants/action-types";
 import { isBuiltinStageVariableId } from "../utils/builtin-stage-variables";
 import { getCurrentStageForWorld } from "../utils/selectors";
-import WorldOperator from "../utils/world-operator";
+import WorldOperator, { rewindWorldToStart } from "../utils/world-operator";
 
 export default function worldReducer(
   state: WorldMinimal,
@@ -120,11 +120,7 @@ export default function worldReducer(
     }
     case Types.REWIND_ALL_GAME_STATE: {
       const { characters } = entireState;
-      let current = state as World;
-      while (current.history && current.history.length > 0) {
-        current = WorldOperator(current, characters).untick() as World;
-      }
-      return current;
+      return rewindWorldToStart(state as World, characters);
     }
     case Types.UPSERT_ACTORS:
     case Types.DELETE_ACTORS:
