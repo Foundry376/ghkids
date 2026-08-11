@@ -1,8 +1,16 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { expect } from "chai";
+import InitialState from "../reducers/initial-state";
 import { migrateCoordinatesV1ToV2, migrateGameCoordinates } from "./coordinate-migration";
 
 describe("coordinate-migration", () => {
+  it("starts new worlds at the current coordinate version", () => {
+    // The editor authors in v2 coordinates, so a world built from the initial
+    // state must never be run through the v1 → v2 flip.
+    expect(InitialState.version).to.equal(2);
+    expect(migrateCoordinatesV1ToV2(InitialState)).to.equal(InitialState);
+  });
+
   describe("migrateCoordinatesV1ToV2", () => {
     it("flips actor positions on a stage from Y-down 0-indexed to Y-up 1-indexed", () => {
       const v1 = {
@@ -214,6 +222,56 @@ describe("coordinate-migration", () => {
       expect(v2.world.stages.broken.actors.a.position).to.deep.equal({ x: 0, y: 5 });
       // Version still bumped (the function only checks the global version gate).
       expect(v2.version).to.equal(2);
+    });
+
+    it("does not flip a modern save that was mis-stamped version: 1", () => {
+      // Brand-new worlds used to be created with `version: 1` even though the
+      // editor writes v2 coordinates. Such a save has stage dimensions only in
+      // `variableValues` (no legacy `stage.width` / `stage.height`), which is
+      // proof it postdates the Y-up switch.
+      const misstamped = {
+        version: 1,
+        characters: {},
+        world: {
+          stages: {
+            s1: {
+              id: "s1",
+              variableValues: { width: "22", height: "13" },
+              actors: {
+                ship: { id: "ship", characterId: "c", position: { x: 11, y: 1 } },
+                invader: { id: "invader", characterId: "c", position: { x: 4, y: 13 } },
+              },
+            },
+          },
+        },
+      };
+      const result: any = migrateCoordinatesV1ToV2(misstamped);
+      expect(result.version).to.equal(2);
+      expect(result.world.stages.s1.actors.ship.position).to.deep.equal({ x: 11, y: 1 });
+      expect(result.world.stages.s1.actors.invader.position).to.deep.equal({ x: 4, y: 13 });
+    });
+
+    it("still migrates a genuine v1 save that carries legacy stage dimensions", () => {
+      // `applyDataMigrations` backfills `variableValues` before we run but keeps
+      // the legacy fields, so a real v1 save has both — and must be flipped.
+      const v1 = {
+        version: 1,
+        characters: {},
+        world: {
+          stages: {
+            s1: {
+              id: "s1",
+              width: 10,
+              height: 8,
+              variableValues: { width: "10", height: "8" },
+              actors: { a: { id: "a", characterId: "c", position: { x: 3, y: 0 } } },
+            },
+          },
+        },
+      };
+      const result: any = migrateCoordinatesV1ToV2(v1);
+      expect(result.version).to.equal(2);
+      expect(result.world.stages.s1.actors.a.position).to.deep.equal({ x: 4, y: 8 });
     });
   });
 

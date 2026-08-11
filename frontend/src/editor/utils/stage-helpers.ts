@@ -15,6 +15,7 @@ import {
 } from "../../types";
 import { RELATIVE_TRANSFORMS } from "../components/inspector/transform-lookup";
 import { DEFAULT_APPEARANCE_INFO } from "../components/sprites/sprite";
+import { STAGE_CELL_SIZE } from "../constants/constants";
 import { getStageBackground, getStageHeight, getStageWidth } from "./builtin-stage-variables";
 
 export function buildActorSelection(worldId: string, stageId: string, actorIds: string[]) {
@@ -55,6 +56,37 @@ export function positionDeltaForAnchorChange(
   const [px, py] = pointApplyingTransform(prevAnchor.x, prevAnchor.y, dims, transform);
   const [nx, ny] = pointApplyingTransform(nextAnchor.x, nextAnchor.y, dims, transform);
   return { x: nx - px, y: -(ny - py) };
+}
+
+/**
+ * Convert a pixel offset within the stage element into a stage square.
+ *
+ * `px` and `dragOffset` are both in *screen* pixels: the stage is rendered with
+ * a CSS zoom of `scale`, so one square is `STAGE_CELL_SIZE * scale` pixels
+ * on screen. `dragOffset` is where inside the dragged sprite the cursor grabbed
+ * it; a plain click has no such offset, so we use half a square, which turns
+ * the `Math.round` below into a `Math.floor`.
+ *
+ * Both offsets have to be measured in the same (screen) units — using an
+ * unscaled half-square here left clicks near the bottom/right of a square
+ * resolving to the neighbouring square on any stage whose zoom wasn't 1.
+ */
+export function stageSquareForPixelOffset(
+  px: { left: number; top: number },
+  {
+    scale,
+    stageHeight,
+    dragOffset,
+  }: { scale: number; stageHeight: number; dragOffset?: { dragLeft: number; dragTop: number } },
+): Position {
+  const squarePx = STAGE_CELL_SIZE * scale;
+  const { dragLeft, dragTop } = dragOffset ?? { dragLeft: squarePx / 2, dragTop: squarePx / 2 };
+
+  const rowFromTop = Math.round((px.top - dragTop) / squarePx);
+  const colFromLeft = Math.round((px.left - dragLeft) / squarePx);
+
+  // Y-up, 1-indexed: top row = stageHeight, bottom row = 1.
+  return { x: colFromLeft + 1, y: stageHeight - rowFromTop };
 }
 
 export function actorFillsPoint(actor: Actor, characters: Characters, point: Position): boolean {
