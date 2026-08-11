@@ -305,6 +305,35 @@ export const Stage = ({
   const scrollEl = useRef<HTMLDivElement | null>();
   const el = useRef<HTMLDivElement | null>();
 
+  // Removers for document listeners attached during an in-progress interaction,
+  // so a drag that never ends (eg. the user navigates away mid-drag) doesn't
+  // leave handlers running against an unmounted stage.
+  const pendingInteractionCleanups = useRef(new Set<() => void>());
+
+  useEffect(() => {
+    const cleanups = pendingInteractionCleanups.current;
+    return () => {
+      cleanups.forEach((cleanup) => cleanup());
+      cleanups.clear();
+    };
+  }, []);
+
+  // Attaches document listeners and returns a function that removes them. Call it
+  // when the interaction ends; anything still pending is removed on unmount.
+  const addInteractionListeners = (listeners: {
+    [K in keyof DocumentEventMap]?: (event: DocumentEventMap[K]) => void;
+  }) => {
+    const entries = Object.entries(listeners) as [string, EventListener][];
+    entries.forEach(([type, handler]) => document.addEventListener(type, handler));
+
+    const remove = () => {
+      entries.forEach(([type, handler]) => document.removeEventListener(type, handler));
+      pendingInteractionCleanups.current.delete(remove);
+    };
+    pendingInteractionCleanups.current.add(remove);
+    return remove;
+  };
+
   useEffect(() => {
     const autofit = () => {
       const _scrollEl = scrollEl.current;
@@ -559,7 +588,10 @@ export const Stage = ({
       .find((t) => t.startsWith("handle:"))!
       .split(":")
       .pop();
-    const stageOffset = el.current!.getBoundingClientRect();
+    if (!el.current) {
+      return;
+    }
+    const stageOffset = el.current.getBoundingClientRect();
     // Cell-fractional position. X is 1-indexed cell-from-left;
     // worldY is 1-indexed cell-from-bottom (Y-up).
     const fracX = (event.clientX - stageOffset.left) / STAGE_CELL_SIZE + 1;
@@ -595,8 +627,12 @@ export const Stage = ({
     dispatch(setRecordingExtent(nextExtent));
   };
 
+  // Returns null if the stage has left the DOM — document handlers can outlive it.
   const getPxOffsetForEvent = (event: MouseEvent | React.MouseEvent | React.DragEvent) => {
-    const stageOffset = el.current!.getBoundingClientRect();
+    if (!el.current) {
+      return null;
+    }
+    const stageOffset = el.current.getBoundingClientRect();
     return { left: event.clientX - stageOffset.left, top: event.clientY - stageOffset.top };
   };
 
@@ -604,7 +640,11 @@ export const Stage = ({
     const dragOffset =
       "dataTransfer" in event && event.dataTransfer && event.dataTransfer.getData("drag-offset");
 
-    return stageSquareForPixelOffset(getPxOffsetForEvent(event), {
+    const px = getPxOffsetForEvent(event);
+    if (!px) {
+      return null;
+    }
+    return stageSquareForPixelOffset(px, {
       scale,
       stageHeight,
       dragOffset: dragOffset ? JSON.parse(dragOffset) : undefined,
@@ -614,6 +654,9 @@ export const Stage = ({
   const onDropAppearance = (event: React.DragEvent) => {
     const { appearance, characterId } = JSON.parse(event.dataTransfer.getData("appearance"));
     const position = getPositionForEvent(event);
+    if (!position) {
+      return;
+    }
     if (recordingExtent && pointIsOutside(position, recordingExtent)) {
       return;
     }
@@ -737,6 +780,9 @@ export const Stage = ({
     const ids: { actorIds: string[]; dragAnchorActorId: string } | { characterId: string } =
       JSON.parse(event.dataTransfer.getData("sprite"));
     const position = getPositionForEvent(event);
+    if (!position) {
+      return;
+    }
     if ("actorIds" in ids) {
       onDropActorsAtPosition(ids, position, event.altKey ? "stamp-copy" : "move");
     } else if (ids.characterId) {
@@ -771,21 +817,20 @@ export const Stage = ({
     });
 
     // Track drag position globally via native drag events
-    const onDragOver = (e: DragEvent) => {
-      setSpriteDrag((prev) =>
-        prev
-          ? { ...prev, clientPx: { x: e.clientX, y: e.clientY }, mode: e.altKey ? "copy" : "move" }
-          : null,
-      );
-    };
-    const onDragEnd = () => {
-      document.removeEventListener("dragover", onDragOver);
-      document.removeEventListener("dragend", onDragEnd);
-      setSpriteDrag(null);
-      setActorSelectionPopover(null);
-    };
-    document.addEventListener("dragover", onDragOver);
-    document.addEventListener("dragend", onDragEnd);
+    const removeListeners = addInteractionListeners({
+      dragover: (e) => {
+        setSpriteDrag((prev) =>
+          prev
+            ? { ...prev, clientPx: { x: e.clientX, y: e.clientY }, mode: e.altKey ? "copy" : "move" }
+            : null,
+        );
+      },
+      dragend: () => {
+        removeListeners();
+        setSpriteDrag(null);
+        setActorSelectionPopover(null);
+      },
+    });
   };
 
   const onMouseUpActor = (actor: Actor, event: React.MouseEvent) => {
@@ -793,6 +838,9 @@ export const Stage = ({
 
     // Helper to check for overlapping actors and show popover if needed
     const clickedPosition = getPositionForEvent(event);
+    if (!clickedPosition) {
+      return;
+    }
     const showPopoverIfOverlapping = (toolId: string): boolean => {
       const overlapping = actorsAtPoint(stage.actors, characters, clickedPosition, characterZOrder);
       if (overlapping.length > 1) {
@@ -898,21 +946,22 @@ export const Stage = ({
     if (interactionMode === "selectable" && selectedToolId !== TOOLS.IGNORE_SQUARE) {
       return;
     }
-    const onMouseUpAnywhere = (e: MouseEvent) => {
-      document.removeEventListener("mouseup", onMouseUpAnywhere);
-      document.removeEventListener("mousemove", onMouseMoveAnywhere);
-      onMouseUp.current?.(e);
-    };
-    const onMouseMoveAnywhere = (e: MouseEvent) => {
-      onMouseMove.current?.(e);
-    };
-    document.addEventListener("mouseup", onMouseUpAnywhere);
-    document.addEventListener("mousemove", onMouseMoveAnywhere);
+    const removeListeners = addInteractionListeners({
+      mouseup: (e) => {
+        removeListeners();
+        onMouseUp.current?.(e);
+      },
+      mousemove: (e) => {
+        onMouseMove.current?.(e);
+      },
+    });
     mouse.current = { isDown: true, visited: {} };
 
     const isClickOnBackground = event.target === event.currentTarget;
-    if (selectedToolId === TOOLS.POINTER && isClickOnBackground) {
-      setSelectionRect({ start: getPxOffsetForEvent(event), end: getPxOffsetForEvent(event) });
+    const px =
+      selectedToolId === TOOLS.POINTER && isClickOnBackground ? getPxOffsetForEvent(event) : null;
+    if (px) {
+      setSelectionRect({ start: { ...px }, end: { ...px } });
     } else {
       setSelectionRect(null);
     }
@@ -928,11 +977,18 @@ export const Stage = ({
     // If we are dragging to select a region, update the region.
     // Otherwise, process this event as a tool stroke.
     if (selectionRect) {
-      setSelectionRect({ ...selectionRect, end: getPxOffsetForEvent(event) });
+      const px = getPxOffsetForEvent(event);
+      if (px) {
+        setSelectionRect({ ...selectionRect, end: px });
+      }
       return;
     }
 
-    const { x, y } = getPositionForEvent(event);
+    const position = getPositionForEvent(event);
+    if (!position) {
+      return;
+    }
+    const { x, y } = position;
     if (!(x >= 1 && x <= stageWidth && y >= 1 && y <= stageHeight)) {
       return;
     }
@@ -1126,28 +1182,32 @@ export const Stage = ({
 
     setDoorDestDrag({ actorId, position: initial });
 
-    const onMoveDoc = (e: MouseEvent) => {
-      const next = clampToStage(getPositionForEvent(e));
-      setDoorDestDrag({ actorId, position: next });
-    };
-    const onUpDoc = (e: MouseEvent) => {
-      document.removeEventListener("mousemove", onMoveDoc);
-      document.removeEventListener("mouseup", onUpDoc);
-      const next = clampToStage(getPositionForEvent(e));
-      // Important: target the stage that owns the source door actor — for
-      // incoming cross-stage doors this is NOT the stage we're rendering.
-      dispatch(
-        changeActors(buildActorSelection(world.id, sourceStageId, [actorId]), {
-          variableValues: {
-            [DOOR_VARIABLE_IDS.destinationX]: String(next.x),
-            [DOOR_VARIABLE_IDS.destinationY]: String(next.y),
-          },
-        }),
-      );
-      setDoorDestDrag(null);
-    };
-    document.addEventListener("mousemove", onMoveDoc);
-    document.addEventListener("mouseup", onUpDoc);
+    const removeListeners = addInteractionListeners({
+      mousemove: (e) => {
+        const position = getPositionForEvent(e);
+        if (position) {
+          setDoorDestDrag({ actorId, position: clampToStage(position) });
+        }
+      },
+      mouseup: (e) => {
+        removeListeners();
+        const position = getPositionForEvent(e);
+        if (position) {
+          const next = clampToStage(position);
+          // Important: target the stage that owns the source door actor — for
+          // incoming cross-stage doors this is NOT the stage we're rendering.
+          dispatch(
+            changeActors(buildActorSelection(world.id, sourceStageId, [actorId]), {
+              variableValues: {
+                [DOOR_VARIABLE_IDS.destinationX]: String(next.x),
+                [DOOR_VARIABLE_IDS.destinationY]: String(next.y),
+              },
+            }),
+          );
+        }
+        setDoorDestDrag(null);
+      },
+    });
   };
 
   const renderDoorDestinations = () => {
