@@ -16,12 +16,14 @@ export async function makeRequest<T>(
     headers = {},
     json,
     body,
+    keepalive,
   }: {
     method?: "GET" | "PUT" | "POST" | "DELETE";
     query?: { [key: string]: any };
     headers?: { [key: string]: any };
     json?: any;
     body?: any;
+    keepalive?: boolean;
   } = {},
 ): Promise<T> {
   const { dispatch } = window.store;
@@ -45,6 +47,7 @@ export async function makeRequest<T>(
     const resp = await fetch(`${API_ROOT}${path}${qs.length > 0 ? `?` : ""}${qs.join("&")}`, {
       method,
       body: json ? JSON.stringify(json) : body,
+      keepalive,
       headers: Object.assign(
         {
           "Content-Type": "application/json",

@@ -64,12 +64,13 @@ const APIAdapter = {
       return Promise.resolve(world);
     });
   },
-  save: function (_me: User, worldId: string, json: any, action?: string) {
+  save: function (_me: User, worldId: string, json: any, action?: string, keepalive?: boolean) {
     const query = action ? { action } : {};
     return makeRequest(`/worlds/${worldId}`, {
       method: "PUT",
       query,
       json,
+      keepalive,
     });
   },
 };
@@ -119,7 +120,7 @@ const LocalStorageAdapter = {
     // Don't modify _value.data here - let the loading logic decide
     return Promise.resolve(_value);
   },
-  save: function (_me: User, worldId: string, json: any, action?: string) {
+  save: function (_me: User, worldId: string, json: any, action?: string, _keepalive?: boolean) {
     // The record can be gone (storage cleared or evicted while the editor was
     // open). Fall back to a fresh one so the save recreates it from the
     // in-memory world instead of throwing - there's no committed version left
@@ -174,6 +175,7 @@ const EditorPage = () => {
   const _isCommitting = useRef(false); // Flag to prevent auto-save during commit
   const _isExitingWithoutSaving = useRef(false); // Flag to prevent auto-save on exit
   const _isSavingAndExiting = useRef(false); // Flag to prevent warning when saving and exiting
+  const _startedEmpty = useRef(false); // World had no saved data AND no draft at load
 
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState(null);
@@ -188,9 +190,29 @@ const EditorPage = () => {
   const Adapter = window.location.href.includes("localstorage") ? LocalStorageAdapter : APIAdapter;
 
   useEffect(() => {
+    // Fire a discard for a world that was blank at load and untouched since.
+    // Uses keepalive so the request survives the page unload. The server will
+    // delete the row when data is still null (i.e. never committed).
+    const _cleanupIfUntouched = () => {
+      if (
+        Adapter === APIAdapter &&
+        _startedEmpty.current &&
+        !hasUnsavedChanges &&
+        !_isExitingWithoutSaving.current &&
+        !_isSavingAndExiting.current
+      ) {
+        Adapter.save(me, worldId, {}, "discard", true).catch(() => {
+          // Ignore errors during unload
+        });
+      }
+    };
+
     const _onVisibilityChange = () => {
       // Save draft when tab becomes hidden (user switching tabs or closing)
-      // But don't save if user explicitly chose to exit without saving
+      // But don't save if user explicitly chose to exit without saving.
+      // Note: we deliberately do NOT run the untouched-cleanup here because a
+      // simple tab switch fires visibilitychange, and we don't want to delete
+      // a blank world just because the user glanced away.
       if (document.hidden && hasUnsavedChanges && storeProvider.current && !_isExitingWithoutSaving.current) {
         // Clear any pending timeout
         if (_saveTimeout.current) {
@@ -215,6 +237,8 @@ const EditorPage = () => {
           _saveTimeout.current = null;
         }
         saveDraft();
+      } else {
+        _cleanupIfUntouched();
       }
       // Only show warning if we're not explicitly exiting without saving or saving and exiting
       if (
@@ -248,6 +272,10 @@ const EditorPage = () => {
         const loaded = applyDataMigrations(await Adapter.load(me, worldId));
         // Check if there's an unsaved draft
         const unsavedData = (loaded as any).unsavedData;
+        // Snapshot whether this world is fully empty at load. Only in that case
+        // is it safe to silently delete on exit — if there's a pre-existing
+        // draft, the user still needs to review it via the draft prompt.
+        _startedEmpty.current = loaded.data == null && !unsavedData;
         const unsavedDataUpdatedAt = (loaded as any).unsavedDataUpdatedAt
           ? new Date((loaded as any).unsavedDataUpdatedAt)
           : null;
@@ -433,12 +461,12 @@ const EditorPage = () => {
       clearTimeout(_saveTimeout.current);
       _saveTimeout.current = null;
     }
-    // Discard the draft since user explicitly chose to exit without saving
-    if (hasUnsavedChanges) {
-      Adapter.save(me, worldId, {}, "discard").catch(() => {
-        // Ignore errors when discarding
-      });
-    }
+    // Always fire discard: it clears the draft and, when the world was never
+    // committed (data === null), the server also removes the blank row.
+    // keepalive ensures the request survives the imminent navigation.
+    Adapter.save(me, worldId, {}, "discard", true).catch(() => {
+      // Ignore errors when discarding
+    });
     setHasUnsavedChanges(false);
     // Navigate after a brief delay to ensure flag is set
     setTimeout(() => {

@@ -26,6 +26,7 @@ import {
   RuleTreeItem,
   Stage,
   StageVariable,
+  World,
   WorldMinimal,
 } from "../../types";
 import {
@@ -52,6 +53,33 @@ import {
 } from "./stage-helpers";
 import { deepClone, makeId } from "./utils";
 import { CONTAINER_TYPES, FLOW_BEHAVIORS } from "./world-constants";
+
+/**
+ * Unticks the world until its history is exhausted, returning it to the state
+ * it was in before the game was run. Editing the world clears the history, so
+ * this is the state the world was in when the last edit was made.
+ */
+export function rewindWorldToStart(world: World, characters: Characters): World {
+  let current = world;
+
+  while (current.history && current.history.length > 0) {
+    let previous: World;
+    try {
+      previous = WorldOperator(current, characters).untick() as World;
+    } catch (error) {
+      console.error("Could not rewind the world any further.", error);
+      break;
+    }
+    // Defend against an untick that can't consume the entry it was given -
+    // the loop is driven by the history shrinking.
+    if (!previous.history || previous.history.length >= current.history.length) {
+      break;
+    }
+    current = previous;
+  }
+
+  return current;
+}
 
 export default function WorldOperator(previousWorld: WorldMinimal, characters: Characters) {
   let stage: Stage;

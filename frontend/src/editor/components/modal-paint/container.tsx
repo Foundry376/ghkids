@@ -9,7 +9,8 @@ import { adjustForAppearanceAnchorChange, changeCharacterAppearanceName, createC
 import { paintCharacterAppearance } from "../../actions/ui-actions";
 import { isTextInput, makeId } from "../../utils/utils";
 
-import AIModal from "./ai-modal";
+import AIModal, { AIMode } from "./ai-modal";
+import NameModal from "./name-modal";
 import { PaintModel, TOOLS_LIST } from "./paint-model";
 import PixelCanvas from "./pixel-canvas";
 import PixelColorPicker from "./pixel-color-picker";
@@ -17,6 +18,11 @@ import { PixelToolSize } from "./pixel-tool-size";
 import PixelToolbar from "./pixel-toolbar";
 import SpriteVariablesPanel from "./sprite-variables-panel";
 import VariableOverlay from "./variable-overlay";
+
+const SAVE_ERROR_MESSAGE =
+  `Sorry, an error occurred and we're unable to save your image. Did you copy/paste,` +
+  ` import from a file, or use the AI Generation feature? Please let me know at` +
+  ` ben@foundry376.com and include what browser you're using!`;
 
 const PaintContainer: React.FC = () => {
   const reduxDispatch = useDispatch();
@@ -134,41 +140,21 @@ const PaintContainer: React.FC = () => {
     reduxDispatch(paintCharacterAppearance(null));
   }, [reduxDispatch]);
 
-  const [isSaving, setIsSaving] = useState(false);
+  const [nameModalOpen, setNameModalOpen] = useState(false);
+  const [proposedName, setProposedName] = useState("");
+  const [isGeneratingName, setIsGeneratingName] = useState(false);
 
-  const handleCloseAndSave = useCallback(async () => {
+  const saveAndClose = useCallback((generatedSpriteName?: string) => {
     if (!characterId || !appearanceId || !character) return;
 
     const saveData = model.getSaveData(character, appearanceId);
     if (!saveData) {
-      alert(
-        `Sorry, an error occurred and we're unable to save your image. Did you copy/paste,` +
-          ` import from a file, or use the AI Generation feature? Please let me know at` +
-          ` ben@foundry376.com and include what browser you're using!`,
-      );
+      alert(SAVE_ERROR_MESSAGE);
       return;
     }
 
-    // Generate name if untitled
-    let generatedSpriteName = "";
-    if (character.name === "Untitled") {
-      setIsSaving(true);
-      try {
-        const nameResp = await makeRequest<{ name?: string }>("/generate-sprite-name", {
-          method: "POST",
-          json: { imageData: saveData.imageDataURL },
-        });
-        if (nameResp?.name) {
-          generatedSpriteName = nameResp.name;
-        }
-      } catch (err) {
-        console.error("Failed to auto-generate sprite name:", err);
-      } finally {
-        setIsSaving(false);
-      }
-    }
-
     // Close modal first
+    setNameModalOpen(false);
     reduxDispatch(paintCharacterAppearance(null));
 
     // If the anchor square moved, shift every rule and placed actor that uses
@@ -214,6 +200,43 @@ const PaintContainer: React.FC = () => {
     }, 10);
   }, [characterId, appearanceId, character, reduxDispatch, model]);
 
+  // Unnamed sprites are named by the user before saving, with an AI proposal
+  // prefilled from the artwork and (if it was drawn with AI) the user's prompt.
+  const handleCloseAndSave = useCallback(async () => {
+    if (!characterId || !appearanceId || !character) return;
+
+    if (character.name.toLowerCase() !== "untitled") {
+      saveAndClose();
+      return;
+    }
+
+    const saveData = model.getSaveData(character, appearanceId);
+    if (!saveData) {
+      alert(SAVE_ERROR_MESSAGE);
+      return;
+    }
+
+    const { spriteName, aiPrompt } = model.getState();
+    setProposedName("");
+    setIsGeneratingName(true);
+    setNameModalOpen(true);
+
+    try {
+      const resp = await makeRequest<{ name?: string }>("/generate-sprite-name", {
+        method: "POST",
+        json: aiPrompt
+          ? { prompt: aiPrompt }
+          : { imageData: saveData.imageDataURL },
+      });
+      setProposedName((resp?.name || spriteName).toLowerCase());
+    } catch (err) {
+      console.error("Failed to auto-generate sprite name:", err);
+      setProposedName(spriteName.toLowerCase());
+    } finally {
+      setIsGeneratingName(false);
+    }
+  }, [characterId, appearanceId, character, model, saveAndClose]);
+
   const handleChooseFile = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
       const file = event.target.files?.[0];
@@ -230,7 +253,7 @@ const PaintContainer: React.FC = () => {
     }
   }, [model, character, appearanceId]);
 
-  const [aiModalOpen, setAiModalOpen] = useState(false);
+  const [aiMode, setAiMode] = useState<AIMode | null>(null);
 
   // Get current state from model
   const state = model.getState();
@@ -482,11 +505,18 @@ const PaintContainer: React.FC = () => {
           </div>
         </ModalBody>
         <ModalFooter>
-          <Button onClick={() => setAiModalOpen(true)}>
-            <i className="fa fa-magic" style={{ color: "#7b5ea7" }} /> Draw with AI
+          <Button onClick={() => setAiMode("draw")}>
+            <i className="fa fa-paint-brush" style={{ color: "#7b5ea7" }} /> Draw with AI
+          </Button>{" "}
+          <Button
+            onClick={() => setAiMode("edit")}
+            disabled={!imageData}
+            title={imageData ? undefined : "Draw or import something first to edit it with AI"}
+          >
+            <i className="fa fa-pencil" style={{ color: "#7b5ea7" }} /> Edit with AI
           </Button>
           <div style={{ flex: 1 }} />
-          <Button key="cancel" onClick={handleClose} disabled={isSaving}>
+          <Button key="cancel" onClick={handleClose}>
             Cancel
           </Button>{" "}
           <Button
@@ -494,14 +524,24 @@ const PaintContainer: React.FC = () => {
             key="save"
             data-tutorial-id="paint-save-and-close"
             onClick={handleCloseAndSave}
-            disabled={isSaving}
           >
-            {isSaving && <i className="fa fa-spinner fa-spin" style={{ marginRight: 6 }} />}
             Done
           </Button>
         </ModalFooter>
       </div>
-      <AIModal model={model} isOpen={aiModalOpen} onClose={() => setAiModalOpen(false)} />
+      <AIModal
+        model={model}
+        isOpen={aiMode !== null}
+        mode={aiMode ?? "draw"}
+        onClose={() => setAiMode(null)}
+      />
+      <NameModal
+        isOpen={nameModalOpen}
+        proposedName={proposedName}
+        isGenerating={isGeneratingName}
+        onSave={(name) => saveAndClose(name)}
+        onCancel={() => setNameModalOpen(false)}
+      />
     </Modal>
   );
 };

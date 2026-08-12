@@ -232,6 +232,39 @@ function migrateStage(stage: any, characters: AnyRecord, allStages: AnyRecord): 
 }
 
 /**
+ * Does this save's *shape* prove it was written in v2 coordinates, regardless of
+ * what its `version` field says?
+ *
+ * Stage variables (width/height/... living in `stage.variableValues`) shipped
+ * after the Y-up coordinate system did, and `applyDataMigrations` deliberately
+ * leaves the legacy `stage.width` / `stage.height` fields in place until after
+ * we've run. So a save whose stages carry `variableValues` but no legacy
+ * dimensions can only have been written by a build that already stored
+ * coordinates Y-up.
+ *
+ * This guard exists because the editor's initial state used to stamp brand-new
+ * worlds `version: 1` even though the editor authors in v2 coordinates. Those
+ * worlds are already in the wild; without this check, opening one flips every
+ * actor upside down (and shifts it a column to the right).
+ */
+function isAlreadyV2Shape(state: AnyRecord): boolean {
+  if (!isObject(state.world) || !isObject(state.world.stages)) {
+    return false;
+  }
+  const stages = Object.values<any>(state.world.stages).filter(isObject);
+  if (stages.length === 0) {
+    return false;
+  }
+  return stages.every(
+    (s) =>
+      s.variableValues?.width !== undefined &&
+      s.variableValues?.height !== undefined &&
+      s.width === undefined &&
+      s.height === undefined,
+  );
+}
+
+/**
  * Migrate an EditorState (or the `data` blob within a Game) from v1 to v2.
  * Idempotent: a v2-or-newer state is returned unchanged.
  */
@@ -241,6 +274,12 @@ export function migrateCoordinatesV1ToV2<T extends AnyRecord>(state: T): T {
   const version = (state as any).version;
   if (version !== undefined && version >= 2) {
     return state;
+  }
+
+  // Mis-stamped v2 save: nothing to convert, just record that it's v2 so we
+  // stop reconsidering it on every load.
+  if (isAlreadyV2Shape(state)) {
+    return { ...state, version: 2 } as T;
   }
 
   const next: AnyRecord = { ...state };

@@ -53,6 +53,7 @@ import {
   getVariableValue,
   pointIsOutside,
   sortActorsByZOrder,
+  stageSquareForPixelOffset,
 } from "../../utils/stage-helpers";
 
 import { useEditorSelector } from "../../../hooks/redux";
@@ -603,18 +604,11 @@ export const Stage = ({
     const dragOffset =
       "dataTransfer" in event && event.dataTransfer && event.dataTransfer.getData("drag-offset");
 
-    // subtracting half when no offset is present is a lazy way of doing Math.floor instead of Math.round!
-    const halfOffset = { dragTop: STAGE_CELL_SIZE / 2, dragLeft: STAGE_CELL_SIZE / 2 };
-    const { dragLeft, dragTop } = dragOffset ? JSON.parse(dragOffset) : halfOffset;
-
-    const px = getPxOffsetForEvent(event);
-    // Y-up, 1-indexed: top row = stageHeight, bottom row = 1.
-    const rowFromTop = Math.round((px.top - dragTop) / STAGE_CELL_SIZE / scale);
-    const colFromLeft = Math.round((px.left - dragLeft) / STAGE_CELL_SIZE / scale);
-    return {
-      x: colFromLeft + 1,
-      y: stageHeight - rowFromTop,
-    };
+    return stageSquareForPixelOffset(getPxOffsetForEvent(event), {
+      scale,
+      stageHeight,
+      dragOffset: dragOffset ? JSON.parse(dragOffset) : undefined,
+    });
   };
 
   const onDropAppearance = (event: React.DragEvent) => {

@@ -50,7 +50,11 @@ const InitialWorld: World = {
 };
 
 const InitialState: EditorState = {
-  version: 1,
+  // The editor authors in v2 coordinates (Y-up, 1-indexed), so a world started
+  // from this state is already v2. Stamping it `1` made `applyDataMigrations`
+  // run the v1 → v2 coordinate migration over data that never needed it the
+  // next time the world was opened, flipping every actor upside down.
+  version: 2,
   characters: {},
   characterZOrder: [],
   world: InitialWorld,
