@@ -120,24 +120,17 @@ const LocalStorageAdapter = {
     return Promise.resolve(_value);
   },
   save: function (_me: User, worldId: string, json: any, action?: string) {
-    const _value = readStoredWorld(worldId);
-    if (!_value) {
-      // The record is gone (storage cleared or evicted while the editor was
-      // open). There is no committed version left to protect, so recreate the
-      // record from the in-memory world rather than throwing and losing it.
-      if (action === "discard") {
-        return Promise.resolve(null);
-      }
-      const _recreated = {
-        id: worldId,
-        name: json.name,
-        thumbnail: json.thumbnail,
-        data: json.data,
-        updatedAt: new Date().toISOString(),
-      };
-      writeStoredWorld(worldId, _recreated);
-      return Promise.resolve(_recreated);
+    // The record can be gone (storage cleared or evicted while the editor was
+    // open). Fall back to a fresh one so the save recreates it from the
+    // in-memory world instead of throwing - there's no committed version left
+    // to protect. On "discard" there's nothing to clear, and resurrecting a
+    // record with no data would only break the next load.
+    const _stored = readStoredWorld(worldId);
+    if (!_stored && action === "discard") {
+      return Promise.resolve(null);
     }
+    const _value = _stored ?? { id: worldId, data: json.data, updatedAt: new Date().toISOString() };
+
     if (action === "save") {
       // Copy unsavedData to data, clear unsavedData and its timestamp
       if (_value.unsavedData) {
