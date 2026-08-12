@@ -27,14 +27,14 @@ export function createCharacter(newId: string): ActionUpsertCharacter {
     characterId: newId,
     values: {
       id: newId,
-      name: "Untitled",
+      name: "untitled",
       rules: [],
       spritesheet: {
         appearances: {
           idle: [new URL("../img/splat.png", import.meta.url).href],
         },
         appearanceNames: {
-          idle: "Idle",
+          idle: "idle",
         },
       },
       variables: {},
@@ -48,7 +48,7 @@ export function createDoorCharacter(newId: string): ActionUpsertCharacter {
     characterId: newId,
     values: {
       id: newId,
-      name: "Door",
+      name: "door",
       kind: "door",
       rules: [],
       spritesheet: {
@@ -58,7 +58,7 @@ export function createDoorCharacter(newId: string): ActionUpsertCharacter {
           ],
         },
         appearanceNames: {
-          idle: "Idle",
+          idle: "idle",
         },
       },
       variables: {
@@ -184,7 +184,7 @@ export function createCharacterAppearance(
             newAppearanceData || new URL("../img/splat.png", import.meta.url).href,
           ],
         },
-        appearanceNames: { [newAppearanceId]: "Untitled" },
+        appearanceNames: { [newAppearanceId]: "untitled" },
       },
     },
   };

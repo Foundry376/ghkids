@@ -70,7 +70,7 @@ router.get("/generate-sprite", userFromBasicAuth, async (req, res) => {
     console.log("Image saved locally as 'image.png'");
 
     const namePrompt = `Give a short, straightforward name for a sprite described as: ${prompt}. For example, if the sprite is a cute mouse, respond with "Mouse". Respond with only the name.`;
-    let spriteName = "Unnamed Sprite";
+    let spriteName = "unnamed sprite";
     try {
       const nameResponse = await openai.chat.completions.create({
         model: "gpt-4.1-mini",
@@ -81,7 +81,7 @@ router.get("/generate-sprite", userFromBasicAuth, async (req, res) => {
         max_tokens: 10,
         temperature: 0.9,
       });
-      spriteName = nameResponse.choices[0]?.message?.content?.trim() || "Unnamed Sprite";
+      spriteName = (nameResponse.choices[0]?.message?.content?.trim() || "unnamed sprite").toLowerCase();
     } catch (err) {
       console.error("Error generating sprite name:", err);
     }
@@ -98,59 +98,47 @@ router.get("/generate-sprite", userFromBasicAuth, async (req, res) => {
   }
 });
 
-router.post("/generate-sprite-name", userFromBasicAuth, (req, res) => {
+router.post("/generate-sprite-name", userFromBasicAuth, async (req, res) => {
   openai = openai || new OpenAI({});
-  const { imageData } = req.body;
+  const { prompt, imageData } = req.body;
 
-  if (!imageData) {
-    res.status(400).json({ error: "Missing image data" });
+  if (!prompt && !imageData) {
+    res.status(400).json({ error: "Missing prompt or image data" });
     return;
   }
 
-  // Always extract base64 data and send as data URL for GPT-4 Vision
-  let base64Data = imageData;
-  if (imageData.startsWith("data:")) {
-    // Format: data:image/png;base64,XXXX
-    base64Data = imageData.split(",", 2)[1];
+  // When a prompt is available, skip the image entirely — text-only is much faster
+  // and the prompt is a stronger signal than low-res pixel art anyway.
+  const text = prompt
+    ? `Give a short, straightforward name for a sprite described as: ${prompt}. For example, if the sprite is a cute mouse, respond with "Mouse". Respond with only the name.`
+    : `Generate a short, straightforward name for this sprite. For example, if the sprite is a cute mouse, respond with "Mouse". Respond with only the name.`;
+
+  const content: any[] = [{ type: "text", text }];
+
+  if (!prompt && imageData) {
+    const base64Data = imageData.startsWith("data:") ? imageData.split(",", 2)[1] : imageData;
+    content.push({ type: "image_url", image_url: { url: `data:image/png;base64,${base64Data}` } });
   }
-  const dataUrl = `data:image/png;base64,${base64Data}`;
 
-  const messages = [
-    {
-      role: "user",
-      content: [
-        {
-          type: "text",
-          text: "Generate a short, straightforward name for this sprite. For example, if the sprite is a cute mouse, respond with 'Mouse'. Respond with only the name.",
-        },
-        {
-          type: "image_url",
-          image_url: {
-            url: dataUrl,
-          },
-        },
-      ],
-    },
-  ];
-
-  openai.chat.completions
-    .create({
+  try {
+    const completion = await openai.chat.completions.create({
       model: "gpt-4.1-mini",
-      messages: messages as any,
+      messages: [
+        { role: "system", content: "You are a helpful assistant for naming video game sprites." },
+        { role: "user", content },
+      ] as any,
       max_tokens: 10,
       temperature: 0.9,
-    })
-    .then((completion) => {
-      const name = completion.choices[0]?.message?.content?.trim() || "Unnamed Sprite";
-      console.log("Generated sprite name:", name);
-      res.setHeader("Access-Control-Allow-Origin", "*");
-      res.setHeader("Content-Type", "application/json");
-      res.json({ name });
-    })
-    .catch((error) => {
-      console.error("Error generating sprite name:", error);
-      res.status(500).json({ error: "Failed to generate sprite name" });
     });
+    const name = (completion.choices[0]?.message?.content?.trim() || "unnamed sprite").toLowerCase();
+    console.log("Generated sprite name:", name, { hasPrompt: !!prompt, hasImage: !!imageData });
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Content-Type", "application/json");
+    res.json({ name });
+  } catch (error) {
+    console.error("Error generating sprite name:", error);
+    res.status(500).json({ error: "Failed to generate sprite name" });
+  }
 });
 
 router.post("/edit-sprite", userFromBasicAuth, async (req, res) => {

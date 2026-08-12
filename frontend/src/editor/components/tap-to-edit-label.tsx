@@ -32,7 +32,7 @@ export const TapToEditLabel = ({
     }
   };
 
-  const isUntitled = `${value}`.startsWith("Untitled");
+  const isUntitled = `${value}`.toLowerCase().startsWith("untitled");
 
   if (!onChange) {
     return <div className={`tap-to-edit editing-false ${className}`}>{value}</div>;
