@@ -153,9 +153,15 @@ router.put("/worlds/:objectId", userFromBasicAuth, async (req, res) => {
     world.published = req.body.published ?? world.published;
     // updatedAt will be automatically updated by TypeORM
   } else if (action === "discard") {
-    // Discard: clear unsavedData and timestamp
+    // Discard: clear unsavedData and timestamp. If the world was never
+    // committed (data is still null), remove it entirely so we don't leave a
+    // blank "Untitled" row on the user's dashboard.
     world.unsavedData = null;
     world.unsavedDataUpdatedAt = null;
+    if (world.data === null) {
+      await AppDataSource.getRepository(World).remove(world);
+      return res.json({ success: true, deleted: true });
+    }
   } else {
     // Default: saveDraft - save to unsavedData and update timestamp.
     // Note: we deliberately do NOT update world.thumbnail here. The thumbnail

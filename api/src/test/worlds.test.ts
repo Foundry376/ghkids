@@ -241,6 +241,56 @@ describe("Worlds API", () => {
       expect(afterSave.thumbnail).to.equal("committed-thumbnail");
     });
 
+    it("should delete the world on discard when it was never committed", async () => {
+      const { user, authHeader } = await createTestUser("testuser", "password123");
+
+      const worldRepo = AppDataSource.getRepository(World);
+      const world = await worldRepo.save({
+        name: "Untitled",
+        thumbnail: "#",
+        userId: user.id,
+        data: null,
+        unsavedData: { draft: true },
+        unsavedDataUpdatedAt: new Date(),
+      });
+
+      const res = await request(app)
+        .put(`/worlds/${world.id}?action=discard`)
+        .set("Authorization", authHeader)
+        .send({})
+        .expect(200);
+
+      expect(res.body.deleted).to.equal(true);
+      const deleted = await worldRepo.findOneBy({ id: world.id });
+      expect(deleted).to.be.null;
+    });
+
+    it("should keep the world on discard when it has committed data", async () => {
+      const { user, authHeader } = await createTestUser("testuser", "password123");
+
+      const worldRepo = AppDataSource.getRepository(World);
+      const world = await worldRepo.save({
+        name: "Saved World",
+        thumbnail: "#",
+        userId: user.id,
+        data: { saved: true },
+        unsavedData: { draft: true },
+        unsavedDataUpdatedAt: new Date(),
+      });
+
+      const res = await request(app)
+        .put(`/worlds/${world.id}?action=discard`)
+        .set("Authorization", authHeader)
+        .send({})
+        .expect(200);
+
+      expect(res.body.deleted).to.be.undefined;
+      const remaining = await worldRepo.findOneByOrFail({ id: world.id });
+      expect(remaining.data).to.deep.equal({ saved: true });
+      expect(remaining.unsavedData).to.be.null;
+      expect(remaining.unsavedDataUpdatedAt).to.be.null;
+    });
+
     it("should return 404 for world owned by different user", async () => {
       const { user: owner } = await createTestUser("owner", "password123");
       const { authHeader: attackerAuth } = await createTestUser("attacker", "password123");
