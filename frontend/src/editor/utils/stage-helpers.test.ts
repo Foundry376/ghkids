@@ -14,6 +14,7 @@ import {
   pointIsInside,
   pointIsOutside,
   resolveRuleValue,
+  stageSquareForPixelOffset,
 } from "./stage-helpers";
 
 describe("stage-helpers", () => {
@@ -1143,6 +1144,52 @@ describe("stage-helpers", () => {
       const node = { rules: [] };
       const [found, ,] = findRule(node, "rule1");
       expect(found).to.be.null;
+    });
+  });
+
+  describe("stageSquareForPixelOffset", () => {
+    const stageHeight = 13;
+
+    // Every point inside a square must resolve to that square, at any zoom.
+    const cornersOf = (col: number, row: number, squarePx: number) =>
+      [0.01, 0.25, 0.5, 0.75, 0.99].flatMap((fx) =>
+        [0.01, 0.25, 0.5, 0.75, 0.99].map((fy) => ({
+          left: (col + fx) * squarePx,
+          top: (row + fy) * squarePx,
+        })),
+      );
+
+    [1, 1.5, 2, 3.25].forEach((scale) => {
+      it(`maps every pixel of a square to that square at zoom ${scale}`, () => {
+        const squarePx = 40 * scale;
+        for (const [col, row] of [
+          [0, 0],
+          [4, 6],
+          [21, 12],
+        ]) {
+          for (const px of cornersOf(col, row, squarePx)) {
+            expect(stageSquareForPixelOffset(px, { scale, stageHeight })).to.deep.equal(
+              { x: col + 1, y: stageHeight - row },
+              `zoom ${scale}, square (${col},${row}), px ${JSON.stringify(px)}`,
+            );
+          }
+        }
+      });
+    });
+
+    it("uses a drag offset (already in screen pixels) when one is given", () => {
+      const scale = 1.5;
+      const squarePx = 40 * scale;
+      // Cursor is 10px into the sprite, and the sprite's top-left sits at
+      // square (4, 6) — the drop lands on that square, not on the cursor's.
+      const px = { left: 4 * squarePx + 10, top: 6 * squarePx + 10 };
+      expect(
+        stageSquareForPixelOffset(px, {
+          scale,
+          stageHeight,
+          dragOffset: { dragLeft: 10, dragTop: 10 },
+        }),
+      ).to.deep.equal({ x: 5, y: stageHeight - 6 });
     });
   });
 });
