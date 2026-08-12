@@ -75,14 +75,39 @@ const APIAdapter = {
   },
 };
 
+// Reads the stored record for a world, returning null if localStorage is
+// unavailable (private browsing, storage disabled) or the entry is missing or
+// corrupt. Callers must handle null - the browser can evict or clear the
+// origin's storage at any time, including while the editor is open.
+function readStoredWorld(worldId: string): any | null {
+  let raw: string | null = null;
+  try {
+    raw = window.localStorage.getItem(worldId);
+  } catch {
+    return null;
+  }
+  if (!raw) {
+    return null;
+  }
+  try {
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === "object" ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeStoredWorld(worldId: string, value: any) {
+  try {
+    window.localStorage.setItem(worldId, JSON.stringify(value));
+  } catch (e) {
+    console.warn("Failed to save world to localStorage (quota exceeded):", e);
+  }
+}
+
 const LocalStorageAdapter = {
   load: function (_me: User, worldId: string) {
-    let _value;
-    try {
-      _value = JSON.parse(window.localStorage.getItem(worldId)!);
-    } catch (err) {
-      window.alert(`${err}`);
-    }
+    const _value = readStoredWorld(worldId);
 
     if (!_value) {
       window.location.href = `/`;
@@ -96,7 +121,17 @@ const LocalStorageAdapter = {
     return Promise.resolve(_value);
   },
   save: function (_me: User, worldId: string, json: any, action?: string, _keepalive?: boolean) {
-    const _value = JSON.parse(window.localStorage.getItem(worldId)!);
+    // The record can be gone (storage cleared or evicted while the editor was
+    // open). Fall back to a fresh one so the save recreates it from the
+    // in-memory world instead of throwing - there's no committed version left
+    // to protect. On "discard" there's nothing to clear, and resurrecting a
+    // record with no data would only break the next load.
+    const _stored = readStoredWorld(worldId);
+    if (!_stored && action === "discard") {
+      return Promise.resolve(null);
+    }
+    const _value = _stored ?? { id: worldId, data: json.data, updatedAt: new Date().toISOString() };
+
     if (action === "save") {
       // Copy unsavedData to data, clear unsavedData and its timestamp
       if (_value.unsavedData) {
@@ -122,11 +157,7 @@ const LocalStorageAdapter = {
       if (json.name) _value.name = json.name;
       _value.unsavedDataUpdatedAt = new Date().toISOString();
     }
-    try {
-      window.localStorage.setItem(worldId, JSON.stringify(_value));
-    } catch (e) {
-      console.warn("Failed to save world to localStorage (quota exceeded):", e);
-    }
+    writeStoredWorld(worldId, _value);
     return Promise.resolve(_value);
   },
 };
