@@ -28,6 +28,13 @@ import {
   longTrainScenario,
   interruptedLoopResumesScenario,
 } from "./__tests__/scenarios/multi-actor-scenarios";
+import {
+  doAllGroupContinuesToLaterRulesScenario,
+  doAllGroupContinuesInsideFirstGroupScenario,
+  doAllGroupStillRetriesBlockedRulesScenario,
+  doAllGroupRunsOncePerTickScenario,
+  doAllGroupInsideLoopRepeatsScenario,
+} from "./__tests__/scenarios/flow-container-scenarios";
 import { chaseGameScenario } from "./__tests__/scenarios/chase-game-scenario";
 import { scoreAccumulationScenario } from "./__tests__/scenarios/score-game-scenario";
 
@@ -145,6 +152,28 @@ describe("world-operator integration", () => {
 
     it("resumes an interrupted loop's remaining cycles within the same tick", () => {
       runScenario(interruptedLoopResumesScenario());
+    });
+  });
+
+  describe("Do All & Continue containers", () => {
+    it("continues on to the rules after the group", () => {
+      runScenario(doAllGroupContinuesToLaterRulesScenario());
+    });
+
+    it("continues when nested inside a Do First Match group", () => {
+      runScenario(doAllGroupContinuesInsideFirstGroupScenario());
+    });
+
+    it("leaves an actor eligible to retry its blocked rules", () => {
+      runScenario(doAllGroupStillRetriesBlockedRulesScenario());
+    });
+
+    it("runs its rules once per tick, not once per settle pass", () => {
+      runScenario(doAllGroupRunsOncePerTickScenario());
+    });
+
+    it("still repeats when it is the body of a loop", () => {
+      runScenario(doAllGroupInsideLoopRepeatsScenario());
     });
   });
 
