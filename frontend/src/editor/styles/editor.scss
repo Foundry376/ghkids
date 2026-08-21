@@ -535,7 +535,8 @@ html {
         align-items: center;
         gap: 4px;
         .left,
-        .right {
+        .right,
+        .variable-block {
           display: inline-block;
           padding: 2px;
           border: 1px solid rgba(0, 0, 0, 0.1);
