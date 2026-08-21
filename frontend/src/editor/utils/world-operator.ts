@@ -82,6 +82,18 @@ export function rewindWorldToStart(world: World, characters: Characters): World 
   return current;
 }
 
+/**
+ * The result of evaluating one node of a character's rule tree.
+ *
+ * `applied` is "did anything in here fire this tick" — it drives the highlight
+ * the editor draws on rules that ran, so a node that fired on an earlier pass
+ * of the tick stays applied even when a later pass skips it. `stop` is the
+ * flow-control verdict: "this node ran the actor's rule for the tick, so the
+ * container around it should stop looking". They differ for "Do All & Continue"
+ * groups, which can apply plenty and still hand control back to their parent.
+ */
+type TickOutcome = { applied: boolean; stop: boolean };
+
 export default function WorldOperator(
   previousWorld: WorldMinimal,
   characters: Characters,
@@ -103,6 +115,22 @@ export default function WorldOperator(
   // Loops blocked partway through register a continuation here; the settle loop
   // in tick() runs them so they can finish once the board changes. Per tick.
   let loopContinuations = new Map<string, () => boolean>();
+
+  // `${actorId}:${ruleId}` for every child of a "Do All & Continue" group that
+  // has already fired this tick. Because such a group never ends its actor's
+  // turn, the actor stays eligible for the settle passes below, which re-run
+  // its whole tree; this keeps the bookkeeping rules inside from firing twice
+  // while the blocked rules around them get their retry. Per tick.
+  let appliedInAllContainers = new Set<string>();
+
+  // Rules inside a `loop` are meant to re-apply, so the guard above is only
+  // consulted at the top level of the tree.
+  let loopDepth = 0;
+
+  // Bumped every time a rule actually fires. The settle loop watches it to tell
+  // a pass that did new work from one that merely reported what earlier passes
+  // had already done. Per tick.
+  let applicationCount = 0;
 
   // Built once per tick/resetForRule. Members are references to the mutable
   // closure state above, so in-place mutations during applyRule are visible
@@ -198,10 +226,10 @@ export default function WorldOperator(
   }
 
   function ActorOperator(me: Actor) {
-    function tickAllRules(): boolean {
+    function tickAllRules(): TickOutcome {
       const actor = actors[me.id];
       if (!actor) {
-        return false; // actor was deleted by another rule
+        return { applied: false, stop: false }; // actor was deleted by another rule
       }
       const struct = characters[actor.characterId];
       return tickRulesTree(struct);
@@ -215,10 +243,18 @@ export default function WorldOperator(
       | RuleTreeEventItem
       | Character;
 
-    function tickRulesTree(struct: RuleTreeContainer): boolean {
+    // A "Do All & Continue" group is transparent to the flow control around it:
+    // it runs every child, and its parent moves on to the next sibling whether
+    // or not anything inside fired. Anything else that fires stops its parent.
+    function isContinueContainer(rule: RuleTreeItem) {
+      return rule.type === CONTAINER_TYPES.FLOW && rule.behavior === FLOW_BEHAVIORS.ALL;
+    }
+
+    function tickRulesTree(struct: RuleTreeContainer): TickOutcome {
       // Loops are resumable (see runLoopContainer); everything else is one pass.
       if ("behavior" in struct && struct.behavior === FLOW_BEHAVIORS.LOOP) {
-        return runLoopContainer(struct);
+        const applied = runLoopContainer(struct);
+        return { applied, stop: applied };
       }
 
       let rules = [...struct.rules];
@@ -228,8 +264,19 @@ export default function WorldOperator(
       const isAll = "behavior" in struct && struct.behavior === FLOW_BEHAVIORS.ALL;
 
       let anyApplied = false;
+      let anyStopped = false;
       for (const rule of rules) {
-        const details = tickRule(rule);
+        // Settle passes re-run the whole tree for actors that haven't finished
+        // their turn, so a "do all" child that already fired this tick must not
+        // fire again (see appliedInAllContainers). Nested "do all" groups are
+        // still re-entered — their own children carry the same guard, so their
+        // blocked rules get the retry while their applied ones stay skipped.
+        if (isAll && !isContinueContainer(rule) && hasAppliedInAllContainer(rule)) {
+          anyApplied = true; // it fired earlier this tick; leave its details alone
+          continue;
+        }
+
+        const { details, stop } = tickRule(rule);
 
         // Store details for this rule - always update to avoid stale data
         evaluatedRuleDetails[me.id] = evaluatedRuleDetails[me.id] || {};
@@ -237,14 +284,32 @@ export default function WorldOperator(
 
         if (details.passed) {
           anyApplied = true;
+          if (isAll) {
+            markAppliedInAllContainer(rule);
+          }
         }
-        if (details.passed && !isAll) {
-          break;
+        if (stop) {
+          anyStopped = true;
+          if (!isAll) {
+            break;
+          }
         }
       }
 
       recordContainerDetails(struct, anyApplied);
-      return anyApplied;
+      return { applied: anyApplied, stop: anyStopped };
+    }
+
+    // Loop bodies legitimately re-apply their rules, so the once-per-tick guard
+    // above only governs the top-level pass over the tree.
+    function hasAppliedInAllContainer(rule: RuleTreeItem) {
+      return loopDepth === 0 && appliedInAllContainers.has(`${me.id}:${rule.id}`);
+    }
+
+    function markAppliedInAllContainer(rule: RuleTreeItem) {
+      if (loopDepth === 0) {
+        appliedInAllContainers.add(`${me.id}:${rule.id}`);
+      }
     }
 
     // Store container-level details (simplified - just tracks if any child passed)
@@ -277,12 +342,21 @@ export default function WorldOperator(
     // actor's own actions change the board between iterations, so once an
     // iteration is fully blocked every later one is too (until a settle pass).
     function runLoopIterations(struct: RuleTreeFlowLoopItem, max: number): number {
+      loopDepth += 1;
+      try {
+        return runLoopIterationsInner(struct, max);
+      } finally {
+        loopDepth -= 1;
+      }
+    }
+
+    function runLoopIterationsInner(struct: RuleTreeFlowLoopItem, max: number): number {
       const rules = [...struct.rules];
       let applied = 0;
       while (applied < max) {
         let iterationApplied = false;
         for (const rule of rules) {
-          const details = tickRule(rule);
+          const { details } = tickRule(rule);
           evaluatedRuleDetails[me.id] = evaluatedRuleDetails[me.id] || {};
           evaluatedRuleDetails[me.id][rule.id] = details;
           if (details.passed) {
@@ -344,7 +418,7 @@ export default function WorldOperator(
       });
     }
 
-    function tickRule(rule: RuleTreeItem): EvaluatedRuleDetails {
+    function tickRule(rule: RuleTreeItem): { details: EvaluatedRuleDetails; stop: boolean } {
       const emptyDetails: EvaluatedRuleDetails = {
         passed: false,
         conditions: [],
@@ -354,38 +428,44 @@ export default function WorldOperator(
 
       // Comments are annotations only — never evaluated.
       if (rule.type === "comment") {
-        return emptyDetails;
+        return { details: emptyDetails, stop: false };
       }
 
       // Skip disabled rules
       if (rule.enabled === false) {
-        return emptyDetails;
+        return { details: emptyDetails, stop: false };
       }
 
       if (rule.type === CONTAINER_TYPES.EVENT) {
         const eventPassed = checkEvent(rule);
         if (!eventPassed) {
-          return emptyDetails;
+          return { details: emptyDetails, stop: false };
         }
-        const childrenApplied = tickRulesTree(rule);
-        return { ...emptyDetails, passed: childrenApplied };
+        const children = tickRulesTree(rule);
+        return { details: { ...emptyDetails, passed: children.applied }, stop: children.stop };
       } else if (rule.type === CONTAINER_TYPES.FLOW) {
         if (rule.check) {
           const checkResult = checkRuleScenario(rule.check);
           if (!checkResult.passed) {
-            return checkResult.details;
+            return { details: checkResult.details, stop: false };
           }
         }
-        const childrenApplied = tickRulesTree(rule);
-        return { ...emptyDetails, passed: childrenApplied };
+        const children = tickRulesTree(rule);
+        // "Do All & Continue" never ends its parent's pass, however much fired
+        // inside it. Every other container passes its children's verdict up, so
+        // a group whose only firing child was a "continue" group leaves the
+        // parent still looking for a rule to run.
+        const stop = isContinueContainer(rule) ? false : children.stop;
+        return { details: { ...emptyDetails, passed: children.applied }, stop };
       }
 
       // Actual rule evaluation
       const result = checkRuleScenario(rule);
       if (result.passed && result.stageActorForId) {
         applyRule(rule, { stageActorForId: result.stageActorForId, createActorIds: true });
+        applicationCount += 1;
       }
-      return result.details;
+      return { details: result.details, stop: result.details.passed };
     }
 
     function checkEvent(trigger: RuleTreeEventItem) {
@@ -979,10 +1059,17 @@ export default function WorldOperator(
     evaluatedRuleDetails = {};
     crossStageActorsForDestStage = {};
     loopContinuations = new Map();
+    appliedInAllContainers = new Set();
+    loopDepth = 0;
+    applicationCount = 0;
 
     // Main pass: evaluate each actor once, top-most character first (see
-    // sortActorIdsByTickOrder). `acted` records who applied a rule so the
-    // settle passes below don't re-run them.
+    // sortActorIdsByTickOrder). `acted` records who finished their turn — who
+    // ran a rule that ended their tree's pass — so the settle passes below don't
+    // re-run them. An actor whose only firing rules sat in "Do All & Continue"
+    // groups has not finished: those groups hand the flow back, so the actor is
+    // still looking for a rule to run and stays eligible for a retry
+    // (appliedInAllContainers keeps the groups themselves from repeating).
     const initialActorIds = sortActorIdsByTickOrder(actors, characterZOrder);
     const acted = new Set<string>();
     const visit = (id: string): boolean => {
@@ -990,11 +1077,12 @@ export default function WorldOperator(
       if (!actor) {
         return false; // deleted by another actor's rule this tick
       }
-      const didAct = ActorOperator(actor).tickAllRules();
-      if (didAct) {
+      const before = applicationCount;
+      const { stop } = ActorOperator(actor).tickAllRules();
+      if (stop) {
         acted.add(id);
       }
-      return didAct;
+      return applicationCount > before;
     };
 
     initialActorIds.forEach((id) => visit(id));
@@ -1005,11 +1093,12 @@ export default function WorldOperator(
     // now-current board: idle actors re-run their whole tree (e.g. to step into
     // a just-vacated square), and cut-short loops resume their remaining cycles.
     //
-    // Both forms of progress are monotonic — `acted` only grows and loop
-    // `remaining` only shrinks — so this terminates, and each actor still acts
-    // at most once (a train shifts one square per tick). Actors created mid-tick
-    // are not revisited; they wait for the next tick like the main pass.
-    let changed = acted.size > 0 || loopContinuations.size > 0;
+    // All three forms of progress are monotonic — `acted` and
+    // `appliedInAllContainers` only grow and loop `remaining` only shrinks — so
+    // this terminates, and each actor still acts at most once (a train shifts
+    // one square per tick). Actors created mid-tick are not revisited; they wait
+    // for the next tick like the main pass.
+    let changed = applicationCount > 0 || loopContinuations.size > 0;
     while (changed) {
       changed = false;
       for (const id of initialActorIds) {
