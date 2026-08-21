@@ -439,6 +439,23 @@ export const Stage = ({
     return buildActorSelection(world.id, stage.id, actorIds);
   };
 
+  // While recording, a rule only contains the actors with at least one filled
+  // square inside its extent (see `ruleFromRecordingState`). Everything else on
+  // the stage is scenery: drawn so both halves of the rule editor show the same
+  // place (see `renderActor`), but never selectable or targetable, because an
+  // edit to one would record an action naming an actor the rule doesn't have.
+  const isSceneryForRule = (actor: Actor) =>
+    !!recordingExtent &&
+    actorFilledPoints(actor, characters).every((p) => pointIsOutside(p, recordingExtent));
+
+  // The actors selection and the stage tools are allowed to address. Outside
+  // recording that's everything on the stage.
+  const addressableActors = recordingExtent
+    ? Object.fromEntries(
+        Object.entries(stage.actors).filter(([, actor]) => !isSceneryForRule(actor)),
+      )
+    : stage.actors;
+
   const selected =
     selectedActors && selectedActors?.worldId === world.id && selectedActors?.stageId === stage.id
       ? selectedActors.actorIds.map((a) => stage.actors[a]).filter(Boolean)
@@ -547,7 +564,7 @@ export const Stage = ({
     const isShortcut = event.metaKey || event.ctrlKey;
 
     if (isShortcut && event.key === "a") {
-      dispatch(select(null, selFor(Object.keys(stage.actors))));
+      dispatch(select(null, selFor(Object.keys(addressableActors))));
       event.preventDefault();
       return;
     }
@@ -852,7 +869,12 @@ export const Stage = ({
       return;
     }
     const showPopoverIfOverlapping = (toolId: string): boolean => {
-      const overlapping = actorsAtPoint(stage.actors, characters, clickedPosition, characterZOrder);
+      const overlapping = actorsAtPoint(
+        addressableActors,
+        characters,
+        clickedPosition,
+        characterZOrder,
+      );
       if (overlapping.length > 1) {
         setActorSelectionPopover({
           actors: overlapping,
@@ -919,7 +941,7 @@ export const Stage = ({
           );
         } else {
           const overlapping = actorsAtPoint(
-            stage.actors,
+            addressableActors,
             characters,
             clickedPosition,
             characterZOrder,
@@ -1020,7 +1042,7 @@ export const Stage = ({
         return;
       }
 
-      const overlapping = actorsAtPoint(stage.actors, characters, { x, y }, characterZOrder);
+      const overlapping = actorsAtPoint(addressableActors, characters, { x, y }, characterZOrder);
 
       // On initial click (not drag), show popover if multiple actors overlap
       const isFirstClick = Object.keys(mouse.current.visited).length === 1;
@@ -1084,7 +1106,7 @@ export const Stage = ({
         x: Math.floor(maxLeft / STAGE_CELL_SIZE / scale) + 1,
         y: stageHeight - Math.floor(minTop / STAGE_CELL_SIZE / scale),
       };
-      for (const actor of Object.values(stage.actors)) {
+      for (const actor of Object.values(addressableActors)) {
         if (
           actor.position.x >= min.x &&
           actor.position.x <= max.x &&
@@ -1413,23 +1435,15 @@ export const Stage = ({
       Math.abs(lastPosition.y - actor.position.y) > 6;
     lastActorPositions.current[actor.id] = Object.assign({}, actor.position);
 
-    // Actors that fall entirely outside the rule's extent are scenery: they're
-    // drawn so both halves of the recording editor show the same place, but the
-    // rule doesn't contain them, so they can't be selected or acted on.
-    const isSceneryForRule =
-      !!recordingExtent &&
-      actorFilledPoints(actor, characters).every((p) => pointIsOutside(p, recordingExtent));
-
+    const isScenery = isSceneryForRule(actor);
     const draggable =
-      interactionMode === "full" &&
-      !isSceneryForRule &&
-      !DRAGGABLE_TOOLS.includes(selectedToolId);
+      interactionMode === "full" && !isScenery && !DRAGGABLE_TOOLS.includes(selectedToolId);
     const animationStyle = actor.animationStyle || "linear";
     const zIndex = characterZOrder.indexOf(actor.characterId);
     return (
       <ActorSprite
         key={`${actor.id}::${stoppedGeneration}`}
-        interactive={!isSceneryForRule}
+        interactive={!isScenery}
         selected={selected.includes(actor)}
         zIndex={zIndex >= 0 ? zIndex : undefined}
         onMouseUp={(event) => onMouseUpActor(actor, event)}
