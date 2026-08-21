@@ -24,14 +24,7 @@ import {
   BackgroundEditorModal,
   BackgroundPreview,
 } from "../../modal-stages/background-editor-modal";
-import {
-  ActorBlock,
-  ActorVariableBlock,
-  AppearanceBlock,
-  GlobalBlock,
-  StageVariableBlock,
-  TransformBlock,
-} from "./blocks";
+import { ActorBlock, AppearanceBlock, TransformBlock, VariableBlock } from "./blocks";
 
 interface FreeformConditionRowProps {
   actors: Stage["actors"];
@@ -261,22 +254,8 @@ export const FreeformConditionValue = ({
     if (!value) {
       return <div>Empty</div>;
     }
-    if ("actorId" in value) {
-      const actor = actors[value.actorId];
-      const character = actor && characters[actor.characterId];
-
-      if (actor && character) {
-        const disambiguate =
-          Object.values(actors).filter((a) => a.characterId === character.id).length > 1;
-        return (
-          <ActorVariableBlock
-            character={character}
-            actor={actor}
-            disambiguate={disambiguate}
-            variableId={value.variableId}
-          />
-        );
-      }
+    if ("actorId" in value || "globalId" in value || "stageVariableId" in value) {
+      return <VariableBlock value={value} world={world} actors={actors} characters={characters} />;
     }
     if ("constant" in value) {
       if (impliedDatatype?.type === "transform") {
@@ -368,19 +347,6 @@ export const FreeformConditionValue = ({
         );
       }
       return <code>"{value.constant}"</code>;
-    }
-
-    if ("globalId" in value) {
-      return <GlobalBlock globalId={value.globalId} name={world.globals[value.globalId]?.name} />;
-    }
-
-    if ("stageVariableId" in value) {
-      return (
-        <StageVariableBlock
-          stageVariableId={value.stageVariableId}
-          name={world.stageVariables?.[value.stageVariableId]?.name}
-        />
-      );
     }
 
     return <span />;
