@@ -1,4 +1,4 @@
-import React, { useCallback, useRef } from "react";
+import React, { useCallback, useEffect, useRef } from "react";
 import { useDispatch } from "react-redux";
 import { Characters, RuleTreeItem, RuleTreeEventItem, RuleCondition } from "../../../types";
 import { recordInputForGameState } from "../../actions/stage-actions";
@@ -177,6 +177,16 @@ const TouchKeys: React.FC<TouchKeysProps> = ({ worldId, characters }) => {
     },
     [syncKeys],
   );
+
+  // Same reason as the keyboard handler: a button still held when this
+  // unmounts would otherwise stay held in the module forever.
+  useEffect(() => {
+    const held = heldKeysRef.current;
+    return () => {
+      releaseKeys(Array.from(held));
+      held.clear();
+    };
+  }, []);
 
   if (usedKeys.length === 0) {
     return null;

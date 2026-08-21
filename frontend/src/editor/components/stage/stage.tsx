@@ -216,9 +216,12 @@ function useGlobalHeldKeys(worldId: string, playbackRunning: boolean) {
     if (!worldId) {
       return;
     }
+    // The Set is created once, so it's safe to hold onto for the cleanup.
+    const held = heldKeysRef.current;
+
     const syncHeldKeys = () => {
       const keysObj: { [key: string]: true } = {};
-      heldKeysRef.current.forEach((key) => {
+      held.forEach((key) => {
         keysObj[key] = true;
       });
       dispatch(recordInputForGameState(worldId, { keys: keysObj }));
@@ -237,8 +240,8 @@ function useGlobalHeldKeys(worldId: string, playbackRunning: boolean) {
       const codakoKey = keyToCodakoKey(event.key);
       // Auto-repeat fires keydown over and over for a key that's already down,
       // so only the first one is worth dispatching.
-      if (!heldKeysRef.current.has(codakoKey)) {
-        heldKeysRef.current.add(codakoKey);
+      if (!held.has(codakoKey)) {
+        held.add(codakoKey);
         holdKeys([codakoKey]);
         syncHeldKeys();
       }
@@ -246,8 +249,8 @@ function useGlobalHeldKeys(worldId: string, playbackRunning: boolean) {
 
     const onDocumentKeyUp = (event: KeyboardEvent) => {
       const codakoKey = keyToCodakoKey(event.key);
-      if (heldKeysRef.current.has(codakoKey)) {
-        heldKeysRef.current.delete(codakoKey);
+      if (held.has(codakoKey)) {
+        held.delete(codakoKey);
         releaseKeys([codakoKey]);
         // When playing, don't sync on keyup - let the key persist until tick() clears it.
         // This ensures quick key taps are registered even if keyup happens before next tick.
@@ -261,8 +264,8 @@ function useGlobalHeldKeys(worldId: string, playbackRunning: boolean) {
 
     const onWindowBlur = () => {
       releaseAllKeys();
-      if (heldKeysRef.current.size > 0) {
-        heldKeysRef.current.clear();
+      if (held.size > 0) {
+        held.clear();
         syncHeldKeys();
       }
     };
@@ -275,6 +278,12 @@ function useGlobalHeldKeys(worldId: string, playbackRunning: boolean) {
       document.removeEventListener("keydown", onDocumentKeyDown);
       document.removeEventListener("keyup", onDocumentKeyUp);
       window.removeEventListener("blur", onWindowBlur);
+      // The held-keys module outlives this component. Navigating away with a
+      // key still down fires no blur, and the keyup arrives after these
+      // listeners are gone - so let go here, or the key stays "held" and
+      // drives the next stage that mounts.
+      releaseKeys(Array.from(held));
+      held.clear();
     };
   }, [dispatch, worldId]);
 }
