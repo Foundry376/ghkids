@@ -370,6 +370,17 @@ html {
       &.running-true {
         box-shadow: 0 0 0 4px $tint-color;
       }
+
+      // While recording, the stage is placed by the renderer so the rule's
+      // extent sits dead centre, and the before/after halves must agree
+      // pixel-for-pixel. Leaving the wrap scrollable lets each half pick up its
+      // own scroll offset (a wheel event, a focus scroll, a leftover position)
+      // and drift out of alignment, and a scrollbar in one half but not the
+      // other changes that half's content box. Neither half has anything to
+      // scroll to, so turn scrolling off.
+      &.recording-centered {
+        overflow: hidden;
+      }
       .animated {
         transition-property: none;
       }

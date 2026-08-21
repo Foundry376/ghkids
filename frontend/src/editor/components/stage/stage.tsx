@@ -346,6 +346,16 @@ export const Stage = ({
         setCenteringOffset({ left: 0, top: 0 });
         _scrollEl.style.justifyContent = "";
         _scrollEl.style.alignItems = "";
+        // The recording view positions the stage itself (see `centerOnExtent`),
+        // so any scroll offset the wrap is carrying is a second, invisible
+        // translation on top of that. The before and after halves scroll
+        // independently, so a stray wheel event over one of them - or a scroll
+        // position left over from before recording started - is enough to knock
+        // them out of alignment. Scrolling is disabled while recording (see
+        // `.recording-centered` in editor.scss); reset it here so a position
+        // set before that took effect doesn't stick.
+        _scrollEl.scrollLeft = 0;
+        _scrollEl.scrollTop = 0;
         return;
       }
 
@@ -1403,12 +1413,23 @@ export const Stage = ({
       Math.abs(lastPosition.y - actor.position.y) > 6;
     lastActorPositions.current[actor.id] = Object.assign({}, actor.position);
 
-    const draggable = interactionMode === "full" && !DRAGGABLE_TOOLS.includes(selectedToolId);
+    // Actors that fall entirely outside the rule's extent are scenery: they're
+    // drawn so both halves of the recording editor show the same place, but the
+    // rule doesn't contain them, so they can't be selected or acted on.
+    const isSceneryForRule =
+      !!recordingExtent &&
+      actorFilledPoints(actor, characters).every((p) => pointIsOutside(p, recordingExtent));
+
+    const draggable =
+      interactionMode === "full" &&
+      !isSceneryForRule &&
+      !DRAGGABLE_TOOLS.includes(selectedToolId);
     const animationStyle = actor.animationStyle || "linear";
     const zIndex = characterZOrder.indexOf(actor.characterId);
     return (
       <ActorSprite
         key={`${actor.id}::${stoppedGeneration}`}
+        interactive={!isSceneryForRule}
         selected={selected.includes(actor)}
         zIndex={zIndex >= 0 ? zIndex : undefined}
         onMouseUp={(event) => onMouseUpActor(actor, event)}
@@ -1439,7 +1460,7 @@ export const Stage = ({
       data-stage-zoom={scale}
       className={`stage-scroll-wrap tool-supported running-${playback.running}${
         playback.running || animatingTick ? " animations-enabled" : ""
-      }`}
+      }${recordingCentered ? " recording-centered" : ""}`}
     >
       <div
         ref={(e) => (el.current = e)}

@@ -961,7 +961,11 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
 
   function resetForRule(
     rule: Rule | RuleTreeFlowItemCheck,
-    { offset, applyActions }: { offset: Position; applyActions: boolean },
+    {
+      offset,
+      applyActions,
+      keepStageActors,
+    }: { offset: Position; applyActions: boolean; keepStageActors?: boolean },
   ) {
     // read-only things
     const currentStage = getCurrentStageForWorld(previousWorld);
@@ -976,7 +980,12 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
     stageVariables = deepClone(previousWorld.stageVariables);
     stageVariableValues = deepClone(currentStage.variableValues);
     ctx = { globals, characters, stageVariables, stage: { variableValues: stageVariableValues } };
-    actors = {};
+    // By default the stage is emptied and repopulated with just the rule's
+    // actors - that's what the rule "is". `keepStageActors` instead lays the
+    // rule's actors over the ones already on the stage, which is what the
+    // recording editor's after-view needs: it has to show the same scene as the
+    // before-view, with the rule's actions applied on top.
+    actors = keepStageActors ? deepClone(currentStage.actors) : {};
     for (const actor of Object.values(rule.actors)) {
       actors[actor.id] = Object.assign(deepClone(actor), {
         position: pointByAdding(actor.position, offset),
@@ -1005,7 +1014,16 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
     // the actors currently on the board
     if (applyActions && "actions" in rule && rule.actions) {
       const operator = ActorOperator(actors[rule.mainActorId]);
-      operator.applyRule(rule, { createActorIds: false, stageActorForId: { ...actors } });
+      // Only the rule's own actors are addressable by its actions, so the
+      // lookup table stays limited to them even when the rest of the stage was
+      // kept above.
+      const stageActorForId: { [ruleActorId: string]: Actor } = {};
+      for (const ruleActorId of Object.keys(rule.actors)) {
+        if (actors[ruleActorId]) {
+          stageActorForId[ruleActorId] = actors[ruleActorId];
+        }
+      }
+      operator.applyRule(rule, { createActorIds: false, stageActorForId });
     }
 
     const stageUpdates: Record<string, { actors: unknown; variableValues?: unknown }> = {
