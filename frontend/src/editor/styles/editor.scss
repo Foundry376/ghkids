@@ -2134,7 +2134,11 @@ button.btn.selected:active {
   position: relative;
 }
 
-.editor-fullscreen-container:fullscreen {
+// The editor fullscreens the document rather than this container (see
+// useFullscreen) so that portalled UI — reactstrap modals, the sprite drag
+// preview, the tool cursor image — keeps rendering. Paint the page background
+// so the black fullscreen backdrop never shows through.
+:root:fullscreen {
   background: url(../img/background.png) top left;
 }
 
