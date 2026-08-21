@@ -200,7 +200,8 @@ export function doAllGroupStillRetriesBlockedRulesScenario(): TestScenario {
     position: { x: 3, y: 1 },
     variableValues: { [COUNTER]: "0" },
   });
-  // Insert the follower first so it is visited while the leader still blocks it.
+  // Same character, so ids decide the visit order: the follower goes first,
+  // while the leader still blocks it.
   const stage = makeStage({
     id: "stage-1",
     actors: { [followerId]: follower, [leaderId]: leader },

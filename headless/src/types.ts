@@ -154,6 +154,7 @@ export type EditorState = {
   characters: {
     [characterId: string]: Character;
   };
+  characterZOrder: string[];
   world: World;
   undoStack: [];
   redoStack: [];

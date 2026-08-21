@@ -50,6 +50,7 @@ import {
   resolveRuleValue,
   RuleValueContext,
   shuffleArray,
+  sortActorIdsByTickOrder,
 } from "./stage-helpers";
 import { deepClone, makeId } from "./utils";
 import { CONTAINER_TYPES, FLOW_BEHAVIORS } from "./world-constants";
@@ -93,7 +94,14 @@ export function rewindWorldToStart(world: World, characters: Characters): World 
  */
 type TickOutcome = { applied: boolean; stop: boolean };
 
-export default function WorldOperator(previousWorld: WorldMinimal, characters: Characters) {
+export default function WorldOperator(
+  previousWorld: WorldMinimal,
+  characters: Characters,
+  // Layering of the characters on the stage, bottom-most first. tick() visits
+  // actors in this order (top-most first) so execution order matches what the
+  // user sees. Callers that only untick or reset for a rule can omit it.
+  characterZOrder: string[] = [],
+) {
   let stage: Stage;
   let stageVariableValues: Record<string, string>;
   let stageVariables: Record<string, StageVariable>;
@@ -1073,14 +1081,14 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
     loopDepth = 0;
     applicationCount = 0;
 
-    // Main pass: evaluate each actor once, in stage order. `acted` records who
-    // finished their turn — who ran a rule that ended their tree's pass — so the
-    // settle passes below don't re-run them. An actor whose only firing rules
-    // sat in "Do All & Continue" groups has not finished: those groups hand the
-    // flow back, so the actor is still looking for a rule to run and stays
-    // eligible for a retry (appliedInAllContainers keeps the groups themselves
-    // from repeating).
-    const initialActorIds = Object.keys(actors);
+    // Main pass: evaluate each actor once, top-most character first (see
+    // sortActorIdsByTickOrder). `acted` records who finished their turn — who
+    // ran a rule that ended their tree's pass — so the settle passes below don't
+    // re-run them. An actor whose only firing rules sat in "Do All & Continue"
+    // groups has not finished: those groups hand the flow back, so the actor is
+    // still looking for a rule to run and stays eligible for a retry
+    // (appliedInAllContainers keeps the groups themselves from repeating).
+    const initialActorIds = sortActorIdsByTickOrder(actors, characterZOrder);
     const acted = new Set<string>();
     const visit = (id: string): boolean => {
       const actor = actors[id];

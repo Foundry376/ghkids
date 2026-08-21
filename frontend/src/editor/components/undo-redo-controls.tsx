@@ -2,6 +2,7 @@ import { Button } from "reactstrap";
 import { useCallback, useEffect } from "react";
 import { useDispatch } from "react-redux";
 import { undo, redo } from "../utils/undo-redo";
+import { forgivingPress } from "../utils/pointer";
 import { isTextInput } from "../utils/utils";
 import { useEditorSelector } from "../../hooks/redux";
 
@@ -48,13 +49,17 @@ const UndoRedoControls = () => {
       <Button
         className="icon"
         data-tutorial-id="undo-button"
-        onClick={() => dispatchAction(undo())}
         disabled={undoDepth === 0}
+        {...forgivingPress(() => dispatchAction(undo()))}
       >
-        <img src={new URL("../img/icon_undo.png", import.meta.url).href} />
+        <img src={new URL("../img/icon_undo.png", import.meta.url).href} draggable={false} />
       </Button>
-      <Button className="icon" onClick={() => dispatchAction(redo())} disabled={redoDepth === 0}>
-        <img src={new URL("../img/icon_redo.png", import.meta.url).href} />
+      <Button
+        className="icon"
+        disabled={redoDepth === 0}
+        {...forgivingPress(() => dispatchAction(redo()))}
+      >
+        <img src={new URL("../img/icon_redo.png", import.meta.url).href} draggable={false} />
       </Button>
     </div>
   );

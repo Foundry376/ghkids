@@ -105,7 +105,17 @@ type SpriteDragState = {
   mode: "move" | "copy"; // Whether we're moving or copying (alt key)
 };
 
-const DRAGGABLE_TOOLS = [TOOLS.IGNORE_SQUARE, TOOLS.TRASH, TOOLS.STAMP, TOOLS.CREATE_CHARACTER];
+// Tools that act on whatever you press. Actors stay undraggable while one is
+// selected, so a wobbly press can't pick a character up instead of using it.
+const NON_DRAGGING_TOOLS = [
+  TOOLS.IGNORE_SQUARE,
+  TOOLS.TRASH,
+  TOOLS.STAMP,
+  TOOLS.CREATE_CHARACTER,
+  TOOLS.RECORD,
+  TOOLS.PAINT,
+  TOOLS.ADD_CLICK_CONDITION,
+];
 
 // Single empty image used for hiding native drag preview
 // eslint-disable-next-line react-refresh/only-export-components
@@ -1437,7 +1447,7 @@ export const Stage = ({
 
     const isScenery = isSceneryForRule(actor);
     const draggable =
-      interactionMode === "full" && !isScenery && !DRAGGABLE_TOOLS.includes(selectedToolId);
+      interactionMode === "full" && !isScenery && !NON_DRAGGING_TOOLS.includes(selectedToolId);
     const animationStyle = actor.animationStyle || "linear";
     const zIndex = characterZOrder.indexOf(actor.characterId);
     return (
