@@ -9,50 +9,77 @@
  *
  * The keyboard handler and the on-screen touch keys record what's held here,
  * and the playback loop merges it into the input ahead of every tick.
+ *
+ * Holds are kept per source rather than in one flat set, because several
+ * sources are live at once - the keyboard, the touch keys, and one handler per
+ * mounted stage. A key stays held while any of them still has it, so releasing
+ * the on-screen button doesn't cancel a physical key that's still down, and a
+ * stage unmounting doesn't cancel a hold another stage is still tracking.
  */
-const heldKeys = new Set<string>();
 
-/** Marks keys as held. Returns true if anything changed. */
-export function holdKeys(keys: string[]): boolean {
+/** An opaque per-component token. Any stable object identity will do. */
+export type KeySource = object;
+
+const holdsBySource = new Map<KeySource, Set<string>>();
+
+/** Records that `source` is holding `keys`. Returns true if anything changed. */
+export function holdKeys(source: KeySource, keys: string[]): boolean {
+  let held = holdsBySource.get(source);
+  if (!held) {
+    held = new Set();
+    holdsBySource.set(source, held);
+  }
   let changed = false;
   for (const key of keys) {
-    if (!heldKeys.has(key)) {
-      heldKeys.add(key);
+    if (!held.has(key)) {
+      held.add(key);
       changed = true;
     }
   }
   return changed;
 }
 
-/** Marks keys as no longer held. Returns true if anything changed. */
-export function releaseKeys(keys: string[]): boolean {
-  let changed = false;
-  for (const key of keys) {
-    if (heldKeys.delete(key)) {
-      changed = true;
-    }
-  }
-  return changed;
-}
-
-/** Releases everything, eg: when the window loses focus. Returns true if anything changed. */
-export function releaseAllKeys(): boolean {
-  if (heldKeys.size === 0) {
+/** Records that `source` has let go of `keys`. Returns true if anything changed. */
+export function releaseKeys(source: KeySource, keys: string[]): boolean {
+  const held = holdsBySource.get(source);
+  if (!held) {
     return false;
   }
-  heldKeys.clear();
-  return true;
+  let changed = false;
+  for (const key of keys) {
+    if (held.delete(key)) {
+      changed = true;
+    }
+  }
+  return changed;
+}
+
+/**
+ * Drops everything `source` holds - on window blur, or when the component
+ * behind it goes away. Returns true if it was holding anything.
+ */
+export function releaseSource(source: KeySource): boolean {
+  const held = holdsBySource.get(source);
+  holdsBySource.delete(source);
+  return held !== undefined && held.size > 0;
 }
 
 export function isKeyHeld(key: string): boolean {
-  return heldKeys.has(key);
+  for (const held of holdsBySource.values()) {
+    if (held.has(key)) {
+      return true;
+    }
+  }
+  return false;
 }
 
-/** The held keys in the shape `world.input.keys` expects. */
+/** Every source's holds together, in the shape `world.input.keys` expects. */
 export function heldKeysAsInput(): { [key: string]: true } {
   const keys: { [key: string]: true } = {};
-  heldKeys.forEach((key) => {
-    keys[key] = true;
-  });
+  for (const held of holdsBySource.values()) {
+    held.forEach((key) => {
+      keys[key] = true;
+    });
+  }
   return keys;
 }

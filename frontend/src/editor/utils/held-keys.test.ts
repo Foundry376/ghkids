@@ -16,7 +16,14 @@ import {
   makeStage,
   makeWorld,
 } from "./__tests__/test-fixtures";
-import { heldKeysAsInput, holdKeys, isKeyHeld, releaseAllKeys, releaseKeys } from "./held-keys";
+import {
+  heldKeysAsInput,
+  holdKeys,
+  isKeyHeld,
+  KeySource,
+  releaseKeys,
+  releaseSource,
+} from "./held-keys";
 
 const CHARACTER_ID = "char-1";
 const ACTOR_ID = "actor-1";
@@ -59,9 +66,13 @@ function xOf(store: Store<EditorState>) {
   return getActor(store.getState().world, ACTOR_ID)!.position.x;
 }
 
+// Stands in for the keyboard handler; tests that care about a second source
+// (the on-screen touch keys) declare their own.
+const KEYBOARD: KeySource = {};
+
 /** What the key handler does on keydown: record the hold, then sync the input. */
-function pressKey(store: Store<EditorState>, key: string) {
-  holdKeys([key]);
+function pressKey(store: Store<EditorState>, key: string, source: KeySource = KEYBOARD) {
+  holdKeys(source, [key]);
   store.dispatch(recordInputForGameState(WORLDS.ROOT, { keys: heldKeysAsInput() }));
 }
 
@@ -69,8 +80,8 @@ function pressKey(store: Store<EditorState>, key: string) {
  * What the key handler does on keyup during playback: forget the hold, but
  * leave the frame's input alone so a tap that started this frame still counts.
  */
-function releaseKey(key: string) {
-  releaseKeys([key]);
+function releaseKey(key: string, source: KeySource = KEYBOARD) {
+  releaseKeys(source, [key]);
 }
 
 /** One playback frame, the way stage-controls' timer runs it. */
@@ -83,26 +94,67 @@ function tick(store: Store<EditorState>, times = 1) {
 
 describe("held keys", () => {
   beforeEach(() => {
-    releaseAllKeys();
+    releaseSource(KEYBOARD);
   });
 
   it("tracks which keys are down", () => {
     expect(isKeyHeld(RIGHT)).to.equal(false);
-    expect(holdKeys([RIGHT])).to.equal(true);
-    expect(holdKeys([RIGHT])).to.equal(false); // auto-repeat, nothing changed
+    expect(holdKeys(KEYBOARD, [RIGHT])).to.equal(true);
+    expect(holdKeys(KEYBOARD, [RIGHT])).to.equal(false); // auto-repeat, nothing changed
     expect(isKeyHeld(RIGHT)).to.equal(true);
     expect(heldKeysAsInput()).to.deep.equal({ [RIGHT]: true });
 
-    expect(releaseKeys([RIGHT])).to.equal(true);
-    expect(releaseKeys([RIGHT])).to.equal(false);
+    expect(releaseKeys(KEYBOARD, [RIGHT])).to.equal(true);
+    expect(releaseKeys(KEYBOARD, [RIGHT])).to.equal(false);
     expect(heldKeysAsInput()).to.deep.equal({});
   });
 
-  it("releases everything at once", () => {
-    holdKeys([RIGHT, "ArrowLeft"]);
-    expect(releaseAllKeys()).to.equal(true);
-    expect(releaseAllKeys()).to.equal(false);
+  it("releases everything a source holds at once", () => {
+    holdKeys(KEYBOARD, [RIGHT, "ArrowLeft"]);
+    expect(releaseSource(KEYBOARD)).to.equal(true);
+    expect(releaseSource(KEYBOARD)).to.equal(false);
     expect(heldKeysAsInput()).to.deep.equal({});
+  });
+
+  describe("with more than one source", () => {
+    // The on-screen touch keys, or the handler of a second mounted stage.
+    const TOUCH: KeySource = {};
+    afterEach(() => {
+      releaseSource(TOUCH);
+    });
+
+    it("keeps the key held until every source lets go", () => {
+      holdKeys(KEYBOARD, [RIGHT]);
+      holdKeys(TOUCH, [RIGHT]);
+
+      // Letting go of the on-screen button must not cancel the physical key.
+      releaseKeys(TOUCH, [RIGHT]);
+      expect(isKeyHeld(RIGHT)).to.equal(true);
+      expect(heldKeysAsInput()).to.deep.equal({ [RIGHT]: true });
+
+      releaseKeys(KEYBOARD, [RIGHT]);
+      expect(isKeyHeld(RIGHT)).to.equal(false);
+    });
+
+    it("only drops the unmounting source's holds", () => {
+      holdKeys(KEYBOARD, [RIGHT]);
+      holdKeys(TOUCH, [RIGHT, "ArrowUp"]);
+
+      releaseSource(TOUCH);
+      expect(heldKeysAsInput()).to.deep.equal({ [RIGHT]: true });
+    });
+
+    it("keeps motion going while a second source releases mid-hold", () => {
+      const store = makeEditorStore();
+      pressKey(store, RIGHT);
+      pressKey(store, RIGHT, TOUCH);
+      tick(store, 2);
+      expect(xOf(store)).to.equal(4);
+
+      releaseKey(RIGHT, TOUCH);
+      tick(store, 2);
+      expect(xOf(store)).to.equal(6);
+    });
   });
 
   describe("during playback", () => {
@@ -140,7 +192,7 @@ describe("held keys", () => {
       expect(xOf(store)).to.equal(3);
     });
 
-    it("moves diagonally when two keys are held at once", () => {
+    it("moves while two keys are held at once", () => {
       const store = makeEditorStore();
       pressKey(store, RIGHT);
       pressKey(store, "ArrowUp");
