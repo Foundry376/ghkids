@@ -356,6 +356,16 @@ export const Stage = ({
         setCenteringOffset({ left: 0, top: 0 });
         _scrollEl.style.justifyContent = "";
         _scrollEl.style.alignItems = "";
+        // The recording view positions the stage itself (see `centerOnExtent`),
+        // so any scroll offset the wrap is carrying is a second, invisible
+        // translation on top of that. The before and after halves scroll
+        // independently, so a stray wheel event over one of them - or a scroll
+        // position left over from before recording started - is enough to knock
+        // them out of alignment. Scrolling is disabled while recording (see
+        // `.recording-centered` in editor.scss); reset it here so a position
+        // set before that took effect doesn't stick.
+        _scrollEl.scrollLeft = 0;
+        _scrollEl.scrollTop = 0;
         return;
       }
 
@@ -438,6 +448,23 @@ export const Stage = ({
   const selFor = (actorIds: string[]) => {
     return buildActorSelection(world.id, stage.id, actorIds);
   };
+
+  // While recording, a rule only contains the actors with at least one filled
+  // square inside its extent (see `ruleFromRecordingState`). Everything else on
+  // the stage is scenery: drawn so both halves of the rule editor show the same
+  // place (see `renderActor`), but never selectable or targetable, because an
+  // edit to one would record an action naming an actor the rule doesn't have.
+  const isSceneryForRule = (actor: Actor) =>
+    !!recordingExtent &&
+    actorFilledPoints(actor, characters).every((p) => pointIsOutside(p, recordingExtent));
+
+  // The actors selection and the stage tools are allowed to address. Outside
+  // recording that's everything on the stage.
+  const addressableActors = recordingExtent
+    ? Object.fromEntries(
+        Object.entries(stage.actors).filter(([, actor]) => !isSceneryForRule(actor)),
+      )
+    : stage.actors;
 
   const selected =
     selectedActors && selectedActors?.worldId === world.id && selectedActors?.stageId === stage.id
@@ -547,7 +574,7 @@ export const Stage = ({
     const isShortcut = event.metaKey || event.ctrlKey;
 
     if (isShortcut && event.key === "a") {
-      dispatch(select(null, selFor(Object.keys(stage.actors))));
+      dispatch(select(null, selFor(Object.keys(addressableActors))));
       event.preventDefault();
       return;
     }
@@ -852,7 +879,12 @@ export const Stage = ({
       return;
     }
     const showPopoverIfOverlapping = (toolId: string): boolean => {
-      const overlapping = actorsAtPoint(stage.actors, characters, clickedPosition, characterZOrder);
+      const overlapping = actorsAtPoint(
+        addressableActors,
+        characters,
+        clickedPosition,
+        characterZOrder,
+      );
       if (overlapping.length > 1) {
         setActorSelectionPopover({
           actors: overlapping,
@@ -919,7 +951,7 @@ export const Stage = ({
           );
         } else {
           const overlapping = actorsAtPoint(
-            stage.actors,
+            addressableActors,
             characters,
             clickedPosition,
             characterZOrder,
@@ -1020,7 +1052,7 @@ export const Stage = ({
         return;
       }
 
-      const overlapping = actorsAtPoint(stage.actors, characters, { x, y }, characterZOrder);
+      const overlapping = actorsAtPoint(addressableActors, characters, { x, y }, characterZOrder);
 
       // On initial click (not drag), show popover if multiple actors overlap
       const isFirstClick = Object.keys(mouse.current.visited).length === 1;
@@ -1084,7 +1116,7 @@ export const Stage = ({
         x: Math.floor(maxLeft / STAGE_CELL_SIZE / scale) + 1,
         y: stageHeight - Math.floor(minTop / STAGE_CELL_SIZE / scale),
       };
-      for (const actor of Object.values(stage.actors)) {
+      for (const actor of Object.values(addressableActors)) {
         if (
           actor.position.x >= min.x &&
           actor.position.x <= max.x &&
@@ -1413,12 +1445,15 @@ export const Stage = ({
       Math.abs(lastPosition.y - actor.position.y) > 6;
     lastActorPositions.current[actor.id] = Object.assign({}, actor.position);
 
-    const draggable = interactionMode === "full" && !NON_DRAGGING_TOOLS.includes(selectedToolId);
+    const isScenery = isSceneryForRule(actor);
+    const draggable =
+      interactionMode === "full" && !isScenery && !NON_DRAGGING_TOOLS.includes(selectedToolId);
     const animationStyle = actor.animationStyle || "linear";
     const zIndex = characterZOrder.indexOf(actor.characterId);
     return (
       <ActorSprite
         key={`${actor.id}::${stoppedGeneration}`}
+        interactive={!isScenery}
         selected={selected.includes(actor)}
         zIndex={zIndex >= 0 ? zIndex : undefined}
         onMouseUp={(event) => onMouseUpActor(actor, event)}
@@ -1449,7 +1484,7 @@ export const Stage = ({
       data-stage-zoom={scale}
       className={`stage-scroll-wrap tool-supported running-${playback.running}${
         playback.running || animatingTick ? " animations-enabled" : ""
-      }`}
+      }${recordingCentered ? " recording-centered" : ""}`}
     >
       <div
         ref={(e) => (el.current = e)}
