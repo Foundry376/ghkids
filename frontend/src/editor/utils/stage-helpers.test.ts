@@ -14,6 +14,7 @@ import {
   pointIsInside,
   pointIsOutside,
   resolveRuleValue,
+  sortActorIdsByTickOrder,
   stageSquareForPixelOffset,
 } from "./stage-helpers";
 
@@ -1190,6 +1191,48 @@ describe("stage-helpers", () => {
           dragOffset: { dragLeft: 10, dragTop: 10 },
         }),
       ).to.deep.equal({ x: 5, y: stageHeight - 6 });
+    });
+  });
+
+  describe("sortActorIdsByTickOrder", () => {
+    const actor = (id: string, characterId: string): Actor =>
+      ({
+        id,
+        characterId,
+        position: { x: 0, y: 0 },
+        appearance: "default",
+        variableValues: {},
+      }) as Actor;
+
+    const byTickOrder = (actors: Actor[], characterZOrder: string[]) =>
+      sortActorIdsByTickOrder(Object.fromEntries(actors.map((a) => [a.id, a])), characterZOrder);
+
+    it("visits the top-most character first", () => {
+      const actors = [actor("a", "bottom"), actor("b", "middle"), actor("c", "top")];
+      // characterZOrder is bottom-most first, so "top" is drawn above the rest.
+      expect(byTickOrder(actors, ["bottom", "middle", "top"])).to.deep.equal(["c", "b", "a"]);
+      expect(byTickOrder(actors, ["top", "middle", "bottom"])).to.deep.equal(["a", "b", "c"]);
+    });
+
+    it("is independent of the order actors appear in the stage", () => {
+      const zOrder = ["bottom", "top"];
+      const expected = ["y", "x"];
+      expect(byTickOrder([actor("x", "bottom"), actor("y", "top")], zOrder)).to.deep.equal(
+        expected,
+      );
+      expect(byTickOrder([actor("y", "top"), actor("x", "bottom")], zOrder)).to.deep.equal(
+        expected,
+      );
+    });
+
+    it("orders actors of the same character by id", () => {
+      const actors = [actor("c", "char"), actor("a", "char"), actor("b", "char")];
+      expect(byTickOrder(actors, ["char"])).to.deep.equal(["a", "b", "c"]);
+    });
+
+    it("treats characters missing from the z-order as bottom-most", () => {
+      const actors = [actor("a", "unknown"), actor("b", "known")];
+      expect(byTickOrder(actors, ["known"])).to.deep.equal(["b", "a"]);
     });
   });
 });

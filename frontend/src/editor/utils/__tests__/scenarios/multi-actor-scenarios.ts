@@ -126,6 +126,10 @@ export function coinCollectionScenario(): TestScenario {
 // An actor blocked only because a neighbour hasn't moved yet should still move
 // once that neighbour vacates, regardless of visit order. The canonical case is
 // a "train" of followers that keeps its spacing rather than bunching up.
+//
+// A tick visits actors top-most character first, then by actor id, so these
+// scenarios pin the visit order they want to exercise through those two knobs
+// rather than through the order actors sit in the stage's dictionary.
 // ============================================================================
 
 /**
@@ -155,14 +159,14 @@ function makeMoveLeftIfEmptyCharacter(charId: string): Character {
  */
 export function trainFollowerVisitedFirstScenario(): TestScenario {
   const charId = "char-walker";
-  const leaderId = "actor-leader";
-  const followerId = "actor-follower";
+  // Same character, so ids decide the order: the follower is visited first.
+  const leaderId = "actor-b-leader";
+  const followerId = "actor-a-follower";
 
   const characters: Characters = { [charId]: makeMoveLeftIfEmptyCharacter(charId) };
 
   const leader = makeActor({ id: leaderId, characterId: charId, position: { x: 2, y: 1 } });
   const follower = makeActor({ id: followerId, characterId: charId, position: { x: 3, y: 1 } });
-  // Insert the follower first so it is visited before the leader.
   const stage = makeStage({
     id: "stage-1",
     actors: { [followerId]: follower, [leaderId]: leader },
@@ -189,14 +193,14 @@ export function trainFollowerVisitedFirstScenario(): TestScenario {
  */
 export function trainLeaderVisitedFirstScenario(): TestScenario {
   const charId = "char-walker";
-  const leaderId = "actor-leader";
-  const followerId = "actor-follower";
+  // Ids reversed relative to the scenario above, so the leader goes first.
+  const leaderId = "actor-a-leader";
+  const followerId = "actor-b-follower";
 
   const characters: Characters = { [charId]: makeMoveLeftIfEmptyCharacter(charId) };
 
   const leader = makeActor({ id: leaderId, characterId: charId, position: { x: 2, y: 1 } });
   const follower = makeActor({ id: followerId, characterId: charId, position: { x: 3, y: 1 } });
-  // Insert the leader first so it is visited before the follower.
   const stage = makeStage({
     id: "stage-1",
     actors: { [leaderId]: leader, [followerId]: follower },
@@ -222,18 +226,19 @@ export function trainLeaderVisitedFirstScenario(): TestScenario {
  */
 export function longTrainScenario(): TestScenario {
   const charId = "char-walker";
-  const aId = "actor-a"; // leader, at x=2
-  const bId = "actor-b"; // middle, at x=3
-  const cId = "actor-c"; // tail, at x=4
+  // Ids chosen so the tail is visited first and the leader — the only actor
+  // that can move on the main pass — last.
+  const aId = "actor-z-leader"; // leader, at x=2
+  const bId = "actor-m-middle"; // middle, at x=3
+  const cId = "actor-a-tail"; // tail, at x=4
 
   const characters: Characters = { [charId]: makeMoveLeftIfEmptyCharacter(charId) };
 
   const a = makeActor({ id: aId, characterId: charId, position: { x: 2, y: 1 } });
   const b = makeActor({ id: bId, characterId: charId, position: { x: 3, y: 1 } });
   const c = makeActor({ id: cId, characterId: charId, position: { x: 4, y: 1 } });
-  // Insert tail-first so the leader (the only one that can move on the main
-  // pass) is visited last, forcing the settle loop to ripple the movement
-  // back through the train over multiple passes.
+  // Tail-first forces the settle loop to ripple the movement back through the
+  // train over multiple passes.
   const stage = makeStage({
     id: "stage-1",
     actors: { [cId]: c, [bId]: b, [aId]: a },
@@ -300,9 +305,6 @@ export function interruptedLoopResumesScenario(): TestScenario {
   // Row 1: [empty x=1][blocker x=2][empty x=3][empty x=4][dasher x=5]
   const dasher = makeActor({ id: dasherId, characterId: dasherCharId, position: { x: 5, y: 1 } });
   const blocker = makeActor({ id: blockerId, characterId: blockerCharId, position: { x: 2, y: 1 } });
-  // Insert the dasher first so its loop is interrupted on the main pass (the
-  // blocker is still at x=2 when the dasher reaches x=3) and must resume after
-  // the blocker steps aside during settling.
   const stage = makeStage({
     id: "stage-1",
     actors: { [dasherId]: dasher, [blockerId]: blocker },
@@ -313,6 +315,10 @@ export function interruptedLoopResumesScenario(): TestScenario {
     name: "an interrupted loop resumes its remaining cycles the same tick",
     characters,
     world,
+    // Layer the dasher above the blocker so it is visited first: its loop is
+    // interrupted on the main pass (the blocker is still at x=2 when the dasher
+    // reaches x=3) and must resume after the blocker steps aside while settling.
+    characterZOrder: [blockerCharId, dasherCharId],
     frames: 1,
     assertions: (result) => {
       // Blocker stepped left once: x=2 -> x=1.
@@ -322,4 +328,101 @@ export function interruptedLoopResumesScenario(): TestScenario {
       expectActorPosition(result, dasherId, { x: 2, y: 1 });
     },
   };
+}
+
+// ============================================================================
+// Tick-order scenarios
+//
+// When two actors want the same square and only one can have it, the winner is
+// the one whose character is layered on top of the other.
+// ============================================================================
+
+/**
+ * A character that moves one square by `delta` if that square is empty. The
+ * empty requirement comes from covering the target square in the extent with no
+ * rule actor there, so the rule matches only when zero stage actors occupy it.
+ */
+function makeMoveIfEmptyCharacter(charId: string, delta: { x: number; y: number }): Character {
+  const ruleActor = makeActor({ id: "self", characterId: charId, position: { x: 0, y: 0 } });
+  const rule = makeRule({
+    id: `move-${delta.x},${delta.y}-if-empty`,
+    mainActorId: "self",
+    actors: { self: ruleActor },
+    actions: [{ type: "move", actorId: "self", delta }],
+    extent: makeExtent({
+      xmin: Math.min(0, delta.x),
+      xmax: Math.max(0, delta.x),
+      ymin: Math.min(0, delta.y),
+      ymax: Math.max(0, delta.y),
+    }),
+  });
+  const idleGroup = makeEventGroup({ id: "idle-group", event: "idle", rules: [rule] });
+  return makeCharacter({ id: charId, name: `Mover ${charId}`, rules: [idleGroup] });
+}
+
+/**
+ * Two actors of different characters race for the same empty square: one moves
+ * right into it, the other moves left into it. Only the actor visited first
+ * finds the square empty, so the character drawn on top wins.
+ *
+ * `topWins` flips only the layering — the actors, their rules and the order
+ * they sit in the stage's dictionary are identical — so the pair of scenarios
+ * shows that layering alone decides the outcome.
+ */
+function contestedSquareScenario(topWins: "mover-right" | "mover-left"): TestScenario {
+  const rightCharId = "char-mover-right";
+  const leftCharId = "char-mover-left";
+  const rightActorId = "actor-mover-right";
+  const leftActorId = "actor-mover-left";
+
+  const characters: Characters = {
+    [rightCharId]: makeMoveIfEmptyCharacter(rightCharId, { x: 1, y: 0 }),
+    [leftCharId]: makeMoveIfEmptyCharacter(leftCharId, { x: -1, y: 0 }),
+  };
+
+  // Row 1: [mover-right x=1][contested x=2][mover-left x=3]
+  const rightActor = makeActor({
+    id: rightActorId,
+    characterId: rightCharId,
+    position: { x: 1, y: 1 },
+  });
+  const leftActor = makeActor({
+    id: leftActorId,
+    characterId: leftCharId,
+    position: { x: 3, y: 1 },
+  });
+  const stage = makeStage({
+    id: "stage-1",
+    actors: { [rightActorId]: rightActor, [leftActorId]: leftActor },
+  });
+  const world = makeWorld({ stage });
+
+  // characterZOrder is bottom-most first, so the winner goes last.
+  const characterZOrder =
+    topWins === "mover-right" ? [leftCharId, rightCharId] : [rightCharId, leftCharId];
+
+  return {
+    name: `the character layered on top wins a contested square (${topWins})`,
+    characters,
+    world,
+    characterZOrder,
+    frames: 1,
+    assertions: (result) => {
+      if (topWins === "mover-right") {
+        expectActorPosition(result, rightActorId, { x: 2, y: 1 });
+        expectActorPosition(result, leftActorId, { x: 3, y: 1 });
+      } else {
+        expectActorPosition(result, leftActorId, { x: 2, y: 1 });
+        expectActorPosition(result, rightActorId, { x: 1, y: 1 });
+      }
+    },
+  };
+}
+
+export function contestedSquareTopMoverRightScenario(): TestScenario {
+  return contestedSquareScenario("mover-right");
+}
+
+export function contestedSquareTopMoverLeftScenario(): TestScenario {
+  return contestedSquareScenario("mover-left");
 }
