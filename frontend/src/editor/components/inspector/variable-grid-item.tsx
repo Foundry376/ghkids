@@ -3,7 +3,9 @@ import { Button } from "reactstrap";
 import { useDraggableContainer } from "../../../hooks/useDraggableContainer";
 import { useEditorSelector } from "../../../hooks/redux";
 import { Character, Global, StageVariable } from "../../../types";
+import { isStageVariableValueValid } from "../../utils/builtin-stage-variables";
 import { getCurrentStageForWorld } from "../../utils/selectors";
+import { coerceToBoolean, isNumericValue } from "../../utils/variable-coercion";
 import {
   BackgroundEditorModal,
   BackgroundPreview,
@@ -57,10 +59,15 @@ const BackgroundValueEditor = ({
 /**
  * Editor for `type: "number"` stage variables. Uses a controlled value backed
  * by local state so that in-progress typing of intermediate states like "0"
- * or "" doesn't surface to the engine (which throws on non-positive
- * dimensions). Spinner clicks land in onChange with an already-valid integer
- * and commit immediately; typing those same intermediate states stays local
- * until blur, where a clamp gives us back something the engine can handle.
+ * or "" doesn't surface to the engine. Spinner clicks land in onChange with an
+ * already-valid integer and commit immediately; typing those same intermediate
+ * states stays local until blur, where a clamp gives us back something the
+ * engine can handle.
+ *
+ * A rule can also drop something that isn't a number at all into one of these
+ * (a color, "NaN" from arithmetic on a word). A `type="number"` input renders
+ * such a value as an empty box, which would hide the very thing the kid needs
+ * to see, so we fall back to a text input and let the surrounding box flag it.
  */
 const NumberValueEditor = ({
   value,
@@ -86,7 +93,7 @@ const NumberValueEditor = ({
   return (
     <input
       className="value"
-      type="number"
+      type={isNumericValue(local) || local === "" ? "number" : "text"}
       min={1}
       step={1}
       value={local}
@@ -156,6 +163,15 @@ export const VariableGridItem = ({
       definition.type === "number" ||
       definition.type === "background");
 
+  // Built-in level variables (Width, Wrap, Background…) have a required shape,
+  // and rules can write anything into them. Reads coerce so the game keeps
+  // running, which means the value on screen may not be the value in effect —
+  // so say so here rather than letting the level quietly ignore it.
+  const isInvalid =
+    kind === "stageVariable" &&
+    !isMixed &&
+    !isStageVariableValueValid(definition as StageVariable, displayValue);
+
   const [dropping, setDropping] = useState(false);
   const { containerProps } = useDraggableContainer();
 
@@ -206,7 +222,7 @@ export const VariableGridItem = ({
   if (readonly) {
     content = <div className="value">{isMixed ? "—" : displayValue}</div>;
   } else if (type === "boolean") {
-    const checked = displayValue === "true";
+    const checked = coerceToBoolean(displayValue, false);
     content = (
       <label className="value variable-boolean">
         <input
@@ -268,7 +284,12 @@ export const VariableGridItem = ({
 
   return (
     <div
-      className={`variable-box ${readonly ? "variable-readonly" : `variable-set-${value !== undefined && !isMixed}`} dropping-${dropping}`}
+      className={`variable-box ${readonly ? "variable-readonly" : `variable-set-${value !== undefined && !isMixed}`} dropping-${dropping} ${isInvalid ? "variable-invalid" : ""}`}
+      title={
+        isInvalid
+          ? `"${displayValue}" can't be used for ${definition.name}, so the level is using its usual value instead.`
+          : undefined
+      }
       onClick={(e) => onClick(definition.id, e)}
       draggable={draggable && !isMixed && containerProps.draggable}
       onDragStart={_onDragStart}

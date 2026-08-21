@@ -1356,6 +1356,21 @@ html {
       background: rgba(91, 192, 222, 0.35);
     }
 
+    // A rule can put anything into a level variable, including a value the
+    // level can't use (a color in Width, "NaN" in Tile Size). The game falls
+    // back to a usable value rather than stopping; this marks the box so it's
+    // clear the value shown isn't the one in effect.
+    &.variable-invalid {
+      background-color: #e74c3c;
+      .name {
+        color: white;
+      }
+      .value {
+        color: #c0392b;
+        box-shadow: inset 0 0 0 2px #c0392b;
+      }
+    }
+
     .name {
       background-color: transparent;
       text-align: center;
