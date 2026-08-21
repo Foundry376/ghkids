@@ -101,6 +101,31 @@ export function sortActorsByZOrder(actors: Actor[], characterZOrder: string[]): 
   });
 }
 
+/**
+ * Returns the ids of `actors` in the order a tick should visit them: the
+ * character drawn on top of the others goes first, so execution order follows
+ * the layering the user already sees on the stage rather than the order actors
+ * happen to sit in the stage's dictionary. A higher index in `characterZOrder`
+ * means a higher z-index (drawn on top), so this is the reverse of
+ * `sortActorsByZOrder`. Characters missing from `characterZOrder` are treated
+ * as bottom-most, matching that function.
+ *
+ * Actors of the same character are ordered by id: deterministic, but not an
+ * order the user is expected to reason about.
+ */
+export function sortActorIdsByTickOrder(
+  actors: { [actorId: string]: Actor },
+  characterZOrder: string[],
+): string[] {
+  return Object.values(actors)
+    .sort(
+      (a, b) =>
+        characterZOrder.indexOf(b.characterId) - characterZOrder.indexOf(a.characterId) ||
+        a.id.localeCompare(b.id),
+    )
+    .map((actor) => actor.id);
+}
+
 export function actorsAtPoint(
   actors: { [id: string]: Actor },
   characters: Characters,

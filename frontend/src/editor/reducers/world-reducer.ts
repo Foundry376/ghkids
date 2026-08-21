@@ -111,8 +111,10 @@ export default function worldReducer(
       return u({ input: inputUpdates }, state);
     }
     case Types.ADVANCE_GAME_STATE: {
-      const { characters } = entireState;
-      return WorldOperator(state, characters).tick({ clearInput: action.clearInput });
+      const { characters, characterZOrder } = entireState;
+      return WorldOperator(state, characters, characterZOrder).tick({
+        clearInput: action.clearInput,
+      });
     }
     case Types.STEP_BACK_GAME_STATE: {
       const { characters } = entireState;

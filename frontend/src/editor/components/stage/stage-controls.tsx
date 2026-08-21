@@ -13,7 +13,7 @@ import {
 } from "../../actions/stage-actions";
 import { updatePlaybackState } from "../../actions/ui-actions";
 import { SPEED_OPTIONS } from "../../constants/constants";
-import { onPrimaryPointerDown } from "../../utils/pointer";
+import { forgivingPress } from "../../utils/pointer";
 import TickClock from "./tick-clock";
 
 interface StageControlsProps {
@@ -88,7 +88,7 @@ const StageControls: React.FC<StageControlsProps> = ({
           <Button
             className="transport-btn transport-black"
             disabled={world.history && world.history.length === 0}
-            onPointerDown={onPrimaryPointerDown(() => dispatch(rewindAllGameState(world.id)))}
+            {...forgivingPress(() => dispatch(rewindAllGameState(world.id)), { fireOn: "press" })}
           >
             <svg width="18" height="18" viewBox="0 0 14 14" fill="currentColor">
               <rect x="0" y="1" width="2.5" height="12" />
@@ -102,12 +102,14 @@ const StageControls: React.FC<StageControlsProps> = ({
           <Button
             className={classNames("transport-btn transport-green", { selected: rewinding })}
             disabled={!rewinding && world.history && world.history.length === 0}
-            onPointerDown={onPrimaryPointerDown(() =>
-              dispatch(
-                rewinding
-                  ? updatePlaybackState({ speed, running: false })
-                  : updatePlaybackState({ speed, running: true, runningDirection: "rewind" }),
-              ),
+            {...forgivingPress(
+              () =>
+                dispatch(
+                  rewinding
+                    ? updatePlaybackState({ speed, running: false })
+                    : updatePlaybackState({ speed, running: true, runningDirection: "rewind" }),
+                ),
+              { fireOn: "press" },
             )}
           >
             <svg width="16" height="18" viewBox="0 0 12 14" fill="currentColor">
@@ -120,7 +122,7 @@ const StageControls: React.FC<StageControlsProps> = ({
           <Button
             className="transport-btn transport-yellow"
             disabled={world.history && world.history.length === 0}
-            onPointerDown={onPrimaryPointerDown(() => dispatch(stepBackGameState(world.id)))}
+            {...forgivingPress(() => dispatch(stepBackGameState(world.id)), { fireOn: "press" })}
           >
             <svg width="18" height="18" viewBox="0 0 14 14" fill="currentColor">
               <polygon points="12,1 12,13 2,7" />
@@ -131,9 +133,9 @@ const StageControls: React.FC<StageControlsProps> = ({
         {/* Stop - red, center */}
         <Button
           className={classNames("transport-btn transport-red", { selected: !running })}
-          onPointerDown={onPrimaryPointerDown(() =>
-            dispatch(updatePlaybackState({ speed, running: false })),
-          )}
+          {...forgivingPress(() => dispatch(updatePlaybackState({ speed, running: false })), {
+            fireOn: "press",
+          })}
         >
           <svg width="14" height="14" viewBox="0 0 12 12" fill="currentColor">
             <rect x="0" y="0" width="12" height="12" rx="1" />
@@ -143,7 +145,7 @@ const StageControls: React.FC<StageControlsProps> = ({
         {!readonly && (
           <Button
             className="transport-btn transport-yellow"
-            onPointerDown={onPrimaryPointerDown(() => dispatch(advanceGameState(world.id)))}
+            {...forgivingPress(() => dispatch(advanceGameState(world.id)), { fireOn: "press" })}
           >
             <svg width="18" height="18" viewBox="0 0 14 14" fill="currentColor">
               <polygon points="2,1 2,13 12,7" />
@@ -157,8 +159,10 @@ const StageControls: React.FC<StageControlsProps> = ({
           className={classNames("transport-btn transport-green", {
             selected: running && runningDirection === "forward",
           })}
-          onPointerDown={onPrimaryPointerDown(() =>
-            dispatch(updatePlaybackState({ speed, running: true, runningDirection: "forward" })),
+          {...forgivingPress(
+            () =>
+              dispatch(updatePlaybackState({ speed, running: true, runningDirection: "forward" })),
+            { fireOn: "press" },
           )}
         >
           <svg width="16" height="18" viewBox="0 0 12 14" fill="currentColor">
@@ -181,13 +185,15 @@ const StageControls: React.FC<StageControlsProps> = ({
               className={classNames({
                 selected: SPEED_OPTIONS[name as keyof typeof SPEED_OPTIONS] === speed,
               })}
-              onPointerDown={onPrimaryPointerDown(() =>
-                dispatch(
-                  updatePlaybackState({
-                    speed: SPEED_OPTIONS[name as keyof typeof SPEED_OPTIONS],
-                    running,
-                  }),
-                ),
+              {...forgivingPress(
+                () =>
+                  dispatch(
+                    updatePlaybackState({
+                      speed: SPEED_OPTIONS[name as keyof typeof SPEED_OPTIONS],
+                      running,
+                    }),
+                  ),
+                { fireOn: "press" },
               )}
             >
               {name === "Slow" ? "🐢" : name === "Super" ? "🐇" : "•"}

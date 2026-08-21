@@ -5,21 +5,71 @@ import React, { useState } from "react";
 import { useDispatch } from "react-redux";
 import { Button } from "reactstrap";
 import { useEditorSelector } from "../../../../hooks/redux";
-import { Characters, RecordingState, RuleAction, RuleValue } from "../../../../types";
+import {
+  Characters,
+  MathOperation,
+  RecordingState,
+  RuleAction,
+  RuleActionAnimationStyle,
+  RuleValue,
+} from "../../../../types";
 import { updateRecordingActions } from "../../../actions/recording-actions";
 import { changeActors } from "../../../actions/stage-actions";
 import { selectToolId } from "../../../actions/ui-actions";
 import { TOOLS } from "../../../constants/constants";
+import { ruleValueFromDragPayload } from "../../../utils/stage-helpers";
 import { deepClone } from "../../../utils/utils";
 import { TransformEditorModal } from "../../inspector/transform-editor";
 import { RELATIVE_TRANSFORMS } from "../../inspector/transform-lookup";
 import { ActorDeltaCanvas } from "./actor-delta-canvas";
 import { ActorOffsetCanvas } from "./actor-offset-canvas";
-import { ActorBlock, ActorVariableBlock, VariableBlock } from "./blocks";
+import { ActorBlock, VariableBlock, VariableRuleValue } from "./blocks";
 import { BackgroundConditionValue, FreeformConditionValue } from "./condition-rows";
 import { TransformActionPicker } from "./transform-action-picker";
 import { getAfterWorldForRecording } from "./utils";
 import { VariableActionPicker } from "./variable-action-picker";
+
+/**
+ * Builds the action that modifies `target`, carrying over the operation and value
+ * of the action it replaces (or defaults, when a variable is dropped on the panel
+ * to create a new action).
+ */
+const ruleActionForVariable = (
+  target: VariableRuleValue,
+  from: {
+    operation: MathOperation;
+    value: RuleValue;
+    animationStyle?: RuleActionAnimationStyle;
+  },
+): RuleAction => {
+  // Only these three carry over: `from` is often the whole action being replaced,
+  // and spreading it would restore the type and target we're changing.
+  const { operation, value, animationStyle } = from;
+
+  if ("stageVariableId" in target) {
+    return {
+      type: "stageVariable",
+      stageVariable: target.stageVariableId,
+      operation,
+      value,
+      animationStyle,
+    };
+  }
+  if ("globalId" in target) {
+    return { type: "global", global: target.globalId, operation, value, animationStyle };
+  }
+  if (target.variableId === "appearance") {
+    return { type: "appearance", actorId: target.actorId, value, animationStyle };
+  }
+  return {
+    type: "variable",
+    actorId: target.actorId,
+    variable: target.variableId,
+    operation,
+    value,
+    animationStyle,
+  };
+};
 
 export const RecordingActions = (props: { characters: Characters; recording: RecordingState }) => {
   const { characters, recording } = props;
@@ -129,7 +179,13 @@ export const RecordingActions = (props: { characters: Characters; recording: Rec
               comparator="="
             />
             {{ set: "into", add: "to", subtract: "from" }[a.operation]}
-            <ActorVariableBlock character={character} actor={actor} variableId={a.variable} />
+            <VariableBlock
+              value={{ actorId: a.actorId, variableId: a.variable }}
+              world={beforeWorld}
+              actors={afterStage.actors}
+              characters={characters}
+              onChange={(target) => onChange(ruleActionForVariable(target, a))}
+            />
           </>
         );
       }
@@ -202,7 +258,13 @@ export const RecordingActions = (props: { characters: Characters; recording: Rec
         return (
           <>
             Set
-            <VariableBlock name={"Current Level"} />
+            <VariableBlock
+              value={{ globalId: a.global }}
+              world={beforeWorld}
+              actors={afterStage.actors}
+              characters={characters}
+              onChange={(target) => onChange(ruleActionForVariable(target, a))}
+            />
             to
             <code>
               {beforeWorld.stages[a.value.constant] && beforeWorld.stages[a.value.constant].name}
@@ -227,7 +289,13 @@ export const RecordingActions = (props: { characters: Characters; recording: Rec
           />
           {{ set: "into", add: "to", subtract: "from" }[a.operation]}
 
-          <VariableBlock name={declaration.name} />
+          <VariableBlock
+            value={{ globalId: a.global }}
+            world={beforeWorld}
+            actors={afterStage.actors}
+            characters={characters}
+            onChange={(target) => onChange(ruleActionForVariable(target, a))}
+          />
         </>
       );
     }
@@ -240,7 +308,13 @@ export const RecordingActions = (props: { characters: Characters; recording: Rec
         return (
           <>
             Set
-            <VariableBlock name={declaration.name} />
+            <VariableBlock
+              value={{ stageVariableId: a.stageVariable }}
+              world={beforeWorld}
+              actors={afterStage.actors}
+              characters={characters}
+              onChange={(target) => onChange(ruleActionForVariable(target, a))}
+            />
             to
             <BackgroundConditionValue
               value={"constant" in a.value ? a.value.constant : ""}
@@ -268,7 +342,13 @@ export const RecordingActions = (props: { characters: Characters; recording: Rec
           />
           {{ set: "into", add: "to", subtract: "from" }[a.operation]}
 
-          <VariableBlock name={declaration?.name ?? a.stageVariable} />
+          <VariableBlock
+            value={{ stageVariableId: a.stageVariable }}
+            world={beforeWorld}
+            actors={afterStage.actors}
+            characters={characters}
+            onChange={(target) => onChange(ruleActionForVariable(target, a))}
+          />
           <span style={{ marginLeft: 4, color: "#777", fontSize: 12 }}>on this Level</span>
         </>
       );
@@ -288,28 +368,15 @@ export const RecordingActions = (props: { characters: Characters; recording: Rec
 
   const onDropValue = (e: React.DragEvent) => {
     if (e.dataTransfer.types.includes("variable")) {
-      const {
-        actorId,
-        globalId,
-        stageVariableId,
-        variableId,
-        value: constant,
-      } = JSON.parse(e.dataTransfer.getData("variable"));
+      const payload = e.dataTransfer.getData("variable");
+      const target = ruleValueFromDragPayload(payload);
+      const { value: constant } = JSON.parse(payload);
 
-      const value = { constant };
-
-      const newAction: RuleAction | null =
-        variableId === "appearance"
-          ? { type: "appearance", actorId, value }
-          : stageVariableId
-            ? { type: "stageVariable", operation: "set", stageVariable: stageVariableId, value }
-            : globalId
-              ? { type: "global", operation: "set", global: globalId, value }
-              : variableId
-                ? { type: "variable", actorId, variable: variableId, operation: "set", value }
-                : null;
-
-      if (newAction) {
+      if (target && !("constant" in target)) {
+        const newAction = ruleActionForVariable(target, {
+          operation: "set",
+          value: { constant },
+        });
         dispatch(updateRecordingActions([...actions, newAction]));
       }
       e.stopPropagation();

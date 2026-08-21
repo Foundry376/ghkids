@@ -5,7 +5,7 @@ import classNames from "classnames";
 import { useEditorSelector } from "../../../hooks/redux";
 import { pickConditionValueFromKeyboard, selectToolId } from "../../actions/ui-actions";
 import { TOOLS } from "../../constants/constants";
-import { onPrimaryPointerDown } from "../../utils/pointer";
+import { forgivingPress } from "../../utils/pointer";
 
 const StageRecordingTools = () => {
   const selectedToolId = useEditorSelector((state) => state.ui.selectedToolId);
@@ -19,21 +19,23 @@ const StageRecordingTools = () => {
           selected: selectedToolId === TOOLS.IGNORE_SQUARE,
           enabled: true,
         })}
-        onPointerDown={onPrimaryPointerDown(() =>
-          dispatch(
-            selectToolId(
-              selectedToolId === TOOLS.IGNORE_SQUARE ? TOOLS.POINTER : TOOLS.IGNORE_SQUARE,
+        {...forgivingPress(
+          () =>
+            dispatch(
+              selectToolId(
+                selectedToolId === TOOLS.IGNORE_SQUARE ? TOOLS.POINTER : TOOLS.IGNORE_SQUARE,
+              ),
             ),
-          ),
+          { fireOn: "press" },
         )}
       >
         <img src={new URL("../../img/ignored_square.png", import.meta.url).href} draggable={false} />
       </Button>
       <Button
         className={classNames({ "tool-keypress": true, enabled: true })}
-        onPointerDown={onPrimaryPointerDown(() =>
-          dispatch(pickConditionValueFromKeyboard(true, null, null)),
-        )}
+        {...forgivingPress(() => dispatch(pickConditionValueFromKeyboard(true, null, null)), {
+          fireOn: "press",
+        })}
       >
         <img src={new URL("../../img/icon_event_key.png", import.meta.url).href} draggable={false} />
       </Button>
@@ -43,12 +45,14 @@ const StageRecordingTools = () => {
           selected: selectedToolId === TOOLS.ADD_CLICK_CONDITION,
           enabled: true,
         })}
-        onPointerDown={onPrimaryPointerDown(() =>
-          dispatch(
-            selectToolId(
-              selectedToolId === TOOLS.POINTER ? TOOLS.ADD_CLICK_CONDITION : TOOLS.POINTER,
+        {...forgivingPress(
+          () =>
+            dispatch(
+              selectToolId(
+                selectedToolId === TOOLS.POINTER ? TOOLS.ADD_CLICK_CONDITION : TOOLS.POINTER,
+              ),
             ),
-          ),
+          { fireOn: "press" },
         )}
       >
         <img src={new URL("../../img/icon_event_click.png", import.meta.url).href} draggable={false} />
