@@ -106,6 +106,49 @@ export const VariableBlock = ({ name }: { name: string }) => {
   return <code>{(name || "").trim()}</code>;
 };
 
+const GLOBAL_ICONS: { [id: string]: string } = {
+  click: new URL("../../../img/icon_event_click.png", import.meta.url).href,
+  keypress: new URL("../../../img/icon_event_key.png", import.meta.url).href,
+  selectedStageId: new URL("../../../img/sidebar_choose_background.png", import.meta.url).href,
+};
+
+const EmojiIcon = ({ children }: { children: string }) => (
+  <span style={{ fontSize: "20px", lineHeight: "24px", marginRight: 6, verticalAlign: "middle" }}>
+    {children}
+  </span>
+);
+
+export const GlobalBlock = ({ globalId, name }: { globalId: string; name?: string }) => {
+  return (
+    <code>
+      {GLOBAL_ICONS[globalId] ? (
+        <img
+          style={{ width: 40, height: 40, zoom: 0.6, verticalAlign: "middle", marginRight: 8 }}
+          src={GLOBAL_ICONS[globalId]}
+        />
+      ) : (
+        <EmojiIcon>🌐</EmojiIcon>
+      )}
+      {(name ?? globalId).trim()}
+    </code>
+  );
+};
+
+export const StageVariableBlock = ({
+  stageVariableId,
+  name,
+}: {
+  stageVariableId: string;
+  name?: string;
+}) => {
+  return (
+    <code>
+      <EmojiIcon>📍</EmojiIcon>
+      {(name ?? stageVariableId).trim()}
+    </code>
+  );
+};
+
 export const ConnectedActorBlock = ({
   actorId,
   recordingWorld,

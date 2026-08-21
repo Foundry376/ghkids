@@ -24,7 +24,14 @@ import {
   BackgroundEditorModal,
   BackgroundPreview,
 } from "../../modal-stages/background-editor-modal";
-import { ActorBlock, ActorVariableBlock, AppearanceBlock, TransformBlock } from "./blocks";
+import {
+  ActorBlock,
+  ActorVariableBlock,
+  AppearanceBlock,
+  GlobalBlock,
+  StageVariableBlock,
+  TransformBlock,
+} from "./blocks";
 
 interface FreeformConditionRowProps {
   actors: Stage["actors"];
@@ -211,12 +218,6 @@ export const BackgroundConditionValue = ({
   );
 };
 
-const GLOBAL_ICONS: { [id: string]: string } = {
-  click: new URL("../../../img/icon_event_click.png", import.meta.url).href,
-  keypress: new URL("../../../img/icon_event_key.png", import.meta.url).href,
-  selectedStageId: new URL("../../../img/sidebar_choose_background.png", import.meta.url).href,
-};
-
 export const FreeformConditionValue = ({
   value,
   world,
@@ -370,37 +371,15 @@ export const FreeformConditionValue = ({
     }
 
     if ("globalId" in value) {
-      const icon = GLOBAL_ICONS[value.globalId] ? (
-        <img
-          style={{ width: 40, height: 40, zoom: 0.6, verticalAlign: "middle", marginRight: 8 }}
-          src={GLOBAL_ICONS[value.globalId]}
-        />
-      ) : (
-        <span
-          style={{ fontSize: "20px", lineHeight: "24px", marginRight: 6, verticalAlign: "middle" }}
-        >
-          🌐
-        </span>
-      );
-
-      return (
-        <code>
-          {icon}
-          {world.globals[value.globalId]?.name ?? value.globalId}
-        </code>
-      );
+      return <GlobalBlock globalId={value.globalId} name={world.globals[value.globalId]?.name} />;
     }
 
     if ("stageVariableId" in value) {
       return (
-        <code>
-          <span
-            style={{ fontSize: "20px", lineHeight: "24px", marginRight: 6, verticalAlign: "middle" }}
-          >
-            📍
-          </span>
-          {world.stageVariables?.[value.stageVariableId]?.name ?? value.stageVariableId}
-        </code>
+        <StageVariableBlock
+          stageVariableId={value.stageVariableId}
+          name={world.stageVariables?.[value.stageVariableId]?.name}
+        />
       );
     }
 

@@ -15,7 +15,7 @@ import { TransformEditorModal } from "../../inspector/transform-editor";
 import { RELATIVE_TRANSFORMS } from "../../inspector/transform-lookup";
 import { ActorDeltaCanvas } from "./actor-delta-canvas";
 import { ActorOffsetCanvas } from "./actor-offset-canvas";
-import { ActorBlock, ActorVariableBlock, VariableBlock } from "./blocks";
+import { ActorBlock, ActorVariableBlock, GlobalBlock, StageVariableBlock } from "./blocks";
 import { BackgroundConditionValue, FreeformConditionValue } from "./condition-rows";
 import { TransformActionPicker } from "./transform-action-picker";
 import { getAfterWorldForRecording } from "./utils";
@@ -202,7 +202,7 @@ export const RecordingActions = (props: { characters: Characters; recording: Rec
         return (
           <>
             Set
-            <VariableBlock name={"Current Level"} />
+            <GlobalBlock globalId={a.global} name={declaration.name || "Current Level"} />
             to
             <code>
               {beforeWorld.stages[a.value.constant] && beforeWorld.stages[a.value.constant].name}
@@ -227,7 +227,7 @@ export const RecordingActions = (props: { characters: Characters; recording: Rec
           />
           {{ set: "into", add: "to", subtract: "from" }[a.operation]}
 
-          <VariableBlock name={declaration.name} />
+          <GlobalBlock globalId={a.global} name={declaration.name} />
         </>
       );
     }
@@ -240,7 +240,7 @@ export const RecordingActions = (props: { characters: Characters; recording: Rec
         return (
           <>
             Set
-            <VariableBlock name={declaration.name} />
+            <StageVariableBlock stageVariableId={a.stageVariable} name={declaration.name} />
             to
             <BackgroundConditionValue
               value={"constant" in a.value ? a.value.constant : ""}
@@ -268,7 +268,7 @@ export const RecordingActions = (props: { characters: Characters; recording: Rec
           />
           {{ set: "into", add: "to", subtract: "from" }[a.operation]}
 
-          <VariableBlock name={declaration?.name ?? a.stageVariable} />
+          <StageVariableBlock stageVariableId={a.stageVariable} name={declaration?.name} />
           <span style={{ marginLeft: 4, color: "#777", fontSize: 12 }}>on this Level</span>
         </>
       );
