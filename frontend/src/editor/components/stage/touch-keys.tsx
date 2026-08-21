@@ -1,7 +1,14 @@
-import React, { useCallback, useRef } from "react";
+import React, { useCallback, useEffect, useRef } from "react";
 import { useDispatch } from "react-redux";
 import { Characters, RuleTreeItem, RuleTreeEventItem, RuleCondition } from "../../../types";
 import { recordInputForGameState } from "../../actions/stage-actions";
+import {
+  heldKeysAsInput,
+  holdKeys,
+  KeySource,
+  releaseKeys,
+  releaseSource,
+} from "../../utils/held-keys";
 
 /**
  * Maps legacy numeric keyCodes (used in group-event triggers) to the
@@ -144,34 +151,36 @@ interface TouchKeysProps {
 
 const TouchKeys: React.FC<TouchKeysProps> = ({ worldId, characters }) => {
   const dispatch = useDispatch();
-  const heldKeysRef = useRef<Set<string>>(new Set());
+  // Identifies these buttons' holds among the other live sources, so that
+  // letting go of a button doesn't cancel a physical key that's still down.
+  const source = useRef<KeySource>({}).current;
   const usedKeys = getUsedKeys(characters);
 
   const syncKeys = useCallback(() => {
-    const keysObj: { [key: string]: true } = {};
-    heldKeysRef.current.forEach((k) => {
-      keysObj[k] = true;
-    });
-    dispatch(recordInputForGameState(worldId, { keys: keysObj }));
+    dispatch(recordInputForGameState(worldId, { keys: heldKeysAsInput() }));
   }, [dispatch, worldId]);
 
+  // Holding a touch key works like holding a physical key: the shared held-keys
+  // module lets the playback loop re-apply it after each tick clears the input.
   const pressKey = useCallback(
     (key: string) => {
-      const allKeys = inputKeysForDisplayKey(key);
-      allKeys.forEach((k) => heldKeysRef.current.add(k));
+      holdKeys(source, inputKeysForDisplayKey(key));
       syncKeys();
     },
-    [syncKeys],
+    [source, syncKeys],
   );
 
   const releaseKey = useCallback(
     (key: string) => {
-      const allKeys = inputKeysForDisplayKey(key);
-      allKeys.forEach((k) => heldKeysRef.current.delete(k));
+      releaseKeys(source, inputKeysForDisplayKey(key));
       syncKeys();
     },
-    [syncKeys],
+    [source, syncKeys],
   );
+
+  // Same reason as the keyboard handler: a button still held when this
+  // unmounts would otherwise stay held in the module forever.
+  useEffect(() => () => void releaseSource(source), [source]);
 
   if (usedKeys.length === 0) {
     return null;

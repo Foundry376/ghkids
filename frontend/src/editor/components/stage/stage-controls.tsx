@@ -1,11 +1,13 @@
 import { Button, ButtonGroup } from "reactstrap";
 import classNames from "classnames";
 import React, { useEffect, useRef } from "react";
-import { Dispatch } from "redux";
+import { ThunkDispatch } from "redux-thunk";
 
-import { World } from "../../../types";
+import { EditorState, World } from "../../../types";
+import { Actions } from "../../actions";
 import {
   advanceGameState,
+  advancePlaybackGameState,
   rewindAllGameState,
   stepBackGameState,
 } from "../../actions/stage-actions";
@@ -17,7 +19,9 @@ import TickClock from "./tick-clock";
 interface StageControlsProps {
   readonly?: boolean;
   world: World;
-  dispatch: Dispatch;
+  // Playback ticks dispatch a thunk, so this needs to be the store's dispatch
+  // rather than redux's plain Dispatch<AnyAction>.
+  dispatch: ThunkDispatch<EditorState, undefined, Actions>;
   speed: number;
   running: boolean;
   runningDirection: "forward" | "rewind";
@@ -40,7 +44,7 @@ const StageControls: React.FC<StageControlsProps> = ({
     if (runningDirection === "rewind") {
       dispatch(stepBackGameState(world.id));
     } else {
-      dispatch(advanceGameState(world.id, { clearInput: true }));
+      dispatch(advancePlaybackGameState(world.id));
     }
   };
 

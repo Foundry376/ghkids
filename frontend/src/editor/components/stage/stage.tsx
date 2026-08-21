@@ -70,6 +70,13 @@ import {
 import { defaultAppearanceId } from "../../utils/character-helpers";
 import { makeId } from "../../utils/utils";
 import { keyToCodakoKey } from "../modal-keypicker/keyboard";
+import {
+  heldKeysAsInput,
+  holdKeys,
+  KeySource,
+  releaseKeys,
+  releaseSource,
+} from "../../utils/held-keys";
 
 interface StageProps {
   stage: StageType;
@@ -210,9 +217,16 @@ const SpriteDragPreview = ({
   );
 };
 
+/**
+ * Feeds the keys the player is holding into the world's frame input. Holds are
+ * recorded in the shared held-keys module so the playback loop can put them
+ * back into the input each tick clears - without that, a held key would only
+ * ever fire once. See utils/held-keys.
+ */
 function useGlobalHeldKeys(worldId: string, playbackRunning: boolean) {
   const dispatch = useDispatch();
-  const heldKeysRef = useRef<Set<string>>(new Set());
+  // Identifies this handler's holds among the other live sources.
+  const source = useRef<KeySource>({}).current;
   const playbackRunningRef = useRef(playbackRunning);
   playbackRunningRef.current = playbackRunning;
 
@@ -221,11 +235,7 @@ function useGlobalHeldKeys(worldId: string, playbackRunning: boolean) {
       return;
     }
     const syncHeldKeys = () => {
-      const keysObj: { [key: string]: true } = {};
-      heldKeysRef.current.forEach((key) => {
-        keysObj[key] = true;
-      });
-      dispatch(recordInputForGameState(worldId, { keys: keysObj }));
+      dispatch(recordInputForGameState(worldId, { keys: heldKeysAsInput() }));
     };
 
     const onDocumentKeyDown = (event: KeyboardEvent) => {
@@ -242,19 +252,18 @@ function useGlobalHeldKeys(worldId: string, playbackRunning: boolean) {
         return;
       }
 
-      const codakoKey = keyToCodakoKey(event.key);
-      if (!heldKeysRef.current.has(codakoKey)) {
-        heldKeysRef.current.add(codakoKey);
+      // Auto-repeat fires keydown over and over for a key that's already down,
+      // so only the first one is worth dispatching.
+      if (holdKeys(source, [keyToCodakoKey(event.key)])) {
         syncHeldKeys();
       }
     };
 
     const onDocumentKeyUp = (event: KeyboardEvent) => {
-      const codakoKey = keyToCodakoKey(event.key);
-      if (heldKeysRef.current.has(codakoKey)) {
-        heldKeysRef.current.delete(codakoKey);
+      if (releaseKeys(source, [keyToCodakoKey(event.key)])) {
         // When playing, don't sync on keyup - let the key persist until tick() clears it.
         // This ensures quick key taps are registered even if keyup happens before next tick.
+        // (The next tick won't put it back, because it's no longer held.)
         // When stopped, sync immediately so Forward button sees current held state.
         if (!playbackRunningRef.current) {
           syncHeldKeys();
@@ -263,8 +272,7 @@ function useGlobalHeldKeys(worldId: string, playbackRunning: boolean) {
     };
 
     const onWindowBlur = () => {
-      if (heldKeysRef.current.size > 0) {
-        heldKeysRef.current.clear();
+      if (releaseSource(source)) {
         syncHeldKeys();
       }
     };
@@ -277,8 +285,13 @@ function useGlobalHeldKeys(worldId: string, playbackRunning: boolean) {
       document.removeEventListener("keydown", onDocumentKeyDown);
       document.removeEventListener("keyup", onDocumentKeyUp);
       window.removeEventListener("blur", onWindowBlur);
+      // The held-keys module outlives this component. Navigating away with a
+      // key still down fires no blur, and the keyup arrives after these
+      // listeners are gone - so let go here, or the key stays "held" and
+      // drives the next stage that mounts.
+      releaseSource(source);
     };
-  }, [dispatch, worldId]);
+  }, [dispatch, source, worldId]);
 }
 
 export const Stage = ({
