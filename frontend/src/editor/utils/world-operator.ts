@@ -50,6 +50,7 @@ import {
   resolveRuleValue,
   RuleValueContext,
   shuffleArray,
+  sortActorIdsByTickOrder,
 } from "./stage-helpers";
 import { deepClone, makeId } from "./utils";
 import { CONTAINER_TYPES, FLOW_BEHAVIORS } from "./world-constants";
@@ -81,7 +82,14 @@ export function rewindWorldToStart(world: World, characters: Characters): World 
   return current;
 }
 
-export default function WorldOperator(previousWorld: WorldMinimal, characters: Characters) {
+export default function WorldOperator(
+  previousWorld: WorldMinimal,
+  characters: Characters,
+  // Layering of the characters on the stage, bottom-most first. tick() visits
+  // actors in this order (top-most first) so execution order matches what the
+  // user sees. Callers that only untick or reset for a rule can omit it.
+  characterZOrder: string[] = [],
+) {
   let stage: Stage;
   let stageVariableValues: Record<string, string>;
   let stageVariables: Record<string, StageVariable>;
@@ -972,9 +980,10 @@ export default function WorldOperator(previousWorld: WorldMinimal, characters: C
     crossStageActorsForDestStage = {};
     loopContinuations = new Map();
 
-    // Main pass: evaluate each actor once, in stage order. `acted` records who
-    // applied a rule so the settle passes below don't re-run them.
-    const initialActorIds = Object.keys(actors);
+    // Main pass: evaluate each actor once, top-most character first (see
+    // sortActorIdsByTickOrder). `acted` records who applied a rule so the
+    // settle passes below don't re-run them.
+    const initialActorIds = sortActorIdsByTickOrder(actors, characterZOrder);
     const acted = new Set<string>();
     const visit = (id: string): boolean => {
       const actor = actors[id];

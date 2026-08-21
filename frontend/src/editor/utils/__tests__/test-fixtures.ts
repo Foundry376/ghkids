@@ -172,13 +172,14 @@ export function runSimulation(
   characters: Characters,
   frames: number,
   inputPerFrame?: FrameInput[],
+  characterZOrder: string[] = [],
 ): World {
   let current: World = world;
   for (let i = 0; i < frames; i++) {
     if (inputPerFrame && inputPerFrame[i]) {
       current = { ...current, input: inputPerFrame[i] };
     }
-    const operator = WorldOperator(current, characters);
+    const operator = WorldOperator(current, characters, characterZOrder);
     current = operator.tick() as World;
   }
   return current;
@@ -447,6 +448,8 @@ export interface TestScenario {
   frames: number;
   /** Optional per-frame input (key presses, clicks) */
   inputPerFrame?: FrameInput[];
+  /** Optional character layering, bottom-most first (drives tick order) */
+  characterZOrder?: string[];
   /** Assertions to run on the final world state */
   assertions: (result: World) => void;
 }
@@ -460,6 +463,7 @@ export function runScenario(scenario: TestScenario): void {
     scenario.characters,
     scenario.frames,
     scenario.inputPerFrame,
+    scenario.characterZOrder,
   );
   scenario.assertions(result);
 }

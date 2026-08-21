@@ -10,7 +10,7 @@ async function run() {
   const saved = await readWorld(CODAKO_GAME_ID);
   console.log(`Loaded ${saved.name}`);
 
-  const { characters, world } = saved.data;
+  const { characters, characterZOrder, world } = saved.data;
 
   // Find the stage we're currently on
   const stage = world.stages[world.globals.selectedStageId.value];
@@ -36,7 +36,7 @@ async function run() {
     clicks: {}, // character-id = true will simulate clicking
   };
 
-  const operator = WorldOperator(world, characters);
+  const operator = WorldOperator(world, characters, characterZOrder);
   const next: World = operator.tick();
 
   console.log("Advanced game state! Here are the rules that ran:");

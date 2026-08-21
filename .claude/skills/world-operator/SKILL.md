@@ -111,7 +111,7 @@ Rules are organized hierarchically:
 ## WorldOperator API
 
 ```typescript
-WorldOperator(previousWorld, characters) → {
+WorldOperator(previousWorld, characters, characterZOrder) → {
   tick(),        // Advance simulation one step
   untick(),      // Revert to previous state
   resetForRule() // Set up for rule preview
@@ -123,8 +123,13 @@ WorldOperator(previousWorld, characters) → {
 1. **Snapshot** previous state to history
 2. **Clone** globals and actors for mutation
 3. **Update** special globals (keypress, click)
-4. **Evaluate** each actor's rules via `ActorOperator`
-5. **Return** new immutable world state
+4. **Evaluate** each actor's rules via `ActorOperator`, top-most character
+   first (`sortActorIdsByTickOrder`: descending `characterZOrder`, then actor
+   id), so execution order follows the layering the user sees on the stage
+5. **Settle**: re-visit actors that haven't acted and resume loops that were
+   cut short, until nothing changes — an actor blocked only by a neighbour
+   that hasn't moved yet still gets its turn. Each actor acts at most once
+6. **Return** new immutable world state
 
 ### Pattern Matching (checkRuleScenario)
 

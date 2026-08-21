@@ -27,6 +27,8 @@ import {
   trainLeaderVisitedFirstScenario,
   longTrainScenario,
   interruptedLoopResumesScenario,
+  contestedSquareTopMoverRightScenario,
+  contestedSquareTopMoverLeftScenario,
 } from "./__tests__/scenarios/multi-actor-scenarios";
 import { chaseGameScenario } from "./__tests__/scenarios/chase-game-scenario";
 import { scoreAccumulationScenario } from "./__tests__/scenarios/score-game-scenario";
@@ -145,6 +147,16 @@ describe("world-operator integration", () => {
 
     it("resumes an interrupted loop's remaining cycles within the same tick", () => {
       runScenario(interruptedLoopResumesScenario());
+    });
+  });
+
+  describe("tick order", () => {
+    it("lets the top-layered character win a contested square", () => {
+      runScenario(contestedSquareTopMoverRightScenario());
+    });
+
+    it("gives the square to the other actor when the layering is flipped", () => {
+      runScenario(contestedSquareTopMoverLeftScenario());
     });
   });
 
