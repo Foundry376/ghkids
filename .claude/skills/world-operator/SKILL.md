@@ -83,7 +83,11 @@ Rules are organized hierarchically:
 
 - **RuleTreeFlowItem** (`group-flow`): Controls iteration
   - `behavior: "first"` - Stop after first match
-  - `behavior: "all"` - Execute all matches
+  - `behavior: "all"` - Execute all matches, then hand control back to the
+    parent container so the rules *after* this group still get a turn ("Do All
+    & Continue"). Because it never ends the actor's turn, an actor whose only
+    firing rules were inside `all` groups is still retried by tick()'s settle
+    passes; `appliedInAllContainers` keeps those groups from firing twice.
   - `behavior: "random"` - Shuffle, then first match
   - `behavior: "loop"` - Repeat N times
 
