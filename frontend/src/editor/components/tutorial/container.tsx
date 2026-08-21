@@ -1,14 +1,16 @@
-import { Button } from "reactstrap";
 import React from "react";
 import { connect, ConnectedProps } from "react-redux";
+import { Button } from "reactstrap";
 
 import { updateTutorialState } from "../../actions/ui-actions";
+import { TutorialStep, walkthroughSteps } from "../../constants/tutorial";
 import { getCurrentStage } from "../../utils/selectors";
-import { TutorialStep, tutorialSteps } from "../../constants/tutorial";
 
+import { EditorState, Stage } from "../../../types";
+import { Lesson, lessonAfter, lessonForSlug } from "../../../lessons/lessons";
+import { startLesson } from "../../../lessons/start-lesson";
 import TutorialAnnotation from "./annotation";
 import Girl from "./girl";
-import { EditorState, Stage } from "../../../types";
 
 interface WaitsFor {
   button?: string;
@@ -72,10 +74,13 @@ class TutorialAdvancer {
   }
 }
 
-type StepSetKey = keyof typeof tutorialSteps;
-
 interface TutorialContainerState {
   playing: boolean;
+  /** The kid has clicked past the lesson's title card. */
+  started: boolean;
+  /** They've dismissed the "lesson finished" card to keep building. */
+  dismissedFinish: boolean;
+  startingNextLesson: boolean;
 }
 
 const mapStateToProps = (state: EditorState) => state.ui.tutorial;
@@ -84,6 +89,16 @@ const connector = connect(mapStateToProps);
 
 type PropsFromRedux = ConnectedProps<typeof connector>;
 
+/**
+ * Runs the walkthrough for whatever the editor was opened with: a lesson
+ * (`/editor/123?lesson=record-a-rule`) or the tour a kid gets after forking
+ * someone else's game (`?tutorial=fork`).
+ *
+ * A lesson is bookended by two cards this component renders itself - a title
+ * card that also gives the browser the click it wants before playing audio, and
+ * a finish card that leads into the next lesson - so lesson content is only the
+ * steps in between.
+ */
 class TutorialContainer extends React.Component<PropsFromRedux, TutorialContainerState> {
   private _audio: HTMLAudioElement | null = null;
   private _advancer: TutorialAdvancer | null = null;
@@ -92,35 +107,45 @@ class TutorialContainer extends React.Component<PropsFromRedux, TutorialContaine
     super(props);
     this.state = {
       playing: false,
+      started: false,
+      dismissedFinish: false,
+      startingNextLesson: false,
     };
   }
 
   componentDidMount(): void {
-    this._startCurrentStep();
+    const params = new URLSearchParams(location.search);
+    const stepSet = params.get("lesson") || params.get("tutorial");
 
-    const pageQueryParams = location.search.split(/[?&]/g).map((p) => p.split("="));
-    const pageQueryStepSet = (pageQueryParams.find((p) => p[0] === "tutorial") || [])[1] as
-      | StepSetKey
-      | undefined;
-
-    if (pageQueryStepSet && !this.props.stepSet) {
-      this.props.dispatch(
-        updateTutorialState({
-          stepSet: pageQueryStepSet,
-          stepIndex: 0,
-        }),
-      );
+    if (stepSet && !this.props.stepSet) {
+      this.props.dispatch(updateTutorialState({ stepSet, stepIndex: 0 }));
     }
+    if (this._lesson()) {
+      return; // waits for the kid to click through the title card
+    }
+    this.setState({ started: true });
+    this._startCurrentStep();
   }
 
   componentDidUpdate(prevProps: PropsFromRedux): void {
-    if (prevProps.stepIndex !== this.props.stepIndex) {
+    if (prevProps.stepIndex !== this.props.stepIndex && this.state.started) {
       this._startCurrentStep();
     }
   }
 
   componentWillUnmount(): void {
     this._detatchForCurrentStep();
+  }
+
+  private _lesson(): Lesson | undefined {
+    const params = new URLSearchParams(location.search);
+    return lessonForSlug(this.props.stepSet || params.get("lesson"));
+  }
+
+  private _steps(): TutorialStep[] | undefined {
+    const params = new URLSearchParams(location.search);
+    const stepSet = this.props.stepSet || params.get("lesson") || params.get("tutorial");
+    return stepSet ? walkthroughSteps[stepSet] : undefined;
   }
 
   private _detatchForCurrentStep(): void {
@@ -137,12 +162,8 @@ class TutorialContainer extends React.Component<PropsFromRedux, TutorialContaine
   private _startCurrentStep(): void {
     this._detatchForCurrentStep();
 
-    const { stepSet, stepIndex } = this.props;
-    if (!stepSet) {
-      return;
-    }
-
-    const step = tutorialSteps[stepSet][stepIndex];
+    const { stepIndex } = this.props;
+    const step = this._steps()?.[stepIndex];
     if (!step) {
       return;
     }
@@ -178,6 +199,10 @@ class TutorialContainer extends React.Component<PropsFromRedux, TutorialContaine
     }
   }
 
+  private _onStartLesson = (): void => {
+    this.setState({ started: true }, () => this._startCurrentStep());
+  };
+
   private _onNextStep = (): void => {
     const { dispatch, stepIndex } = this.props;
     dispatch(updateTutorialState({ stepIndex: stepIndex + 1 }));
@@ -190,13 +215,87 @@ class TutorialContainer extends React.Component<PropsFromRedux, TutorialContaine
     }
   };
 
+  private _onStartNextLesson = (next: Lesson): void => {
+    this.setState({ startingNextLesson: true });
+    startLesson(next).catch(() => {
+      this.setState({ startingNextLesson: false });
+    });
+  };
+
+  private _renderCard(children: React.ReactNode, pose: React.ComponentProps<typeof Girl>["pose"]) {
+    return (
+      <div className="tutorial-container">
+        <Girl pose={pose} playing={false} />
+        <div className="tutorial-flex">{children}</div>
+      </div>
+    );
+  }
+
   render(): React.ReactNode {
-    const { stepSet, stepIndex } = this.props;
-    const { playing } = this.state;
-    const step = stepSet && tutorialSteps[stepSet][stepIndex];
+    const { stepIndex } = this.props;
+    const { playing, started, dismissedFinish, startingNextLesson } = this.state;
+    const steps = this._steps();
+    const lesson = this._lesson();
+
+    if (!steps) {
+      return <div />;
+    }
+
+    if (lesson && !started) {
+      return this._renderCard(
+        <>
+          <div className="copy">
+            <strong>{lesson.title}</strong>
+            <br />
+            {lesson.caption}
+          </div>
+          <div className="controls">
+            <Button size="sm" color="primary" onClick={this._onStartLesson}>
+              {stepIndex > 0 ? "Keep Going" : "Start Lesson"}
+            </Button>
+          </div>
+        </>,
+        "sitting-talking",
+      );
+    }
+
+    const step = steps[stepIndex];
 
     if (!step) {
-      return <div />;
+      if (!lesson || dismissedFinish) {
+        return <div />;
+      }
+      const next = lessonAfter(lesson.slug);
+      return this._renderCard(
+        <>
+          <div className="copy">
+            <strong>You finished {lesson.title}!</strong>
+            <br />
+            {next
+              ? `Next up: ${next.title} - ${next.caption}`
+              : `That's the last lesson. Keep going on your own, or start a game of your own from the menu.`}
+          </div>
+          <div className="controls">
+            {next && (
+              <Button
+                size="sm"
+                color="primary"
+                disabled={startingNextLesson}
+                onClick={() => this._onStartNextLesson(next)}
+              >
+                {startingNextLesson ? "Starting…" : `Start ${next.title}`}
+              </Button>
+            )}{" "}
+            <Button size="sm" color="secondary" onClick={() => (window.location.href = "/learn")}>
+              All Lessons
+            </Button>{" "}
+            <Button size="sm" color="link" onClick={() => this.setState({ dismissedFinish: true })}>
+              Keep Building
+            </Button>
+          </div>
+        </>,
+        "excited",
+      );
     }
 
     return (

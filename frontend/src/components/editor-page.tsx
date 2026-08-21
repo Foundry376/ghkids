@@ -1,8 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useDispatch } from "react-redux";
 
-import { createWorld, User } from "../actions/main-actions";
+import { User } from "../actions/main-actions";
 import RootEditor from "../editor/root-editor";
 import StoreProvider from "../editor/store-provider";
 import { deepClone } from "../editor/utils/utils";
@@ -167,7 +166,6 @@ const LocalStorageAdapter = {
 
 const EditorPage = () => {
   const me = useAppSelector((s) => s.me!);
-  const dispatch = useDispatch();
 
   const worldId = useParams().worldId!;
 
@@ -448,11 +446,7 @@ const EditorPage = () => {
     setHasUnsavedChanges(false);
     save().then(() => {
       // Navigate after save completes
-      if (dest === "tutorial") {
-        dispatch(createWorld({ from: "tutorial" }));
-      } else {
-        window.location.href = dest;
-      }
+      window.location.href = dest;
     });
   };
 
@@ -473,11 +467,7 @@ const EditorPage = () => {
     setHasUnsavedChanges(false);
     // Navigate after a brief delay to ensure flag is set
     setTimeout(() => {
-      if (dest === "tutorial") {
-        dispatch(createWorld({ from: "tutorial" }));
-      } else {
-        window.location.href = dest;
-      }
+      window.location.href = dest;
     }, 0);
   };
 

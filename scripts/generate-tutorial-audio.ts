@@ -28,12 +28,21 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const SOUNDS_DIR = path.resolve(
   __dirname,
-  "../frontend/src/editor/sounds/tutorial"
+  "../frontend/src/editor/sounds/tutorial",
 );
-const CONTENT_FILE = path.resolve(
-  __dirname,
-  "../frontend/src/editor/constants/tutorial-content.ts"
-);
+const CONTENT_DIR = path.resolve(__dirname, "../frontend/src/editor/constants");
+
+/** Every file that holds spoken step text: the fork walkthrough and each lesson. */
+function contentFiles(): string[] {
+  const lessonsDir = path.join(CONTENT_DIR, "lessons");
+  const lessons = fs
+    .readdirSync(lessonsDir)
+    .filter(
+      (f) => f.endsWith(".ts") && f !== "index.ts" && f !== "characters.ts",
+    )
+    .map((f) => path.join(lessonsDir, f));
+  return [path.join(CONTENT_DIR, "tutorial-content.ts"), ...lessons];
+}
 
 // ElevenLabs configuration
 const ELEVENLABS_API_URL = "https://api.elevenlabs.io/v1/text-to-speech";
@@ -142,7 +151,7 @@ Environment:
  */
 function extractTemplateLiteral(
   content: string,
-  startIndex: number
+  startIndex: number,
 ): { text: string; endIndex: number } | null {
   if (content[startIndex] !== "`") {
     return null;
@@ -171,12 +180,16 @@ function extractTemplateLiteral(
 }
 
 /**
- * Parse tutorial-content.ts to extract text from all tutorial steps.
+ * Parse the walkthrough content files to extract text from all steps.
  * Skips steps with skipAudio: true.
  * Generates audio filenames using the hash function.
  */
 function parseTutorialContent(): TutorialAudioStep[] {
-  const content = fs.readFileSync(CONTENT_FILE, "utf-8");
+  return contentFiles().flatMap((file) => parseContentFile(file));
+}
+
+function parseContentFile(file: string): TutorialAudioStep[] {
+  const content = fs.readFileSync(file, "utf-8");
   const steps: TutorialAudioStep[] = [];
 
   // Find all occurrences of "text:" followed by a template literal
@@ -194,7 +207,7 @@ function parseTutorialContent(): TutorialAudioStep[] {
     // Check if this step has skipAudio: true (within reasonable distance after the text)
     const searchRegion = content.slice(
       extracted.endIndex,
-      extracted.endIndex + 200
+      extracted.endIndex + 200,
     );
     const hasSkipAudio = /\bskipAudio:\s*true/.test(searchRegion);
 
@@ -217,7 +230,7 @@ function parseTutorialContent(): TutorialAudioStep[] {
 async function generateAudio(
   text: string,
   voiceId: string,
-  apiKey: string
+  apiKey: string,
 ): Promise<Buffer> {
   const url = `${ELEVENLABS_API_URL}/${voiceId}`;
 
@@ -246,7 +259,7 @@ async function generateAudio(
 
 function getStepsToGenerate(
   steps: TutorialAudioStep[],
-  options: GenerationOptions
+  options: GenerationOptions,
 ): { step: TutorialAudioStep; filePath: string }[] {
   const result: { step: TutorialAudioStep; filePath: string }[] = [];
 
@@ -279,7 +292,7 @@ async function main() {
   if (!apiKey && !options.dryRun) {
     console.error("Error: ELEVENLABS_API_KEY environment variable is required");
     console.error(
-      "Set it with: ELEVENLABS_API_KEY=your_key yarn generate-tutorial-audio"
+      "Set it with: ELEVENLABS_API_KEY=your_key yarn generate-tutorial-audio",
     );
     process.exit(1);
   }
@@ -289,8 +302,12 @@ async function main() {
     fs.mkdirSync(SOUNDS_DIR, { recursive: true });
   }
 
-  // Parse the tutorial content file directly
-  console.log(`Parsing ${path.basename(CONTENT_FILE)}...`);
+  // Parse the walkthrough content files directly
+  console.log(
+    `Parsing ${contentFiles()
+      .map((f) => path.basename(f))
+      .join(", ")}...`,
+  );
   const allStepsData = parseTutorialContent();
   console.log(`Found ${allStepsData.length} steps with audio.\n`);
 
@@ -321,7 +338,7 @@ async function main() {
       step.text.length > 60 ? step.text.slice(0, 60) + "..." : step.text;
 
     console.log(
-      `[${generated + failed + 1}/${stepsToGenerate.length}] ${filename}`
+      `[${generated + failed + 1}/${stepsToGenerate.length}] ${filename}`,
     );
     console.log(`    "${truncatedText}"`);
 
@@ -335,11 +352,11 @@ async function main() {
       const audioBuffer = await generateAudio(
         step.text,
         options.voiceId,
-        apiKey!
+        apiKey!,
       );
       fs.writeFileSync(filePath, audioBuffer);
       console.log(
-        `    -> Generated ${(audioBuffer.length / 1024).toFixed(1)}KB\n`
+        `    -> Generated ${(audioBuffer.length / 1024).toFixed(1)}KB\n`,
       );
       generated++;
 
@@ -347,7 +364,7 @@ async function main() {
       await sleep(500);
     } catch (error) {
       console.error(
-        `    -> ERROR: ${error instanceof Error ? error.message : error}\n`
+        `    -> ERROR: ${error instanceof Error ? error.message : error}\n`,
       );
       failed++;
     }
