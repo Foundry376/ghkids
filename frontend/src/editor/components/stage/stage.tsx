@@ -69,6 +69,7 @@ import {
 import { defaultAppearanceId } from "../../utils/character-helpers";
 import { makeId } from "../../utils/utils";
 import { keyToCodakoKey } from "../modal-keypicker/keyboard";
+import { holdKeys, releaseAllKeys, releaseKeys } from "../../utils/held-keys";
 
 interface StageProps {
   stage: StageType;
@@ -199,6 +200,12 @@ const SpriteDragPreview = ({
   );
 };
 
+/**
+ * Feeds the keys the player is holding into the world's frame input. The keys
+ * are also recorded in the shared held-keys module so the playback loop can
+ * put them back into the input each tick clears - without that, a held key
+ * would only ever fire once. See utils/held-keys.
+ */
 function useGlobalHeldKeys(worldId: string, playbackRunning: boolean) {
   const dispatch = useDispatch();
   const heldKeysRef = useRef<Set<string>>(new Set());
@@ -228,8 +235,11 @@ function useGlobalHeldKeys(worldId: string, playbackRunning: boolean) {
       }
 
       const codakoKey = keyToCodakoKey(event.key);
+      // Auto-repeat fires keydown over and over for a key that's already down,
+      // so only the first one is worth dispatching.
       if (!heldKeysRef.current.has(codakoKey)) {
         heldKeysRef.current.add(codakoKey);
+        holdKeys([codakoKey]);
         syncHeldKeys();
       }
     };
@@ -238,8 +248,10 @@ function useGlobalHeldKeys(worldId: string, playbackRunning: boolean) {
       const codakoKey = keyToCodakoKey(event.key);
       if (heldKeysRef.current.has(codakoKey)) {
         heldKeysRef.current.delete(codakoKey);
+        releaseKeys([codakoKey]);
         // When playing, don't sync on keyup - let the key persist until tick() clears it.
         // This ensures quick key taps are registered even if keyup happens before next tick.
+        // (The next tick won't put it back, because it's no longer held.)
         // When stopped, sync immediately so Forward button sees current held state.
         if (!playbackRunningRef.current) {
           syncHeldKeys();
@@ -248,6 +260,7 @@ function useGlobalHeldKeys(worldId: string, playbackRunning: boolean) {
     };
 
     const onWindowBlur = () => {
+      releaseAllKeys();
       if (heldKeysRef.current.size > 0) {
         heldKeysRef.current.clear();
         syncHeldKeys();

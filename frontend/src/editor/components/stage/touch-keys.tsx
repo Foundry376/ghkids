@@ -2,6 +2,7 @@ import React, { useCallback, useRef } from "react";
 import { useDispatch } from "react-redux";
 import { Characters, RuleTreeItem, RuleTreeEventItem, RuleCondition } from "../../../types";
 import { recordInputForGameState } from "../../actions/stage-actions";
+import { holdKeys, releaseKeys } from "../../utils/held-keys";
 
 /**
  * Maps legacy numeric keyCodes (used in group-event triggers) to the
@@ -155,10 +156,13 @@ const TouchKeys: React.FC<TouchKeysProps> = ({ worldId, characters }) => {
     dispatch(recordInputForGameState(worldId, { keys: keysObj }));
   }, [dispatch, worldId]);
 
+  // Holding a touch key works like holding a physical key: the shared held-keys
+  // module lets the playback loop re-apply it after each tick clears the input.
   const pressKey = useCallback(
     (key: string) => {
       const allKeys = inputKeysForDisplayKey(key);
       allKeys.forEach((k) => heldKeysRef.current.add(k));
+      holdKeys(allKeys);
       syncKeys();
     },
     [syncKeys],
@@ -168,6 +172,7 @@ const TouchKeys: React.FC<TouchKeysProps> = ({ worldId, characters }) => {
     (key: string) => {
       const allKeys = inputKeysForDisplayKey(key);
       allKeys.forEach((k) => heldKeysRef.current.delete(k));
+      releaseKeys(allKeys);
       syncKeys();
     },
     [syncKeys],

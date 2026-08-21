@@ -1,9 +1,10 @@
 import { DeepPartial, Dispatch } from "redux";
-import { Actor, ActorSelection, Character, Stage } from "../../types";
+import { Actor, ActorSelection, Character, EditorState, Stage } from "../../types";
 import * as types from "../constants/action-types";
 
 import { Actions } from ".";
 import { defaultAppearanceId } from "../utils/character-helpers";
+import { heldKeysAsInput } from "../utils/held-keys";
 import { makeId } from "../utils/utils";
 import { selectStageId } from "./ui-actions";
 
@@ -53,6 +54,30 @@ export function advanceGameState(
     type: types.ADVANCE_GAME_STATE,
     worldId,
     clearInput: options.clearInput ?? false,
+  };
+}
+
+/**
+ * Advances the world one frame for the playback loop.
+ *
+ * Each tick clears the input it consumed, so that a key tapped between two
+ * ticks fires exactly once. A key that is still physically down has to be put
+ * back into the input before the next tick, or holding it would also fire just
+ * once instead of producing continuous motion. Held keys are merged into (not
+ * substituted for) the frame's input so a key that was tapped and released
+ * since the last tick still gets its one frame.
+ */
+export function advancePlaybackGameState(worldId: string) {
+  return (dispatch: Dispatch<Actions>, getState: () => EditorState) => {
+    const { world } = getState();
+    if (world && world.id === worldId) {
+      dispatch(
+        recordInputForGameState(worldId, {
+          keys: { ...world.input.keys, ...heldKeysAsInput() },
+        }),
+      );
+    }
+    dispatch(advanceGameState(worldId, { clearInput: true }));
   };
 }
 
