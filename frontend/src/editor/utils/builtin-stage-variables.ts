@@ -182,6 +182,23 @@ export function getStageBackground(stage: Pick<Stage, "variableValues">): string
 }
 
 /**
+ * The boolean the engine will actually use for a built-in boolean stage
+ * variable (Wrap Horizontally / Wrap Vertically). The inspector renders this
+ * rather than its own reading of the string, so its checkbox can never
+ * disagree with the stage the kid is looking at.
+ */
+export function getStageVariableBooleanInEffect(
+  definition: StageVariable,
+  raw: string | undefined,
+): boolean {
+  const fallback =
+    "type" in definition && definition.type === "boolean"
+      ? BUILTIN_STAGE_VARIABLE_FALLBACKS[definition.id]
+      : false;
+  return coerceToBoolean(raw, fallback);
+}
+
+/**
  * Whether a stage's stored value for a variable is actually usable, i.e.
  * whether the readers above return it or substitute a fallback. Custom (user
  * created) stage variables have no required shape, so they're always valid.

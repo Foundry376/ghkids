@@ -7,6 +7,7 @@ import {
   getStageHeight,
   getStageTileSize,
   getStageWidth,
+  getStageVariableBooleanInEffect,
   getStageWrapX,
   getStageWrapY,
   isStageVariableValueValid,
@@ -157,6 +158,18 @@ describe("builtin stage variable readers", () => {
     expect(getStageBackground(stageWith({ background: "#005392" }))).to.equal("#005392");
     expect(getStageBackground(stageWith({ background: "" }))).to.equal(
       BUILTIN_STAGE_VARIABLE_INITIAL_VALUES.background,
+    );
+  });
+
+  // The inspector renders its wrap checkbox through this, so a mismatch here
+  // would show "Off" on a stage that is actually wrapping.
+  it("reports the boolean in effect using the engine's own fallback", () => {
+    expect(getStageVariableBooleanInEffect(BUILTIN_STAGE_VARIABLES.wrapX, "false")).to.be.false;
+    expect(getStageVariableBooleanInEffect(BUILTIN_STAGE_VARIABLES.wrapX, "#5b87b0")).to.equal(
+      getStageWrapX(stageWith({ wrapX: "#5b87b0" })),
+    );
+    expect(getStageVariableBooleanInEffect(BUILTIN_STAGE_VARIABLES.wrapY, "NaN")).to.equal(
+      getStageWrapY(stageWith({ wrapY: "NaN" })),
     );
   });
 

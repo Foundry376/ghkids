@@ -3,9 +3,12 @@ import { Button } from "reactstrap";
 import { useDraggableContainer } from "../../../hooks/useDraggableContainer";
 import { useEditorSelector } from "../../../hooks/redux";
 import { Character, Global, StageVariable } from "../../../types";
-import { isStageVariableValueValid } from "../../utils/builtin-stage-variables";
+import {
+  getStageVariableBooleanInEffect,
+  isStageVariableValueValid,
+} from "../../utils/builtin-stage-variables";
 import { getCurrentStageForWorld } from "../../utils/selectors";
-import { coerceToBoolean, isNumericValue } from "../../utils/variable-coercion";
+import { isNumericValue } from "../../utils/variable-coercion";
 import {
   BackgroundEditorModal,
   BackgroundPreview,
@@ -222,7 +225,11 @@ export const VariableGridItem = ({
   if (readonly) {
     content = <div className="value">{isMixed ? "—" : displayValue}</div>;
   } else if (type === "boolean") {
-    const checked = coerceToBoolean(displayValue, false);
+    // Read through the same fallback the engine uses: an unusable value means
+    // the stage is wrapping (the built-in default), and a checkbox that said
+    // "Off" while the stage wrapped would be worse than the crash this
+    // replaced.
+    const checked = getStageVariableBooleanInEffect(definition as StageVariable, displayValue);
     content = (
       <label className="value variable-boolean">
         <input
