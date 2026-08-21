@@ -5,7 +5,7 @@ import { useDispatch } from "react-redux";
 import * as actions from "../actions/ui-actions";
 import { MODALS, WORLDS } from "../constants/constants";
 import { useEditorSelector } from "../../hooks/redux";
-import { useForgivingClick } from "../utils/pointer";
+import { forgivingPress } from "../utils/pointer";
 import { getCurrentStage, getStagesList } from "../utils/selectors";
 import { getStageScreenshot } from "../utils/stage-helpers";
 
@@ -27,8 +27,6 @@ export const StageSwitcher = () => {
   const stage = useEditorSelector(getCurrentStage);
   const stages = useEditorSelector(getStagesList);
   const [open, setOpen] = useState(false);
-  const forgivingToggle = useForgivingClick<HTMLButtonElement>();
-  const forgivingSettings = useForgivingClick<HTMLButtonElement>();
 
   if (!stage) {
     return null;
@@ -37,7 +35,7 @@ export const StageSwitcher = () => {
   return (
     <div className="stage-switcher">
       <ButtonDropdown isOpen={open} toggle={() => setOpen(!open)}>
-        <DropdownToggle caret className="stage-switcher-toggle" {...forgivingToggle}>
+        <DropdownToggle caret className="stage-switcher-toggle" {...forgivingPress()}>
           <img
             className="thumb"
             src={getStageScreenshot(stage, { size: 40 })!}
@@ -63,8 +61,7 @@ export const StageSwitcher = () => {
         className="stage-switcher-settings"
         title="Level settings"
         aria-label="Level settings"
-        onClick={() => dispatch(actions.showModal(MODALS.STAGES))}
-        {...forgivingSettings}
+        {...forgivingPress(() => dispatch(actions.showModal(MODALS.STAGES)))}
       >
         <GearIcon />
       </Button>

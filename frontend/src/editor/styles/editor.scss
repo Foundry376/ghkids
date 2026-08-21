@@ -199,13 +199,9 @@ html {
     display: flex;
     flex-direction: row;
 
-    // A press that lands a few pixels off a button - in the row's padding
-    // above or below it, or in the gap between two button groups - used to hit
-    // nothing at all, which reads as "the button ignored me". These transparent
-    // ::before boxes stretch each button's hit area across that dead space
-    // without moving anything on screen. Edges shared with a neighbouring
-    // button are deliberately left alone so the two never overlap and steal
-    // presses from each other.
+    // Stretches a button's hit area across the dead space around it without
+    // moving anything on screen. Edges shared with a neighbouring button are
+    // left alone so the two never overlap and steal presses from each other.
     %toolbar-hit-slop {
       position: relative;
       &::before {
@@ -218,11 +214,9 @@ html {
       }
     }
 
-    // A hand that shakes while pressing turns a click into a tiny drag. Across
-    // the whole top row, suppress the things that drag: text selection, and
-    // native image dragging. Images (tool icons, the level thumbnail) also come
-    // out of hit testing entirely, so every press targets the button around
-    // them and can never pick the image up instead.
+    // A hand that shakes while pressing turns a click into a tiny drag, so
+    // suppress everything in the row that can be dragged. Images are out of hit
+    // testing entirely: a press always targets the button, never the icon.
     button {
       user-select: none;
       -webkit-user-select: none;
@@ -262,7 +256,7 @@ html {
           margin: 0 2px;
         }
 
-        // The outer edges of a group border dead space, so reach into it.
+        // Only a group's outer edges border dead space.
         &:first-child::before {
           left: -$toolbar-hit-slop-x;
         }

@@ -105,10 +105,8 @@ type SpriteDragState = {
   mode: "move" | "copy"; // Whether we're moving or copying (alt key)
 };
 
-// Tools that act on whatever you press, where dragging an actor makes no sense.
-// Actors are not draggable while one of these is selected, so a press that
-// wobbles still reads as a press on the actor rather than picking it up and
-// moving it somewhere else.
+// Tools that act on whatever you press. Actors stay undraggable while one is
+// selected, so a wobbly press can't pick a character up instead of using it.
 const NON_DRAGGING_TOOLS = [
   TOOLS.IGNORE_SQUARE,
   TOOLS.TRASH,

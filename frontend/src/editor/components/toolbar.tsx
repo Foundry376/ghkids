@@ -13,7 +13,7 @@ import UndoRedoControls from "./undo-redo-controls";
 import { createWorld } from "../../actions/main-actions";
 import { EditorContext } from "../../components/editor-context";
 import { useEditorSelector } from "../../hooks/redux";
-import { useForgivingClick } from "../utils/pointer";
+import { forgivingPress } from "../utils/pointer";
 import { ToolButton } from "./tool-button";
 
 const Toolbar = () => {
@@ -35,7 +35,6 @@ const Toolbar = () => {
     toggleFullscreen,
   } = useContext(EditorContext);
   const [open, setOpen] = useState(false);
-  const forgivingMenu = useForgivingClick<HTMLButtonElement>();
 
   const renderTool = (toolId: TOOLS) => (
     <ToolButton
@@ -78,7 +77,7 @@ const Toolbar = () => {
     return (
       <div style={{ display: "flex", alignItems: "center" }}>
         <ButtonDropdown data-tutorial-id="main-menu" isOpen={open} toggle={() => setOpen(!open)}>
-          <DropdownToggle {...forgivingMenu}>
+          <DropdownToggle {...forgivingPress()}>
             <i className="fa fa-ellipsis-v" />
           </DropdownToggle>
           <DropdownMenu>
