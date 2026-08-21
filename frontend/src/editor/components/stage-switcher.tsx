@@ -5,6 +5,7 @@ import { useDispatch } from "react-redux";
 import * as actions from "../actions/ui-actions";
 import { MODALS, WORLDS } from "../constants/constants";
 import { useEditorSelector } from "../../hooks/redux";
+import { useForgivingClick } from "../utils/pointer";
 import { getCurrentStage, getStagesList } from "../utils/selectors";
 import { getStageScreenshot } from "../utils/stage-helpers";
 
@@ -26,6 +27,8 @@ export const StageSwitcher = () => {
   const stage = useEditorSelector(getCurrentStage);
   const stages = useEditorSelector(getStagesList);
   const [open, setOpen] = useState(false);
+  const forgivingToggle = useForgivingClick<HTMLButtonElement>();
+  const forgivingSettings = useForgivingClick<HTMLButtonElement>();
 
   if (!stage) {
     return null;
@@ -34,8 +37,13 @@ export const StageSwitcher = () => {
   return (
     <div className="stage-switcher">
       <ButtonDropdown isOpen={open} toggle={() => setOpen(!open)}>
-        <DropdownToggle caret className="stage-switcher-toggle">
-          <img className="thumb" src={getStageScreenshot(stage, { size: 40 })!} alt="" />
+        <DropdownToggle caret className="stage-switcher-toggle" {...forgivingToggle}>
+          <img
+            className="thumb"
+            src={getStageScreenshot(stage, { size: 40 })!}
+            alt=""
+            draggable={false}
+          />
           <span className="title">{stage.name || "Untitled"}</span>
         </DropdownToggle>
         <DropdownMenu right className="stage-switcher-menu">
@@ -45,7 +53,7 @@ export const StageSwitcher = () => {
               active={s.id === stage.id}
               onClick={() => dispatch(actions.selectStageId(WORLDS.ROOT, s.id))}
             >
-              <img src={getStageScreenshot(s, { size: 120 })!} alt="" />
+              <img src={getStageScreenshot(s, { size: 120 })!} alt="" draggable={false} />
               <span>{s.name || "Untitled"}</span>
             </DropdownItem>
           ))}
@@ -56,6 +64,7 @@ export const StageSwitcher = () => {
         title="Level settings"
         aria-label="Level settings"
         onClick={() => dispatch(actions.showModal(MODALS.STAGES))}
+        {...forgivingSettings}
       >
         <GearIcon />
       </Button>

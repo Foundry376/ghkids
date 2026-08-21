@@ -9,6 +9,11 @@ $rule-flow-color: #5ba4cd;
 
 $create-account-notice-color: #e6dac1;
 
+// How far a top-row button's hit area reaches past its visible edges, into the
+// toolbar's padding (y) and the gaps between button groups (x).
+$toolbar-hit-slop-y: 6px;
+$toolbar-hit-slop-x: 8px;
+
 @use "sass:color";
 
 /*
@@ -194,10 +199,48 @@ html {
     display: flex;
     flex-direction: row;
 
+    // A press that lands a few pixels off a button - in the row's padding
+    // above or below it, or in the gap between two button groups - used to hit
+    // nothing at all, which reads as "the button ignored me". These transparent
+    // ::before boxes stretch each button's hit area across that dead space
+    // without moving anything on screen. Edges shared with a neighbouring
+    // button are deliberately left alone so the two never overlap and steal
+    // presses from each other.
+    %toolbar-hit-slop {
+      position: relative;
+      &::before {
+        content: "";
+        position: absolute;
+        top: -$toolbar-hit-slop-y;
+        bottom: -$toolbar-hit-slop-y;
+        left: 0;
+        right: 0;
+      }
+    }
+
+    // A hand that shakes while pressing turns a click into a tiny drag. Across
+    // the whole top row, suppress the things that drag: text selection, and
+    // native image dragging. Images (tool icons, the level thumbnail) also come
+    // out of hit testing entirely, so every press targets the button around
+    // them and can never pick the image up instead.
+    button {
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-user-drag: none;
+      touch-action: manipulation;
+
+      img {
+        pointer-events: none;
+        -webkit-user-drag: none;
+        user-select: none;
+      }
+    }
+
     .button-group {
       display: inline-block;
 
       button {
+        @extend %toolbar-hit-slop;
         margin-right: 0;
         background-clip: padding-box;
         border-radius: 0;
@@ -205,14 +248,6 @@ html {
         outline: 0;
         padding: 0;
         box-sizing: content-box;
-        // Young users often nudge the cursor while pressing a tool button,
-        // turning a click into a tiny drag. Suppress image dragging and text
-        // selection so the gesture stays a click instead of starting a native
-        // drag of the button's icon.
-        user-select: none;
-        -webkit-user-select: none;
-        -webkit-user-drag: none;
-        touch-action: manipulation;
         &:first-child {
           border-top-left-radius: 0.25rem;
           border-bottom-left-radius: 0.25rem;
@@ -225,12 +260,34 @@ html {
         }
         img {
           margin: 0 2px;
-          // Let presses fall through to the button so the icon can never
-          // become the drag/click target instead of the button itself.
-          pointer-events: none;
-          -webkit-user-drag: none;
-          user-select: none;
         }
+
+        // The outer edges of a group border dead space, so reach into it.
+        &:first-child::before {
+          left: -$toolbar-hit-slop-x;
+        }
+        &:last-child::before {
+          right: -$toolbar-hit-slop-x;
+        }
+      }
+    }
+
+    .stage-switcher-toggle {
+      @extend %toolbar-hit-slop;
+      &::before {
+        left: -$toolbar-hit-slop-x;
+      }
+    }
+    .stage-switcher-settings {
+      @extend %toolbar-hit-slop;
+      &::before {
+        right: -$toolbar-hit-slop-x;
+      }
+    }
+    [data-tutorial-id="main-menu"] > .dropdown-toggle {
+      @extend %toolbar-hit-slop;
+      &::before {
+        left: -$toolbar-hit-slop-x;
       }
     }
 

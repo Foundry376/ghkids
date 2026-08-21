@@ -32,6 +32,14 @@ export const ToolButton = ({ toolId, selected, onSelect }: ToolButtonProps) => {
       className={classes}
       data-tutorial-id={`toolbar-tool-${toolId}`}
       onPointerDown={onPrimaryPointerDown(() => onSelect(toolId))}
+      // Keyboard activation (Enter / Space) arrives as a click with no
+      // originating pointer, which `detail === 0` identifies. Pointer-driven
+      // clicks are ignored here because pointerdown has already selected.
+      onClick={(event) => {
+        if (event.detail === 0) {
+          onSelect(toolId);
+        }
+      }}
     >
       <img src={new URL(`../img/sidebar_${toolId}.png`, import.meta.url).href} draggable={false} />
     </Button>
