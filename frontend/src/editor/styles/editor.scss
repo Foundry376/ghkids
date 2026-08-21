@@ -2124,7 +2124,9 @@ button.btn.selected:active {
   margin-bottom: 4px;
 }
 
-// Fullscreen container and prompt overlay for mobile/tablet devices
+// Fullscreen: the editor layout container, plus the prompt overlay that offers
+// fullscreen on touch devices. The toolbar's "Show Full Screen" item offers the
+// same thing everywhere else.
 
 .editor-fullscreen-container {
   width: 100%;
