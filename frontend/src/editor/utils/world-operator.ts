@@ -30,10 +30,11 @@ import {
   WorldMinimal,
 } from "../../types";
 import {
-  BUILTIN_STAGE_VARIABLE_IDS,
   getStageHeight,
   getStageVariableValue,
   getStageWidth,
+  getStageWrapX,
+  getStageWrapY,
 } from "./builtin-stage-variables";
 import { DOOR_VARIABLE_IDS } from "./door-constants";
 import { FrameAccumulator } from "./frame-accumulator";
@@ -53,7 +54,8 @@ import {
   sortActorIdsByTickOrder,
 } from "./stage-helpers";
 import { deepClone, makeId } from "./utils";
-import { CONTAINER_TYPES, FLOW_BEHAVIORS } from "./world-constants";
+import { coerceToBoundedInteger } from "./variable-coercion";
+import { CONTAINER_TYPES, FLOW_BEHAVIORS, MAX_LOOP_ITERATIONS } from "./world-constants";
 
 /**
  * Unticks the world until its history is exhausted, returning it to the state
@@ -144,10 +146,8 @@ export default function WorldOperator(
     // rule action that mutates wrap/width/height takes effect mid-tick.
     const wrap = (n: number, d: number) => ((((n - 1) % d) + d) % d) + 1;
     const stageProps = { variableValues: stageVariableValues };
-    const wrapX =
-      getStageVariableValue(BUILTIN_STAGE_VARIABLE_IDS.wrapX, stageVariableValues) === "true";
-    const wrapY =
-      getStageVariableValue(BUILTIN_STAGE_VARIABLE_IDS.wrapY, stageVariableValues) === "true";
+    const wrapX = getStageWrapX(stageProps);
+    const wrapY = getStageWrapY(stageProps);
     const width = getStageWidth(stageProps);
     const height = getStageHeight(stageProps);
     const o = {
@@ -332,7 +332,12 @@ export default function WorldOperator(
       if ("variableId" in struct.loopCount && struct.loopCount.variableId) {
         const actor = actors[me.id];
         const character = characters[actor.characterId];
-        return Number(getVariableValue(actor, character, struct.loopCount.variableId, "=") ?? "0");
+        const raw = getVariableValue(actor, character, struct.loopCount.variableId, "=");
+        // A variable can hold anything a rule put in it, and this one decides
+        // how long we spin: a word means "don't loop" rather than NaN (which
+        // would quietly skip the body), and a huge number is capped so a
+        // runaway count can't freeze the tab mid-tick.
+        return coerceToBoundedInteger(raw, { min: 0, max: MAX_LOOP_ITERATIONS, fallback: 0 });
       }
       return 1;
     }

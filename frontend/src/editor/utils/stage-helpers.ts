@@ -399,17 +399,36 @@ export const INVERSE_TRANSFORMS: { [key in ActorTransform]: ActorTransform } = {
   d2: "d2",
 };
 
+/**
+ * Whether `value` names one of the eight orientations in the D4 group. The
+ * value handed to a `transform` action comes from a rule and can be any
+ * string — a color, a score, a half-typed word — so it's checked rather than
+ * trusted.
+ */
+export function isActorTransform(value: string | null | undefined): value is ActorTransform {
+  return value !== null && value !== undefined && value in INVERSE_TRANSFORMS;
+}
+
 export function applyTransformOperation(
   existing: ActorTransform,
   operation: MathOperation,
   value: ActorTransform,
 ) {
+  // Either side can arrive as something that isn't an orientation. Falling
+  // back to "0" for the actor's current transform (its default) and leaving
+  // the actor alone for an unusable operand keeps a bad rule from silently
+  // un-rotating a sprite, which reads as a bug in the sprite rather than in
+  // the value that caused it.
+  const from = isActorTransform(existing) ? existing : "0";
+  if (!isActorTransform(value)) {
+    return from;
+  }
   if (operation === "add") {
-    return RELATIVE_TRANSFORMS[existing][value];
+    return RELATIVE_TRANSFORMS[from][value];
   }
   if (operation === "subtract") {
     // Subtract is composition with the inverse: existing * inverse(value)
-    return RELATIVE_TRANSFORMS[existing][INVERSE_TRANSFORMS[value]];
+    return RELATIVE_TRANSFORMS[from][INVERSE_TRANSFORMS[value]];
   }
   if (operation === "set") {
     return value;
