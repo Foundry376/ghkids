@@ -71,11 +71,12 @@ export function advancePlaybackGameState(worldId: string) {
   return (dispatch: Dispatch<Actions>, getState: () => EditorState) => {
     const { world } = getState();
     if (world && world.id === worldId) {
-      dispatch(
-        recordInputForGameState(worldId, {
-          keys: { ...world.input.keys, ...heldKeysAsInput() },
-        }),
-      );
+      const held = heldKeysAsInput();
+      // Most ticks of a game have no keys down at all. The tick clears the
+      // input either way, so there's nothing to write in that case.
+      if (Object.keys(held).length > 0) {
+        dispatch(recordInputForGameState(worldId, { keys: { ...world.input.keys, ...held } }));
+      }
     }
     dispatch(advanceGameState(worldId, { clearInput: true }));
   };
