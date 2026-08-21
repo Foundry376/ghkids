@@ -22,7 +22,7 @@ function useFullscreenPrompt() {
   // Fullscreen the document, not just the editor container: only the fullscreen
   // element's subtree is painted and hit-tested, and the editor renders the tool
   // cursor, every reactstrap modal and the sprite drag preview into document.body.
-  const fullscreen = useFullscreen<HTMLDivElement>({ target: "document" });
+  const fullscreen = useFullscreen<HTMLDivElement>({ target: "document", shortcut: true });
   const [showPrompt, setShowPrompt] = useState(false);
 
   useEffect(() => {

@@ -9,7 +9,7 @@ import { updatePlaybackState } from "../editor/actions/ui-actions";
 import { RootPlayer } from "../editor/root-player";
 import { getCurrentStage } from "../editor/utils/selectors";
 import { useAppSelector } from "../hooks/redux";
-import { useFullscreen } from "../hooks/useFullscreen";
+import { FULLSCREEN_SHORTCUT_LABEL, useFullscreen } from "../hooks/useFullscreen";
 import { usePageTitle } from "../hooks/usePageTitle";
 import { EditorState } from "../types";
 import PageMessage from "./common/page-message";
@@ -35,7 +35,7 @@ const PlayPage: React.FC = () => {
     enter: enterFullscreen,
     exit: exitFullscreen,
     toggle: toggleFullscreen,
-  } = useFullscreen<HTMLDivElement>();
+  } = useFullscreen<HTMLDivElement>({ shortcut: true });
 
   useEffect(() => {
     if (worldId) {
@@ -147,7 +147,7 @@ const PlayPage: React.FC = () => {
               size="sm"
               outline
               onClick={toggleFullscreen}
-              title={isFullscreen ? "Exit Full Screen" : "Show Full Screen"}
+              title={`${isFullscreen ? "Exit Full Screen" : "Show Full Screen"} (${FULLSCREEN_SHORTCUT_LABEL})`}
             >
               <i className={`fa ${isFullscreen ? "fa-compress" : "fa-expand"}`} />
             </Button>

@@ -57,6 +57,7 @@ import {
 } from "../../utils/stage-helpers";
 
 import { useEditorSelector } from "../../../hooks/redux";
+import { isFullscreenShortcut } from "../../../hooks/useFullscreen";
 import {
   Actor,
   Character,
@@ -234,6 +235,10 @@ function useGlobalHeldKeys(worldId: string, playbackRunning: boolean) {
       }
 
       if (event.metaKey || event.ctrlKey || event.shiftKey) {
+        return;
+      }
+
+      if (isFullscreenShortcut(event)) {
         return;
       }
 

@@ -14,6 +14,31 @@ interface UseFullscreenOptions {
    *   silently disappears when a nested container is the fullscreen element.
    */
   target?: "element" | "document";
+
+  /**
+   * While mounted, bind F11 (and Cmd/Ctrl+Shift+F, for keyboards without a
+   * usable F11) to `toggle`.
+   */
+  shortcut?: boolean;
+}
+
+/** Human-readable form of the keyboard shortcut, for menu items and tooltips. */
+export const FULLSCREEN_SHORTCUT_LABEL =
+  typeof navigator !== "undefined" && /Mac|iPad|iPhone/.test(navigator.userAgent)
+    ? "\u21e7\u2318F"
+    : "F11";
+
+export function isFullscreenShortcut(event: KeyboardEvent) {
+  if (event.repeat) return false;
+  if (event.key === "F11") {
+    return !event.metaKey && !event.ctrlKey && !event.altKey && !event.shiftKey;
+  }
+  // macOS maps F11 to a system function and many compact keyboards need Fn to
+  // reach it at all, so accept a chord as well.
+  if (event.key === "f" || event.key === "F") {
+    return (event.metaKey || event.ctrlKey) && event.shiftKey && !event.altKey;
+  }
+  return false;
 }
 
 /**
@@ -23,6 +48,7 @@ interface UseFullscreenOptions {
  */
 export function useFullscreen<T extends HTMLElement = HTMLDivElement>({
   target = "element",
+  shortcut = false,
 }: UseFullscreenOptions = {}) {
   const containerRef = useRef<T>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -52,6 +78,19 @@ export function useFullscreen<T extends HTMLElement = HTMLDivElement>({
 
   const canFullscreen =
     typeof document !== "undefined" && !!document.documentElement.requestFullscreen;
+
+  useEffect(() => {
+    if (!shortcut) return;
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (!isFullscreenShortcut(event)) return;
+      event.preventDefault();
+      toggle();
+    };
+
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [shortcut, toggle]);
 
   return { containerRef, isFullscreen, canFullscreen, enter, exit, toggle };
 }
