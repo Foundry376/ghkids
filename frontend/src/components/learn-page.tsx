@@ -2,21 +2,34 @@ import React, { useState } from "react";
 import { Link } from "react-router-dom";
 
 import { usePageTitle } from "../hooks/usePageTitle";
-import { LESSONS } from "./learn-config";
+import { LESSONS } from "../lessons/lessons";
+import { startLesson } from "../lessons/start-lesson";
 
 import "./app-surface.scss";
 
 /**
  * The lesson index. Lessons run in order, so the cards are numbered — a kid
- * can jump in anywhere, then keep going from where they stopped.
+ * can jump in anywhere, since each lesson starts from its own prebuilt world.
  *
- * Starting a lesson isn't wired up yet; picking one says so instead of
- * quietly doing nothing.
+ * Picking one makes that world (a round trip to the server, then a page load),
+ * so the card stays busy until the editor takes over.
  */
 const LearnPage: React.FC = () => {
-  const [pending, setPending] = useState<string | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [failed, setFailed] = useState<string | null>(null);
 
   usePageTitle("Learn Codako");
+
+  const onPick = async (slug: string) => {
+    setBusy(slug);
+    setFailed(null);
+    try {
+      await startLesson(LESSONS.find((l) => l.slug === slug)!);
+    } catch {
+      setBusy(null);
+      setFailed(slug);
+    }
+  };
 
   return (
     <div className="app-surface learn-page">
@@ -39,7 +52,9 @@ const LearnPage: React.FC = () => {
               key={lesson.slug}
               type="button"
               className="lesson-card"
-              onClick={() => setPending(lesson.title)}
+              aria-busy={busy === lesson.slug}
+              disabled={busy !== null}
+              onClick={() => onPick(lesson.slug)}
             >
               <span
                 className="lesson-card__shot"
@@ -47,7 +62,7 @@ const LearnPage: React.FC = () => {
               >
                 <span className="lesson-card__number">Lesson {i + 1}</span>
                 <span className="lesson-card__play" aria-hidden="true">
-                  <i className="fa fa-play" />
+                  <i className={`fa ${busy === lesson.slug ? "fa-spinner fa-spin" : "fa-play"}`} />
                 </span>
               </span>
               <span className="lesson-card__body">
@@ -58,9 +73,9 @@ const LearnPage: React.FC = () => {
           ))}
         </div>
 
-        {pending && (
+        {failed && (
           <div className="app-eyebrow learn-page__pending" role="status">
-            {pending} isn&rsquo;t ready to play yet — it&rsquo;s coming soon.
+            That lesson couldn&rsquo;t be opened. Check your internet connection and try again.
           </div>
         )}
       </div>

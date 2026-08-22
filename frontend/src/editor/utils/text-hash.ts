@@ -3,7 +3,7 @@
  * Uses djb2 algorithm - fast, simple, and produces reasonably unique hashes.
  *
  * This is used by:
- * - tutorial-content.ts to generate audio file references
+ * - tutorial-content.ts and constants/lessons to generate audio file references
  * - scripts/generate-tutorial-audio.ts to generate audio files with matching names
  */
 

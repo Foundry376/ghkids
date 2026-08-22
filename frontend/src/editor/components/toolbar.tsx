@@ -21,7 +21,7 @@ const Toolbar = () => {
   const dispatch = useDispatch();
   const selectedToolId = useEditorSelector((state) => state.ui.selectedToolId);
   const metadata = useEditorSelector((state) => state.world.metadata);
-  const isInTutorial = useEditorSelector((state) => state.ui.tutorial.stepIndex === 0);
+  const isInWalkthrough = useEditorSelector((state) => !!state.ui.tutorial.stepSet);
 
   const {
     usingLocalStorage,
@@ -137,15 +137,15 @@ const Toolbar = () => {
               <i className="fa fa-fw" style={{ marginRight: 8 }} />
               Tips &amp; Tricks Videos...
             </DropdownItem>
-            {!isInTutorial && (
+            {!isInWalkthrough && (
               <DropdownItem
                 onClick={() => {
                   alert("Your current game will be saved - you can open it later from 'My Games'.");
-                  saveWorldAnd("tutorial");
+                  saveWorldAnd("/learn");
                 }}
               >
                 <i className="fa fa-fw" style={{ marginRight: 8 }} />
-                Start Tutorial...
+                Learn Codako...
               </DropdownItem>
             )}
             <DropdownItem divider />
