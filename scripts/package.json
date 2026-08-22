@@ -4,7 +4,8 @@
   "type": "module",
   "scripts": {
     "generate-tutorial-audio": "tsx generate-tutorial-audio.ts",
-    "upload-backgrounds": "tsx upload-backgrounds.ts"
+    "upload-backgrounds": "tsx upload-backgrounds.ts",
+    "build-lesson-worlds": "tsx build-lesson-worlds.ts"
   },
   "devDependencies": {
     "@supabase/supabase-js": "^2.48.1",

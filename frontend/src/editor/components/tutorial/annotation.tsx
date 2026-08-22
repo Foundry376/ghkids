@@ -41,6 +41,7 @@ export default class TutorialAnnotation extends React.Component<
 > {
   private _el: HTMLCanvasElement | null = null;
   private _timer: ReturnType<typeof setInterval> | undefined;
+  private _missingTargetTimer: ReturnType<typeof setTimeout> | undefined;
   private targetEls: (Element | null)[] = [];
   private targetObservers: MutationObserver[] = [];
   private targetRelativeBounds: RelativeBounds[] = [];
@@ -93,6 +94,7 @@ export default class TutorialAnnotation extends React.Component<
     this.disconnectFromSelectors();
 
     this.targetEls = (selectors || []).map((sel) => document.querySelector(sel));
+    this.warnAboutMissingTargets(selectors);
     this.targetObservers = this.targetEls
       .filter((el): el is Element => !!el)
       .map((el) => {
@@ -111,7 +113,30 @@ export default class TutorialAnnotation extends React.Component<
     }
   }
 
+  /**
+   * A selector that matches nothing just makes the annotation invisible, which
+   * looks the same as a step that meant not to draw one. That's the usual way a
+   * lesson breaks after the editor's markup changes, so say so while authoring.
+   */
+  private warnAboutMissingTargets(selectors: string[] | undefined): void {
+    if (!import.meta.env.DEV || !selectors?.length) {
+      return;
+    }
+    // Give the step's own click or dispatch a moment to put the element there.
+    clearTimeout(this._missingTargetTimer);
+    this._missingTargetTimer = setTimeout(() => {
+      const missing = selectors.filter((sel) => !document.querySelector(sel));
+      if (missing.length) {
+        console.warn(
+          `Walkthrough annotation matched nothing: ${missing.join(", ")}. ` +
+            `The step will show its text with no highlight.`,
+        );
+      }
+    }, 2000);
+  }
+
   private disconnectFromSelectors(): void {
+    clearTimeout(this._missingTargetTimer);
     this.targetObservers.forEach((o) => o.disconnect());
     this.targetObservers = [];
     clearTimeout(this._timer);

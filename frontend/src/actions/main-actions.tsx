@@ -94,14 +94,11 @@ export function deleteWorld(id: ID) {
   };
 }
 
-export function createWorld({ from, fork }: { from?: ID | "tutorial"; fork?: string } = {}) {
+export function createWorld({ from, fork }: { from?: ID; fork?: string } = {}) {
   return async function (_dispatch: Dispatch<MainActions>) {
-    let qs = "";
-    if (from === "tutorial") {
-      qs = "tutorial=base";
-    } else if (fork) {
-      qs = "tutorial=fork";
-    }
+    // Forking someone else's game drops the kid into a walkthrough of it.
+    // Lessons have their own entrypoint - see lessons/start-lesson.ts.
+    const qs = fork ? "tutorial=fork" : "";
 
     if (window.store.getState().me) {
       // Returned so callers can show progress until the redirect happens —

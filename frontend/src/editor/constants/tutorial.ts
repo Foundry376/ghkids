@@ -1,6 +1,7 @@
 /**
- * Tutorial steps with sound URLs.
- * Text content is defined in tutorial-content.ts - edit text there, not here.
+ * Walkthrough steps with sound URLs.
+ * Text content is defined in tutorial-content.ts and ./lessons - edit text
+ * there, not here.
  *
  * Audio filenames are automatically generated from a hash of the text content.
  * To regenerate audio after changing text:
@@ -13,12 +14,8 @@ import { Actions } from "../actions";
 import { TutorialAnnotationProps } from "../components/tutorial/annotation";
 import { PoseKey } from "../components/tutorial/girl";
 import { getAudioFilename } from "../utils/text-hash";
-import {
-  baseTutorialContent,
-  forkTutorialContent,
-  poseFrames,
-  TutorialStepContent,
-} from "./tutorial-content";
+import { lessonContent } from "./lessons";
+import { forkTutorialContent, poseFrames, TutorialStepContent } from "./tutorial-content";
 
 // Re-export poseFrames for backwards compatibility
 export { poseFrames };
@@ -38,7 +35,7 @@ export type TutorialStep = {
 };
 
 /**
- * Convert tutorial content to tutorial steps by adding sound URLs.
+ * Convert walkthrough content to steps by adding sound URLs.
  * Audio filenames are generated from a hash of the text content.
  */
 function contentToSteps(content: TutorialStepContent[], audioPath: string): TutorialStep[] {
@@ -52,10 +49,18 @@ function contentToSteps(content: TutorialStepContent[], audioPath: string): Tuto
   });
 }
 
-const baseTutorialSteps = contentToSteps(baseTutorialContent, "../sounds/tutorial/");
-const forkTutorialSteps = contentToSteps(forkTutorialContent, "../sounds/tutorial/");
+const AUDIO_PATH = "../sounds/tutorial/";
 
-export const tutorialSteps = {
-  base: baseTutorialSteps,
-  fork: forkTutorialSteps,
+/**
+ * Every walkthrough the editor can run, keyed by the value of the `lesson` (or,
+ * for the fork tour, `tutorial`) query parameter the editor was opened with.
+ */
+export const walkthroughSteps: Record<string, TutorialStep[]> = {
+  fork: contentToSteps(forkTutorialContent, AUDIO_PATH),
+  ...Object.fromEntries(
+    Object.entries(lessonContent).map(([slug, content]) => [
+      slug,
+      contentToSteps(content, AUDIO_PATH),
+    ]),
+  ),
 };

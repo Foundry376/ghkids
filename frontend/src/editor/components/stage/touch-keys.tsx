@@ -9,24 +9,7 @@ import {
   releaseKeys,
   releaseSource,
 } from "../../utils/held-keys";
-
-/**
- * Maps legacy numeric keyCodes (used in group-event triggers) to the
- * Codako string key names used by the keyboard input handler.
- */
-const KEYCODE_TO_KEY: Record<number, string> = {
-  9: "Tab",
-  13: "Enter",
-  32: "Space",
-  37: "ArrowLeft",
-  38: "ArrowUp",
-  39: "ArrowRight",
-  40: "ArrowDown",
-};
-
-function keyCodeToKey(code: number): string {
-  return KEYCODE_TO_KEY[code] || String.fromCharCode(code);
-}
+import { inputKeysForKey, KEYCODE_TO_KEY, keyCodeToKey } from "../../utils/keys";
 
 /** Display label for a Codako key string. */
 function labelForKey(key: string): string {
@@ -120,30 +103,6 @@ export function getUsedKeys(characters: Characters): string[] {
   return display;
 }
 
-/**
- * Return all the key identifiers that should be placed in the input.keys object
- * for a given display key. This includes both the string name and any legacy
- * numeric code so both checkEvent (numeric) and condition (string) paths match.
- */
-function inputKeysForDisplayKey(key: string): string[] {
-  const result = [key];
-  // Add the legacy numeric keyCode equivalent
-  for (const [code, name] of Object.entries(KEYCODE_TO_KEY)) {
-    if (name === key) {
-      result.push(code);
-      break;
-    }
-  }
-  // For single letters dispatched uppercase, also include lowercase
-  if (key.length === 1 && key >= "A" && key <= "Z") {
-    result.push(key.toLowerCase());
-  }
-  if (key.length === 1 && key >= "a" && key <= "z") {
-    result.push(key.toUpperCase());
-  }
-  return result;
-}
-
 interface TouchKeysProps {
   worldId: string;
   characters: Characters;
@@ -164,7 +123,7 @@ const TouchKeys: React.FC<TouchKeysProps> = ({ worldId, characters }) => {
   // module lets the playback loop re-apply it after each tick clears the input.
   const pressKey = useCallback(
     (key: string) => {
-      holdKeys(source, inputKeysForDisplayKey(key));
+      holdKeys(source, inputKeysForKey(key));
       syncKeys();
     },
     [source, syncKeys],
@@ -172,7 +131,7 @@ const TouchKeys: React.FC<TouchKeysProps> = ({ worldId, characters }) => {
 
   const releaseKey = useCallback(
     (key: string) => {
-      releaseKeys(source, inputKeysForDisplayKey(key));
+      releaseKeys(source, inputKeysForKey(key));
       syncKeys();
     },
     [source, syncKeys],

@@ -421,7 +421,8 @@ export type UIState = {
     | { ruleId: string }
     | null;
   tutorial: {
-    stepSet?: keyof typeof import("./editor/constants/tutorial").tutorialSteps;
+    /** Lesson slug, or "fork" for the tour shown after copying a game. */
+    stepSet?: string;
     stepIndex: number;
   };
   playback: {
