@@ -23,17 +23,12 @@ import {
 import {
   collisionScenario,
   coinCollectionScenario,
-  trainFollowerVisitedFirstScenario,
-  trainLeaderVisitedFirstScenario,
-  longTrainScenario,
-  interruptedLoopResumesScenario,
   contestedSquareTopMoverRightScenario,
   contestedSquareTopMoverLeftScenario,
 } from "./__tests__/scenarios/multi-actor-scenarios";
 import {
   doAllGroupContinuesToLaterRulesScenario,
   doAllGroupContinuesInsideFirstGroupScenario,
-  doAllGroupStillRetriesBlockedRulesScenario,
   doAllGroupRunsOncePerTickScenario,
   doAllGroupInsideLoopRepeatsScenario,
 } from "./__tests__/scenarios/flow-container-scenarios";
@@ -139,24 +134,6 @@ describe("world-operator integration", () => {
     });
   });
 
-  describe("order-independent settling", () => {
-    it("preserves train spacing when the follower is visited first", () => {
-      runScenario(trainFollowerVisitedFirstScenario());
-    });
-
-    it("preserves train spacing when the leader is visited first", () => {
-      runScenario(trainLeaderVisitedFirstScenario());
-    });
-
-    it("ripples a long train by one square per tick regardless of visit order", () => {
-      runScenario(longTrainScenario());
-    });
-
-    it("resumes an interrupted loop's remaining cycles within the same tick", () => {
-      runScenario(interruptedLoopResumesScenario());
-    });
-  });
-
   describe("tick order", () => {
     it("lets the top-layered character win a contested square", () => {
       runScenario(contestedSquareTopMoverRightScenario());
@@ -176,11 +153,7 @@ describe("world-operator integration", () => {
       runScenario(doAllGroupContinuesInsideFirstGroupScenario());
     });
 
-    it("leaves an actor eligible to retry its blocked rules", () => {
-      runScenario(doAllGroupStillRetriesBlockedRulesScenario());
-    });
-
-    it("runs its rules once per tick, not once per settle pass", () => {
+    it("runs its rules exactly once per tick", () => {
       runScenario(doAllGroupRunsOncePerTickScenario());
     });
 

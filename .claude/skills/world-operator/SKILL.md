@@ -85,9 +85,7 @@ Rules are organized hierarchically:
   - `behavior: "first"` - Stop after first match
   - `behavior: "all"` - Execute all matches, then hand control back to the
     parent container so the rules *after* this group still get a turn ("Do All
-    & Continue"). Because it never ends the actor's turn, an actor whose only
-    firing rules were inside `all` groups is still retried by tick()'s settle
-    passes; `appliedInAllContainers` keeps those groups from firing twice.
+    & Continue")
   - `behavior: "random"` - Shuffle, then first match
   - `behavior: "loop"` - Repeat N times
 
@@ -129,11 +127,11 @@ WorldOperator(previousWorld, characters, characterZOrder) → {
 3. **Update** special globals (keypress, click)
 4. **Evaluate** each actor's rules via `ActorOperator`, top-most character
    first (`sortActorIdsByTickOrder`: descending `characterZOrder`, then actor
-   id), so execution order follows the layering the user sees on the stage
-5. **Settle**: re-visit actors that haven't acted and resume loops that were
-   cut short, until nothing changes — an actor blocked only by a neighbour
-   that hasn't moved yet still gets its turn. Each actor acts at most once
-6. **Return** new immutable world state
+   id), so execution order follows the layering the user sees on the stage.
+   Each actor is visited exactly once: an actor blocked by a neighbour that
+   has not moved yet stays put until the next tick, and when two actors want
+   the same square the one layered on top gets it
+5. **Return** new immutable world state
 
 ### Pattern Matching (checkRuleScenario)
 

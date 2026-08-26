@@ -1,12 +1,7 @@
 /**
  * Scenarios covering the flow-control containers, and in particular the
- * "Do All & Continue" (`all`) behavior:
- *
- *  - it runs every child, then hands control back so the rules *after* it in
- *    the same list still get a turn, and
- *  - because it hands control back, the actor has not finished its turn, so it
- *    is still eligible for the settle passes that let blocked rules retry
- *    (without the group's own rules firing a second time).
+ * "Do All & Continue" (`all`) behavior: it runs every child, then hands control
+ * back so the rules *after* it in the same list still get a turn.
  */
 
 import {
@@ -20,7 +15,6 @@ import {
   makeActor,
   makeCharacter,
   makeEventGroup,
-  makeExtent,
   makeRule,
   makeStage,
   makeWorld,
@@ -46,17 +40,6 @@ function makeCountRule(charId: string, id: string) {
         value: { constant: "1" },
       },
     ],
-  });
-}
-
-/** A rule that only applies when the square to the left is empty. */
-function makeMoveLeftIfEmptyRule(charId: string, id: string) {
-  return makeRule({
-    id,
-    mainActorId: "self",
-    actors: { self: makeActor({ id: "self", characterId: charId }) },
-    actions: [{ type: "move", actorId: "self", delta: { x: -1, y: 0 } }],
-    extent: makeExtent({ xmin: -1, xmax: 0, ymin: 0, ymax: 0 }),
   });
 }
 
@@ -167,73 +150,9 @@ export function doAllGroupContinuesInsideFirstGroupScenario(): TestScenario {
 }
 
 /**
- * Scenario: the Space Invaders case. Two walkers in a train, each carrying a
- * bookkeeping "Do All & Continue" group ahead of its blocked-aware move rule,
- * inserted tail-first so the follower needs a settle pass to keep formation.
- *
- * The bookkeeping always applies, so before "continue" was honoured the
- * follower counted as having taken its turn and never got the retry — it fell
- * out of formation. The counters also pin down that the retry does not re-run
- * the bookkeeping: each actor counts exactly once for the tick.
- */
-export function doAllGroupStillRetriesBlockedRulesScenario(): TestScenario {
-  const charId = "char-alien";
-  const leaderId = "actor-leader";
-  const followerId = "actor-follower";
-
-  const characters: Characters = {
-    [charId]: makeCounterCharacter(charId, [
-      makeAllGroup("all-group", [makeCountRule(charId, "count")]),
-      makeMoveLeftIfEmptyRule(charId, "move-left-if-empty"),
-    ]),
-  };
-
-  const leader = makeActor({
-    id: leaderId,
-    characterId: charId,
-    position: { x: 2, y: 1 },
-    variableValues: { [COUNTER]: "0" },
-  });
-  const follower = makeActor({
-    id: followerId,
-    characterId: charId,
-    position: { x: 3, y: 1 },
-    variableValues: { [COUNTER]: "0" },
-  });
-  // Same character, so ids decide the visit order: the follower goes first,
-  // while the leader still blocks it.
-  const stage = makeStage({
-    id: "stage-1",
-    actors: { [followerId]: follower, [leaderId]: leader },
-  });
-
-  return {
-    name: "bookkeeping in a Do All & Continue group does not cost an actor its retry",
-    characters,
-    world: makeWorld({ stage }),
-    frames: 1,
-    assertions: (result) => {
-      // The whole formation shifts left by one.
-      expectActorPosition(result, leaderId, { x: 1, y: 1 });
-      expectActorPosition(result, followerId, { x: 2, y: 1 });
-      // ...and the bookkeeping ran once each, not once per settle pass.
-      expectActorVariable(result, leaderId, COUNTER, "1");
-      expectActorVariable(result, followerId, COUNTER, "1");
-      // The group is still reported as having run even though the retry pass
-      // skipped everything inside it, so the editor keeps it highlighted.
-      for (const ruleId of ["all-group", "count"]) {
-        if (!result.evaluatedRuleDetails[followerId]?.[ruleId]?.passed) {
-          throw new Error(`Expected the follower's "${ruleId}" to be marked as applied`);
-        }
-      }
-    },
-  };
-}
-
-/**
- * Scenario: an actor with nothing but a "Do All & Continue" group. It never
- * finishes its turn, so the settle loop keeps offering it another pass — the
- * once-per-tick guard is what stops the counter running away.
+ * Scenario: an actor with nothing but a "Do All & Continue" group. Handing
+ * control back to the parent must not cost the group a turn or earn it an
+ * extra one: its children run exactly once per tick.
  */
 export function doAllGroupRunsOncePerTickScenario(): TestScenario {
   const charId = "char-idle-counter";
@@ -257,7 +176,7 @@ export function doAllGroupRunsOncePerTickScenario(): TestScenario {
   const stage = makeStage({ id: "stage-1", actors: { [actorId]: actor } });
 
   return {
-    name: "a Do All & Continue group runs its rules once per tick, not once per settle pass",
+    name: "a Do All & Continue group runs its rules exactly once per tick",
     characters,
     world: makeWorld({ stage }),
     frames: 2,
@@ -269,9 +188,9 @@ export function doAllGroupRunsOncePerTickScenario(): TestScenario {
 }
 
 /**
- * Scenario: a "Do All & Continue" group inside a loop. The once-per-tick guard
- * must not reach inside loops — repeating the body is the whole point of a
- * "Do First Match & Repeat" container.
+ * Scenario: a "Do All & Continue" group inside a loop. Handing control back to
+ * the parent must not stop the loop from repeating the body — repeating it is
+ * the whole point of a "Do First Match & Repeat" container.
  */
 export function doAllGroupInsideLoopRepeatsScenario(): TestScenario {
   const charId = "char-looper";
