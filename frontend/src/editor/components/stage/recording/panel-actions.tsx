@@ -6,6 +6,7 @@ import { useDispatch } from "react-redux";
 import { Button } from "reactstrap";
 import { useEditorSelector } from "../../../../hooks/redux";
 import {
+  Actor,
   Characters,
   MathOperation,
   RecordingState,
@@ -88,12 +89,28 @@ export const RecordingActions = (props: { characters: Characters; recording: Rec
     // In a saved rule the main actor is at 0,0, but when recording on the stage
     // the extent and the position are relative to the "current" game world.
     const mainActorBeforePosition = beforeStage.actors[recording.actorId!].position;
+    // Use every actor the rule can reference, including future creates, so duplicate
+    // labels stay consistent across the full action list.
+    const actorsInRule = [
+      ...Object.values(beforeStage.actors),
+      ...(actions || []).flatMap((action) =>
+        action.type === "create" ? [action.actor] : [],
+      ),
+    ];
+    const actorNeedsDisambiguation = (actor: Actor) =>
+      actorsInRule.some(
+        (candidate) => candidate.id !== actor.id && candidate.characterId === actor.characterId,
+      );
     if ("actorId" in a && a.actorId) {
       if (a.type === "create") {
         return (
           <>
             Create a
-            <ActorBlock actor={a.actor} character={characters[a.actor.characterId]} />
+            <ActorBlock
+              actor={a.actor}
+              character={characters[a.actor.characterId]}
+              disambiguate={actorNeedsDisambiguation(a.actor)}
+            />
             at
             <ActorOffsetCanvas
               actor={a.actor}
@@ -116,7 +133,11 @@ export const RecordingActions = (props: { characters: Characters; recording: Rec
         return (
           <>
             Move
-            <ActorBlock actor={actor} character={character} />
+            <ActorBlock
+              actor={actor}
+              character={character}
+              disambiguate={actorNeedsDisambiguation(actor)}
+            />
             to
             {a.delta ? (
               <ActorDeltaCanvas delta={a.delta} />
@@ -140,7 +161,11 @@ export const RecordingActions = (props: { characters: Characters; recording: Rec
         return (
           <>
             Remove
-            <ActorBlock actor={actor} character={character} />
+            <ActorBlock
+              actor={actor}
+              character={character}
+              disambiguate={actorNeedsDisambiguation(actor)}
+            />
             from the stage
           </>
         );
@@ -151,10 +176,18 @@ export const RecordingActions = (props: { characters: Characters; recording: Rec
         return (
           <>
             Teleport
-            <ActorBlock actor={actor} character={character} />
+            <ActorBlock
+              actor={actor}
+              character={character}
+              disambiguate={actorNeedsDisambiguation(actor)}
+            />
             through
             {door && doorCharacter ? (
-              <ActorBlock actor={door} character={doorCharacter} />
+              <ActorBlock
+                actor={door}
+                character={doorCharacter}
+                disambiguate={actorNeedsDisambiguation(door)}
+              />
             ) : (
               <code>door</code>
             )}
@@ -193,7 +226,11 @@ export const RecordingActions = (props: { characters: Characters; recording: Rec
         return (
           <>
             Change appearance of
-            <ActorBlock character={character} actor={actor} />
+            <ActorBlock
+              character={character}
+              actor={actor}
+              disambiguate={actorNeedsDisambiguation(actor)}
+            />
             to
             <FreeformConditionValue
               value={a.value}
@@ -211,7 +248,11 @@ export const RecordingActions = (props: { characters: Characters; recording: Rec
         return (
           <>
             Turn
-            <ActorBlock character={character} actor={actor} />
+            <ActorBlock
+              character={character}
+              actor={actor}
+              disambiguate={actorNeedsDisambiguation(actor)}
+            />
             <TransformActionPicker
               operation={a.operation}
               onChangeOperation={(operation) => {
