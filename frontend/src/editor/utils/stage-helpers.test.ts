@@ -15,6 +15,7 @@ import {
   pointIsOutside,
   resolveRuleValue,
   sortActorIdsByTickOrder,
+  stagePositionsBetween,
   stageSquareForPixelOffset,
 } from "./stage-helpers";
 
@@ -1145,6 +1146,35 @@ describe("stage-helpers", () => {
       const node = { rules: [] };
       const [found, ,] = findRule(node, "rule1");
       expect(found).to.be.null;
+    });
+  });
+
+  describe("stagePositionsBetween", () => {
+    it("fills every square crossed by a horizontal stroke", () => {
+      expect(stagePositionsBetween({ x: 2, y: 4 }, { x: 5, y: 4 })).to.deep.equal([
+        { x: 2, y: 4 },
+        { x: 3, y: 4 },
+        { x: 4, y: 4 },
+        { x: 5, y: 4 },
+      ]);
+    });
+
+    it("fills every square crossed by a fast diagonal stroke", () => {
+      expect(stagePositionsBetween({ x: 2, y: 2 }, { x: 5, y: 4 })).to.deep.equal([
+        { x: 2, y: 2 },
+        { x: 3, y: 3 },
+        { x: 4, y: 3 },
+        { x: 5, y: 4 },
+      ]);
+    });
+
+    it("works in reverse", () => {
+      expect(stagePositionsBetween({ x: 5, y: 4 }, { x: 2, y: 4 })).to.deep.equal([
+        { x: 5, y: 4 },
+        { x: 4, y: 4 },
+        { x: 3, y: 4 },
+        { x: 2, y: 4 },
+      ]);
     });
   });
 

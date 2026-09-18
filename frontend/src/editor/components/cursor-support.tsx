@@ -28,7 +28,7 @@ cursorEl.style.top = "0px";
 cursorEl.style.left = "0px";
 cursorEl.style.pointerEvents = "none";
 cursorEl.style.zIndex = "1000";
-cursorEl.style.position = "absolute";
+cursorEl.style.position = "fixed";
 cursorEl.onload = () => {
   updateCursor();
 };
@@ -120,6 +120,7 @@ export const StampCursorSupport = () => {
       cursorEl.style.display = "none";
       cursorEl.removeAttribute("src");
     }
+    updateCursor();
   }, [selectedToolId, stampToolItem, characters, stage?.actors]);
 
   return <span />;
