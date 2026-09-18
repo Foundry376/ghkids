@@ -68,6 +68,12 @@ const ActorSprite = (props: {
   ) => void;
   transitionDuration?: number;
   skipTransition?: boolean;
+  /**
+   * False renders the sprite as scenery: it's drawn, but it can't be clicked,
+   * selected or dragged. Used for the actors surrounding a rule's extent in the
+   * recording editor, which are there for context and aren't part of the rule.
+   */
+  interactive?: boolean;
 }) => {
   const {
     actor,
@@ -77,6 +83,7 @@ const ActorSprite = (props: {
     dragActorIds,
     transitionDuration: transitionDurationProp,
     skipTransition,
+    interactive = true,
     onClick,
     onMouseUp,
     onDoubleClick,
@@ -198,7 +205,7 @@ const ActorSprite = (props: {
       }}
     >
       <img
-        draggable={!!dragActorIds}
+        draggable={interactive && !!dragActorIds}
         data-stage-character-id={character.id}
         onDragStart={onDragStart}
         onMouseUp={(event) => {
@@ -223,7 +230,7 @@ const ActorSprite = (props: {
           transformOrigin: `${((info.anchor.x + 0.5) / info.width) * 100}% ${((info.anchor.y + 0.5) / info.height) * 100}%`,
           transitionProperty: "transform",
           transitionDuration: `${transitionDuration}ms`,
-          pointerEvents: "auto",
+          pointerEvents: interactive ? "auto" : "none",
           cursor: dragActorIds ? "grab" : undefined,
         }}
       />
