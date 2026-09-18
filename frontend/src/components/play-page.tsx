@@ -170,7 +170,7 @@ const PlayPage: React.FC = () => {
                   </span>
                 </DropdownItem>
               )}
-              <DropdownItem divider />
+              {(immersive || canFullscreen) && <DropdownItem divider />}
               <DropdownItem onClick={onEditOrRemix}>
                 <i className="fa fa-pencil fa-fw" style={{ marginRight: 8 }} />
                 {editLabel}
