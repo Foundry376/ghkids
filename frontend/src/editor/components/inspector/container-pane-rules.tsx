@@ -50,6 +50,46 @@ const cloneRuleWithFreshIds = (item: RuleTreeItem): RuleTreeItem => {
   return copy;
 };
 
+const scrollRuleFullyIntoView = (container: HTMLElement, ruleId: string | null) => {
+  const rule = Array.from(container.querySelectorAll<HTMLElement>("[data-rule-id]")).find(
+    (el) => el.dataset.ruleId === ruleId,
+  );
+  if (!rule) return;
+
+  const containerRect = container.getBoundingClientRect();
+  const ruleRect = rule.getBoundingClientRect();
+  if (ruleRect.height >= container.clientHeight || ruleRect.top < containerRect.top) {
+    container.scrollTop += Math.floor(ruleRect.top - containerRect.top);
+  } else if (ruleRect.bottom > containerRect.bottom) {
+    container.scrollTop += Math.ceil(ruleRect.bottom - containerRect.bottom);
+  }
+};
+
+const useRestoreRuleListScrollPosition = ({
+  characterId,
+  selectedRuleId,
+  containerRef,
+  scrollPositions,
+}: {
+  characterId: string | undefined;
+  selectedRuleId: string | null;
+  containerRef: React.RefObject<HTMLDivElement>;
+  scrollPositions: React.MutableRefObject<Record<string, number>>;
+}) => {
+  useLayoutEffect(() => {
+    const container = containerRef.current;
+    if (!characterId || !container) return;
+
+    container.scrollTop = scrollPositions.current[characterId] ?? 0;
+    scrollRuleFullyIntoView(container, selectedRuleId);
+    scrollPositions.current[characterId] = container.scrollTop;
+
+    // Restore only when this pane mounts or changes character. Updating while a
+    // user clicks rules could move the target between clicks of a double-click.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [characterId, containerRef, scrollPositions]);
+};
+
 export const ContainerPaneRules = ({
   character,
   actor,
@@ -70,30 +110,12 @@ export const ContainerPaneRules = ({
   const latestRef = useRef({ character, selectedRuleId, stampToolItem, isRecording });
   latestRef.current = { character, selectedRuleId, stampToolItem, isRecording };
 
-  useLayoutEffect(() => {
-    const container = _scrollContainerEl.current;
-    if (!character || !container) return;
-
-    container.scrollTop = scrollPositions.current[character.id] ?? 0;
-
-    const selectedRule = Array.from(container.querySelectorAll<HTMLElement>("[data-rule-id]")).find(
-      (el) => el.dataset.ruleId === selectedRuleId,
-    );
-    if (selectedRule) {
-      const containerRect = container.getBoundingClientRect();
-      const ruleRect = selectedRule.getBoundingClientRect();
-      if (ruleRect.height >= container.clientHeight || ruleRect.top < containerRect.top) {
-        container.scrollTop += Math.floor(ruleRect.top - containerRect.top);
-      } else if (ruleRect.bottom > containerRect.bottom) {
-        container.scrollTop += Math.ceil(ruleRect.bottom - containerRect.bottom);
-      }
-    }
-
-    scrollPositions.current[character.id] = container.scrollTop;
-    // Restore only when this pane mounts or changes character. Updating while a
-    // user clicks rules could move the target between clicks of a double-click.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [character?.id, scrollPositions]);
+  useRestoreRuleListScrollPosition({
+    characterId: character?.id,
+    selectedRuleId,
+    containerRef: _scrollContainerEl,
+    scrollPositions,
+  });
 
   const onKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
     const target = event.target as HTMLElement | null;
