@@ -178,9 +178,7 @@ const PlayPage: React.FC = () => {
               </DropdownMenu>
             </ButtonDropdown>
           </div>
-          <Link className="play-top-bar__brand" to="/">
-            Codako
-          </Link>
+          <span className="play-top-bar__brand">Codako</span>
         </div>
         <div className="play-top-bar__title">
           <span>{world.name}</span>
