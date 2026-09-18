@@ -140,7 +140,7 @@ const PlayPage: React.FC = () => {
               <DropdownToggle size="sm" outline aria-label="Player menu">
                 <i className="fa fa-ellipsis-v" />
               </DropdownToggle>
-              <DropdownMenu right>
+              <DropdownMenu>
                 {immersive && (
                   <DropdownItem onClick={onExitImmersive}>
                     <i className="fa fa-info-circle fa-fw" style={{ marginRight: 8 }} />
