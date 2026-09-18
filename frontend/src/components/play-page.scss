@@ -53,11 +53,6 @@ $play-tint: #5bc0de;
     flex-shrink: 0;
     position: relative;
     z-index: 1;
-
-    &:hover {
-      color: color.adjust($play-brand-green, $lightness: 10%);
-      text-decoration: none;
-    }
   }
 
   &__title {
