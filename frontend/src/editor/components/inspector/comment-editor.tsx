@@ -91,6 +91,7 @@ export const CommentTextEditor = ({
           }
         }}
         onMouseDown={(e) => e.stopPropagation()}
+        onDoubleClick={(e) => e.stopPropagation()}
         onDragStart={(e) => e.stopPropagation()}
       >
         {text || placeholder || "Write a note…"}
@@ -105,6 +106,7 @@ export const CommentTextEditor = ({
       value={text}
       placeholder={placeholder ?? "Write a note…"}
       onChange={(e) => setText(e.target.value)}
+      onDoubleClick={(e) => e.stopPropagation()}
       onBlur={commit}
       onKeyDown={(e) => {
         if (e.key === "Escape") {
