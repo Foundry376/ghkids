@@ -27,7 +27,7 @@ export function chaseGameScenario(): TestScenario {
   const playerActorId = "actor-player";
   const enemyActorId = "actor-enemy";
 
-  // Player moves right on right arrow (key code 39)
+  // Player moves right on right arrow
   const playerRuleActor = makeActor({ id: "player-rule", characterId: playerCharId });
   const movePlayerRule = makeRule({
     id: "player-move",
@@ -35,7 +35,12 @@ export function chaseGameScenario(): TestScenario {
     actors: { "player-rule": playerRuleActor },
     actions: [{ type: "move", actorId: "player-rule", delta: { x: 1, y: 0 } }],
   });
-  const playerKeyGroup = makeEventGroup({ id: "player-key", event: "key", rules: [movePlayerRule], code: 39 });
+  const playerKeyGroup = makeEventGroup({
+    id: "player-key",
+    event: "key",
+    rules: [movePlayerRule],
+    code: "ArrowRight",
+  });
   const playerChar = makeCharacter({ id: playerCharId, name: "Player", rules: [playerKeyGroup] });
 
   // Enemy always moves right on idle (simple AI chasing)
@@ -65,9 +70,9 @@ export function chaseGameScenario(): TestScenario {
 
   // Simulate 3 frames with player pressing right each frame
   const inputPerFrame = [
-    makeInput({ keys: [39] }),
-    makeInput({ keys: [39] }),
-    makeInput({ keys: [39] }),
+    makeInput({ keys: ["ArrowRight"] }),
+    makeInput({ keys: ["ArrowRight"] }),
+    makeInput({ keys: ["ArrowRight"] }),
   ];
 
   return {

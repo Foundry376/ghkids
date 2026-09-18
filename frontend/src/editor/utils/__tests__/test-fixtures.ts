@@ -42,7 +42,7 @@ export function makeGlobals(overrides: Partial<Globals> = {}): Globals {
   };
 }
 
-export function makeInput(overrides: { keys?: number[]; clicks?: string[] } = {}): FrameInput {
+export function makeInput(overrides: { keys?: (number | string)[]; clicks?: string[] } = {}): FrameInput {
   const { keys = [], clicks = [] } = overrides;
   return {
     keys: Object.fromEntries(keys.map((k) => [k, true as const])),

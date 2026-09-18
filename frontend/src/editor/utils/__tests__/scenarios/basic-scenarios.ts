@@ -69,13 +69,18 @@ export function movementOnKeyPressScenario(): TestScenario {
     actors: { "rule-actor": ruleActor },
     actions: [{ type: "move", actorId: "rule-actor", delta: { x: 0, y: -1 } }],
   });
-  const keyGroup = makeEventGroup({ id: "key-group", event: "key", rules: [rule], code: 38 });
+  const keyGroup = makeEventGroup({
+    id: "key-group",
+    event: "key",
+    rules: [rule],
+    code: "ArrowUp",
+  });
   const character = makeCharacter({ id: charId, name: "Player", rules: [keyGroup] });
   const characters: Characters = { [charId]: character };
 
   const stageActor = makeActor({ id: actorId, characterId: charId, position: { x: 5, y: 5 } });
   const stage = makeStage({ id: "stage-1", actors: { [actorId]: stageActor } });
-  const world = makeWorld({ stage, input: makeInput({ keys: [38] }) });
+  const world = makeWorld({ stage, input: makeInput({ keys: ["ArrowUp"] }) });
 
   return {
     name: "should move an actor on key press event",

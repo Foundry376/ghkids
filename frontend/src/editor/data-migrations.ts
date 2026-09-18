@@ -6,6 +6,7 @@ import {
   BUILTIN_STAGE_VARIABLES,
 } from "./utils/builtin-stage-variables";
 import { migrateGameCoordinates } from "./utils/coordinate-migration";
+import { canonicalKey } from "./utils/keys";
 import { makeId } from "./utils/utils";
 
 export function applyValueChanges(value: any) {
@@ -19,6 +20,27 @@ export function applyValueChanges(value: any) {
     return "180";
   }
   return value;
+}
+
+function migrateKeyCondition(condition: any) {
+  const keypressOnLeft = condition.left?.globalId === "keypress";
+  const keypressOnRight = condition.right?.globalId === "keypress";
+  const value = keypressOnLeft ? condition.right : keypressOnRight ? condition.left : null;
+  if (value && "constant" in value && ["string", "number"].includes(typeof value.constant)) {
+    value.constant = canonicalKey(value.constant);
+  }
+}
+
+function migrateRuleKeys(rule: any) {
+  if (rule.type === "group-event" && rule.event === "key" && rule.code != null) {
+    rule.code = canonicalKey(rule.code);
+  }
+  for (const condition of rule.conditions || []) {
+    migrateKeyCondition(condition);
+  }
+  for (const condition of rule.check?.conditions || []) {
+    migrateKeyCondition(condition);
+  }
 }
 
 export function applyDataMigrations(game: Game): Game {
@@ -123,6 +145,8 @@ export function applyDataMigrations(game: Game): Game {
               },
             );
           }
+
+          migrateRuleKeys(rule);
         }
       }
     } catch (err) {

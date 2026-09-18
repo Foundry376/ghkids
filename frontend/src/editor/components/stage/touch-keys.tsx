@@ -9,7 +9,7 @@ import {
   releaseKeys,
   releaseSource,
 } from "../../utils/held-keys";
-import { inputKeysForKey, KEYCODE_TO_KEY, keyCodeToKey } from "../../utils/keys";
+import { canonicalKey } from "../../utils/keys";
 
 /** Display label for a Codako key string. */
 function labelForKey(key: string): string {
@@ -44,19 +44,15 @@ function collectKeysFromRules(rules: RuleTreeItem[], keys: Set<string>) {
     if (item.type === "group-event") {
       const ev = item as RuleTreeEventItem;
       if (ev.event === "key" && ev.code != null) {
-        // code is stored as a number (legacy keyCode) or possibly a string at runtime
-        if (typeof ev.code === "number") {
-          keys.add(keyCodeToKey(ev.code));
-          // Also add the raw code as a string so checkEvent matches input.keys[code]
-          keys.add(String(ev.code));
-        } else {
-          keys.add(String(ev.code));
-        }
+        keys.add(canonicalKey(ev.code));
       }
       if (ev.rules) {
         collectKeysFromRules(ev.rules, keys);
       }
     } else if (item.type === "group-flow") {
+      for (const condition of item.check?.conditions || []) {
+        collectKeysFromCondition(condition, keys);
+      }
       if (item.rules) {
         collectKeysFromRules(item.rules, keys);
       }
@@ -70,10 +66,11 @@ function collectKeysFromRules(rules: RuleTreeItem[], keys: Set<string>) {
 }
 
 function collectKeysFromCondition(cond: RuleCondition, keys: Set<string>) {
-  if ("globalId" in cond.left && cond.left.globalId === "keypress") {
-    if ("constant" in cond.right && typeof cond.right.constant === "string") {
-      keys.add(cond.right.constant);
-    }
+  const keypressOnLeft = "globalId" in cond.left && cond.left.globalId === "keypress";
+  const keypressOnRight = "globalId" in cond.right && cond.right.globalId === "keypress";
+  const value = keypressOnLeft ? cond.right : keypressOnRight ? cond.left : null;
+  if (value && "constant" in value && (typeof value.constant === "string" || typeof value.constant === "number")) {
+    keys.add(canonicalKey(value.constant));
   }
 }
 
@@ -84,23 +81,7 @@ export function getUsedKeys(characters: Characters): string[] {
     collectKeysFromRules(char.rules, keys);
   }
 
-  // Deduplicate: if we added both the numeric code and its string equivalent,
-  // only keep the string equivalent for display purposes. Keep the numeric form
-  // so it appears in the dispatched input.
-  const display: string[] = [];
-  const seen = new Set<string>();
-  for (const k of keys) {
-    // Skip purely numeric keys that have a string equivalent already in the set
-    if (/^\d+$/.test(k)) {
-      const mapped = KEYCODE_TO_KEY[Number(k)];
-      if (mapped && keys.has(mapped)) continue;
-    }
-    if (!seen.has(k)) {
-      seen.add(k);
-      display.push(k);
-    }
-  }
-  return display;
+  return [...keys];
 }
 
 interface TouchKeysProps {
@@ -123,7 +104,7 @@ const TouchKeys: React.FC<TouchKeysProps> = ({ worldId, characters }) => {
   // module lets the playback loop re-apply it after each tick clears the input.
   const pressKey = useCallback(
     (key: string) => {
-      holdKeys(source, inputKeysForKey(key));
+      holdKeys(source, [canonicalKey(key)]);
       syncKeys();
     },
     [source, syncKeys],
@@ -131,7 +112,7 @@ const TouchKeys: React.FC<TouchKeysProps> = ({ worldId, characters }) => {
 
   const releaseKey = useCallback(
     (key: string) => {
-      releaseKeys(source, inputKeysForKey(key));
+      releaseKeys(source, [canonicalKey(key)]);
       syncKeys();
     },
     [source, syncKeys],

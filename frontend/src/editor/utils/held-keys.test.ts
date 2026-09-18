@@ -1,7 +1,7 @@
 import { expect } from "chai";
 import { createStore, Dispatch, Store } from "redux";
 
-import { Characters, EditorState } from "../../types";
+import { Characters, EditorState, RuleTreeEventItem, RuleTreeFlowItemFirst } from "../../types";
 import { Actions } from "../actions";
 import { advancePlaybackGameState, recordInputForGameState } from "../actions/stage-actions";
 import { WORLDS } from "../constants/constants";
@@ -58,8 +58,48 @@ function makeEditorState(): EditorState {
   });
 }
 
-function makeEditorStore(): Store<EditorState> {
-  return createStore(rootReducer, makeEditorState());
+function makeEditorStateWithKeyTestPredicate(): EditorState {
+  const state = makeEditorState();
+  const character = state.characters[CHARACTER_ID];
+  const movementRule = (character.rules[0] as RuleTreeEventItem).rules[0];
+  const ruleActor = makeActor({ id: "rule-actor", characterId: CHARACTER_ID });
+  const keyTest: RuleTreeFlowItemFirst = {
+    type: "group-flow",
+    id: "key-test",
+    name: "Right arrow is pressed",
+    behavior: "first",
+    check: {
+      id: "key-test-check",
+      mainActorId: ruleActor.id,
+      actors: { [ruleActor.id]: ruleActor },
+      extent: { xmin: 0, xmax: 0, ymin: 0, ymax: 0, ignored: {} },
+      conditions: [
+        {
+          key: "key-test-condition",
+          enabled: true,
+          left: { globalId: "keypress" },
+          comparator: "=",
+          right: { constant: RIGHT },
+        },
+      ],
+    },
+    rules: [movementRule],
+  };
+
+  return {
+    ...state,
+    characters: {
+      ...state.characters,
+      [CHARACTER_ID]: {
+        ...character,
+        rules: [makeEventGroup({ id: "idle-group", event: "idle", rules: [keyTest] })],
+      },
+    },
+  };
+}
+
+function makeEditorStore(state: EditorState = makeEditorState()): Store<EditorState> {
+  return createStore(rootReducer, state);
 }
 
 function xOf(store: Store<EditorState>) {
@@ -170,6 +210,23 @@ describe("held keys", () => {
         positions.push(xOf(store));
       }
       expect(positions).to.deep.equal([2, 3, 4, 5, 6]);
+    });
+
+    it("keeps key-test predicates working while multiple keys are held", () => {
+      const store = makeEditorStore(makeEditorStateWithKeyTestPredicate());
+      tick(store);
+      expect(xOf(store)).to.equal(2);
+
+      holdKeys(KEYBOARD, [RIGHT, "ArrowUp"]);
+      store.dispatch(recordInputForGameState(WORLDS.ROOT, { keys: heldKeysAsInput() }));
+
+      tick(store, 3);
+
+      expect(xOf(store)).to.equal(5);
+      expect(store.getState().world.globals.keypress.value.split(",")).to.have.members([
+        RIGHT,
+        "ArrowUp",
+      ]);
     });
 
     it("stops as soon as the key is released", () => {

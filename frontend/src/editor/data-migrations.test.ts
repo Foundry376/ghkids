@@ -417,6 +417,66 @@ describe("data-migrations", () => {
       });
     });
 
+    describe("key migrations", () => {
+      it("canonicalizes legacy event codes and key-test constants", () => {
+        const game = makeMinimalGame({
+          characters: {
+            char1: {
+              id: "char1",
+              name: "Character",
+              rules: [
+                {
+                  id: "event1",
+                  type: "group-event",
+                  event: "key",
+                  code: 39 as any,
+                  rules: [
+                    {
+                      id: "flow1",
+                      type: "group-flow",
+                      name: "Key test",
+                      behavior: "first",
+                      check: {
+                        id: "check1",
+                        mainActorId: "actor1",
+                        actors: {},
+                        extent: { xmin: 0, xmax: 0, ymin: 0, ymax: 0, ignored: {} },
+                        conditions: [
+                          {
+                            key: "condition1",
+                            enabled: true,
+                            left: { globalId: "keypress" },
+                            comparator: "=",
+                            right: { constant: "a" },
+                          },
+                          {
+                            key: "condition2",
+                            enabled: true,
+                            left: { constant: 32 as any },
+                            comparator: "=",
+                            right: { globalId: "keypress" },
+                          },
+                        ],
+                      },
+                      rules: [],
+                    },
+                  ],
+                },
+              ],
+              spritesheet: { appearances: {}, appearanceNames: {} },
+              variables: {},
+            },
+          },
+        });
+
+        const migrated = applyDataMigrations(game);
+        const event = migrated.data.characters.char1.rules[0] as any;
+        expect(event.code).to.equal("ArrowRight");
+        expect(event.rules[0].check.conditions[0].right.constant).to.equal("A");
+        expect(event.rules[0].check.conditions[1].left.constant).to.equal("Space");
+      });
+    });
+
     describe("nested rule containers", () => {
       it("should migrate rules inside flow containers", () => {
         const game = makeMinimalGame({
