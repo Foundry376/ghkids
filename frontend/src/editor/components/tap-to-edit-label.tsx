@@ -54,6 +54,9 @@ export const TapToEditLabel = ({
           e.preventDefault();
         }
       }}
+      onDoubleClick={(e) => {
+        e.stopPropagation();
+      }}
       onKeyDown={(e) => {
         e.stopPropagation();
         if (e.key === "Enter") {
