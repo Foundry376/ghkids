@@ -110,7 +110,7 @@ export type RuleTreeEventItem = {
   type: "group-event";
   rules: RuleTreeItem[];
   event: "idle" | "key" | "click";
-  code?: number | string; // used for key event (legacy numeric keyCode or codako key name)
+  code?: string; // canonical key name used by key events
   id: string;
   enabled?: boolean;
   comment?: string;

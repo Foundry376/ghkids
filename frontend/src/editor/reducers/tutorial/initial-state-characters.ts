@@ -90,7 +90,7 @@ const InitialCharacters: Characters = {
     rules: [
       {
         id: "1483692901714",
-        code: 39,
+        code: "ArrowRight",
         type: "group-event",
         event: "key",
         rules: [
@@ -156,7 +156,7 @@ const InitialCharacters: Characters = {
       },
       {
         id: "1483692898285",
-        code: 37,
+        code: "ArrowLeft",
         type: "group-event",
         event: "key",
         rules: [

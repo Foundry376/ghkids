@@ -39,6 +39,7 @@ import {
 import { DOOR_VARIABLE_IDS } from "./door-constants";
 import { FrameAccumulator } from "./frame-accumulator";
 import { diff as historyDiffFn, unpatch as historyUnpatch } from "./history-diff";
+import { canonicalKey } from "./keys";
 import { getCurrentStageForWorld } from "./selectors";
 import {
   actorFillsPoint,
@@ -118,6 +119,24 @@ export default function WorldOperator(
   // closure state above, so in-place mutations during applyRule are visible
   // through ctx without rebuilding it.
   let ctx: RuleValueContext;
+
+  function conditionMatches(condition: RuleCondition, left: string | null, right: string | null) {
+    if (condition.comparator === "=" || condition.comparator === "!=") {
+      // The global is comma-joined for display, but equality means membership
+      // when several physical keys are held at once.
+      const keypressOnLeft =
+        "globalId" in condition.left && condition.left.globalId === "keypress";
+      const keypressOnRight =
+        "globalId" in condition.right && condition.right.globalId === "keypress";
+
+      if (keypressOnLeft !== keypressOnRight) {
+        const key = keypressOnLeft ? right : left;
+        const pressed = key !== null && input.keys[canonicalKey(key)] === true;
+        return condition.comparator === "=" ? pressed : !pressed;
+      }
+    }
+    return comparatorMatches(condition.comparator, left, right);
+  }
 
   function wrappedPosition({ x, y }: PositionRelativeToWorld) {
     // World coordinates are 1-indexed (bottom-left = (1, 1)). Wrap relative to
@@ -355,7 +374,7 @@ export default function WorldOperator(
 
     function checkEvent(trigger: RuleTreeEventItem) {
       if (trigger.event === "key") {
-        return input.keys[trigger.code!];
+        return trigger.code == null ? false : input.keys[canonicalKey(trigger.code)];
       }
       if (trigger.event === "click") {
         return input.clicks[me.id];
@@ -574,7 +593,7 @@ export default function WorldOperator(
             stageActorsForRuleActorIds,
             ctx,
           );
-          const passed = comparatorMatches(condition.comparator, left, right);
+          const passed = conditionMatches(condition, left, right);
           conditions.push({
             conditionKey: condition.key,
             passed,

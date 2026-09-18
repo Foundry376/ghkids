@@ -69,8 +69,8 @@ import {
   WorldMinimal,
 } from "../../../types";
 import { defaultAppearanceId } from "../../utils/character-helpers";
+import { canonicalKey } from "../../utils/keys";
 import { makeId } from "../../utils/utils";
-import { keyToCodakoKey } from "../modal-keypicker/keyboard";
 import {
   heldKeysAsInput,
   holdKeys,
@@ -78,7 +78,6 @@ import {
   releaseKeys,
   releaseSource,
 } from "../../utils/held-keys";
-import { inputKeysForKey } from "../../utils/keys";
 
 interface StageProps {
   stage: StageType;
@@ -259,16 +258,14 @@ function useGlobalHeldKeys(worldId: string, playbackRunning: boolean) {
       }
 
       // Auto-repeat fires keydown over and over for a key that's already down,
-      // so only the first one is worth dispatching. The key is held under its
-      // legacy numeric keyCode too: rules recorded before key names replaced
-      // keyCodes are still looking for input.keys[39].
-      if (holdKeys(source, inputKeysForKey(keyToCodakoKey(event.key)))) {
+      // so only the first one is worth dispatching.
+      if (holdKeys(source, [canonicalKey(event.key)])) {
         syncHeldKeys();
       }
     };
 
     const onDocumentKeyUp = (event: KeyboardEvent) => {
-      if (releaseKeys(source, inputKeysForKey(keyToCodakoKey(event.key)))) {
+      if (releaseKeys(source, [canonicalKey(event.key)])) {
         // When playing, don't sync on keyup - let the key persist until tick() clears it.
         // This ensures quick key taps are registered even if keyup happens before next tick.
         // (The next tick won't put it back, because it's no longer held.)

@@ -1,13 +1,5 @@
 import { useEffect, useRef } from "react";
 
-// eslint-disable-next-line react-refresh/only-export-components
-export function keyToCodakoKey(key: string): string {
-  if (key === " ") {
-    return "Space";
-  }
-  return key;
-}
-
 type KeyValue = string | null;
 type KeyConfig = string | { length: number; value: string | [KeyValue, KeyValue] };
 
@@ -67,7 +59,7 @@ const forEachKeyRect = (
       "—",
       "—",
       { length: 1.6, value: "—" },
-      { length: 5, value: keyToCodakoKey(" ") },
+      { length: 5, value: "Space" },
       { length: 1.6, value: "—" },
       "—",
       { length: 1, value: [null, "ArrowLeft"] },

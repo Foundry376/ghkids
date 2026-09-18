@@ -6,8 +6,9 @@ import { useEditorSelector } from "../../../hooks/redux";
 import { createCharacterEventContainer } from "../../actions/characters-actions";
 import { upsertRecordingCondition } from "../../actions/recording-actions";
 import { pickConditionValueFromKeyboard } from "../../actions/ui-actions";
+import { canonicalKey } from "../../utils/keys";
 import { makeId } from "../../utils/utils";
-import Keyboard, { keyToCodakoKey } from "./keyboard";
+import Keyboard from "./keyboard";
 
 export const KeypickerContainer = () => {
   const dispatch = useDispatch();
@@ -58,7 +59,7 @@ export const KeypickerContainer = () => {
   };
 
   const _onKeyDown = (event: { key: string; preventDefault: () => void }) => {
-    setKey(keyToCodakoKey(event.key));
+    setKey(canonicalKey(event.key));
     event.preventDefault();
   };
 
