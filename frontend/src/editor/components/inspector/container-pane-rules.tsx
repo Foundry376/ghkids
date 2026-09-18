@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useLayoutEffect, useRef } from "react";
 
 import { useDispatch } from "react-redux";
 import {
@@ -50,12 +50,54 @@ const cloneRuleWithFreshIds = (item: RuleTreeItem): RuleTreeItem => {
   return copy;
 };
 
+const scrollRuleFullyIntoView = (container: HTMLElement, ruleId: string | null) => {
+  const rule = Array.from(container.querySelectorAll<HTMLElement>("[data-rule-id]")).find(
+    (el) => el.dataset.ruleId === ruleId,
+  );
+  if (!rule) return;
+
+  const containerRect = container.getBoundingClientRect();
+  const ruleRect = rule.getBoundingClientRect();
+  if (ruleRect.height >= container.clientHeight || ruleRect.top < containerRect.top) {
+    container.scrollTop += Math.floor(ruleRect.top - containerRect.top);
+  } else if (ruleRect.bottom > containerRect.bottom) {
+    container.scrollTop += Math.ceil(ruleRect.bottom - containerRect.bottom);
+  }
+};
+
+const useRestoreRuleListScrollPosition = ({
+  characterId,
+  selectedRuleId,
+  containerRef,
+  scrollPositions,
+}: {
+  characterId: string | undefined;
+  selectedRuleId: string | null;
+  containerRef: React.RefObject<HTMLDivElement>;
+  scrollPositions: React.MutableRefObject<Record<string, number>>;
+}) => {
+  useLayoutEffect(() => {
+    const container = containerRef.current;
+    if (!characterId || !container) return;
+
+    container.scrollTop = scrollPositions.current[characterId] ?? 0;
+    scrollRuleFullyIntoView(container, selectedRuleId);
+    scrollPositions.current[characterId] = container.scrollTop;
+
+    // Restore only when this pane mounts or changes character. Updating while a
+    // user clicks rules could move the target between clicks of a double-click.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [characterId, containerRef, scrollPositions]);
+};
+
 export const ContainerPaneRules = ({
   character,
   actor,
+  scrollPositions,
 }: {
   character: Character | null;
   actor?: Actor | null;
+  scrollPositions: React.MutableRefObject<Record<string, number>>;
 }) => {
   const dispatch = useDispatch();
   const { selectedToolId, stampToolItem, selectedRuleId } = useEditorSelector(
@@ -67,6 +109,13 @@ export const ContainerPaneRules = ({
 
   const latestRef = useRef({ character, selectedRuleId, stampToolItem, isRecording });
   latestRef.current = { character, selectedRuleId, stampToolItem, isRecording };
+
+  useRestoreRuleListScrollPosition({
+    characterId: character?.id,
+    selectedRuleId,
+    containerRef: _scrollContainerEl,
+    scrollPositions,
+  });
 
   const onKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
     const target = event.target as HTMLElement | null;
@@ -222,6 +271,9 @@ export const ContainerPaneRules = ({
   };
 
   const _onRuleReRecord = (rule: Rule | RuleTreeFlowItemCheck) => {
+    if (_scrollContainerEl.current) {
+      scrollPositions.current[character.id] = _scrollContainerEl.current.scrollTop;
+    }
     dispatch(editRuleRecording({ characterId: character.id, rule: rule }));
   };
 
@@ -381,6 +433,9 @@ export const ContainerPaneRules = ({
         className="scroll-container"
         ref={_scrollContainerEl}
         tabIndex={-1}
+        onScroll={(event) => {
+          scrollPositions.current[character.id] = event.currentTarget.scrollTop;
+        }}
         onClick={onClickBackground}
         onMouseDown={onMouseDownContainer}
         onKeyDown={onKeyDown}

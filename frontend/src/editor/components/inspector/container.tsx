@@ -1,6 +1,6 @@
 import { Nav, NavItem, NavLink } from "reactstrap";
 import classNames from "classnames";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { ContainerPaneRules } from "./container-pane-rules";
 import { ContainerPaneVariables } from "./container-pane-variables";
@@ -16,6 +16,7 @@ export const InspectorContainer = () => {
   const [activeTab, setActiveTab] = useState<"rules" | "variables">(
     isRecording ? "variables" : "rules",
   );
+  const ruleScrollPositions = useRef<Record<string, number>>({});
 
   const { worldId, actorIds } = ui.selectedActors ?? { worldId: null, actorIds: [] };
 
@@ -32,11 +33,6 @@ export const InspectorContainer = () => {
   useEffect(() => {
     setActiveTab(isRecording ? "variables" : "rules");
   }, [isRecording]);
-
-  const ContentContainer = {
-    rules: ContainerPaneRules,
-    variables: ContainerPaneVariables,
-  }[activeTab];
 
   const isReadonly = isRecording && worldId === recording.beforeWorld.id;
 
@@ -70,7 +66,21 @@ export const InspectorContainer = () => {
             </NavLink>
           </NavItem>
         </Nav>
-        <ContentContainer world={focusedWorld} character={focusedCharacter} actor={focusedActor} actors={focusedActors} readonly={isReadonly} />
+        {activeTab === "rules" ? (
+          <ContainerPaneRules
+            character={focusedCharacter}
+            actor={focusedActor}
+            scrollPositions={ruleScrollPositions}
+          />
+        ) : (
+          <ContainerPaneVariables
+            world={focusedWorld}
+            character={focusedCharacter!}
+            actor={focusedActor}
+            actors={focusedActors}
+            readonly={isReadonly}
+          />
+        )}
       </div>
     </InspectorContext.Provider>
   );
