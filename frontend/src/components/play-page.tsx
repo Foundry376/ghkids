@@ -134,54 +134,59 @@ const PlayPage: React.FC = () => {
     >
       {/* Top bar - always visible */}
       <div className="play-top-bar">
-        <Link className="play-top-bar__brand" to="/">
-          Codako
-        </Link>
+        <div className="play-top-bar__brand-group">
+          <div className="play-top-bar__actions">
+            <ButtonDropdown {...menuProps} isOpen={menuOpen} toggle={toggleMenu}>
+              <DropdownToggle size="sm" outline aria-label="Player menu">
+                <i className="fa fa-ellipsis-v" />
+              </DropdownToggle>
+              <DropdownMenu right>
+                {immersive && (
+                  <DropdownItem onClick={onExitImmersive}>
+                    <i className="fa fa-info-circle fa-fw" style={{ marginRight: 8 }} />
+                    Back to Game Info
+                  </DropdownItem>
+                )}
+                {canFullscreen && (
+                  <DropdownItem
+                    onClick={toggleFullscreen}
+                    style={{ display: "flex", alignItems: "center" }}
+                  >
+                    <i
+                      className={`fa ${isFullscreen ? "fa-compress" : "fa-expand"} fa-fw`}
+                      style={{ marginRight: 8 }}
+                    />
+                    {isFullscreen ? "Exit Full Screen" : "Show Full Screen"}
+                    <span style={{ marginLeft: "auto", paddingLeft: 24, opacity: 0.5 }}>
+                      {FULLSCREEN_SHORTCUT_LABEL}
+                    </span>
+                  </DropdownItem>
+                )}
+                {(immersive || canFullscreen) && <DropdownItem divider />}
+                <DropdownItem onClick={onEditOrRemix}>
+                  <i className="fa fa-pencil fa-fw" style={{ marginRight: 8 }} />
+                  {editLabel}
+                </DropdownItem>
+                <DropdownItem divider />
+                <DropdownItem onClick={() => (window.location.href = "/")}>
+                  <i
+                    className="fa fa-sign-out fa-fw fa-flip-horizontal"
+                    style={{ marginRight: 8 }}
+                  />
+                  Exit
+                </DropdownItem>
+              </DropdownMenu>
+            </ButtonDropdown>
+          </div>
+          <Link className="play-top-bar__brand" to="/">
+            Codako
+          </Link>
+        </div>
         <div className="play-top-bar__title">
           <span>{world.name}</span>
           {" by "}
           <Link to={`/u/${world.user.username}`}>{world.user.username}</Link>
           {currentStageName && <span className="play-top-bar__stage">: {currentStageName}</span>}
-        </div>
-        <div className="play-top-bar__actions">
-          <ButtonDropdown {...menuProps} isOpen={menuOpen} toggle={toggleMenu}>
-            <DropdownToggle size="sm" outline aria-label="Player menu">
-              <i className="fa fa-ellipsis-v" />
-            </DropdownToggle>
-            <DropdownMenu right>
-              {immersive && (
-                <DropdownItem onClick={onExitImmersive}>
-                  <i className="fa fa-info-circle fa-fw" style={{ marginRight: 8 }} />
-                  Back to Game Info
-                </DropdownItem>
-              )}
-              {canFullscreen && (
-                <DropdownItem
-                  onClick={toggleFullscreen}
-                  style={{ display: "flex", alignItems: "center" }}
-                >
-                  <i
-                    className={`fa ${isFullscreen ? "fa-compress" : "fa-expand"} fa-fw`}
-                    style={{ marginRight: 8 }}
-                  />
-                  {isFullscreen ? "Exit Full Screen" : "Show Full Screen"}
-                  <span style={{ marginLeft: "auto", paddingLeft: 24, opacity: 0.5 }}>
-                    {FULLSCREEN_SHORTCUT_LABEL}
-                  </span>
-                </DropdownItem>
-              )}
-              {(immersive || canFullscreen) && <DropdownItem divider />}
-              <DropdownItem onClick={onEditOrRemix}>
-                <i className="fa fa-pencil fa-fw" style={{ marginRight: 8 }} />
-                {editLabel}
-              </DropdownItem>
-              <DropdownItem divider />
-              <DropdownItem onClick={() => (window.location.href = "/")}>
-                <i className="fa fa-sign-out fa-fw fa-flip-horizontal" style={{ marginRight: 8 }} />
-                Exit
-              </DropdownItem>
-            </DropdownMenu>
-          </ButtonDropdown>
         </div>
       </div>
 
