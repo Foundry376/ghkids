@@ -1185,6 +1185,7 @@ export const Stage = ({
       case TOOLS.POINTER:
       default:
         dispatch(select(actor.characterId, selFor([actor.id])));
+        el.current?.focus();
         break;
     }
 
