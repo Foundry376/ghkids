@@ -53,6 +53,7 @@ import {
   getVariableValue,
   pointIsOutside,
   sortActorsByZOrder,
+  stagePositionsBetween,
   stageSquareForPixelOffset,
 } from "../../utils/stage-helpers";
 
@@ -102,7 +103,11 @@ interface StageProps {
 }
 
 type Offset = { top: string | number; left: string | number };
-type MouseStatus = { isDown: boolean; visited: { [posKey: string]: true } };
+type MouseStatus = {
+  isDown: boolean;
+  visited: { [posKey: string]: true };
+  lastPosition: Position | null;
+};
 type SelectionRect = { start: { top: number; left: number }; end: { top: number; left: number } };
 
 // Custom drag state for multi-sprite dragging with proper transform preview
@@ -332,7 +337,7 @@ export const Stage = ({
   // (which is position:absolute in the scroll wrap) can be positioned correctly.
   const [centeringOffset, setCenteringOffset] = useState({ left: 0, top: 0 });
 
-  const mouse = useRef<MouseStatus>({ isDown: false, visited: {} });
+  const mouse = useRef<MouseStatus>({ isDown: false, visited: {}, lastPosition: null });
   const scrollEl = useRef<HTMLDivElement | null>();
   const el = useRef<HTMLDivElement | null>();
 
@@ -986,7 +991,7 @@ export const Stage = ({
         onMouseMove.current?.(e);
       },
     });
-    mouse.current = { isDown: true, visited: {} };
+    mouse.current = { isDown: true, visited: {}, lastPosition: null };
 
     const isClickOnBackground = event.target === event.currentTarget;
     const px =
@@ -995,6 +1000,10 @@ export const Stage = ({
       setSelectionRect({ start: { ...px }, end: { ...px } });
     } else {
       setSelectionRect(null);
+    }
+
+    if (selectedToolId === TOOLS.IGNORE_SQUARE) {
+      onMouseMove.current?.(event.nativeEvent);
     }
   };
 
@@ -1023,15 +1032,26 @@ export const Stage = ({
     if (!(x >= 1 && x <= stageWidth && y >= 1 && y <= stageHeight)) {
       return;
     }
+
+    if (selectedToolId === TOOLS.IGNORE_SQUARE) {
+      const from = mouse.current.lastPosition ?? position;
+      mouse.current.lastPosition = position;
+      for (const square of stagePositionsBetween(from, position)) {
+        const posKey = `${square.x},${square.y}`;
+        if (!mouse.current.visited[posKey]) {
+          mouse.current.visited[posKey] = true;
+          dispatch(toggleSquareIgnored(square));
+        }
+      }
+      return;
+    }
+
     const posKey = `${x},${y}`;
     if (mouse.current.visited[posKey]) {
       return;
     }
     mouse.current.visited[posKey] = true;
 
-    if (selectedToolId === TOOLS.IGNORE_SQUARE) {
-      dispatch(toggleSquareIgnored({ x, y }));
-    }
     if (selectedToolId === TOOLS.STAMP) {
       onStampAtPosition({ x, y });
     }
@@ -1084,7 +1104,7 @@ export const Stage = ({
   onMouseUp.current = (event: MouseEvent) => {
     onMouseMove.current?.(event);
 
-    mouse.current = { isDown: false, visited: {} };
+    mouse.current = { isDown: false, visited: {}, lastPosition: null };
 
     if (selectionRect) {
       const selectedActors: Actor[] = [];
