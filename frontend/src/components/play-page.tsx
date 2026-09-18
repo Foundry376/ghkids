@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useDispatch } from "react-redux";
 import { Link, useParams } from "react-router-dom";
-import { Button } from "reactstrap";
+import { ButtonDropdown, DropdownItem, DropdownMenu, DropdownToggle } from "reactstrap";
 
 import { Store } from "redux";
 import { createWorld, fetchWorld } from "../actions/main-actions";
@@ -9,6 +9,7 @@ import { updatePlaybackState } from "../editor/actions/ui-actions";
 import { RootPlayer } from "../editor/root-player";
 import { getCurrentStage } from "../editor/utils/selectors";
 import { useAppSelector } from "../hooks/redux";
+import { useDismissibleMenu } from "../hooks/useDismissibleMenu";
 import { FULLSCREEN_SHORTCUT_LABEL, useFullscreen } from "../hooks/useFullscreen";
 import { usePageTitle } from "../hooks/usePageTitle";
 import { EditorState } from "../types";
@@ -26,6 +27,7 @@ const PlayPage: React.FC = () => {
   const world = worlds && worldId ? worlds[worldId] : null;
 
   const [immersive, setImmersive] = useState(false);
+  const { menuProps, open: menuOpen, toggle: toggleMenu } = useDismissibleMenu("player");
   const enteringFullscreenRef = useRef(false);
   const editorStoreRef = useRef<Store | null>(null);
   const {
@@ -132,34 +134,59 @@ const PlayPage: React.FC = () => {
     >
       {/* Top bar - always visible */}
       <div className="play-top-bar">
-        <Link className="play-top-bar__brand" to="/">
-          Codako
-        </Link>
+        <div className="play-top-bar__brand-group">
+          <div className="play-top-bar__actions">
+            <ButtonDropdown {...menuProps} isOpen={menuOpen} toggle={toggleMenu}>
+              <DropdownToggle size="sm" outline aria-label="Player menu">
+                <i className="fa fa-ellipsis-v" />
+              </DropdownToggle>
+              <DropdownMenu>
+                {immersive && (
+                  <DropdownItem onClick={onExitImmersive}>
+                    <i className="fa fa-info-circle fa-fw" style={{ marginRight: 8 }} />
+                    Back to Game Info
+                  </DropdownItem>
+                )}
+                {canFullscreen && (
+                  <DropdownItem
+                    onClick={toggleFullscreen}
+                    style={{ display: "flex", alignItems: "center" }}
+                  >
+                    <i
+                      className={`fa ${isFullscreen ? "fa-compress" : "fa-expand"} fa-fw`}
+                      style={{ marginRight: 8 }}
+                    />
+                    {isFullscreen ? "Exit Full Screen" : "Show Full Screen"}
+                    <span style={{ marginLeft: "auto", paddingLeft: 24, opacity: 0.5 }}>
+                      {FULLSCREEN_SHORTCUT_LABEL}
+                    </span>
+                  </DropdownItem>
+                )}
+                {(immersive || canFullscreen) && <DropdownItem divider />}
+                <DropdownItem onClick={onEditOrRemix}>
+                  <i className="fa fa-pencil fa-fw" style={{ marginRight: 8 }} />
+                  {editLabel}
+                </DropdownItem>
+                <DropdownItem divider />
+                <DropdownItem onClick={() => (window.location.href = "/")}>
+                  <i
+                    className="fa fa-sign-out fa-fw fa-flip-horizontal"
+                    style={{ marginRight: 8 }}
+                  />
+                  Exit
+                </DropdownItem>
+              </DropdownMenu>
+            </ButtonDropdown>
+          </div>
+          <Link className="play-top-bar__brand" to="/">
+            Codako
+          </Link>
+        </div>
         <div className="play-top-bar__title">
           <span>{world.name}</span>
           {" by "}
           <Link to={`/u/${world.user.username}`}>{world.user.username}</Link>
           {currentStageName && <span className="play-top-bar__stage">: {currentStageName}</span>}
-        </div>
-        <div className="play-top-bar__actions">
-          {canFullscreen && (
-            <Button
-              size="sm"
-              outline
-              onClick={toggleFullscreen}
-              title={`${isFullscreen ? "Exit Full Screen" : "Show Full Screen"} (${FULLSCREEN_SHORTCUT_LABEL})`}
-            >
-              <i className={`fa ${isFullscreen ? "fa-compress" : "fa-expand"}`} />
-            </Button>
-          )}
-          {immersive && (
-            <Button size="sm" outline onClick={onExitImmersive} title="Back to info">
-              <i className="fa fa-arrow-left" />
-            </Button>
-          )}
-          <Button size="sm" color="success" onClick={onEditOrRemix}>
-            {editLabel}
-          </Button>
         </div>
       </div>
 

@@ -1,4 +1,4 @@
-import { useContext, useState } from "react";
+import { useContext } from "react";
 import { useDispatch } from "react-redux";
 import { Link } from "react-router-dom";
 import { Button, ButtonDropdown, DropdownItem, DropdownMenu, DropdownToggle } from "reactstrap";
@@ -12,6 +12,7 @@ import UndoRedoControls from "./undo-redo-controls";
 
 import { createWorld } from "../../actions/main-actions";
 import { EditorContext } from "../../components/editor-context";
+import { useDismissibleMenu } from "../../hooks/useDismissibleMenu";
 import { useEditorSelector } from "../../hooks/redux";
 import { FULLSCREEN_SHORTCUT_LABEL } from "../../hooks/useFullscreen";
 import { forgivingPress } from "../utils/pointer";
@@ -35,7 +36,7 @@ const Toolbar = () => {
     canFullscreen,
     toggleFullscreen,
   } = useContext(EditorContext);
-  const [open, setOpen] = useState(false);
+  const { menuProps, open, toggle } = useDismissibleMenu("author");
 
   const renderTool = (toolId: TOOLS) => (
     <ToolButton
@@ -77,7 +78,7 @@ const Toolbar = () => {
 
     return (
       <div style={{ display: "flex", alignItems: "center" }}>
-        <ButtonDropdown data-tutorial-id="main-menu" isOpen={open} toggle={() => setOpen(!open)}>
+        <ButtonDropdown {...menuProps} data-tutorial-id="main-menu" isOpen={open} toggle={toggle}>
           <DropdownToggle {...forgivingPress()}>
             <i className="fa fa-ellipsis-v" />
           </DropdownToggle>
