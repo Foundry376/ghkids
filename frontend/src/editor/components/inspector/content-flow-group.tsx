@@ -13,6 +13,7 @@ import { isCollapsePersisted, persistCollapsedState } from "./collapse-state-sto
 import { RuleActionsContext } from "./container-pane-rules";
 import { ContentFlowGroupCheck } from "./content-flow-group-check";
 import { DisclosureTriangle } from "./disclosure-triangle";
+import { changesForFlowBehavior } from "./flow-group-behavior";
 
 export const ContentFlowGroup = ({
   rule,
@@ -32,7 +33,8 @@ export const ContentFlowGroup = ({
   };
 
   const _onBehaviorChanged = (event: React.ChangeEvent<HTMLSelectElement>) => {
-    onRuleChanged(rule.id, { behavior: event.target.value as RuleTreeFlowItem["behavior"] });
+    const behavior = event.target.value as RuleTreeFlowItem["behavior"];
+    onRuleChanged(rule.id, changesForFlowBehavior(rule, behavior));
   };
 
   const _onLoopCountChanged = (event: React.ChangeEvent<HTMLSelectElement>) => {
