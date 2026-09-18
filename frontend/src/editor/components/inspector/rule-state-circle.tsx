@@ -1,13 +1,7 @@
 import { useContext } from "react";
 import { InspectorContext } from "./inspector-context";
 
-export const RuleStateCircle = ({
-  rule,
-  onToggle,
-}: {
-  rule: { id: string; enabled?: boolean };
-  onToggle?: () => void;
-}) => {
+export const RuleStateCircle = ({ rule }: { rule: { id: string; enabled?: boolean } }) => {
   const { evaluatedRuleDetailsForActor } = useContext(InspectorContext);
   const details = evaluatedRuleDetailsForActor?.[rule.id];
   const isEnabled = rule.enabled !== false;
@@ -24,14 +18,5 @@ export const RuleStateCircle = ({
     return `circle ${details.passed}`;
   };
 
-  return (
-    <button
-      className={`rule-toggle-btn ${getCircleClass()}`}
-      onClick={(e) => {
-        e.stopPropagation();
-        onToggle?.();
-      }}
-      title={isEnabled ? "Click to disable rule" : "Click to enable rule"}
-    />
-  );
+  return <span className={`rule-state-circle ${getCircleClass()}`} aria-hidden="true" />;
 };

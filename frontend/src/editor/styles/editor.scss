@@ -115,15 +115,9 @@ html {
     }
   }
 
-  .rule-toggle-btn {
-    padding: 0;
-    cursor: pointer;
+  .rule-state-circle {
     flex-shrink: 0;
-    pointer-events: auto;
     position: relative;
-    transition:
-      transform 0.1s ease,
-      box-shadow 0.1s ease;
 
     &::after {
       content: "";
@@ -140,18 +134,6 @@ html {
 
     &.disabled::after {
       opacity: 1;
-    }
-
-    &:hover {
-      transform: scale(1.2);
-
-      &::after {
-        opacity: 1;
-      }
-    }
-
-    &:active {
-      transform: scale(1.1);
     }
   }
 
@@ -1681,7 +1663,7 @@ html {
         border-radius: inherit;
       }
 
-      .rule-toggle-btn {
+      .rule-state-circle {
         position: relative;
         z-index: 101;
       }
@@ -1815,14 +1797,10 @@ html {
   }
 }
 
-// The comment tool still needs its comment fields to be directly editable, and
-// the rule-state toggle remains clickable while disabling rules.
+// The comment tool still needs its comment fields to be directly editable.
 .editor.tool-comment .rules-list .rule-container .comment-text {
   pointer-events: auto;
   cursor: text;
-}
-.editor.tool-disable-rule .rules-list .rule-container .rule-toggle-btn {
-  pointer-events: auto;
 }
 
 // ─── Rule sidebar comments ──────────────────────────────────────────────────
