@@ -89,8 +89,16 @@ export const RecordingActions = (props: { characters: Characters; recording: Rec
     // In a saved rule the main actor is at 0,0, but when recording on the stage
     // the extent and the position are relative to the "current" game world.
     const mainActorBeforePosition = beforeStage.actors[recording.actorId!].position;
+    // Use every actor the rule can reference, including future creates, so duplicate
+    // labels stay consistent across the full action list.
+    const actorsInRule = [
+      ...Object.values(beforeStage.actors),
+      ...(actions || []).flatMap((action) =>
+        action.type === "create" ? [action.actor] : [],
+      ),
+    ];
     const actorNeedsDisambiguation = (actor: Actor) =>
-      Object.values(afterStage!.actors).some(
+      actorsInRule.some(
         (candidate) => candidate.id !== actor.id && candidate.characterId === actor.characterId,
       );
     if ("actorId" in a && a.actorId) {
