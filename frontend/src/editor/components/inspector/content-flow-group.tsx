@@ -102,6 +102,7 @@ export const ContentFlowGroup = ({
             collapsed={!rule.check || checkCollapsed}
           />
           <select
+            data-tutorial-id="rule-box-check"
             value={rule.check ? "when" : "always"}
             onChange={(e) => {
               if (e.target.value === "when") {
