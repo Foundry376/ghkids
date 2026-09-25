@@ -1,5 +1,6 @@
 import classNames from "classnames";
 import React from "react";
+import { forgivingPress } from "../../utils/pointer";
 import { PixelTool } from "./tools";
 
 interface PixelToolSizeProps {
@@ -21,7 +22,7 @@ export const PixelToolSize: React.FC<PixelToolSizeProps> = ({ tool, size, onSize
           key={s}
           disabled={disabled}
           className={classNames({ toolsize: true, selected: !disabled && size === s })}
-          onClick={() => onSizeChange(s)}
+          {...forgivingPress(() => onSizeChange(s), { fireOn: "press" })}
         >
           <div
             style={{

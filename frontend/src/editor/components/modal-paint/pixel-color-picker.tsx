@@ -1,5 +1,6 @@
 import classNames from "classnames";
 import React from "react";
+import { forgivingPress } from "../../utils/pointer";
 import { hsvToRgb } from "./helpers";
 
 // eslint-disable-next-line react-refresh/only-export-components
@@ -83,7 +84,7 @@ const PixelColorPicker: React.FC<PixelColorPickerProps> = ({
             backgroundSize: "contain",
           }}
           className={classNames({ color: true, selected: color === option })}
-          onClick={() => onColorChange(option)}
+          {...forgivingPress(() => onColorChange(option), { fireOn: "press" })}
         />
       ))}
     </div>
