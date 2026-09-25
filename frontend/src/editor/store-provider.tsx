@@ -26,9 +26,10 @@ interface StoreProviderState {
   loaded: boolean;
 }
 
-export type WorldSaveData = Pick<Game, "thumbnail" | "name" | "description" | "published"> & {
-  data: EditorState;
-};
+export type WorldSaveData = Pick<Game, "thumbnail" | "published"> &
+  Partial<Pick<Game, "name" | "description">> & {
+    data: EditorState;
+  };
 
 export default class StoreProvider extends React.Component<
   StoreProviderProps,
@@ -39,6 +40,14 @@ export default class StoreProvider extends React.Component<
     this.state = this.getStateForStore(props.world);
   }
 
+  /**
+   * The title and description as last saved from this editor. A save only
+   * sends them when they've changed here since then, so an editor left open
+   * doesn't put back an old title or description the author has since edited
+   * on the game's play page.
+   */
+  private savedInfo: Pick<Game, "name" | "description"> = { name: "", description: null };
+
   UNSAFE_componentWillReceiveProps(nextProps: StoreProviderProps) {
     if (nextProps.world.id !== this.props.world.id) {
       this.setState(this.getStateForStore(nextProps.world));
@@ -47,6 +56,7 @@ export default class StoreProvider extends React.Component<
 
   getStateForStore = (world: Game): StoreProviderState => {
     const { data, name, id, published, description } = world;
+    this.savedInfo = { name, description: description || null };
 
     const baseState = data || initialData;
 
@@ -87,12 +97,21 @@ export default class StoreProvider extends React.Component<
 
     const currentStage = getCurrentStage(savedState);
 
+    const { name, description = null } = savedState.world.metadata;
     return {
       thumbnail: currentStage ? (getStageScreenshot(currentStage, { size: 400 }) ?? "") : "",
-      name: savedState.world.metadata.name,
-      description: savedState.world.metadata.description ?? null,
+      ...(name !== this.savedInfo.name ? { name } : {}),
+      ...(description !== this.savedInfo.description ? { description } : {}),
       published: savedState.world.metadata.published,
       data: savedState,
+    };
+  };
+
+  /** Call once a save made from getWorldSaveData() has gone through. */
+  markSaved = (json: WorldSaveData) => {
+    this.savedInfo = {
+      name: json.name ?? this.savedInfo.name,
+      description: json.description !== undefined ? json.description : this.savedInfo.description,
     };
   };
 

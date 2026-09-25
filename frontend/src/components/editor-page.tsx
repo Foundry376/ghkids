@@ -359,6 +359,7 @@ const EditorPage = () => {
 
     _savePromise.current = Adapter.save(me, worldId, json, "saveDraft")
       .then(() => {
+        storeProvider.current?.markSaved(json);
         if (!_mounted.current) {
           return;
         }
@@ -406,6 +407,7 @@ const EditorPage = () => {
     _isCommitting.current = true; // Prevent auto-save during commit
     _savePromise.current = Adapter.save(me, worldId, json, "save")
       .then(() => {
+        storeProvider.current?.markSaved(json);
         if (!_mounted.current) {
           return;
         }
