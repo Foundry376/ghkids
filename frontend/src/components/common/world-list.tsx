@@ -9,7 +9,9 @@ const WorldList: React.FC<{
   onDuplicateWorld: (game: Game) => void;
   onDeleteWorld: (game: Game) => void;
   canEdit: boolean;
-}> = ({ worlds, onDeleteWorld, onDuplicateWorld, canEdit }) => {
+  showAuthorAndPlays?: boolean;
+  emptyText?: string;
+}> = ({ worlds, onDeleteWorld, onDuplicateWorld, canEdit, showAuthorAndPlays, emptyText }) => {
   if (!worlds) {
     return <Container>{<PageMessage text="Loading..." size="sm" />}</Container>;
   }
@@ -18,9 +20,10 @@ const WorldList: React.FC<{
       <Container>
         <PageMessage
           text={
-            canEdit
+            emptyText ??
+            (canEdit
               ? "You haven't created any games yet."
-              : "Doesn't look like there are any games to see here!"
+              : "Doesn't look like there are any games to see here!")
           }
           size="sm"
         />
@@ -35,6 +38,7 @@ const WorldList: React.FC<{
           key={world.id}
           world={world}
           canEdit={canEdit}
+          showAuthorAndPlays={showAuthorAndPlays}
           onDuplicate={() => onDuplicateWorld(world)}
           onDelete={() => onDeleteWorld(world)}
         />
