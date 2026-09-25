@@ -7,13 +7,38 @@ import { userFromBasicAuth } from "src/middleware";
 
 const router = express.Router();
 
+const EXPLORE_PAGE_SIZE = 24;
+const EXPLORE_MAX_PAGE_SIZE = 60;
+
+/**
+ * Published games, most played first. Pages through with `offset` and `limit`
+ * (the Published Games page asks for more as you go), and `q` narrows it to
+ * games whose title or author's username contains it.
+ */
 router.get("/worlds/explore", async (req, res) => {
-  const worlds = await AppDataSource.getRepository(World).find({
-    where: { published: true },
-    relations: ["user", "forkParent"],
-    order: { playCount: "DESC" },
-    take: 50,
-  });
+  const limit = Math.min(
+    Math.max(Math.floor(Number(req.query.limit)) || EXPLORE_PAGE_SIZE, 1),
+    EXPLORE_MAX_PAGE_SIZE,
+  );
+  const offset = Math.max(Math.floor(Number(req.query.offset)) || 0, 0);
+  const q = typeof req.query.q === "string" ? req.query.q.trim() : "";
+
+  const query = AppDataSource.getRepository(World)
+    .createQueryBuilder("world")
+    .leftJoinAndSelect("world.user", "user")
+    .leftJoinAndSelect("world.forkParent", "forkParent")
+    .where("world.published = true");
+  if (q) {
+    // Match the text literally: % and _ in a search mean themselves.
+    const pattern = `%${q.replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
+    query.andWhere("(world.name ILIKE :pattern OR user.username ILIKE :pattern)", { pattern });
+  }
+  const worlds = await query
+    .orderBy("world.playCount", "DESC")
+    .addOrderBy("world.id", "DESC")
+    .skip(offset)
+    .take(limit)
+    .getMany();
   res.json(worlds.map((w) => w.serialize()));
 });
 
