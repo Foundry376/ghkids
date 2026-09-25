@@ -61,7 +61,7 @@ export const PublishContainer = () => {
       </div>
       <ModalBody>
         <p style={{ marginBottom: 16, color: "#666" }}>
-          Published games appear on the Explore page for everyone to play and remix!
+          Published games appear on the Published Games page for everyone to play and remix!
         </p>
         <div style={{ marginBottom: 16 }}>
           <label

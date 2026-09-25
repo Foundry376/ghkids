@@ -31,11 +31,6 @@ const App = () => {
               </Link>
             </li>
             <li className="nav-item">
-              <Link className="nav-link" to="/explore">
-                Explore
-              </Link>
-            </li>
-            <li className="nav-item">
               <Link className="nav-link" to="/academy">
                 Academy
               </Link>
@@ -48,11 +43,18 @@ const App = () => {
           </ul>
           <div style={{ flex: 1 }} />
           <ul className="nav ">
+            {/* Next to My Games, so it reads as the other kind of game:
+                yours, and everyone's. Signed-out visitors get it too. */}
             {me
               ? [
                   <li className="nav-item" key="dashboard">
                     <Link className="nav-link" to="/dashboard">
                       My Games
+                    </Link>
+                  </li>,
+                  <li className="nav-item" key="published">
+                    <Link className="nav-link" to="/explore">
+                      Published Games
                     </Link>
                   </li>,
                   <li className="nav-item" key="logout">
@@ -71,6 +73,11 @@ const App = () => {
                   </li>,
                 ]
               : [
+                  <li className="nav-item" key="published" style={{ marginRight: 10 }}>
+                    <Link className="nav-link" to="/explore">
+                      Published Games
+                    </Link>
+                  </li>,
                   <li className="nav-item" key="sign-in" style={{ marginRight: 10 }}>
                     <Link to="/login">
                       <Button>Sign in</Button>
