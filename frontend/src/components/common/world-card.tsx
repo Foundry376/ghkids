@@ -9,11 +9,14 @@ const WorldCard = ({
   onDelete,
   onDuplicate,
   canEdit,
+  showAuthorAndPlays,
 }: {
   world: Game;
   onDuplicate: () => void;
   onDelete: () => void;
   canEdit: boolean;
+  /** For other people's games: who made it, and how often it's been played. */
+  showAuthorAndPlays?: boolean;
 }) => {
   return (
     <div className="card world-card">
@@ -39,6 +42,17 @@ const WorldCard = ({
           <h4 className="card-title">{world.name}</h4>
         </Link>
         <small className="card-text text-muted">
+          {showAuthorAndPlays && (
+            <div>
+              {world.user && (
+                <>
+                  by <Link to={`/u/${world.user.username}`}>{world.user.username}</Link>
+                  {" · "}
+                </>
+              )}
+              {world.playCount === 1 ? "1 play" : `${world.playCount.toLocaleString()} plays`}
+            </div>
+          )}
           {world.forkParent && world.forkParent.user && (
             <div>
               {`Forked from `}
