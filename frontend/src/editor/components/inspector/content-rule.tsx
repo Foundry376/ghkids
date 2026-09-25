@@ -6,6 +6,7 @@ import { RuleStateCircle } from "./rule-state-circle";
 import { ScenarioStage } from "./scenario-stage";
 
 import { EvaluatedCondition, Rule } from "../../../types";
+import { inLabelOrder, RuleActorsContext } from "../stage/recording/rule-actors";
 import { FreeformConditionRow } from "../stage/recording/condition-rows";
 import { isCollapsePersisted, persistCollapsedState } from "./collapse-state-storage";
 import { RuleActionsContext } from "./container-pane-rules";
@@ -64,7 +65,11 @@ export const ContentRule = ({ rule }: { rule: Rule }) => {
         collapsed={conditions.length === 0 || collapsed}
       />
       <TapToEditLabel className="name" value={rule.name} onChange={_onNameChange} />
-      {conditions.length > 0 && !collapsed && <ul className="conditions">{conditions}</ul>}
+      {conditions.length > 0 && !collapsed && (
+        <RuleActorsContext.Provider value={inLabelOrder(rule.actors)}>
+          <ul className="conditions">{conditions}</ul>
+        </RuleActorsContext.Provider>
+      )}
     </div>
   );
 };

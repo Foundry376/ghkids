@@ -1,12 +1,11 @@
 import { getCurrentStageForWorld } from "../../../utils/selectors";
 
 import classNames from "classnames";
-import React, { useState } from "react";
+import React, { useContext, useState } from "react";
 import { useDispatch } from "react-redux";
 import { Button } from "reactstrap";
 import { useEditorSelector } from "../../../../hooks/redux";
 import {
-  Actor,
   Characters,
   MathOperation,
   RecordingState,
@@ -25,6 +24,7 @@ import { RELATIVE_TRANSFORMS } from "../../inspector/transform-lookup";
 import { ActorDeltaCanvas } from "./actor-delta-canvas";
 import { ActorOffsetCanvas } from "./actor-offset-canvas";
 import { ActorBlock, VariableBlock, VariableRuleValue } from "./blocks";
+import { RuleActorsContext } from "./rule-actors";
 import { BackgroundConditionValue, FreeformConditionValue } from "./condition-rows";
 import { TransformActionPicker } from "./transform-action-picker";
 import { getAfterWorldForRecording } from "./utils";
@@ -89,28 +89,12 @@ export const RecordingActions = (props: { characters: Characters; recording: Rec
     // In a saved rule the main actor is at 0,0, but when recording on the stage
     // the extent and the position are relative to the "current" game world.
     const mainActorBeforePosition = beforeStage.actors[recording.actorId!].position;
-    // Use every actor the rule can reference, including future creates, so duplicate
-    // labels stay consistent across the full action list.
-    const actorsInRule = [
-      ...Object.values(beforeStage.actors),
-      ...(actions || []).flatMap((action) =>
-        action.type === "create" ? [action.actor] : [],
-      ),
-    ];
-    const actorNeedsDisambiguation = (actor: Actor) =>
-      actorsInRule.some(
-        (candidate) => candidate.id !== actor.id && candidate.characterId === actor.characterId,
-      );
     if ("actorId" in a && a.actorId) {
       if (a.type === "create") {
         return (
           <>
             Create a
-            <ActorBlock
-              actor={a.actor}
-              character={characters[a.actor.characterId]}
-              disambiguate={actorNeedsDisambiguation(a.actor)}
-            />
+            <ActorBlock actor={a.actor} character={characters[a.actor.characterId]} />
             at
             <ActorOffsetCanvas
               actor={a.actor}
@@ -133,11 +117,7 @@ export const RecordingActions = (props: { characters: Characters; recording: Rec
         return (
           <>
             Move
-            <ActorBlock
-              actor={actor}
-              character={character}
-              disambiguate={actorNeedsDisambiguation(actor)}
-            />
+            <ActorBlock actor={actor} character={character} />
             to
             {a.delta ? (
               <ActorDeltaCanvas delta={a.delta} />
@@ -161,11 +141,7 @@ export const RecordingActions = (props: { characters: Characters; recording: Rec
         return (
           <>
             Remove
-            <ActorBlock
-              actor={actor}
-              character={character}
-              disambiguate={actorNeedsDisambiguation(actor)}
-            />
+            <ActorBlock actor={actor} character={character} />
             from the stage
           </>
         );
@@ -176,18 +152,10 @@ export const RecordingActions = (props: { characters: Characters; recording: Rec
         return (
           <>
             Teleport
-            <ActorBlock
-              actor={actor}
-              character={character}
-              disambiguate={actorNeedsDisambiguation(actor)}
-            />
+            <ActorBlock actor={actor} character={character} />
             through
             {door && doorCharacter ? (
-              <ActorBlock
-                actor={door}
-                character={doorCharacter}
-                disambiguate={actorNeedsDisambiguation(door)}
-              />
+              <ActorBlock actor={door} character={doorCharacter} />
             ) : (
               <code>door</code>
             )}
@@ -226,11 +194,7 @@ export const RecordingActions = (props: { characters: Characters; recording: Rec
         return (
           <>
             Change appearance of
-            <ActorBlock
-              character={character}
-              actor={actor}
-              disambiguate={actorNeedsDisambiguation(actor)}
-            />
+            <ActorBlock character={character} actor={actor} />
             to
             <FreeformConditionValue
               value={a.value}
@@ -248,11 +212,7 @@ export const RecordingActions = (props: { characters: Characters; recording: Rec
         return (
           <>
             Turn
-            <ActorBlock
-              character={character}
-              actor={actor}
-              disambiguate={actorNeedsDisambiguation(actor)}
-            />
+            <ActorBlock character={character} actor={actor} />
             <TransformActionPicker
               operation={a.operation}
               onChangeOperation={(operation) => {
@@ -398,6 +358,14 @@ export const RecordingActions = (props: { characters: Characters; recording: Rec
     throw new Error(`Unknown action type: ${(a as RuleAction).type}`);
   };
 
+  // Actors this rule creates are numbered after the ones already in it, so
+  // "Create a Coach" next to two existing Coaches reads "Coach 3" everywhere.
+  const ruleActors = useContext(RuleActorsContext);
+  const labelActors = ruleActors && [
+    ...ruleActors,
+    ...(actions || []).flatMap((action) => (action.type === "create" ? [action.actor] : [])),
+  ];
+
   const [droppingValue, setDroppingValue] = useState(false);
   const [showAnimationFrames, setShowAnimationFrames] = useState(() =>
     actions?.some((a) => a.animationStyle),
@@ -430,103 +398,105 @@ export const RecordingActions = (props: { characters: Characters; recording: Rec
   };
 
   return (
-    <div
-      className={`panel-actions dropping-${droppingValue}`}
-      style={{ flex: 1, marginLeft: 3, position: "relative" }}
-      tabIndex={0}
-      onDragOver={(e) => {
-        if (e.dataTransfer.types.includes(`variable`)) {
-          setDroppingValue(true);
-          e.preventDefault();
-          e.stopPropagation();
-        }
-      }}
-      onDragLeave={() => {
-        setDroppingValue(false);
-      }}
-      onDrop={onDropValue}
-    >
-      <StageAfterTools />
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-        <h2>It should...</h2>
-        <Button
-          size="xs"
-          style={{ padding: 4 }}
-          title="Toggle visibility of animation frames"
-          className={showAnimationFrames ? "selected" : ""}
-          onClick={() => setShowAnimationFrames(!showAnimationFrames)}
-        >
-          <img
-            style={{ width: 28 }}
-            src={new URL("../../../img/animation-frames.svg", import.meta.url).href}
-          />
-        </Button>
-      </div>
+    <RuleActorsContext.Provider value={labelActors}>
+      <div
+        className={`panel-actions dropping-${droppingValue}`}
+        style={{ flex: 1, marginLeft: 3, position: "relative" }}
+        tabIndex={0}
+        onDragOver={(e) => {
+          if (e.dataTransfer.types.includes(`variable`)) {
+            setDroppingValue(true);
+            e.preventDefault();
+            e.stopPropagation();
+          }
+        }}
+        onDragLeave={() => {
+          setDroppingValue(false);
+        }}
+        onDrop={onDropValue}
+      >
+        <StageAfterTools />
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+          <h2>It should...</h2>
+          <Button
+            size="xs"
+            style={{ padding: 4 }}
+            title="Toggle visibility of animation frames"
+            className={showAnimationFrames ? "selected" : ""}
+            onClick={() => setShowAnimationFrames(!showAnimationFrames)}
+          >
+            <img
+              style={{ width: 28 }}
+              src={new URL("../../../img/animation-frames.svg", import.meta.url).href}
+            />
+          </Button>
+        </div>
 
-      <ul>
-        {actions.map((a, idx) => {
-          const afterWorld = getAfterWorldForRecording(beforeWorld, characters, recording, idx);
-          afterStage = getCurrentStageForWorld(afterWorld);
+        <ul>
+          {actions.map((a, idx) => {
+            const afterWorld = getAfterWorldForRecording(beforeWorld, characters, recording, idx);
+            afterStage = getCurrentStageForWorld(afterWorld);
 
-          const node = _renderAction(a, (modified) => {
-            dispatch(updateRecordingActions(actions.map((a, i) => (i === idx ? modified : a))));
-          });
+            const node = _renderAction(a, (modified) => {
+              dispatch(updateRecordingActions(actions.map((a, i) => (i === idx ? modified : a))));
+            });
 
-          return (
-            <React.Fragment key={idx}>
-              <li
-                className={`tool-supported`}
-                onClick={(e) => {
-                  if (selectedToolId === TOOLS.TRASH) {
-                    onRemoveAction(a);
-                    if (!e.shiftKey) {
-                      dispatch(selectToolId(TOOLS.POINTER));
+            return (
+              <React.Fragment key={idx}>
+                <li
+                  className={`tool-supported`}
+                  onClick={(e) => {
+                    if (selectedToolId === TOOLS.TRASH) {
+                      onRemoveAction(a);
+                      if (!e.shiftKey) {
+                        dispatch(selectToolId(TOOLS.POINTER));
+                      }
                     }
-                  }
-                }}
-              >
-                <div style={{ display: "flex", alignItems: "center", gap: 2 }}>{node}</div>
-                <div style={{ flex: 1 }} />
-                {showAnimationFrames ? (
-                  <div
-                    style={{ width: 60 }}
-                    className={`frame-divider ${a.animationStyle}`}
-                    onClick={() => {
-                      dispatch(
-                        updateRecordingActions(
-                          actions.map((a, i) =>
-                            i === idx
-                              ? {
-                                  ...a,
-                                  animationStyle:
-                                    a.animationStyle === "none"
-                                      ? "skip"
-                                      : a.animationStyle === "skip"
-                                        ? undefined
-                                        : "none",
-                                }
-                              : a,
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: 2 }}>{node}</div>
+                  <div style={{ flex: 1 }} />
+                  {showAnimationFrames ? (
+                    <div
+                      style={{ width: 60 }}
+                      className={`frame-divider ${a.animationStyle}`}
+                      onClick={() => {
+                        dispatch(
+                          updateRecordingActions(
+                            actions.map((a, i) =>
+                              i === idx
+                                ? {
+                                    ...a,
+                                    animationStyle:
+                                      a.animationStyle === "none"
+                                        ? "skip"
+                                        : a.animationStyle === "skip"
+                                          ? undefined
+                                          : "none",
+                                  }
+                                : a,
+                            ),
                           ),
-                        ),
-                      );
-                    }}
-                  >
-                    {
-                      { none: "None", skip: "Skip", linear: "Animate" }[
-                        a.animationStyle ?? "linear"
-                      ]
-                    }
+                        );
+                      }}
+                    >
+                      {
+                        { none: "None", skip: "Skip", linear: "Animate" }[
+                          a.animationStyle ?? "linear"
+                        ]
+                      }
+                    </div>
+                  ) : undefined}
+                  <div onClick={() => onRemoveAction(a)} className="condition-remove">
+                    <div />
                   </div>
-                ) : undefined}
-                <div onClick={() => onRemoveAction(a)} className="condition-remove">
-                  <div />
-                </div>
-              </li>
-            </React.Fragment>
-          );
-        })}
-      </ul>
-    </div>
+                </li>
+              </React.Fragment>
+            );
+          })}
+        </ul>
+      </div>
+    </RuleActorsContext.Provider>
   );
 };
 

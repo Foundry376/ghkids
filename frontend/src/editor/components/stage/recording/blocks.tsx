@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useContext, useState } from "react";
 import { useEditorSelector } from "../../../../hooks/redux";
 import {
   Actor,
@@ -12,6 +12,7 @@ import { getCurrentStageForWorld } from "../../../utils/selectors";
 import { ruleValueFromDragPayload } from "../../../utils/stage-helpers";
 import { TransformLabels } from "../../inspector/transform-images";
 import Sprite from "../../sprites/sprite";
+import { actorLabel, RuleActorsContext } from "./rule-actors";
 
 /** A rule value that points at a variable rather than holding a literal. */
 export type VariableRuleValue = Exclude<RuleValue, { constant: string }>;
@@ -19,12 +20,14 @@ export type VariableRuleValue = Exclude<RuleValue, { constant: string }>;
 export const ActorBlock = ({
   character,
   actor,
-  disambiguate = false,
+  showStagePosition = false,
 }: {
   character: Character;
   actor: Actor;
-  disambiguate?: boolean;
+  /** For an actor on the stage rather than in a rule: label it with its square. */
+  showStagePosition?: boolean;
 }) => {
+  const ruleActors = useContext(RuleActorsContext);
   return (
     <code>
       <Sprite
@@ -33,9 +36,9 @@ export const ActorBlock = ({
         transform={actor.transform}
         fit
       />
-      {disambiguate
+      {showStagePosition
         ? `${character.name} (${actor.position.x},${actor.position.y})`
-        : character.name}
+        : actorLabel(character, actor, ruleActors)}
     </code>
   );
 };
@@ -133,12 +136,10 @@ const StageVariableBlock = ({
 const ActorVariableBlock = ({
   character,
   actor,
-  disambiguate,
   variableId,
 }: {
   character: Character;
   actor: Actor;
-  disambiguate?: boolean;
   variableId: string;
 }) => {
   const getVariableLabel = () => {
@@ -151,7 +152,7 @@ const ActorVariableBlock = ({
 
   return (
     <div>
-      <ActorBlock character={character} actor={actor} disambiguate={disambiguate} />
+      <ActorBlock character={character} actor={actor} />
       {getVariableLabel()}
     </div>
   );
@@ -195,16 +196,7 @@ export const VariableBlock = ({
     if (!actor || !character) {
       return <span />;
     }
-    return (
-      <ActorVariableBlock
-        character={character}
-        actor={actor}
-        disambiguate={
-          Object.values(actors).filter((a) => a.characterId === character.id).length > 1
-        }
-        variableId={value.variableId}
-      />
-    );
+    return <ActorVariableBlock character={character} actor={actor} variableId={value.variableId} />;
   };
 
   if (!onChange) {
@@ -254,7 +246,7 @@ export const ConnectedActorBlock = ({
   const actor = getCurrentStageForWorld(recordingWorld || world)?.actors[actorId];
   const character = actor && characters[actor.characterId];
   if (actor && character) {
-    return <ActorBlock actor={actor} character={character} disambiguate />;
+    return <ActorBlock actor={actor} character={character} showStagePosition />;
   }
   return <span>{actorId}</span>;
 };
