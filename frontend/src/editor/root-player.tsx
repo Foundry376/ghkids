@@ -15,9 +15,16 @@ interface RootPlayerProps {
   world: Game;
   editorStoreRef?: MutableRefObject<Store | null>;
   immersive?: boolean;
+  /** Changing this starts the game over from the saved world. */
+  session?: number;
 }
 
-export const RootPlayer = ({ world: gameWorld, editorStoreRef, immersive }: RootPlayerProps) => {
+export const RootPlayer = ({
+  world: gameWorld,
+  editorStoreRef,
+  immersive,
+  session = 0,
+}: RootPlayerProps) => {
   const editorStore = useMemo(() => {
     const migrated = applyDataMigrations(gameWorld);
     const { world, characters, characterZOrder } = migrated.data;
@@ -25,7 +32,9 @@ export const RootPlayer = ({ world: gameWorld, editorStoreRef, immersive }: Root
     const editorStore = configureStore(state);
     window.editorStore = editorStore;
     return editorStore;
-  }, [gameWorld]);
+    // `session` isn't read here - it's a request to rebuild from the saved world.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gameWorld, session]);
 
   // Expose the editor store to the parent via ref
   useEffect(() => {
