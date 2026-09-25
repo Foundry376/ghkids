@@ -686,10 +686,14 @@ export const Stage = ({
 
   const onDropAppearance = (event: React.DragEvent) => {
     const { appearance, characterId } = JSON.parse(event.dataTransfer.getData("appearance"));
-    const position = getPositionForEvent(event);
-    if (!position) {
+    // An appearance goes onto whichever actor is under the pointer. Unlike a
+    // sprite drop there's no dragged actor to snap into a square, and the drag
+    // offset is measured from the library tile, which is bigger than the sprite.
+    const px = getPxOffsetForEvent(event);
+    if (!px) {
       return;
     }
+    const position = stageSquareForPixelOffset(px, { scale, stageHeight });
     if (recordingExtent && pointIsOutside(position, recordingExtent)) {
       return;
     }
