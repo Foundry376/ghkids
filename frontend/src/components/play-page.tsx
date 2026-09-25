@@ -28,6 +28,8 @@ const PlayPage: React.FC = () => {
 
   const [immersive, setImmersive] = useState(false);
   const { menuProps, open: menuOpen, toggle: toggleMenu } = useDismissibleMenu("player");
+  /** Bumped by Restart, which rebuilds the game from the saved world. */
+  const [session, setSession] = useState(0);
   const enteringFullscreenRef = useRef(false);
   const editorStoreRef = useRef<Store | null>(null);
   const {
@@ -95,6 +97,16 @@ const PlayPage: React.FC = () => {
     }
   }, [startPlayback, canFullscreen, enterFullscreen]);
 
+  // RootPlayer hands over its new store in an effect, which runs before this
+  // one (children's effects go first), so the restarted game is the one we start.
+  useEffect(() => {
+    if (session > 0) {
+      startPlayback();
+    }
+  }, [session, startPlayback]);
+
+  const onRestart = useCallback(() => setSession((s) => s + 1), []);
+
   const onExitImmersive = useCallback(() => {
     // Stop playback
     if (editorStoreRef.current) {
@@ -127,7 +139,7 @@ const PlayPage: React.FC = () => {
     };
     update();
     return store.subscribe(update);
-  }, [world]);
+  }, [world, session]);
 
   if (!world || !world.data) {
     return <PageMessage text="Loading..." />;
@@ -151,6 +163,12 @@ const PlayPage: React.FC = () => {
                   <DropdownItem onClick={onExitImmersive}>
                     <i className="fa fa-info-circle fa-fw" style={{ marginRight: 8 }} />
                     Back to Game Info
+                  </DropdownItem>
+                )}
+                {immersive && (
+                  <DropdownItem onClick={onRestart}>
+                    <i className="fa fa-refresh fa-fw" style={{ marginRight: 8 }} />
+                    Restart Game
                   </DropdownItem>
                 )}
                 {canFullscreen && (
@@ -197,7 +215,12 @@ const PlayPage: React.FC = () => {
       {/* Stage area - always rendered, fills available space.
           Always pass immersive so the stage scales to fit even behind the landing overlay. */}
       <div className="play-stage-area">
-        <RootPlayer world={world} editorStoreRef={editorStoreRef} immersive />
+        <RootPlayer
+          world={world}
+          editorStoreRef={editorStoreRef}
+          immersive
+          session={session}
+        />
       </div>
 
       {/* Landing overlay - shown before play, fades out on play */}
