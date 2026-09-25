@@ -3,7 +3,6 @@ import { useEffect, useState } from "react";
 import { useDispatch } from "react-redux";
 
 import { useEditorSelector } from "../../../hooks/redux";
-import { createCharacterEventContainer } from "../../actions/characters-actions";
 import { upsertRecordingCondition } from "../../actions/recording-actions";
 import { pickConditionValueFromKeyboard } from "../../actions/ui-actions";
 import { canonicalKey } from "../../utils/keys";
@@ -12,7 +11,7 @@ import Keyboard from "./keyboard";
 
 export const KeypickerContainer = () => {
   const dispatch = useDispatch();
-  const { open, initialKey, replaceConditionKey, purpose, characterId } = useEditorSelector(
+  const { open, initialKey, replaceConditionKey } = useEditorSelector(
     (state) => state.ui.keypicker,
   );
 
@@ -35,17 +34,6 @@ export const KeypickerContainer = () => {
     }
 
     dispatch(pickConditionValueFromKeyboard(false, null, null));
-
-    if (purpose === "event-container" && characterId) {
-      dispatch(
-        createCharacterEventContainer(characterId, {
-          id: makeId("rule"),
-          eventType: "key",
-          eventCode: key,
-        }),
-      );
-      return;
-    }
 
     dispatch(
       upsertRecordingCondition({
@@ -73,9 +61,7 @@ export const KeypickerContainer = () => {
       <div className="modal-header" style={{ display: "flex" }}>
         <h4 style={{ flex: 1 }}>Choose Key</h4>
       </div>
-      <ModalBody>
-        {open && <Keyboard value={key} onKeyDown={_onKeyDown} />}
-      </ModalBody>
+      <ModalBody>{open && <Keyboard value={key} onKeyDown={_onKeyDown} />}</ModalBody>
       <ModalFooter>
         <Button onClick={_onClose}>Cancel</Button>{" "}
         <Button data-tutorial-id="keypicker-done" onClick={_onCloseAndSave}>

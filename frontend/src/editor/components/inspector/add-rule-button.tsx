@@ -4,15 +4,12 @@ import { useState } from "react";
 
 import { useDispatch } from "react-redux";
 import { Actor, Character } from "../../../types";
-import {
-  createCharacterEventContainer,
-  createCharacterFlowContainer,
-} from "../../actions/characters-actions";
+import { createCharacterFlowContainer } from "../../actions/characters-actions";
 import {
   setupRecordingForActor,
   setupRecordingForCharacter,
 } from "../../actions/recording-actions";
-import { pickKeyForEventContainer, selectToolId } from "../../actions/ui-actions";
+import { selectToolId } from "../../actions/ui-actions";
 import { TOOLS } from "../../constants/constants";
 import { makeId } from "../../utils/utils";
 
@@ -43,19 +40,6 @@ const RuleAddButton = ({
     dispatch(createCharacterFlowContainer(character.id, { id }));
   };
 
-  const _onCreateFlowContainerWithClick = () => {
-    dispatch(
-      createCharacterEventContainer(character.id, {
-        id: makeId("rule"),
-        eventType: "click",
-        eventCode: undefined,
-      }),
-    );
-  };
-
-  const _onCreateFlowContainerWithKeyPress = () => {
-    dispatch(pickKeyForEventContainer(true, character.id));
-  };
 
   return (
     <ButtonDropdown
@@ -73,12 +57,6 @@ const RuleAddButton = ({
         <DropdownItem divider />
         <DropdownItem onClick={_onCreateFlowContainer}>
           <span className="badge rule-flow" /> Add Rule Box
-        </DropdownItem>
-        <DropdownItem onClick={_onCreateFlowContainerWithClick}>
-          <span className="badge rule-flow" /> Add Rule Box with Click Test
-        </DropdownItem>
-        <DropdownItem onClick={_onCreateFlowContainerWithKeyPress}>
-          <span className="badge rule-flow" /> Add Rule Box with Key Test
         </DropdownItem>
       </DropdownMenu>
     </ButtonDropdown>
