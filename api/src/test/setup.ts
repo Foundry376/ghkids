@@ -29,6 +29,18 @@ export async function resetDatabase(): Promise<void> {
  * Call this once before running tests.
  */
 export async function initializeDatabase(): Promise<void> {
+  // Every test starts by truncating every table, so never connect to anything
+  // but a test database - an unset DATABASE_URL_TEST, or a data source that
+  // was imported before NODE_ENV was "test", would otherwise point it at a
+  // real one.
+  const url = AppDataSource.options.type === "postgres" ? AppDataSource.options.url : undefined;
+  const database = url ? new URL(url).pathname.replace(/^\//, "") : "";
+  if (!database.endsWith("_test")) {
+    throw new Error(
+      `Refusing to run the tests against "${database || "(no DATABASE_URL_TEST)"}": ` +
+        `set DATABASE_URL_TEST to a database whose name ends in "_test".`,
+    );
+  }
   if (!AppDataSource.isInitialized) {
     await AppDataSource.initialize();
   }
