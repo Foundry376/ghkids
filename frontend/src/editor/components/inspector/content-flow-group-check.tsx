@@ -3,6 +3,7 @@ import React, { useContext } from "react";
 import { ScenarioStage } from "./scenario-stage";
 
 import { EvaluatedCondition, RuleTreeFlowItemCheck } from "../../../types";
+import { inLabelOrder, RuleActorsContext } from "../stage/recording/rule-actors";
 import { FreeformConditionRow } from "../stage/recording/condition-rows";
 import { InspectorContext } from "./inspector-context";
 
@@ -47,7 +48,9 @@ export const ContentFlowGroupCheck = ({ check }: { check: RuleTreeFlowItemCheck 
       ) : undefined}
       {conditions.length > 0 && (
         <li className={`rule`} style={{ backgroundColor: `rgba(255,255,255,0.6)`, border: 0 }}>
-          <ul className="conditions">{conditions}</ul>
+          <RuleActorsContext.Provider value={inLabelOrder(check.actors)}>
+            <ul className="conditions">{conditions}</ul>
+          </RuleActorsContext.Provider>
         </li>
       )}
     </div>

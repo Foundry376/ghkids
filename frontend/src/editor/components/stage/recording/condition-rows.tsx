@@ -297,9 +297,7 @@ export const FreeformConditionValue = ({
         const actor = actors[value.constant];
         const character = actor && characters[actor.characterId];
         if (actor && character) {
-          const disambiguate =
-            Object.values(actors).filter((a) => a.characterId === character.id).length > 1;
-          return <ActorBlock actor={actor} character={character} disambiguate={disambiguate} />;
+          return <ActorBlock actor={actor} character={character} />;
         }
       }
       if (impliedDatatype?.type === "key" && conditionId && onChange) {

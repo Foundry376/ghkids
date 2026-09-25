@@ -1,4 +1,5 @@
 import { useDispatch } from "react-redux";
+import { inLabelOrder, RuleActorsContext } from "./recording/rule-actors";
 import { RecordingActions } from "./recording/panel-actions";
 import { RecordingConditions } from "./recording/panel-conditions";
 import Stage from "./stage";
@@ -10,11 +11,18 @@ import TouchKeys from "./touch-keys";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useEditorSelector } from "../../../hooks/redux";
 import * as Types from "../../../types";
-import { EvaluatedRuleDetailsMap, EvaluatedSquare, Stage as StageType, UIState, WorldMinimal } from "../../../types";
+import {
+  EvaluatedRuleDetailsMap,
+  EvaluatedSquare,
+  Stage as StageType,
+  UIState,
+  WorldMinimal,
+} from "../../../types";
 import { WORLDS } from "../../constants/constants";
 import { BUILTIN_STAGE_VARIABLES } from "../../utils/builtin-stage-variables";
 import { collectDoorsByDestinationStage } from "../../utils/door-constants";
 import { getCurrentStageForWorld } from "../../utils/selectors";
+import { actorIntersectsExtent } from "../../utils/stage-helpers";
 import { Library } from "../library";
 
 /**
@@ -128,23 +136,32 @@ const StageContainer = ({ readonly, immersive }: { readonly?: boolean; immersive
         />
       );
     }
+    // What the saved rule will hold: the "before" actors inside the box.
+    const beforeActors = getCurrentStageForWorld(recording.beforeWorld)?.actors ?? {};
+    const ruleActors = Object.fromEntries(
+      Object.entries(beforeActors).filter(([, a]) =>
+        actorIntersectsExtent(a, characters, recording.extent),
+      ),
+    );
     actions = (
-      <div className="recording-specifics">
-        <div
-          style={{
-            position: "absolute",
-            zIndex: 101,
-            transform: "translate(0, -100%)",
-            paddingBottom: 5,
-          }}
-        >
-          <StageRecordingTools />
+      <RuleActorsContext.Provider value={inLabelOrder(ruleActors)}>
+        <div className="recording-specifics">
+          <div
+            style={{
+              position: "absolute",
+              zIndex: 101,
+              transform: "translate(0, -100%)",
+              paddingBottom: 5,
+            }}
+          >
+            <StageRecordingTools />
+          </div>
+          <RecordingConditions characters={characters} recording={recording} />
+          {recording.actions !== null && (
+            <RecordingActions characters={characters} recording={recording} />
+          )}
         </div>
-        <RecordingConditions characters={characters} recording={recording} />
-        {recording.actions !== null && (
-          <RecordingActions characters={characters} recording={recording} />
-        )}
-      </div>
+      </RuleActorsContext.Provider>
     );
   }
 
