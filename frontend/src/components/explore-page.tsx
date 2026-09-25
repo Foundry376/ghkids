@@ -9,7 +9,7 @@ import WorldList from "./common/world-list";
 const ExplorePage: React.FC = () => {
   const [worlds, setWorlds] = useState<Game[] | null>(null);
 
-  usePageTitle("Explore");
+  usePageTitle("Published Games");
 
   useEffect(() => {
     makeRequest<Game[]>(`/worlds/explore`).then((fetchedWorlds) => {
@@ -22,7 +22,7 @@ const ExplorePage: React.FC = () => {
       <Row>
         <Col md={12}>
           <div className="card card-body">
-            <h5>Popular Games</h5>
+            <h5>Published Games</h5>
             <hr />
             <WorldList
               worlds={worlds}
