@@ -327,10 +327,15 @@ export const Library: React.FC = () => {
         </div>
         {renderCharactersPanel()}
       </div>
-      <div className="panel appearances">
+      <div className="panel appearances" data-tutorial-id="appearances">
         <div className="header">
           <h2>Appearances</h2>
-          <Button size="sm" disabled={!ui.selectedCharacterId} onClick={onCreateAppearance}>
+          <Button
+            size="sm"
+            data-tutorial-id="appearances-add-button"
+            disabled={!ui.selectedCharacterId}
+            onClick={onCreateAppearance}
+          >
             <i className="fa fa-plus" />
           </Button>
         </div>

@@ -64,11 +64,16 @@ stage width, row count the height.
 | `H` `O` `F` | hero, boulder, flag (get the actor ids `hero`, `boulder`, `flag`) |
 | `=` `#`     | grass-topped dirt, plain dirt                                     |
 | `~` `-` `_` | lava surface (two wave frames), deep lava                         |
+| `B`         | bird, wings up (actor id `bird`)                                  |
 
 Every lesson shares one character library, `scripts/lesson-worlds/characters.json`, lifted from the
 original tutorial world. **Keep the character ids stable** - steps and tests refer to characters by
 id (`aamlcui8uxr` hero, `oou4u6jemi` boulder, `jizye5ng66r` flag, `1483692598319` lava,
-`1483692683990` dirt; the names are in `constants/lessons/characters.ts`).
+`1483692683990` dirt, `bird` bird; the names are in `constants/lessons/characters.ts`).
+
+A world ships with only the characters in its `characterIds` - the five cave characters by default,
+so the bird doesn't turn up in the cave lessons. A new character goes into the library file and into
+the `characterIds` of the lessons that use it. `wrapX: true` makes the stage wrap horizontally.
 
 ### What the shared characters already do
 
@@ -83,6 +88,7 @@ Design around these - they're why a world behaves the way it does:
   flips upright. That's the respawn, and it's geometry-specific: put the lava's edge directly under
   the last square of ground, or a hero who falls in stays in.
 - **Flag**: switches to its success appearance when the hero stands in the square to its left.
+- **Bird**: no rules, and one appearance (`wings-up`). Lesson 6 has the kid paint the second one.
 
 ### Sizing
 
@@ -274,6 +280,11 @@ What to confirm, step by step:
    beside the boulder).
 4. The finish card appears after the last step. To check it without playing the whole lesson:
    `window.editorStore.dispatch({type:"UPDATE_TUTORIAL_STATE", values:{stepIndex: 99}})`.
+
+Clicking an actor with the record tool starts the rule with a `main-actor-appearance` condition -
+"this actor's appearance is whatever it is right now". So to record a rule for an actor's _other_
+appearance, get the actor into that appearance on the stage first (lesson 6 plays its first rule
+once). Moves the kid demonstrates are recorded as `offset`, not `delta`; model them that way in tests.
 
 Interactions the CLI can't do well (dragging rule handles, drag-and-drop into a rule container) are
 worth doing by hand at least once per lesson that needs them.

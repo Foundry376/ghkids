@@ -29,7 +29,17 @@ const CHARACTER_IDS = {
   flag: "jizye5ng66r",
   lava: "1483692598319",
   dirt: "1483692683990",
+  bird: "bird",
 };
+
+/** The cave characters every lesson used before the bird came along. */
+const CAVE_CHARACTERS = [
+  CHARACTER_IDS.hero,
+  CHARACTER_IDS.boulder,
+  CHARACTER_IDS.flag,
+  CHARACTER_IDS.lava,
+  CHARACTER_IDS.dirt,
+];
 
 /** Sprite each map character places, copied from the original tutorial world. */
 const TILES: Record<
@@ -44,6 +54,7 @@ const TILES: Record<
   "~": { characterId: CHARACTER_IDS.lava, appearance: "idle" }, // surface 1
   "-": { characterId: CHARACTER_IDS.lava, appearance: "1483692615578" }, // surface 2
   _: { characterId: CHARACTER_IDS.lava, appearance: "1483692635012" }, // deep
+  B: { characterId: CHARACTER_IDS.bird, appearance: "wings-up" },
 };
 
 /** Actors that lesson content moves around get a readable id instead of a timestamp. */
@@ -51,6 +62,7 @@ const NAMED_IDS: Record<string, string> = {
   H: "hero",
   O: "boulder",
   F: "flag",
+  B: "bird",
 };
 
 type LessonWorld = {
@@ -59,6 +71,10 @@ type LessonWorld = {
   map: string[];
   /** Rules to add to a character before the lesson starts. */
   prebuiltRules?: { characterId: string; rules: unknown[] };
+  /** Library characters this world ships with. Defaults to the cave set. */
+  characterIds?: string[];
+  /** Whether actors walking off one side come back on the other. */
+  wrapX?: boolean;
 };
 
 /**
@@ -123,6 +139,22 @@ const boulderMap = [
   "##############",
 ];
 
+/**
+ * Lesson 6: a bird alone in the sky. The stage wraps horizontally, so once the
+ * kid's two flapping rules work the bird flies off the right edge and comes
+ * back on the left. Nothing else shares its row, so the square ahead of it is
+ * always empty - which is what both of the kid's rules look for.
+ */
+const skyMap = [
+  "..............",
+  "..............",
+  ".B............",
+  "..............",
+  "..............",
+  "==============",
+  "##############",
+];
+
 /** Lesson 5: the boulder waits on a ledge over the path to the exit. */
 const ledgeMap = [
   "..............",
@@ -146,6 +178,12 @@ const LESSON_WORLDS: LessonWorld[] = [
     prebuiltRules: { characterId: CHARACTER_IDS.hero, rules: [climbRule] },
   },
   { slug: "falling-boulder", map: ledgeMap },
+  {
+    slug: "animate-appearances",
+    map: skyMap,
+    characterIds: [CHARACTER_IDS.bird, CHARACTER_IDS.dirt],
+    wrapX: true,
+  },
 ];
 
 type Actor = {
@@ -206,7 +244,26 @@ function buildWorld(
   }
 
   const actors = actorsFromMap(lesson.map);
-  const characters = JSON.parse(JSON.stringify(library.characters));
+  const characterIds = lesson.characterIds ?? CAVE_CHARACTERS;
+  for (const id of characterIds) {
+    if (!library.characters[id]) {
+      throw new Error(`No character ${id} in the lesson character library`);
+    }
+  }
+  // Copied in library order, so a world's JSON doesn't churn when its list does.
+  const characters: Record<string, any> = {};
+  for (const id of Object.keys(library.characters)) {
+    if (characterIds.includes(id)) {
+      characters[id] = JSON.parse(JSON.stringify(library.characters[id]));
+    }
+  }
+  for (const actor of Object.values(actors)) {
+    if (!characters[actor.characterId]) {
+      throw new Error(
+        `${lesson.slug} places ${actor.characterId}, which isn't in its characterIds`,
+      );
+    }
+  }
 
   if (lesson.prebuiltRules) {
     const character = characters[lesson.prebuiltRules.characterId];
@@ -227,7 +284,7 @@ function buildWorld(
     backgroundFade: true,
     variableValues: {
       width: `${width}`,
-      wrapX: "false",
+      wrapX: `${lesson.wrapX ?? false}`,
       height: `${lesson.map.length}`,
       wrapY: "false",
       tileSize: "40",
@@ -240,7 +297,10 @@ function buildWorld(
   return {
     version: 2,
     characters,
-    characterZOrder: library.characterZOrder,
+    characterZOrder: [
+      ...library.characterZOrder.filter((id) => characters[id]),
+      ...characterIds.filter((id) => !library.characterZOrder.includes(id)),
+    ],
     world: {
       id: "root",
       input: { keys: {}, clicks: {} },

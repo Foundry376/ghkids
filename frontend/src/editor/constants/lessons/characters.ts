@@ -9,14 +9,19 @@ import { Actor, Stage } from "../../../types";
 export const LESSON_CHARACTER_IDS = {
   hero: "aamlcui8uxr",
   boulder: "oou4u6jemi",
+  bird: "bird",
 };
 
-/** Actor ids the lesson worlds give the two characters lessons reposition. */
+/** Actor ids the lesson worlds give the characters lessons reposition. */
 export const heroPath = { worldId: "root", stageId: "root", actorIds: ["hero"] };
 export const boulderPath = { worldId: "root", stageId: "root", actorIds: ["boulder"] };
+export const birdPath = { worldId: "root", stageId: "root", actorIds: ["bird"] };
 
 export const heroIn = (stage: Stage): Actor | undefined =>
   Object.values(stage.actors).find((a) => a.characterId === LESSON_CHARACTER_IDS.hero);
 
 export const boulderIn = (stage: Stage): Actor | undefined =>
   Object.values(stage.actors).find((a) => a.characterId === LESSON_CHARACTER_IDS.boulder);
+
+export const birdIn = (stage: Stage): Actor | undefined =>
+  Object.values(stage.actors).find((a) => a.characterId === LESSON_CHARACTER_IDS.bird);

@@ -639,6 +639,23 @@
           "1490494131125": "Untitled"
         }
       }
+    },
+    "bird": {
+      "id": "bird",
+      "name": "Bird",
+      "rules": [],
+      "variables": {},
+      "spritesheet": {
+        "width": 40,
+        "appearances": {
+          "wings-up": [
+            "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACgAAAAoCAYAAACM/rhtAAABJElEQVR4nGNgGAWjYGABI6kaNDRs/mMTv3HjCMlmEQOYGAY5YCE15L6ppWCXZ2D4T4uQHD4hSAh8g4YstUNy+ITgDWiIwEIIV1qkNhg+IThQIcnEMMgBI6UGaOAoH7luzUENcTJroKGXBjXQfEpuefYNrVzkCZiFVZ3GhjS85ebQCUENaMih+xSXD9HV8+CyQcsMhXu6XRNMi4rKg2kRETm8Dhz0IciILoArJL9sSEPh40pTpAKYuecr3qCIcybcYByaufgGrNyCpj14GqNSiBELYDE56EOQkZACXGlyXoEKSRYlTbiDVRw9baPH5NBvzdzAkSYpBV+gITfk62JGUjUQmyaTCKQ5Yuv44ReCMICrfUcIkNo6GvQhOApGwSgYBSMdAACj6HMHI296vQAAAABJRU5ErkJggg=="
+          ]
+        },
+        "appearanceNames": {
+          "wings-up": "Wings Up"
+        }
+      }
     }
   }
 }

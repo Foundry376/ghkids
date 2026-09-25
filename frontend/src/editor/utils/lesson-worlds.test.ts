@@ -1,9 +1,10 @@
 import { expect } from "chai";
 
-import { Characters, FrameInput, World } from "../../types";
+import { Characters, FrameInput, Rule, World } from "../../types";
 import { runSimulation } from "./__tests__/test-fixtures";
 
 import drawACharacterWorld from "../../lessons/worlds/draw-a-character.json";
+import animateAppearancesWorld from "../../lessons/worlds/animate-appearances.json";
 import eventBlocksWorld from "../../lessons/worlds/event-blocks.json";
 import fallingBoulderWorld from "../../lessons/worlds/falling-boulder.json";
 import playbackWorld from "../../lessons/worlds/playback.json";
@@ -22,6 +23,7 @@ import recordARuleWorld from "../../lessons/worlds/record-a-rule.json";
 
 const HERO = "aamlcui8uxr";
 const BOULDER = "oou4u6jemi";
+const BIRD = "bird";
 
 type LessonWorldJSON = {
   characters: unknown;
@@ -196,6 +198,102 @@ describe("lesson worlds", () => {
       const after = walkRight(world, characters, 14);
       const boulder = actorOf(after, BOULDER);
       expect(boulder.position).to.deep.equal({ x: 10, y: 4 });
+    });
+  });
+
+  describe("animate-appearances", () => {
+    const WINGS_UP = "wings-up";
+    const WINGS_DOWN = "wings-down";
+
+    /**
+     * A rule the way the recorder builds one when the kid clicks the bird with
+     * the record tool: the box starts on the bird and gets dragged one square
+     * right, and the recorder adds the "appearance is ___" condition itself
+     * (the main-actor-appearance condition in recording-reducer).
+     */
+    function flapRule(id: string, from: string, to: string): Rule {
+      return {
+        id,
+        name: "Untitled Rule",
+        type: "rule",
+        mainActorId: "bird",
+        actors: {
+          bird: {
+            id: "bird",
+            position: { x: 0, y: 0 },
+            appearance: from,
+            characterId: BIRD,
+            variableValues: {},
+          },
+        },
+        extent: { xmin: 0, xmax: 1, ymin: 0, ymax: 0, ignored: {} },
+        actions: [
+          // The recorder writes a dragged actor's move as an offset, not a delta.
+          { type: "move", offset: { x: 1, y: 0 }, actorId: "bird" },
+          { type: "appearance", value: { constant: to }, actorId: "bird" },
+        ],
+        conditions: [
+          {
+            key: "main-actor-appearance",
+            left: { actorId: "bird", variableId: "appearance" },
+            right: { constant: from },
+            comparator: "=",
+            enabled: true,
+          },
+        ],
+      };
+    }
+
+    /** Stands in for the appearance the kid paints, and records rules in order. */
+    function setup(rules: Rule[]) {
+      const { world, characters } = load(animateAppearancesWorld);
+      const { spritesheet } = characters[BIRD];
+      spritesheet.appearances[WINGS_DOWN] = spritesheet.appearances[WINGS_UP];
+      spritesheet.appearanceNames[WINGS_DOWN] = "Untitled";
+      characters[BIRD].rules.push(...rules);
+      return { world, characters };
+    }
+
+    it("starts the bird wings-up with nothing to do", () => {
+      const { world, characters } = setup([]);
+      const after = runSimulation(world, characters, 4);
+      expect(actorOf(after, BIRD).position).to.deep.equal({ x: 2, y: 5 });
+      expect(actorOf(after, BIRD).appearance).to.equal(WINGS_UP);
+    });
+
+    it("flaps once and stops with only the wings-up rule", () => {
+      const { world, characters } = setup([flapRule("up-to-down", WINGS_UP, WINGS_DOWN)]);
+      const after = runSimulation(world, characters, 4);
+      expect(actorOf(after, BIRD).position).to.deep.equal({ x: 3, y: 5 });
+      expect(actorOf(after, BIRD).appearance).to.equal(WINGS_DOWN);
+    });
+
+    it("alternates appearances one square at a time with both rules", () => {
+      const { world, characters } = setup([
+        flapRule("up-to-down", WINGS_UP, WINGS_DOWN),
+        flapRule("down-to-up", WINGS_DOWN, WINGS_UP),
+      ]);
+      const seen = [1, 2, 3, 4].map((frames) => {
+        const bird = actorOf(runSimulation(world, characters, frames), BIRD);
+        return [bird.position.x, bird.appearance];
+      });
+      expect(seen).to.deep.equal([
+        [3, WINGS_DOWN],
+        [4, WINGS_UP],
+        [5, WINGS_DOWN],
+        [6, WINGS_UP],
+      ]);
+    });
+
+    it("wraps the bird around to the left edge and keeps flying", () => {
+      const { world, characters } = setup([
+        flapRule("up-to-down", WINGS_UP, WINGS_DOWN),
+        flapRule("down-to-up", WINGS_DOWN, WINGS_UP),
+      ]);
+      // 14 squares wide: 14 flaps is one full lap back to where it started.
+      const after = runSimulation(world, characters, 14);
+      expect(actorOf(after, BIRD).position).to.deep.equal({ x: 2, y: 5 });
+      expect(actorOf(after, BIRD).appearance).to.equal(WINGS_UP);
     });
   });
 });
