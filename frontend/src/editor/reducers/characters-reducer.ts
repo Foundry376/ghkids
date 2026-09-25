@@ -124,7 +124,7 @@ export default function charactersReducer(
       rulesWithinIdle.unshift({
         id,
         behavior: FLOW_BEHAVIORS.FIRST,
-        name: "Untitled Group",
+        name: "Untitled Rule Box",
         type: CONTAINER_TYPES.FLOW,
         rules: [],
       });
