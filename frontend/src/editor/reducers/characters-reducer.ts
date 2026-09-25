@@ -118,7 +118,10 @@ export default function charactersReducer(
       ) as RuleTreeEventItem;
       const rulesWithinIdle: RuleTreeItem[] = idleContainer ? idleContainer.rules : rules;
 
-      rulesWithinIdle.push({
+      // At the top, where the recorder puts a new rule too. An empty box - or
+      // one where nothing inside fires - never stops the rules after it, so
+      // this doesn't change what the character does.
+      rulesWithinIdle.unshift({
         id,
         behavior: FLOW_BEHAVIORS.FIRST,
         name: "Untitled Group",
