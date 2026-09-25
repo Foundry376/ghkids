@@ -116,6 +116,7 @@ export const RecordingConditions = ({
 
   return (
     <div
+      data-tutorial-id="record-conditions"
       style={{
         flex: 1,
         marginRight: 3,

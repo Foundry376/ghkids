@@ -1,4 +1,5 @@
 import { TutorialStepContent } from "../tutorial-content";
+import { animateAppearancesLessonContent } from "./animate-appearances";
 import { drawACharacterLessonContent } from "./draw-a-character";
 import { eventBlocksLessonContent } from "./event-blocks";
 import { fallingBoulderLessonContent } from "./falling-boulder";
@@ -16,4 +17,5 @@ export const lessonContent: Record<string, TutorialStepContent[]> = {
   "record-a-rule": recordARuleLessonContent,
   "event-blocks": eventBlocksLessonContent,
   "falling-boulder": fallingBoulderLessonContent,
+  "animate-appearances": animateAppearancesLessonContent,
 };

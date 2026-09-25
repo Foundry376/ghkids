@@ -63,6 +63,14 @@ export const LESSONS: Lesson[] = [
     worldName: "Lesson 5: Falling Boulder",
     loadWorld: () => import("./worlds/falling-boulder.json").then((m) => m.default),
   },
+  {
+    slug: "animate-appearances",
+    title: "Animate Appearances",
+    caption: "Paint a second picture for a bird and use two rules to make it flap across the sky.",
+    screenshot: screenshot("animate-appearances.jpg"),
+    worldName: "Lesson 6: Animate Appearances",
+    loadWorld: () => import("./worlds/animate-appearances.json").then((m) => m.default),
+  },
 ];
 
 export function lessonForSlug(slug: string | undefined | null) {
