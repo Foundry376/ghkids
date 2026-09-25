@@ -285,6 +285,31 @@ describe("lesson worlds", () => {
       ]);
     });
 
+    it("flaps a whole flock of stamped copies, even two in a row", () => {
+      const { world, characters } = setup([
+        flapRule("up-to-down", WINGS_UP, WINGS_DOWN),
+        flapRule("down-to-up", WINGS_DOWN, WINGS_UP),
+      ]);
+      // The copies a kid might stamp: other rows of the sky, and one right
+      // behind the bird, which can only move once the bird ahead of it has.
+      const stage = Object.values(world.stages)[0];
+      const copies = { b2: { x: 5, y: 7 }, b3: { x: 9, y: 3 }, b4: { x: 1, y: 5 } };
+      for (const [id, position] of Object.entries(copies)) {
+        stage.actors[id] = { ...stage.actors.bird, id, position };
+      }
+      const flock = ["bird", ...Object.keys(copies)];
+      const start = Object.fromEntries(flock.map((id) => [id, stage.actors[id].position.x]));
+
+      const after = Object.values(runSimulation(world, characters, 6).stages)[0];
+      for (const id of flock) {
+        const moved = (after.actors[id].position.x - start[id] + 14) % 14;
+        expect(moved, `${id} flew`).to.be.at.least(5);
+        expect(after.actors[id].position.y, `${id} stayed in its row`).to.equal(
+          stage.actors[id].position.y,
+        );
+      }
+    });
+
     it("wraps the bird around to the left edge and keeps flying", () => {
       const { world, characters } = setup([
         flapRule("up-to-down", WINGS_UP, WINGS_DOWN),

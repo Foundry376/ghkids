@@ -1,5 +1,6 @@
 import { changeActors } from "../../actions/stage-actions";
 import { stopPlayback } from "../../actions/ui-actions";
+import { SELECT_TOOL_ID } from "../action-types";
 import { EditorState, RecordingState } from "../../../types";
 import { getCurrentStageForWorld } from "../../utils/selectors";
 import { TOOLS } from "../constants";
@@ -19,14 +20,22 @@ import { birdIn, birdPath, LESSON_CHARACTER_IDS } from "./characters";
  * actor's appearance is <what it looks like now>". So the lesson plays the
  * first rule once to leave the bird wings-down, and records the second rule
  * from there - which is also the moment it can show why the condition matters.
+ *
+ * It ends by stamping copies of the bird, to show that every copy follows the
+ * same rules: one bird's two rules are a whole flock's animation.
  */
 const BIRD_START = { x: 2, y: 5 };
 /** The appearance the bird starts with. The one the kid paints gets a generated id. */
 const WINGS_UP = "wings-up";
 /** How far the bird should get once both rules work, before we call it flying. */
 const FLYING_COLUMN = BIRD_START.x + 5;
+/** The original bird plus the copies the kid stamps before the last Play. */
+const FLOCK_SIZE = 4;
 /** The bird in the recording's right-hand picture, where appearances get dropped. */
 const AFTER_BIRD = `[data-stage-wrap-id=after] [data-stage-character-id=${LESSON_CHARACTER_IDS.bird}]`;
+
+const birdCount = (stage: { actors: Record<string, { characterId: string }> }) =>
+  Object.values(stage.actors).filter((a) => a.characterId === LESSON_CHARACTER_IDS.bird).length;
 
 /** The appearance the kid painted, whatever it ended up being called. */
 function wingsDownIn(state: EditorState): string | undefined {
@@ -321,5 +330,48 @@ export const animateAppearancesLessonContent: TutorialStepContent[] = [
   {
     pose: ["excited", "sitting-talking"],
     text: `It's flying! Each rule checks which picture the bird is showing, moves it forward, and switches to the other picture. Switching back and forth between two pictures is how you make an animation!`,
+  },
+  {
+    pose: ["standing-talking", "standing-pointing"],
+    text: `One bird is nice, but let's make a whole flock! Click the stamp tool in the toolbar.`,
+    annotation: {
+      selectors: ["[data-tutorial-id=toolbar-tool-stamp]"],
+      style: "outline",
+    },
+    onEnter: (dispatch) => {
+      dispatch(stopPlayback());
+    },
+    waitsFor: {
+      stateMatching: (state, stage) =>
+        state.ui.selectedToolId === TOOLS.STAMP || birdCount(stage) >= FLOCK_SIZE,
+    },
+  },
+  {
+    pose: "standing-pointing",
+    text: `Click the bird to pick it up. Then hold down the Shift key and click empty spots in the sky to stamp copies. Make at least three more birds!`,
+    annotation: {
+      selectors: [`.stages-horizontal-flex [data-stage-character-id=${LESSON_CHARACTER_IDS.bird}]`],
+      style: "outline",
+    },
+    waitsFor: {
+      stateMatching: (_state, stage) => birdCount(stage) >= FLOCK_SIZE,
+    },
+  },
+  {
+    pose: "excited",
+    text: `What a flock! Press 'Play' and watch them go.`,
+    annotation: { selectors: ["[data-tutorial-id=play]"], style: "outline" },
+    onEnter: (dispatch) => {
+      // Shift keeps the stamp tool, so put it down before a stray click adds a bird.
+      dispatch({ type: SELECT_TOOL_ID, toolId: TOOLS.POINTER });
+    },
+    waitsFor: {
+      stateMatching: (state) => state.ui.playback.running,
+      delay: 3000,
+    },
+  },
+  {
+    pose: ["excited", "sitting-talking"],
+    text: `Every copy of the bird follows the same two rules, so they all know how to flap their wings. You taught one bird, and the whole flock learned it!`,
   },
 ];
