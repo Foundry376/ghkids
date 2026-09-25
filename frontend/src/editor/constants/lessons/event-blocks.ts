@@ -1,16 +1,47 @@
 import { stopPlayback } from "../../actions/ui-actions";
+import { EditorState, RuleTreeFlowItem, RuleTreeItem } from "../../../types";
 import { TutorialStepContent } from "../tutorial-content";
 import { heroIn, LESSON_CHARACTER_IDS } from "./characters";
 
 /**
- * Lesson 4 - Event Blocks.
+ * Lesson 4 - Rule Boxes.
  *
  * Same world as lesson 3, except the hero already knows how to climb: the world
  * ships with that rule in his idle container, which is where the recorder would
- * have left it. The kid moves it into a green key event block so he only climbs
- * when a key is pressed.
+ * have left it. The kid adds a rule box, gives it a pretest - "when" the key
+ * they pick is pressed - and moves the climbing rule inside, so the hero only
+ * climbs when that key is down.
+ *
+ * The arrow-key rules the hero starts with are in green event blocks, which is
+ * how older worlds do key rules; the lesson points at them to explain the idea,
+ * then builds the new rule the rule-box way.
  */
 const BOULDER_COLUMN = 10;
+/** The id build-lesson-worlds gives the climbing rule this world ships with. */
+const CLIMB_RULE_ID = "rule-climb-a-boulder";
+
+/** Every rule box in the hero's rules, however deeply nested. */
+function heroRuleBoxes(state: EditorState): RuleTreeFlowItem[] {
+  const boxes: RuleTreeFlowItem[] = [];
+  const visit = (items: RuleTreeItem[]) => {
+    for (const item of items) {
+      if (item.type === "group-flow") {
+        boxes.push(item);
+      }
+      if ("rules" in item) {
+        visit(item.rules);
+      }
+    }
+  };
+  visit(state.characters[LESSON_CHARACTER_IDS.hero]?.rules ?? []);
+  return boxes;
+}
+
+/** A rule box whose pretest checks for a key press. */
+const checksForKey = (box: RuleTreeFlowItem) =>
+  !!box.check?.conditions.some(
+    (c) => c.enabled && "globalId" in c.left && c.left.globalId === "keypress",
+  );
 
 export const eventBlocksLessonContent: TutorialStepContent[] = [
   {
@@ -40,7 +71,7 @@ export const eventBlocksLessonContent: TutorialStepContent[] = [
   },
   {
     pose: ["standing-talking", "folded-talking", "standing-talking"],
-    text: `Sometimes, we only want our hero to follow a rule if we press a key on the keyboard. That's what the green Event blocks are for! They tell our hero he should only look inside when we're pressing a key.`,
+    text: `Sometimes, we only want our hero to follow a rule if we press a key on the keyboard. We can do that by putting the rule in a rule box that checks for the key first!`,
   },
   {
     pose: ["standing-pointing", "folded-talking"],
@@ -64,20 +95,42 @@ export const eventBlocksLessonContent: TutorialStepContent[] = [
   },
   {
     pose: "standing-pointing",
-    text: `We'll need a new green Event block. Click 'Add' up here.`,
+    text: `We'll need a new rule box. Click the + button up here.`,
     annotation: {
       selectors: ["[data-tutorial-id=inspector-add-rule]"],
       style: "outline",
     },
     waitsFor: {
-      elementMatching: ".btn-group.open [data-tutorial-id=inspector-add-rule-key]",
+      elementMatching: ".show [data-tutorial-id=inspector-add-rule-box]",
     },
   },
   {
     pose: "standing-pointing",
-    text: `Choose 'When a Key is Pressed' from the menu.`,
+    text: `Choose 'Add Rule Box' from the menu.`,
     annotation: {
-      selectors: [".btn-group.open [data-tutorial-id=inspector-add-rule-key]"],
+      selectors: [".show [data-tutorial-id=inspector-add-rule-box]"],
+      style: "outline",
+    },
+    waitsFor: {
+      stateMatching: (state) => heroRuleBoxes(state).length > 0,
+    },
+  },
+  {
+    pose: ["excited", "standing-pointing"],
+    text: `There's our new rule box! Right now it says 'Always', so our hero always looks inside. Change 'Always' to 'When' so we can tell it what to check for.`,
+    annotation: {
+      selectors: [".rule-container.group-flow [data-tutorial-id=rule-box-check]"],
+      style: "outline",
+    },
+    waitsFor: {
+      stateMatching: (state) => !!state.recording.ruleId?.endsWith("-check"),
+    },
+  },
+  {
+    pose: "standing-pointing",
+    text: `This picture is the rule box's check. Click the keyboard button to choose a key it should look for.`,
+    annotation: {
+      selectors: ["[data-tutorial-id=record-tool-keypress]"],
       style: "outline",
     },
     waitsFor: {
@@ -96,30 +149,32 @@ export const eventBlocksLessonContent: TutorialStepContent[] = [
     },
   },
   {
-    pose: ["excited", "sitting-talking"],
-    text: `Great! There's our new green block. Let's put our climbing rule in there so the hero will only climb when we press that key.`,
+    pose: "standing-pointing",
+    text: `Now the rule box will only look inside when that key is pressed. Click 'Done' to save the check.`,
     annotation: {
-      selectors: [".rule-container.group-event:first-child"],
+      selectors: ["[data-tutorial-id=record-next-step]"],
       style: "outline",
+    },
+    waitsFor: {
+      stateMatching: (state) =>
+        state.recording.characterId === null && heroRuleBoxes(state).some(checksForKey),
     },
   },
   {
     pose: "standing-pointing",
-    text: `Drag and drop the climbing rule into the empty space inside our new green block.`,
+    text: `Drag and drop the climbing rule into the empty space inside our new rule box.`,
     annotation: {
       style: "arrow",
       selectors: [
-        ".rule-container.group-event:last-child .rule:first-child",
-        ".rule-container.group-event:first-child .rules-list",
+        `[data-rule-id="${CLIMB_RULE_ID}"]`,
+        ".rule-container.group-flow .rules-list",
       ],
     },
-  },
-  {
-    pose: "standing-pointing",
-    text: `Drag and drop the climbing rule into the empty space inside our new green block.`,
-    skipAudio: true, // Wait/continuation step - reuses text from previous step
     waitsFor: {
-      elementMatching: ".rule-container.group-event:first-child li",
+      stateMatching: (state) =>
+        heroRuleBoxes(state).some(
+          (box) => checksForKey(box) && box.rules.some((r) => r.id === CLIMB_RULE_ID),
+        ),
     },
   },
   {

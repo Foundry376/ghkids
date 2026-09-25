@@ -49,10 +49,10 @@ export const LESSONS: Lesson[] = [
   },
   {
     slug: "event-blocks",
-    title: "Event Blocks",
-    caption: "Put a rule in a green event block so it only runs when you press a key.",
+    title: "Rule Boxes",
+    caption: "Put a rule in a rule box that checks for a key, so it only runs when you press it.",
     screenshot: screenshot("event-blocks.jpg"),
-    worldName: "Lesson 4: Event Blocks",
+    worldName: "Lesson 4: Rule Boxes",
     loadWorld: () => import("./worlds/event-blocks.json").then((m) => m.default),
   },
   {

@@ -33,6 +33,7 @@ const StageRecordingTools = () => {
       </Button>
       <Button
         className={classNames({ "tool-keypress": true, enabled: true })}
+        data-tutorial-id="record-tool-keypress"
         {...forgivingPress(() => dispatch(pickConditionValueFromKeyboard(true, null, null)), {
           fireOn: "press",
         })}

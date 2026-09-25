@@ -55,7 +55,7 @@ const RuleAddButton = ({
           <span className="badge rule" /> Add Rule
         </DropdownItem>
         <DropdownItem divider />
-        <DropdownItem onClick={_onCreateFlowContainer}>
+        <DropdownItem data-tutorial-id="inspector-add-rule-box" onClick={_onCreateFlowContainer}>
           <span className="badge rule-flow" /> Add Rule Box
         </DropdownItem>
       </DropdownMenu>

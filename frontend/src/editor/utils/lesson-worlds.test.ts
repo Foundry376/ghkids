@@ -113,6 +113,69 @@ describe("lesson worlds", () => {
       const after = walkRight(world, characters, 14);
       expect(actorOf(after, HERO).position.x).to.be.at.least(13);
     });
+
+    /**
+     * What the kid builds: a rule box at the top of the idle rules (where Add
+     * Rule Box puts it), whose pretest - recorded on the hero - checks for the
+     * space bar, with the climbing rule dragged inside it.
+     */
+    function moveClimbIntoSpaceBox(characters: Characters) {
+      const idle = characters[HERO].rules.find((r) => "event" in r && r.event === "idle")!;
+      if (!("rules" in idle)) throw new Error("no idle container");
+      const climb = idle.rules.shift()!;
+      idle.rules.unshift({
+        id: "space-box",
+        type: "group-flow",
+        name: "Untitled Rule Box",
+        behavior: "first",
+        rules: [climb],
+        check: {
+          id: "space-box-check",
+          mainActorId: "hero",
+          actors: {
+            hero: {
+              id: "hero",
+              position: { x: 0, y: 0 },
+              appearance: "1483692402546",
+              characterId: HERO,
+              variableValues: {},
+            },
+          },
+          extent: { xmin: 0, xmax: 0, ymin: 0, ymax: 0, ignored: {} },
+          conditions: [
+            {
+              key: "main-actor-appearance",
+              left: { actorId: "hero", variableId: "appearance" },
+              right: { constant: "1483692402546" },
+              comparator: "=",
+              enabled: true,
+            },
+            {
+              key: "space",
+              left: { globalId: "keypress" },
+              right: { constant: "Space" },
+              comparator: "=",
+              enabled: true,
+            },
+          ],
+        },
+      });
+    }
+
+    it("stops climbing once the climb rule is in a rule box checking for space", () => {
+      const { world, characters } = load(eventBlocksWorld);
+      moveClimbIntoSpaceBox(characters);
+      const after = walkRight(world, characters, 14);
+      expect(actorOf(after, HERO).position).to.deep.equal({ x: 9, y: 4 });
+    });
+
+    it("climbs when space is held along with the arrow key", () => {
+      const { world, characters } = load(eventBlocksWorld);
+      moveClimbIntoSpaceBox(characters);
+      const both: FrameInput = { keys: { ArrowRight: true, Space: true }, clicks: {} };
+      const after = runSimulation(world, characters, 14, Array(14).fill(both));
+      expect(actorOf(after, HERO).position.x).to.be.at.least(13);
+    });
   });
 
   describe("falling-boulder", () => {
