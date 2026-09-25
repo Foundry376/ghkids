@@ -85,7 +85,9 @@ const Toolbar = () => {
           <DropdownMenu>
             <DropdownItem disabled={!hasUnsavedChanges} onClick={() => save()}>
               <i className="fa fa-save fa-fw" style={{ marginRight: 8 }} />
-              Save
+              {/* A game has one saved copy, and that's what players get - so
+                  once it's published, saving is how you update it. */}
+              {metadata.published ? "Save & Update Published Game" : "Save"}
             </DropdownItem>
             <DropdownItem onClick={() => saveAndExit("/dashboard")}>
               <i className="fa fa-sign-out fa-fw fa-flip-horizontal" style={{ marginRight: 8 }} />
