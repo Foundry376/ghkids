@@ -39,6 +39,82 @@ describe("Worlds API", () => {
       expect(res.body[1].name).to.equal("World A");
       expect(res.body[2].name).to.equal("World C");
     });
+
+    async function seedPublished() {
+      const { user: dave } = await createTestUser("dave", "password123");
+      const { user: marcus } = await createTestUser("marcus", "password123");
+      const worldRepo = AppDataSource.getRepository(World);
+      await worldRepo.save([
+        { name: "Space Invaders", thumbnail: "#", userId: dave.id, playCount: 3, published: true },
+        { name: "Train World", thumbnail: "#", userId: dave.id, playCount: 9, published: true },
+        { name: "Space Race", thumbnail: "#", userId: marcus.id, playCount: 7, published: true },
+        { name: "100% Fun", thumbnail: "#", userId: marcus.id, playCount: 1, published: true },
+        {
+          name: "Space Secret",
+          thumbnail: "#",
+          userId: marcus.id,
+          playCount: 99,
+          published: false,
+        },
+      ]);
+    }
+
+    it("leaves out unpublished worlds", async () => {
+      await seedPublished();
+      const res = await request(app).get("/worlds/explore").expect(200);
+      expect(res.body.map((w: { name: string }) => w.name)).to.not.include("Space Secret");
+    });
+
+    it("searches titles, case-insensitively", async () => {
+      await seedPublished();
+      const res = await request(app).get("/worlds/explore").query({ q: "space" }).expect(200);
+      expect(res.body.map((w: { name: string }) => w.name)).to.deep.equal([
+        "Space Race",
+        "Space Invaders",
+      ]);
+    });
+
+    it("searches author usernames", async () => {
+      await seedPublished();
+      const res = await request(app).get("/worlds/explore").query({ q: "Marcus" }).expect(200);
+      expect(res.body.map((w: { name: string }) => w.name)).to.deep.equal([
+        "Space Race",
+        "100% Fun",
+      ]);
+    });
+
+    it("treats % and _ in a search as plain text", async () => {
+      await seedPublished();
+      const percent = await request(app).get("/worlds/explore").query({ q: "0%" }).expect(200);
+      expect(percent.body.map((w: { name: string }) => w.name)).to.deep.equal(["100% Fun"]);
+      const underscore = await request(app).get("/worlds/explore").query({ q: "_" }).expect(200);
+      expect(underscore.body).to.have.length(0);
+    });
+
+    it("pages through with offset and limit, most played first", async () => {
+      await seedPublished();
+      const first = await request(app).get("/worlds/explore").query({ limit: 2 }).expect(200);
+      const second = await request(app)
+        .get("/worlds/explore")
+        .query({ limit: 2, offset: 2 })
+        .expect(200);
+      expect(first.body.map((w: { name: string }) => w.name)).to.deep.equal([
+        "Train World",
+        "Space Race",
+      ]);
+      expect(second.body.map((w: { name: string }) => w.name)).to.deep.equal([
+        "Space Invaders",
+        "100% Fun",
+      ]);
+    });
+
+    it("caps the page size", async () => {
+      await seedPublished();
+      const res = await request(app).get("/worlds/explore").query({ limit: 5000 }).expect(200);
+      expect(res.body).to.have.length(4);
+      const bogus = await request(app).get("/worlds/explore").query({ limit: "lots" }).expect(200);
+      expect(bogus.body).to.have.length(4);
+    });
   });
 
   describe("GET /worlds/:objectId", () => {
