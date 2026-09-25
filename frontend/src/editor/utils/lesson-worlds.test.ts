@@ -324,6 +324,18 @@ describe("lesson worlds", () => {
       expect(actorOf(after, BIRD).appearance).to.equal(WINGS_UP);
     });
 
+    it("slides the bird across the sky with just the move rule", () => {
+      // The first rule the kid records: move forward, with the appearance
+      // check the recorder adds - always true while there's only one picture.
+      const slide = flapRule("slide", WINGS_UP, WINGS_UP);
+      slide.actions = slide.actions.filter((a) => a.type === "move");
+      const { world, characters } = setup([slide]);
+      const after = runSimulation(world, characters, 16);
+      // 16 squares on a 14-wide wrapping sky: all the way round and two more.
+      expect(actorOf(after, BIRD).position).to.deep.equal({ x: 4, y: 5 });
+      expect(actorOf(after, BIRD).appearance).to.equal(WINGS_UP);
+    });
+
     it("flaps once and stops with only the wings-up rule", () => {
       const { world, characters } = setup([flapRule("up-to-down", WINGS_UP, WINGS_DOWN)]);
       const after = runSimulation(world, characters, 4);

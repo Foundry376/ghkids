@@ -10,16 +10,19 @@ import { birdIn, birdPath, LESSON_CHARACTER_IDS } from "./characters";
 /**
  * Lesson 6 - Animate Appearances.
  *
- * A bird alone in a sky that wraps around, with one appearance: wings up. The
- * kid paints a second, wings-down appearance, then records two rules that each
- * move the bird one square forward and swap it to the other picture. Together
- * they make it flap across the sky.
+ * A bird alone in a sky that wraps around, with one appearance (wings up) and
+ * no rules. Following Dave's "teachable moment" order from the Sep 25 sync,
+ * the kid first records the simplest rule there is - move forward - and
+ * watches the bird slide across the sky. Birds don't fly like that, so next
+ * they paint a wings-down appearance and edit that rule to switch to it. That
+ * makes the bird flap once and stop, which is when the lesson points out the
+ * appearance check the recorder added to the rule, and the kid records a
+ * second rule for when the wings are down. Together the two make it fly.
  *
- * The appearance condition the lesson is about is added by the recorder, not
- * the kid: clicking an actor with the record tool starts the rule with "this
- * actor's appearance is <what it looks like now>". So the lesson plays the
- * first rule once to leave the bird wings-down, and records the second rule
- * from there - which is also the moment it can show why the condition matters.
+ * The appearance check is added by the recorder, not the kid: clicking an
+ * actor with the record tool starts the rule with "this actor's appearance is
+ * <what it looks like now>". While the bird only has one picture that check is
+ * always true, which is why the slide rule works on its own.
  *
  * It ends by stamping copies of the bird, to show that every copy follows the
  * same rules: one bird's two rules are a whole flock's animation.
@@ -31,6 +34,8 @@ const WINGS_UP = "wings-up";
 const FLYING_COLUMN = BIRD_START.x + 5;
 /** The original bird plus the copies the kid stamps before the last Play. */
 const FLOCK_SIZE = 4;
+/** The first rule in the bird's list in the inspector - the slide rule, when the kid edits it. */
+const BIRD_RULE_IN_INSPECTOR = ".scroll-container-contents .rule-container.rule";
 /** The bird in the recording's right-hand picture, where appearances get dropped. */
 const AFTER_BIRD = `[data-stage-wrap-id=after] [data-stage-character-id=${LESSON_CHARACTER_IDS.bird}]`;
 
@@ -72,11 +77,75 @@ const recordedCondition = (recording: RecordingState) => {
 export const animateAppearancesLessonContent: TutorialStepContent[] = [
   {
     pose: "folded-talking",
-    text: `Meet our bird! Right now it only has one picture, with its wings up. To make it look like it's flying, we need a second picture with its wings down.`,
+    text: `Meet our bird! It doesn't know how to do anything yet. Let's teach it to fly across the sky. Click the recording tool in the toolbar.`,
+    annotation: {
+      selectors: ["[data-tutorial-id=toolbar-tool-record]"],
+      style: "outline",
+    },
     onEnter: (dispatch) => {
       dispatch(stopPlayback());
       dispatch(changeActors(birdPath, { position: BIRD_START, appearance: WINGS_UP }));
     },
+    waitsFor: {
+      stateMatching: (state) =>
+        state.ui.selectedToolId === TOOLS.RECORD || state.recording.actorId === "bird",
+    },
+  },
+  {
+    pose: "standing-pointing",
+    text: `Now click on the bird up in the sky.`,
+    annotation: {
+      selectors: [`[data-stage-character-id=${LESSON_CHARACTER_IDS.bird}]`],
+      style: "outline",
+    },
+    waitsFor: {
+      stateMatching: (state) => state.recording.actorId === birdPath.actorIds[0]!,
+    },
+  },
+  {
+    pose: "standing-pointing",
+    text: `The bird needs an empty space to fly into. Drag the right handle over by one square.`,
+    annotation: { selectors: ["[data-stage-handle=right]"], style: "outline" },
+    waitsFor: {
+      stateMatching: (state) => state.recording.extent.xmax - state.recording.extent.xmin > 0,
+    },
+  },
+  {
+    pose: "standing-pointing",
+    text: `Now show the bird what to do. In the picture on the right, drag the bird one square forward into the empty space.`,
+    annotation: { selectors: ["[data-stage-wrap-id=after]"], style: "outline" },
+    waitsFor: {
+      stateMatching: ({ recording }) => movedOneSquareForward(recording),
+    },
+  },
+  {
+    pose: "standing-pointing",
+    text: `Click 'Done' to save the rule.`,
+    annotation: {
+      selectors: ["[data-tutorial-id=record-next-step]"],
+      style: "outline",
+    },
+    waitsFor: {
+      stateMatching: (state) => state.recording.characterId === null,
+    },
+  },
+  {
+    pose: "excited",
+    text: `Press 'Play' and watch the bird go!`,
+    annotation: { selectors: ["[data-tutorial-id=play]"], style: "outline" },
+    onEnter: (dispatch) => {
+      dispatch(changeActors(birdPath, { position: BIRD_START, appearance: WINGS_UP }));
+    },
+    waitsFor: {
+      stateMatching: (state, stage) => {
+        const bird = birdIn(stage);
+        return state.ui.playback.running && !!bird && bird.position.x >= FLYING_COLUMN;
+      },
+    },
+  },
+  {
+    pose: "standing-confused",
+    text: `It's moving! But hmm... birds don't slide across the sky like that. They flap their wings! To flap, our bird needs a second picture, with its wings down.`,
   },
   {
     pose: "standing-pointing",
@@ -84,6 +153,10 @@ export const animateAppearancesLessonContent: TutorialStepContent[] = [
     annotation: {
       selectors: [`[data-tutorial-id=characters] .item:last-child`],
       style: "outline",
+    },
+    onEnter: (dispatch) => {
+      dispatch(stopPlayback());
+      dispatch(changeActors(birdPath, { position: BIRD_START, appearance: WINGS_UP }));
     },
     waitsFor: {
       stateMatching: (state) => state.ui.selectedCharacterId === LESSON_CHARACTER_IDS.bird,
@@ -140,57 +213,21 @@ export const animateAppearancesLessonContent: TutorialStepContent[] = [
   },
   {
     pose: ["folded-talking", "standing-pointing"],
-    text: `Now let's teach the bird to flap its wings. Click the recording tool in the toolbar.`,
+    text: `Now let's change our rule so the bird flaps as it flies. Here's the rule we made - double-click it to open it up again.`,
     annotation: {
-      selectors: ["[data-tutorial-id=toolbar-tool-record]"],
-      style: "outline",
-    },
-    onEnter: (dispatch) => {
-      dispatch(changeActors(birdPath, { position: BIRD_START, appearance: WINGS_UP }));
-    },
-    waitsFor: {
-      stateMatching: (state) =>
-        state.ui.selectedToolId === TOOLS.RECORD || state.recording.actorId === "bird",
-    },
-  },
-  {
-    pose: "standing-pointing",
-    text: `Now click on the bird up in the sky.`,
-    annotation: {
-      selectors: [`[data-stage-character-id=${LESSON_CHARACTER_IDS.bird}]`],
+      selectors: [BIRD_RULE_IN_INSPECTOR],
       style: "outline",
     },
     waitsFor: {
-      stateMatching: (state) => state.recording.actorId === birdPath.actorIds[0]!,
-    },
-  },
-  {
-    pose: ["sitting-talking", "standing-pointing"],
-    text: `Look down here! Codako already added a check to our rule: the bird's appearance has to be Wings Up. This rule will only work when the bird's wings are up.`,
-    annotation: {
-      selectors: ["[data-tutorial-id=record-conditions]"],
-      style: "outline",
+      stateMatching: ({ recording }) =>
+        recording.characterId === LESSON_CHARACTER_IDS.bird &&
+        !!recording.ruleId &&
+        !recording.ruleId.endsWith("-check"),
     },
   },
   {
     pose: "standing-pointing",
-    text: `The bird needs an empty space to fly into. Drag the right handle over by one square.`,
-    annotation: { selectors: ["[data-stage-handle=right]"], style: "outline" },
-    waitsFor: {
-      stateMatching: (state) => state.recording.extent.xmax - state.recording.extent.xmin > 0,
-    },
-  },
-  {
-    pose: "standing-pointing",
-    text: `Now show the bird what to do. In the picture on the right, drag the bird one square forward into the empty space.`,
-    annotation: { selectors: ["[data-stage-wrap-id=after]"], style: "outline" },
-    waitsFor: {
-      stateMatching: ({ recording }) => movedOneSquareForward(recording),
-    },
-  },
-  {
-    pose: "standing-pointing",
-    text: `Next, drag the Wings Down picture from the Appearances panel onto the bird in the picture on the right.`,
+    text: `Drag the Wings Down picture from the Appearances panel onto the bird in the picture on the right.`,
     annotation: {
       selectors: ["[data-tutorial-id=appearances] .item:last-child", AFTER_BIRD],
       style: "arrow",
@@ -207,6 +244,14 @@ export const animateAppearancesLessonContent: TutorialStepContent[] = [
     text: `See the two instructions? When its wings are up, the bird will move forward and switch to its wings-down picture.`,
     annotation: {
       selectors: [".recording-specifics .panel-actions"],
+      style: "outline",
+    },
+  },
+  {
+    pose: ["sitting-talking", "standing-pointing"],
+    text: `And look down here! When we made this rule, Codako added a check: the bird's appearance has to be Wings Up. So this rule only works when the bird's wings are up.`,
+    annotation: {
+      selectors: ["[data-tutorial-id=record-conditions]"],
       style: "outline",
     },
   },
