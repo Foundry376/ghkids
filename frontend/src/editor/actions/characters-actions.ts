@@ -1,5 +1,5 @@
 import { DeepPartial } from "redux";
-import { Character, Position, RuleTreeEventItem } from "../../types";
+import { Character, Position } from "../../types";
 import * as types from "../constants/action-types";
 import { DOOR_VARIABLE_IDS } from "../utils/door-constants";
 import { makeId } from "../utils/utils";
@@ -110,31 +110,6 @@ export type ActionCreateCharacterFlowContainer = {
   type: "CREATE_CHARACTER_FLOW_CONTAINER";
   characterId: string;
   id: string;
-};
-
-export function createCharacterEventContainer(
-  characterId: string,
-  {
-    id,
-    eventCode,
-    eventType,
-  }: { id: string; eventType: RuleTreeEventItem["event"]; eventCode: RuleTreeEventItem["code"] },
-): ActionCreateCharacterEventContainer {
-  return {
-    type: types.CREATE_CHARACTER_EVENT_CONTAINER,
-    characterId,
-    eventCode,
-    eventType,
-    id,
-  };
-}
-
-export type ActionCreateCharacterEventContainer = {
-  type: "CREATE_CHARACTER_EVENT_CONTAINER";
-  characterId: string;
-  id: string;
-  eventType: RuleTreeEventItem["event"];
-  eventCode: RuleTreeEventItem["code"];
 };
 
 export function createCharacterVariable(characterId: string): ActionCreateCharacterVariable {
@@ -272,7 +247,6 @@ export type CharacterActions =
   | ActionDeleteCharacterAppearance
   | ActionCreateCharacterVariable
   | ActionDeleteCharacterVariable
-  | ActionCreateCharacterEventContainer
   | ActionCreateCharacterFlowContainer
   | ActionAdjustForAppearanceAnchorChange
   | ActionSetCharacterZOrder;

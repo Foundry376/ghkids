@@ -434,7 +434,7 @@ export type UIState = {
     open: boolean | null;
     replaceConditionKey: string | null;
     initialKey: string | null;
-    purpose?: "condition" | "event-container";
+    purpose?: "condition";
     characterId?: string | null;
   };
   paint: {

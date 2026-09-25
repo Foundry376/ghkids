@@ -106,45 +106,6 @@ export default function charactersReducer(
       });
     }
 
-    case Types.CREATE_CHARACTER_EVENT_CONTAINER: {
-      const { characterId, eventType, eventCode, id } = action;
-      if (!state[characterId]) {
-        return state;
-      }
-      let rules: RuleTreeItem[] = deepClone(state[characterId].rules);
-      const hasSameAlready = rules.some(
-        (r) => "event" in r && r.event === eventType && r.code === eventCode,
-      );
-      const hasEvents = rules.some((r) => "event" in r);
-
-      if (hasSameAlready) {
-        return state;
-      }
-
-      const rule: RuleTreeEventItem = {
-        id: id,
-        type: CONTAINER_TYPES.EVENT,
-        rules: [],
-        event: eventType,
-        code: eventCode,
-      };
-
-      if (!hasEvents) {
-        rules = [
-          rule,
-          {
-            id: id + 1,
-            type: CONTAINER_TYPES.EVENT,
-            rules: rules,
-            event: "idle" as const,
-          },
-        ];
-      } else {
-        rules.unshift(rule);
-      }
-      return u.updateIn(action.characterId, { rules }, state);
-    }
-
     case Types.CREATE_CHARACTER_FLOW_CONTAINER: {
       const { characterId, id } = action;
       if (!state[characterId]) {

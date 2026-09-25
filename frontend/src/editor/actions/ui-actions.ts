@@ -107,20 +107,6 @@ export function pickConditionValueFromKeyboard(
   };
 }
 
-export function pickKeyForEventContainer(open: boolean, characterId: string | null) {
-  return (dispatch: Dispatch<Actions>) => {
-    dispatch(stopPlayback());
-    dispatch({
-      type: types.UPDATE_KEYPICKER_STATE,
-      open,
-      initialKey: null,
-      replaceConditionKey: null,
-      purpose: "event-container",
-      characterId,
-    });
-  };
-}
-
 export function updateTutorialState(
   values: EditorState["ui"]["tutorial"],
 ): ActionUpdateTutorialState {
@@ -183,7 +169,7 @@ export type ActionUpdateKeypickerState = {
   open: boolean;
   initialKey: string | null;
   replaceConditionKey: string | null;
-  purpose: "condition" | "event-container";
+  purpose: "condition";
   characterId: string | null;
 };
 
