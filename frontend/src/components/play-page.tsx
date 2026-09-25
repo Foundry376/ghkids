@@ -49,9 +49,15 @@ const PlayPage: React.FC = () => {
 
   // When the user exits fullscreen while immersive (Escape key, Safari
   // controls, the toggle button, etc.), also leave immersive mode so the
-  // landing overlay with navigation links reappears.
+  // landing overlay with navigation links reappears. Only on the way *out* of
+  // fullscreen: on a phone without fullscreen, or when the browser refuses it,
+  // the game plays immersive without ever being fullscreen, and checking
+  // "immersive but not fullscreen" would stop it the moment it started.
+  const wasFullscreenRef = useRef(false);
   useEffect(() => {
-    if (!isFullscreen && immersive && !enteringFullscreenRef.current) {
+    const leftFullscreen = wasFullscreenRef.current && !isFullscreen;
+    wasFullscreenRef.current = isFullscreen;
+    if (leftFullscreen && immersive && !enteringFullscreenRef.current) {
       if (editorStoreRef.current) {
         editorStoreRef.current.dispatch(updatePlaybackState({ speed: 500, running: false }));
       }
