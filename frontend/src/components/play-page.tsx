@@ -1,10 +1,10 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useDispatch } from "react-redux";
 import { Link, useParams } from "react-router-dom";
-import { ButtonDropdown, DropdownItem, DropdownMenu, DropdownToggle } from "reactstrap";
+import { Button, ButtonDropdown, DropdownItem, DropdownMenu, DropdownToggle } from "reactstrap";
 
 import { Store } from "redux";
-import { createWorld, fetchWorld } from "../actions/main-actions";
+import { createWorld, fetchWorld, updateWorldInfo } from "../actions/main-actions";
 import { updatePlaybackState } from "../editor/actions/ui-actions";
 import { RootPlayer } from "../editor/root-player";
 import { getCurrentStage } from "../editor/utils/selectors";
@@ -127,6 +127,30 @@ const PlayPage: React.FC = () => {
   };
 
   const isOwner = me && me.id === world?.userId;
+
+  // The author can fix the title and description right here, where they're
+  // looking at them, instead of unpublishing and publishing again.
+  const [editingInfo, setEditingInfo] = useState<{ name: string; description: string } | null>(
+    null,
+  );
+  const [savingInfo, setSavingInfo] = useState(false);
+  const onSaveInfo = async () => {
+    if (!world || !editingInfo || !editingInfo.name.trim()) return;
+    setSavingInfo(true);
+    try {
+      await dispatch(
+        updateWorldInfo(world.id, {
+          name: editingInfo.name.trim(),
+          description: editingInfo.description.trim() || null,
+        }),
+      );
+      setEditingInfo(null);
+    } catch {
+      window.alert("Sorry, your changes couldn't be saved. Please try again.");
+    } finally {
+      setSavingInfo(false);
+    }
+  };
   const editLabel = isOwner ? "Open in Editor" : "Remix this Game";
   const [currentStageName, setCurrentStageName] = useState<string | null>(null);
 
@@ -232,7 +256,18 @@ const PlayPage: React.FC = () => {
               <img src={world.thumbnail} alt={world.name} />
             </div>
           )}
-          <h2 className="play-landing__title">{world.name}</h2>
+          {editingInfo ? (
+            <input
+              className="play-landing__title-input"
+              value={editingInfo.name}
+              maxLength={100}
+              placeholder="Title"
+              aria-label="Title"
+              onChange={(e) => setEditingInfo({ ...editingInfo, name: e.target.value })}
+            />
+          ) : (
+            <h2 className="play-landing__title">{world.name}</h2>
+          )}
           <div className="play-landing__meta">
             <span>
               by <Link to={`/u/${world.user.username}`}>{world.user.username}</Link>
@@ -246,7 +281,47 @@ const PlayPage: React.FC = () => {
               </span>
             )}
           </div>
-          {world.description && <p className="play-landing__description">{world.description}</p>}
+          {editingInfo ? (
+            <div className="play-landing__edit-info">
+              <textarea
+                value={editingInfo.description}
+                maxLength={300}
+                rows={3}
+                placeholder="Describe your game - how to play, who made it..."
+                aria-label="Description"
+                onChange={(e) => setEditingInfo({ ...editingInfo, description: e.target.value })}
+              />
+              <div className="play-landing__edit-info-buttons">
+                <Button size="sm" outline color="light" onClick={() => setEditingInfo(null)}>
+                  Cancel
+                </Button>
+                <Button
+                  size="sm"
+                  color="primary"
+                  disabled={savingInfo || !editingInfo.name.trim()}
+                  onClick={onSaveInfo}
+                >
+                  {savingInfo ? "Saving…" : "Save"}
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <>
+              {world.description && (
+                <p className="play-landing__description">{world.description}</p>
+              )}
+              {isOwner && (
+                <button
+                  className="play-landing__edit-info-link"
+                  onClick={() =>
+                    setEditingInfo({ name: world.name, description: world.description ?? "" })
+                  }
+                >
+                  <i className="fa fa-pencil" /> Edit title &amp; description
+                </button>
+              )}
+            </>
+          )}
           <button className="play-landing__play-btn" onClick={onPlay}>
             <i className="fa fa-play" />
             <span>Play</span>

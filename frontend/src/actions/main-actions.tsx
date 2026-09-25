@@ -83,6 +83,24 @@ export function fetchWorld(id: ID) {
   };
 }
 
+/**
+ * Change a game's title and description without touching the game itself -
+ * what an author does from their published game's page. The request carries
+ * no `data`, so it leaves both the saved game and any unsaved draft alone.
+ */
+export function updateWorldInfo(
+  id: ID,
+  { name, description }: { name: string; description: string | null },
+) {
+  return async function (dispatch: Dispatch<MainActions>) {
+    const world = await makeRequest<Game>(`/worlds/${id}`, {
+      method: "PUT",
+      json: { name, description },
+    });
+    dispatch({ type: types.UPSERT_WORLDS, worlds: [world] });
+  };
+}
+
 export function deleteWorld(id: ID) {
   return function (dispatch: Dispatch<MainActions>) {
     if (
