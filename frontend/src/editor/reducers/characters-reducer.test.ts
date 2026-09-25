@@ -11,7 +11,10 @@ import {
   RuleTreeFlowLoopItem,
   RuleTreeItem,
 } from "../../types";
-import { adjustForAppearanceAnchorChange } from "../actions/characters-actions";
+import {
+  adjustForAppearanceAnchorChange,
+  createCharacterFlowContainer,
+} from "../actions/characters-actions";
 import { deleteCharacter } from "../actions/characters-actions";
 import { deleteCharacterVariable } from "../actions/characters-actions";
 import { deleteGlobal } from "../actions/world-actions";
@@ -480,5 +483,23 @@ describe("characters-reducer ADJUST_FOR_APPEARANCE_ANCHOR_CHANGE", () => {
       adjustForAppearanceAnchorChange("hero", "stand", { x: 1, y: 1 }, { x: 1, y: 1 }),
     );
     expect(after).to.equal(before);
+  });
+});
+
+describe("characters-reducer CREATE_CHARACTER_FLOW_CONTAINER", () => {
+  it("adds the rule box at the top of the idle rules, like a newly recorded rule", () => {
+    const existing = makeRule({ id: "existing", mainActorId: "a", actors: {} });
+    const state: Characters = {
+      hero: {
+        id: "hero",
+        name: "Hero",
+        variables: {},
+        spritesheet: { appearances: {}, appearanceNames: {} },
+        rules: [{ id: "idle", type: "group-event", event: "idle", rules: [existing] }],
+      } as Character,
+    };
+    const next = reduce(state, createCharacterFlowContainer("hero", { id: "box" }));
+    const idle = next.hero.rules[0] as { rules: RuleTreeItem[] };
+    expect(idle.rules.map((r) => r.id)).to.deep.equal(["box", "existing"]);
   });
 });
