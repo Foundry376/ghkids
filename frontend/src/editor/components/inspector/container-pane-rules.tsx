@@ -251,8 +251,10 @@ export const ContainerPaneRules = ({
 
     let lastAssigned: number | null = null;
     const step = () => {
-      if (lastAssigned !== null && container.scrollTop !== lastAssigned) {
-        // user has interrupted the scrolling somehow, abort!
+      // The browser can hand back a slightly different scrollTop than we set
+      // (it snaps to device pixels), so only a real difference means the user
+      // has interrupted the scrolling.
+      if (lastAssigned !== null && Math.abs(container.scrollTop - lastAssigned) > 1) {
         return;
       }
       if (_scrollId.current !== scrollId) {
@@ -263,7 +265,7 @@ export const ContainerPaneRules = ({
         const d = Math.abs(scrollTopTarget - container.scrollTop);
         const dsign = Math.sign(scrollTopTarget - container.scrollTop);
         container.scrollTop = lastAssigned =
-          Math.round(container.scrollTop) + dsign * Math.max(Math.min(40, d / 10.0), 1);
+          Math.round(container.scrollTop) + dsign * Math.max(Math.round(Math.min(40, d / 10.0)), 1);
         window.requestAnimationFrame(step);
       }
     };
