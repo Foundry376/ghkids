@@ -148,6 +148,15 @@ router.post("/worlds", userFromBasicAuth, async (req, res) => {
   res.json(newWorld.serialize());
 });
 
+/**
+ * A description in the request replaces the saved one - including null, which
+ * is how clearing it arrives. One that's left out keeps what's saved: the
+ * editor only sends it when it's been changed there.
+ */
+function descriptionFrom(body: Record<string, unknown>, world: World): string | null {
+  return "description" in body ? ((body.description as string | null) ?? null) : world.description;
+}
+
 router.put("/worlds/:objectId", userFromBasicAuth, async (req, res) => {
   if (!req.user) {
     return res.status(401).json({ message: "This user does not exist." });
@@ -174,7 +183,7 @@ router.put("/worlds/:objectId", userFromBasicAuth, async (req, res) => {
     world.name = req.body.name || world.name;
     world.thumbnail = req.body.thumbnail || world.thumbnail;
     // Allow updating published/description on save
-    world.description = req.body.description ?? world.description;
+    world.description = descriptionFrom(req.body, world);
     world.published = req.body.published ?? world.published;
     // updatedAt will be automatically updated by TypeORM
   } else if (action === "discard") {
@@ -200,7 +209,7 @@ router.put("/worlds/:objectId", userFromBasicAuth, async (req, res) => {
       world.unsavedDataUpdatedAt = new Date();
     }
     // Allow updating published/description during draft save too
-    world.description = req.body.description ?? world.description;
+    world.description = descriptionFrom(req.body, world);
     world.published = req.body.published ?? world.published;
     // Don't update updatedAt when saving draft
   }
