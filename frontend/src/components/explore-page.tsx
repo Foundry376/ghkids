@@ -1,5 +1,5 @@
 import { Button, Col, Container, Input, Row } from "reactstrap";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 
 import { makeRequest } from "../helpers/api";
 import { usePageTitle } from "../hooks/usePageTitle";
@@ -20,6 +20,8 @@ const ExplorePage: React.FC = () => {
   const [query, setQuery] = useState("");
   const [hasMore, setHasMore] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
+  /** Bumped whenever the list starts over, so a late "More Games" for an older list is dropped. */
+  const listVersion = useRef(0);
 
   usePageTitle("Published Games");
 
@@ -38,6 +40,7 @@ const ExplorePage: React.FC = () => {
 
   useEffect(() => {
     let current = true;
+    listVersion.current += 1;
     setWorlds(null);
     fetchPage(0).then((page) => {
       if (current) {
@@ -53,10 +56,14 @@ const ExplorePage: React.FC = () => {
 
   const onMore = async () => {
     if (!worlds) return;
+    const version = listVersion.current;
     setLoadingMore(true);
     try {
       const page = await fetchPage(worlds.length);
-      setWorlds([...worlds, ...page]);
+      // The search changed while this was loading: this page belongs to the
+      // old list, and appending it would mix it into the new one.
+      if (listVersion.current !== version) return;
+      setWorlds((prev) => [...(prev ?? []), ...page]);
       setHasMore(page.length === PAGE_SIZE);
     } finally {
       setLoadingMore(false);
