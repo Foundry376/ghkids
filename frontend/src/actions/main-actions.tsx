@@ -93,11 +93,20 @@ export function updateWorldInfo(
   { name, description }: { name: string; description: string | null },
 ) {
   return async function (dispatch: Dispatch<MainActions>) {
-    const world = await makeRequest<Game>(`/worlds/${id}`, {
+    const saved = await makeRequest<Game>(`/worlds/${id}`, {
       method: "PUT",
       json: { name, description },
     });
-    dispatch({ type: types.UPSERT_WORLDS, worlds: [world] });
+    // Take only what changed. The PUT response is the bare world - no user or
+    // fork parent - and the play page reads world.user, so storing the whole
+    // response would break the page the author is looking at.
+    const existing: Game | undefined = window.store.getState().worlds?.[id];
+    if (existing) {
+      dispatch({
+        type: types.UPSERT_WORLDS,
+        worlds: [{ ...existing, name: saved.name, description: saved.description }],
+      });
+    }
   };
 }
 
