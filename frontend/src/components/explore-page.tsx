@@ -63,7 +63,13 @@ const ExplorePage: React.FC = () => {
       // The search changed while this was loading: this page belongs to the
       // old list, and appending it would mix it into the new one.
       if (listVersion.current !== version) return;
-      setWorlds((prev) => [...(prev ?? []), ...page]);
+      // Pages come by offset in play-count order, and every visit raises a
+      // game's count, so one can climb from this page into the part already
+      // shown. Skip anything we have rather than listing it twice.
+      setWorlds((prev) => {
+        const shown = new Set((prev ?? []).map((w) => w.id));
+        return [...(prev ?? []), ...page.filter((w) => !shown.has(w.id))];
+      });
       setHasMore(page.length === PAGE_SIZE);
     } finally {
       setLoadingMore(false);
