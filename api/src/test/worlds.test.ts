@@ -367,6 +367,44 @@ describe("Worlds API", () => {
       expect(remaining.unsavedDataUpdatedAt).to.be.null;
     });
 
+    it("should clear the description when the request sends null", async () => {
+      const { user, authHeader } = await createTestUser("testuser", "password123");
+      const world = await AppDataSource.getRepository(World).save({
+        name: "Described",
+        thumbnail: "#",
+        userId: user.id,
+        description: "Use the arrow keys",
+      });
+
+      await request(app)
+        .put(`/worlds/${world.id}`)
+        .set("Authorization", authHeader)
+        .send({ name: "Described", description: null })
+        .expect(200);
+
+      const updated = await AppDataSource.getRepository(World).findOneBy({ id: world.id });
+      expect(updated!.description).to.equal(null);
+    });
+
+    it("should keep the description when the request leaves it out", async () => {
+      const { user, authHeader } = await createTestUser("testuser", "password123");
+      const world = await AppDataSource.getRepository(World).save({
+        name: "Described",
+        thumbnail: "#",
+        userId: user.id,
+        description: "Use the arrow keys",
+      });
+
+      await request(app)
+        .put(`/worlds/${world.id}?action=save`)
+        .set("Authorization", authHeader)
+        .send({ data: { stages: {} } })
+        .expect(200);
+
+      const updated = await AppDataSource.getRepository(World).findOneBy({ id: world.id });
+      expect(updated!.description).to.equal("Use the arrow keys");
+    });
+
     it("should return 404 for world owned by different user", async () => {
       const { user: owner } = await createTestUser("owner", "password123");
       const { authHeader: attackerAuth } = await createTestUser("attacker", "password123");
