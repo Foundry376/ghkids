@@ -203,6 +203,6 @@ export const fallingBoulderLessonContent: TutorialStepContent[] = [
   },
   {
     pose: "sitting-talking",
-    text: `That was pretty cool, huh? I don't really know what we should do next. Why don't you make your own rules! You could make our hero jump over the boulder or teach him to dig into the dirt, or create a whole new game piece!`,
+    text: `That was pretty cool, huh? Our cave game has a bridge, a hero who can climb, and a boulder that falls! Next, let's head outside and teach a bird how to fly.`,
   },
 ];

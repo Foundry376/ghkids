@@ -656,6 +656,48 @@
           "wings-up": "Wings Up"
         }
       }
+    },
+    "horse": {
+      "id": "horse",
+      "name": "Horse",
+      "rules": [],
+      "variables": {},
+      "spritesheet": {
+        "width": 40,
+        "appearances": {
+          "brown": [
+            "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACgAAAAoCAYAAACM/rhtAAABTElEQVR4nGNgGAVDDFgpCfwHYVx8dMDEMMgBC70ssoKGUpm7HJjftZMBK//YvQ+MQyoEGekVcgIckLBIs5fBq75r5yMG5JAcuSFoRSDkElc8BtPzI2TxhuTIC0ErEtMcITByQtCKzNwKKwdhYNXpZ2A6zFRqiNYkVmj1InrJTinoQivn0GsUWMgNmVzMgisNoYsTAgJk5lr0kEQXH/whaIUj5D78+Ic1l9EKHMOR1gd/CDKgAVjIEQKap//ilb9uyoxVnFD7b+iHIAzQK+0RAoM/BAWguZfYtEcojY28EGRAA7jqSFrVxUM/BD9A0x4uH9169glMb7j8Aa0cg4QELhCgK4BVH6lg8IfgMQrbe8fQ9BPb+hk2IcjEMMgBE8MgB0wMgxwwMQz18cGFd7jBND8DpDyrPgRpB/LTSN+QC0GqjykzUKgPHQz6EAQA/+KS4UU2jU0AAAAASUVORK5CYII="
+          ],
+          "black": [
+            "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACgAAAAoCAYAAACM/rhtAAABXElEQVR4nGNgGAVDDPDxCf0HYVx8dMDEMMgBI70s4oOGko2NG5h/5MguBmz8T5/eobhpNAT5oCHHzs4JDhFTU1u8IY0ekiM3BPkIhNyqVXPAdFhYCt6QHHkhyEdimiMERk4I8pGZW2HlIAxcunQKTOvpmQ3REORDqxfRS3ZKQ/AIWjmHXsOgqxv0IciCKwTQxQkBdjJzLSwkjxzZhTXmBn8I8uEIuZ8/vzNgSxu0Ap9wpPXBH4IMaAAWcoTAU+NOvPLSZ8uxiiO1//4TU0oMvRCEAXqlPUJg8IcgOzT3Epv2CKWxEReCjKKi0v+RQ5BQHUkpOIKj9zZkQ5AFPeTQwatXz8H0rVuXsfZjcQE1NV2s+kgFgz8EPxGZFnCBT2j6iW39DJsQZGIY5ICJYZADJoZBDpgYhmprBgbS0tLBdElJDpgOCPAjqhxMI1PfkAtBqo8pM1CoDx0M+hAEAB9Pl0e5snXZAAAAAElFTkSuQmCC"
+          ],
+          "white": [
+            "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACgAAAAoCAYAAACM/rhtAAABU0lEQVR4nGNgGAVDDHh5Bf0HYVx8dMDEMMgBC70s8oKG0qrlM8D8sEgGrPxt29YxDqkQZKRXyCVEOEH4/mF41YdFZjAgh+TIDUEvAiGnZ2gBpi+dP4E3JEdeCHqRmOYIgZETgl5k5lZYOQgDR/bvANM2jh5DtCbxQqsX0Ut2SkEYWjmHXqPAQm7I5GIWXGkICeBsaSADcnMtekiiiw/+EPTCEXILVuzDmstoBbbhSOuDPwQZ0AAs5AiBfxdc8MozGezBKk6o/YdhDsNQbVGvolPaIwQGfwgmQHMvsWmPUBobeSHIgAZw1ZG0qouHfggugKY9XD56/OAWmC6u7EMrxyAhgQv0thdh1UcqGPwhuI3C9t42NP34xlmGZQgyMQxywMQwyAETwyAHTAyDHDDikoDlRm5uZjD/69e/DNj423DkYlL1DdkQpPqYMgOF+tDBoA9BACyYo6t+LJwZAAAAAElFTkSuQmCC"
+          ]
+        },
+        "appearanceNames": {
+          "brown": "Brown",
+          "black": "Black",
+          "white": "White"
+        }
+      }
+    },
+    "finish-line": {
+      "id": "finish-line",
+      "name": "Finish Line",
+      "rules": [],
+      "variables": {},
+      "spritesheet": {
+        "width": 40,
+        "appearances": {
+          "idle": [
+            "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACgAAAAoCAYAAACM/rhtAAAAeklEQVR4nO3VsQlDMRAE0dEiVIYi9V+RerEb+MaZPRz3QkWC4dix937x4N779Mxaa/BDQS7IBbkgNz8dwzkHgyAX5IJckBu9JNUTB7kgN3tJqicOckFu9JJUTxzkgtzsJameOMgFudFLUj1xkAtys5ekeuIgl39/4Js3b8ccVUilungAAAAASUVORK5CYII="
+          ]
+        },
+        "appearanceNames": {
+          "idle": "Idle"
+        }
+      }
     }
   }
 }

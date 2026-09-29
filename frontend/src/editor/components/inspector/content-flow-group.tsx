@@ -135,7 +135,11 @@ export const ContentFlowGroup = ({
             }}
           />
           <div style={{ display: "flex", flexDirection: "column", flex: 1 }}>
-            <select onChange={_onBehaviorChanged} value={rule.behavior}>
+            <select
+              data-tutorial-id="rule-box-behavior"
+              onChange={_onBehaviorChanged}
+              value={rule.behavior}
+            >
               <option key={FLOW_BEHAVIORS.FIRST} value={FLOW_BEHAVIORS.FIRST}>
                 Do First Match
               </option>

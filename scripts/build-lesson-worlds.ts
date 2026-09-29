@@ -30,6 +30,8 @@ const CHARACTER_IDS = {
   lava: "1483692598319",
   dirt: "1483692683990",
   bird: "bird",
+  horse: "horse",
+  finishLine: "finish-line",
 };
 
 /** The cave characters every lesson used before the bird came along. */
@@ -55,6 +57,10 @@ const TILES: Record<
   "-": { characterId: CHARACTER_IDS.lava, appearance: "1483692615578" }, // surface 2
   _: { characterId: CHARACTER_IDS.lava, appearance: "1483692635012" }, // deep
   B: { characterId: CHARACTER_IDS.bird, appearance: "wings-up" },
+  "1": { characterId: CHARACTER_IDS.horse, appearance: "brown" },
+  "2": { characterId: CHARACTER_IDS.horse, appearance: "black" },
+  "3": { characterId: CHARACTER_IDS.horse, appearance: "white" },
+  "|": { characterId: CHARACTER_IDS.finishLine, appearance: "idle" },
 };
 
 /** Actors that lesson content moves around get a readable id instead of a timestamp. */
@@ -63,6 +69,9 @@ const NAMED_IDS: Record<string, string> = {
   O: "boulder",
   F: "flag",
   B: "bird",
+  "1": "horse-1",
+  "2": "horse-2",
+  "3": "horse-3",
 };
 
 type LessonWorld = {
@@ -106,6 +115,31 @@ const climbRule = {
   actions: [{ type: "move", delta: { x: 1, y: 1 }, actorId: "hero" }],
   conditions: [],
   mainActorId: "hero",
+};
+
+/**
+ * The one rule the horses in lesson 7 start with: step forward into an empty
+ * square. It has no appearance condition, so all three horses follow it -
+ * which is why they tie. The finish line fills the square past the last one
+ * they can reach, so it stops them without the stage having to end there.
+ */
+const trotRule = {
+  id: "rule-trot-forward",
+  name: "Trot Forward",
+  type: "rule",
+  actors: {
+    horse: {
+      id: "horse",
+      position: { x: 0, y: 0 },
+      appearance: "brown",
+      characterId: CHARACTER_IDS.horse,
+      variableValues: {},
+    },
+  },
+  extent: { xmin: 0, xmax: 1, ymin: 0, ymax: 0, ignored: {} },
+  actions: [{ type: "move", delta: { x: 1, y: 0 }, actorId: "horse" }],
+  conditions: [],
+  mainActorId: "horse",
 };
 
 /**
@@ -168,6 +202,21 @@ const ledgeMap = [
   "##############",
 ];
 
+/**
+ * Lesson 7: three horses in their own lanes, with the finish line ten squares
+ * ahead of each. Every square between them is empty, so the only thing that
+ * decides who wins is which rule each horse picks.
+ */
+const raceMap = [
+  "..............",
+  "..............",
+  ".1..........|.",
+  ".2..........|.",
+  ".3..........|.",
+  "==============",
+  "##############",
+];
+
 const LESSON_WORLDS: LessonWorld[] = [
   { slug: "playback", map: bridgeMap },
   { slug: "draw-a-character", map: bridgeMap },
@@ -183,6 +232,12 @@ const LESSON_WORLDS: LessonWorld[] = [
     map: skyMap,
     characterIds: [CHARACTER_IDS.bird, CHARACTER_IDS.dirt],
     wrapX: true,
+  },
+  {
+    slug: "horse-race",
+    map: raceMap,
+    characterIds: [CHARACTER_IDS.horse, CHARACTER_IDS.finishLine, CHARACTER_IDS.dirt],
+    prebuiltRules: { characterId: CHARACTER_IDS.horse, rules: [trotRule] },
   },
 ];
 
@@ -267,13 +322,10 @@ function buildWorld(
 
   if (lesson.prebuiltRules) {
     const character = characters[lesson.prebuiltRules.characterId];
+    // Into the idle container if the character has one, like the recorder -
+    // and like the recorder, straight into its list of rules if it doesn't.
     const idle = character.rules.find((r: any) => r.event === "idle");
-    if (!idle) {
-      throw new Error(
-        `Character ${lesson.prebuiltRules.characterId} has no idle container`,
-      );
-    }
-    idle.rules.unshift(...lesson.prebuiltRules.rules);
+    (idle ?? character).rules.unshift(...lesson.prebuiltRules.rules);
   }
 
   const stage = {

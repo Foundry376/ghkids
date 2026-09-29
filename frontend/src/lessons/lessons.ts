@@ -71,6 +71,14 @@ export const LESSONS: Lesson[] = [
     worldName: "Lesson 6: Animate Appearances",
     loadWorld: () => import("./worlds/animate-appearances.json").then((m) => m.default),
   },
+  {
+    slug: "horse-race",
+    title: "Horse Race",
+    caption: "Use a random rule box so nobody knows which horse will win.",
+    screenshot: screenshot("horse-race.jpg"),
+    worldName: "Lesson 7: Horse Race",
+    loadWorld: () => import("./worlds/horse-race.json").then((m) => m.default),
+  },
 ];
 
 export function lessonForSlug(slug: string | undefined | null) {

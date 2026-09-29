@@ -7,6 +7,7 @@ import drawACharacterWorld from "../../lessons/worlds/draw-a-character.json";
 import animateAppearancesWorld from "../../lessons/worlds/animate-appearances.json";
 import eventBlocksWorld from "../../lessons/worlds/event-blocks.json";
 import fallingBoulderWorld from "../../lessons/worlds/falling-boulder.json";
+import horseRaceWorld from "../../lessons/worlds/horse-race.json";
 import playbackWorld from "../../lessons/worlds/playback.json";
 import recordARuleWorld from "../../lessons/worlds/record-a-rule.json";
 
@@ -24,6 +25,7 @@ import recordARuleWorld from "../../lessons/worlds/record-a-rule.json";
 const HERO = "aamlcui8uxr";
 const BOULDER = "oou4u6jemi";
 const BIRD = "bird";
+const HORSE = "horse";
 
 type LessonWorldJSON = {
   characters: unknown;
@@ -394,6 +396,124 @@ describe("lesson worlds", () => {
       const after = runSimulation(world, characters, 14);
       expect(actorOf(after, BIRD).position).to.deep.equal({ x: 2, y: 5 });
       expect(actorOf(after, BIRD).appearance).to.equal(WINGS_UP);
+    });
+  });
+
+  describe("horse-race", () => {
+    const HORSES = ["horse-1", "horse-2", "horse-3"];
+    /** The square in front of the finish line, which is as far as a horse can go. */
+    const LAST_COLUMN = 12;
+
+    /**
+     * A rule the kid records by clicking a horse with the record tool, after
+     * removing the "appearance is Brown" check the recorder adds - without
+     * that, the black and white horses would skip it.
+     */
+    function recordedRule(id: string, squares: number): Rule {
+      return {
+        id,
+        name: "Untitled Rule",
+        type: "rule",
+        mainActorId: "horse-1",
+        actors: {
+          "horse-1": {
+            id: "horse-1",
+            position: { x: 0, y: 0 },
+            appearance: "brown",
+            characterId: HORSE,
+            variableValues: {},
+          },
+        },
+        extent: { xmin: 0, xmax: squares, ymin: 0, ymax: 0, ignored: {} },
+        actions: squares
+          ? [{ type: "move", offset: { x: squares, y: 0 }, actorId: "horse-1" }]
+          : [],
+        conditions: [],
+      };
+    }
+
+    /** The horse's rules once the kid has put all three in a random rule box. */
+    function withRandomBox() {
+      const { world, characters } = load(horseRaceWorld);
+      const [trot] = characters[HORSE].rules;
+      characters[HORSE].rules = [
+        {
+          id: "box",
+          type: "group-flow",
+          name: "Untitled Rule Box",
+          behavior: "random",
+          rules: [trot as Rule, recordedRule("stand-still", 0), recordedRule("gallop", 2)],
+        },
+      ];
+      return { world, characters };
+    }
+
+    /** Plays a race to the end, noting the frame each horse reached the line. */
+    function race(world: World, characters: Characters) {
+      const arrivals: Record<string, number> = {};
+      let current = world;
+      for (let frame = 1; frame <= 80 && Object.keys(arrivals).length < 3; frame++) {
+        current = runSimulation(current, characters, 1);
+        const actors = Object.values(current.stages)[0].actors;
+        for (const id of HORSES) {
+          expect(actors[id].position.x, `${id} stopped at the finish line`).to.be.at.most(
+            LAST_COLUMN,
+          );
+          if (actors[id].position.x === LAST_COLUMN && !(id in arrivals)) {
+            arrivals[id] = frame;
+          }
+        }
+      }
+      return arrivals;
+    }
+
+    // The random box shuffles with Math.random; seed it so a failure replays.
+    const realRandom = Math.random;
+    beforeEach(() => {
+      let seed = 7;
+      Math.random = () => {
+        seed = (seed * 16807) % 2147483647;
+        return (seed - 1) / 2147483646;
+      };
+    });
+    afterEach(() => {
+      Math.random = realRandom;
+    });
+
+    it("lines the horses up with the finish line ten squares ahead", () => {
+      const { world } = load(horseRaceWorld);
+      const actors = Object.values(world.stages)[0].actors;
+      for (const id of HORSES) {
+        expect(actors[id].position.x).to.equal(2);
+      }
+      expect(new Set(HORSES.map((id) => actors[id].appearance)).size).to.equal(3);
+    });
+
+    it("ties every time with just the trot rule", () => {
+      const { world, characters } = load(horseRaceWorld);
+      expect(race(world, characters)).to.deep.equal({
+        "horse-1": 10,
+        "horse-2": 10,
+        "horse-3": 10,
+      });
+    });
+
+    it("finishes every race, without anyone passing the line, once the box is random", () => {
+      const { world, characters } = withRandomBox();
+      for (let n = 0; n < 20; n++) {
+        expect(Object.keys(race(world, characters))).to.have.length(3);
+      }
+    });
+
+    it("doesn't let the same horse win every race", () => {
+      const { world, characters } = withRandomBox();
+      const winners = new Set<string>();
+      for (let n = 0; n < 20; n++) {
+        const arrivals = race(world, characters);
+        const first = Math.min(...Object.values(arrivals));
+        HORSES.filter((id) => arrivals[id] === first).forEach((id) => winners.add(id));
+      }
+      expect([...winners].sort()).to.deep.equal(HORSES);
     });
   });
 });
