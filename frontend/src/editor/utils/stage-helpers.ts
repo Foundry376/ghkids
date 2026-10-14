@@ -354,8 +354,19 @@ export function resolveRuleValue(
     // should have been scrubbed) or the seeding invariant was violated.
     return ctx.stage?.variableValues?.[val.stageVariableId] ?? null;
   }
+  if ("random" in val) {
+    return String(rollRandomInRange(val.random.min, val.random.max));
+  }
   isNever(val);
   return "";
+}
+
+/** The default range of the dice condition: "random < 25" matches 25% of the time. */
+export const RANDOM_CONDITION_RANGE = { min: 0, max: 99 };
+
+/** A uniformly distributed integer between min and max, inclusive. */
+export function rollRandomInRange(min: number, max: number) {
+  return min + Math.floor(Math.random() * (max - min + 1));
 }
 
 /**
@@ -363,7 +374,9 @@ export function resolveRuleValue(
  * RuleValue it represents. Centralizes the three-way discrimination so condition
  * drop sites don't each reimplement the same if/else ladder.
  */
-export function ruleValueFromDragPayload(raw: string): RuleValue | null {
+export function ruleValueFromDragPayload(
+  raw: string,
+): Exclude<RuleValue, { constant: string } | { random: unknown }> | null {
   const p = JSON.parse(raw) as {
     actorId?: string;
     globalId?: string;

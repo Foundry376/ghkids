@@ -124,8 +124,7 @@ export default function WorldOperator(
     if (condition.comparator === "=" || condition.comparator === "!=") {
       // The global is comma-joined for display, but equality means membership
       // when several physical keys are held at once.
-      const keypressOnLeft =
-        "globalId" in condition.left && condition.left.globalId === "keypress";
+      const keypressOnLeft = "globalId" in condition.left && condition.left.globalId === "keypress";
       const keypressOnRight =
         "globalId" in condition.right && condition.right.globalId === "keypress";
 
@@ -172,9 +171,14 @@ export default function WorldOperator(
     }
 
     const character = characters[stageActor.characterId];
+    // Random conditions are skipped here: they say nothing about which stage
+    // actor fits the rule, and rolling once per candidate actor (and then
+    // again when the rule's conditions are checked) would skew the odds.
     const rconditions = conditions.filter(
       (a) =>
         a.enabled &&
+        !("random" in a.left) &&
+        !("random" in a.right) &&
         (("actorId" in a.left && a.left.actorId === ruleActor.id) ||
           ("actorId" in a.right && a.right.actorId === ruleActor.id)),
     );
