@@ -10,7 +10,6 @@ import {
   uploadLocalStorageWorld,
 } from "../actions/main-actions";
 import {
-  commitLocalDraft,
   deleteLocalWorld,
   listLocalWorlds,
   LocalWorld,
@@ -87,12 +86,13 @@ const DashboardPage: React.FC = () => {
   };
 
   // Copies the game into the account, then opens it in the editor.
-  const onSaveToAccount = (world: LocalWorld) => {
+  const onSaveToAccount = async (world: LocalWorld) => {
     setUploading(world.storageKey);
-    // The copy takes the game's saved version, and a game made signed out is
-    // usually only autosaved — make its latest changes the saved version first.
-    commitLocalDraft(world.storageKey);
-    dispatch(uploadLocalStorageWorld(world.storageKey));
+    try {
+      await dispatch(uploadLocalStorageWorld(world.storageKey));
+    } catch {
+      setUploading(null);
+    }
   };
 
   const localCards = local.worlds.map((world) => {
