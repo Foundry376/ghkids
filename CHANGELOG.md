@@ -1,4 +1,52 @@
-<!-- LAST_COMMIT: 4f10781d8b792eb60a88ff45671d49fa5442791c -->
+<!-- LAST_COMMIT: 93e145c1818768b89558bc6c91acaeab25665684 -->
+
+## [2026-10-14]
+
+Codako has a brand-new homepage made just for kids, with big buttons to make a game, find your games, learn, or play what other kids have published. You can now make and save games without an account, roll dice in your rules so things happen only some of the time, and search through every published game to find the one you want.
+
+### Added
+
+- **Kid homepage**: "/" is now a kid menu with four big tiles: Create a Game, My Games, Learn Codako, and Play Games. Parent pages (FAQ, changelog) move under "/parents", reached through a "For parents" link.
+- **Name bubble**: The header shows who's signed in, with a menu for My Games, My Profile, and Sign out. When nobody is signed in, it says games are saved on this computer only, with Sign in and Create an account buttons.
+- **Games on this computer**: My Games works without signing in. It lists games saved in this browser and, once you sign in, offers to save each one to your account. Signed-out players get a Save & Exit button in the editor.
+- **Dice condition**: A new dice button in the rule recording toolbar adds a "random 0-99 < 50" check, so a rule fires only some of the time. The number on the right can be edited, or you can drop a variable onto it.
+- **Horse race lesson**: A new Learn Codako lesson that teaches rules with random chances.
+- **Search published games**: The Published Games page has a search box that matches a game's title or its maker's username, plus a "More Games" button that pages past the top games. Each card shows who made the game and how many times it's been played.
+- **Edit title & description on the play page**: Authors can fix their game's title and description where they see it, without unpublishing and publishing again.
+- **Restart Game**: The play page's "..." menu can start the game over without going back to the landing screen.
+
+### Changed
+
+- **Kid-style pages**: Sign in, Create an account, forgot/reset password, Play Games, profiles, game tiles, and the "not found" page all use the new kid look. Create an account asks for a nickname ("don't use your real name!") and a grown-up's email.
+- Edit and Play buttons now appear on top of a game's picture when you hover over it (or after a first tap on a touch screen).
+- Profiles show only published games. On your own profile, a note says your other games are in My Games.
+- "Explore" is now called "Published Games" and sits next to My Games.
+- Once a game is published, its Save menu item says "Save & Update Published Game", so it's clear the saved copy is what players get.
+- The Animate Appearances lesson now starts with a bird that just slides across the sky, then shows how to add a wings-down picture to make it flap.
+- A rule's conditions start out collapsed in the rules panel.
+- The stage grid is hidden while the game runs and in the player.
+- Stepping back or rewinding now turns the clock hand backward.
+- Signing in brings you back to the page you were on.
+- Published game thumbnails keep their stage's shape instead of being cropped to a square.
+
+### Fixed
+
+- Playing or remixing someone's game no longer moves it around in its maker's My Games list.
+- Saving a game kept on this computer, or moving it to an account, keeps the newest changes instead of an older autosave. Before, this could even save an empty game.
+- An editor left open no longer puts back an old title or description after it was edited on the play page.
+- Saving a game's info on its play page no longer shows "Something went wrong!", and clearing the description now actually clears it.
+- On an iPad in fullscreen, the system's exit button no longer covers the menu.
+- The play page no longer stops the game right away on phones that can't go fullscreen (like iPhone Safari).
+- A slightly wobbly click (for example with a Magic Mouse) now picks the eyedropper, paint bucket, brush size, or color in the sprite editor.
+- Published Games no longer lists a game twice or mixes in results from an old search.
+- A profile for a username that doesn't exist shows "not found" instead of loading forever.
+- Rule containers remember whether their "When" check was open or closed.
+- Sign-in redirects only go to pages inside Codako.
+- API tests now refuse to run against any database whose name doesn't end in "_test", so they can't erase a real database.
+
+### Removed
+
+- The Academy page and the /start page.
 
 ## [2026-06-20]
 
