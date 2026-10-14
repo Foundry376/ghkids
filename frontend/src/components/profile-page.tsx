@@ -7,7 +7,7 @@ import { createWorld, deleteWorld, fetchUser, fetchWorldsForUser } from "../acti
 import { useAppSelector } from "../hooks/redux";
 import { usePageTitle } from "../hooks/usePageTitle";
 import WorldList, { WorldListEmpty } from "./common/world-list";
-import { KidPanel, PixelBadge } from "./kid";
+import { KidNotice, KidPanel, PixelBadge } from "./kid";
 import NotFoundPage from "./not-found-page";
 
 import "./app-surface.scss";
@@ -26,11 +26,13 @@ const ProfilePage = () => {
     return {
       me: state.me,
       profile,
-      // Until we know who this is, we can't tell which games are theirs.
+      // Until we know who this is, we can't tell which games are theirs. Only
+      // published games, even on your own profile: it shows you exactly what
+      // everyone else sees.
       worlds:
         state.worlds && profile
           ? Object.values(state.worlds)
-              .filter((w) => w.userId === profile.id)
+              .filter((w) => w.userId === profile.id && w.published)
               .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
           : null,
     };
@@ -60,7 +62,8 @@ const ProfilePage = () => {
 
   const name = profile?.username ?? username;
   const isMe = !!me && !!profile && me.id === profile.id;
-  const gameCount = worlds && (worlds.length === 1 ? "1 game" : `${worlds.length} games`);
+  const gameCount =
+    worlds && (worlds.length === 1 ? "1 published game" : `${worlds.length} published games`);
 
   if (lookup === "missing") {
     return <NotFoundPage />;
@@ -69,10 +72,6 @@ const ProfilePage = () => {
   return (
     <div className="games-page">
       <div className="games-page__body">
-        <Link className="app-back" to="/">
-          <span aria-hidden="true">&larr;</span> Menu
-        </Link>
-
         <KidPanel className="profile-header">
           <PixelBadge username={name} size="large" />
           <div className="profile-header__text">
@@ -82,6 +81,17 @@ const ProfilePage = () => {
           </div>
         </KidPanel>
 
+        {isMe && (
+          <KidNotice tone="info" title="This is what everyone sees">
+            Only games you&rsquo;ve published show up on your page. To see all of your games,
+            including the ones you haven&rsquo;t published, go to{" "}
+            <Link className="kid-link" to="/dashboard">
+              My Games
+            </Link>
+            .
+          </KidNotice>
+        )}
+
         <WorldList
           worlds={lookup === "failed" ? [] : worlds}
           canEdit={isMe}
@@ -90,8 +100,15 @@ const ProfilePage = () => {
           onDeleteWorld={(s) => dispatch(deleteWorld(s.id))}
           onDuplicateWorld={(s) => dispatch(createWorld({ from: s.id }))}
           empty={
-            <WorldListEmpty icon="play" title={`${name} hasn’t made any games yet.`}>
-              {isMe ? "Games you make will show up here." : "Check back soon."}
+            <WorldListEmpty
+              icon="play"
+              title={
+                isMe
+                  ? "You haven’t published any games yet."
+                  : `${name} hasn’t published any games yet.`
+              }
+            >
+              {isMe ? "Publish a game and it will show up here." : "Check back soon."}
             </WorldListEmpty>
           }
         />

@@ -11,7 +11,7 @@ import { useLocation } from "react-router-dom";
  *               editor's "Create Account" button.
  *
  * `linkTo` builds a link to another sign-in page that keeps both, so hopping
- * from "Sign in" to "Make an account" doesn't lose where you were going.
+ * from "Sign in" to "Create an account" doesn't lose where you were going.
  */
 export function useAuthParams() {
   const location = useLocation();

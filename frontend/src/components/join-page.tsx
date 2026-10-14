@@ -26,7 +26,7 @@ const JoinPageForm: React.FC = () => {
   const [errors, setErrors] = useState<Errors>({});
   const [busy, setBusy] = useState(false);
 
-  usePageTitle("Make an account");
+  usePageTitle("Create an account");
 
   const clear = (field: keyof Errors) => {
     if (errors[field]) setErrors({ ...errors, [field]: undefined });
@@ -92,7 +92,7 @@ const JoinPageForm: React.FC = () => {
 
   return (
     <AuthPageFrame
-      title={why ? `Make an account${why}` : "Make your Codako account"}
+      title={why ? `Create an account${why}` : "Create an account"}
       subtitle="It's free! Your games get saved to your account so you can open them anywhere."
     >
       {redirectTo && !why && !errors.form && (
@@ -127,7 +127,7 @@ const JoinPageForm: React.FC = () => {
           label="A grown-up's email"
           name="email"
           type="email"
-          hint="We use it if you forget your password, and to send a note now and then about your games (like when someone remixes one). We never share it."
+          hint="We use it if you forget your password and let you know when your games are remixed. We never share it."
           autoComplete="email"
           autoCorrect="off"
           autoCapitalize="off"
@@ -165,7 +165,7 @@ const JoinPageForm: React.FC = () => {
         </p>
 
         <KidButton variant="primary" size="large" block type="submit" busy={busy}>
-          {busy ? "Making your account…" : "Make my account"}
+          {busy ? "Creating your account…" : "Create account"}
         </KidButton>
       </KidPanel>
 
