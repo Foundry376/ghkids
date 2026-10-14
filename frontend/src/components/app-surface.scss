@@ -41,47 +41,6 @@
   text-shadow: $px $px 0 rgba($app-green, 0.9);
 }
 
-/* ---- Way back to the home menu ----
-   Sits in the content column where a page's eyebrow would go, so it reads as
-   part of the page's own heading rather than a second, competing header. */
-
-.app-back {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 10px;
-  padding: 6px 14px 6px 10px;
-  border: 2px solid $app-line;
-  border-radius: 0;
-  background: $app-tile;
-  color: $app-ink;
-  font-family: $app-body;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  @include pixel-raise($px, rgba(60, 56, 48, 0.2));
-  transition:
-    transform 0.12s steps(2),
-    box-shadow 0.12s steps(2),
-    border-color 0.12s;
-
-  &:hover {
-    color: $app-ink;
-    text-decoration: none;
-    border-color: $app-ink;
-    transform: translate(-2px, -2px);
-    @include pixel-raise($px + 2px, rgba(60, 56, 48, 0.26));
-  }
-  &:active {
-    transform: translate(0, 0);
-    box-shadow: none;
-  }
-  &:focus-visible {
-    outline: 3px dashed $app-cyan;
-    outline-offset: 3px;
-  }
-}
-
 /* The door from the parents pages into the kid site. */
 .app-cta {
   display: inline-flex;

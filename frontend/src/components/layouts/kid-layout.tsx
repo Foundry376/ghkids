@@ -1,5 +1,6 @@
-import { Link, Outlet, useLocation } from "react-router-dom";
+import { Outlet, useLocation } from "react-router-dom";
 
+import { KidButton } from "../kid";
 import IdentityBubble from "./identity-bubble";
 
 import "../app-surface.scss";
@@ -25,9 +26,9 @@ const KidLayout = () => {
       <header className="kid-header">
         <div className="kid-header__start">
           {showBack && (
-            <Link className="app-back kid-header__back" to="/">
-              <span aria-hidden="true">&larr;</span> Menu
-            </Link>
+            <KidButton to="/" icon={<span aria-hidden="true">&larr;</span>}>
+              Menu
+            </KidButton>
           )}
         </div>
         <IdentityBubble />

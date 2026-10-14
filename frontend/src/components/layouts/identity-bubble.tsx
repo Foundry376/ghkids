@@ -45,12 +45,7 @@ const SignedOut = () => {
       </div>
       <div className="identity__actions">
         {!onLogin && (
-          <KidButton
-            variant="primary"
-            size="large"
-            to={authLink("/login")}
-            className="identity__sign-in"
-          >
+          <KidButton variant="primary" to={authLink("/login")} className="identity__sign-in">
             Sign in
           </KidButton>
         )}
@@ -200,6 +195,18 @@ const SignedIn = ({ username }: { username: string }) => {
           >
             <PixelIcon name="open" size={28} />
             My Games
+          </Link>
+          {/* Your public page — the one to share. Easy to lose track of
+              otherwise, since the only other way there is your own name on
+              someone's list of games. */}
+          <Link
+            role="menuitem"
+            className="identity__menu-item"
+            to={`/u/${encodeURIComponent(username)}`}
+            onClick={() => setOpen(false)}
+          >
+            <PixelBadge username={username} size="small" className="identity__menu-badge" />
+            My Profile
           </Link>
           <button role="menuitem" type="button" className="identity__menu-item" onClick={onSignOut}>
             <PixelIcon name="exit" size={28} />
