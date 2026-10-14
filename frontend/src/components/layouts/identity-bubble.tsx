@@ -4,6 +4,7 @@ import { Link, useLocation } from "react-router-dom";
 
 import { logout } from "../../actions/main-actions";
 import { useAppSelector } from "../../hooks/redux";
+import { useAuthParams } from "../auth-params";
 import { PixelIcon } from "../common/pixel-icon";
 import { KidButton, PixelBadge } from "../kid";
 
@@ -18,11 +19,20 @@ const IdentityBubble = () => {
 };
 
 const SignedOut = () => {
-  const { pathname } = useLocation();
+  const { pathname, search } = useLocation();
+  const { linkTo } = useAuthParams();
 
   // Don't offer a way to the page you're already on.
   const onLogin = pathname.startsWith("/login");
   const onJoin = pathname.startsWith("/join");
+
+  // On a sign-in page, keep whatever it was opened for (where to go next, and
+  // why). Anywhere else, come back here afterwards — home is the default.
+  const authLink = (to: string) => {
+    if (onLogin || onJoin) return linkTo(to);
+    if (pathname === "/") return to;
+    return { pathname: to, search: `?${new URLSearchParams({ redirectTo: pathname + search })}` };
+  };
 
   return (
     <div className="identity identity--signed-out">
@@ -35,12 +45,17 @@ const SignedOut = () => {
       </div>
       <div className="identity__actions">
         {!onLogin && (
-          <KidButton variant="primary" size="large" to="/login" className="identity__sign-in">
+          <KidButton
+            variant="primary"
+            size="large"
+            to={authLink("/login")}
+            className="identity__sign-in"
+          >
             Sign in
           </KidButton>
         )}
         {!onJoin && (
-          <Link className="kid-link identity__join" to="/join">
+          <Link className="kid-link identity__join" to={authLink("/join")}>
             Make an account
           </Link>
         )}

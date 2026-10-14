@@ -1,6 +1,7 @@
 import { Dispatch } from "redux";
 import * as types from "../constants/action-types";
 import { makeRequest } from "../helpers/api";
+import { commitLocalDraft } from "../helpers/local-worlds";
 import { Game, World } from "../types";
 
 // Kids land back on the home menu, where the identity bubble shows they're in.
@@ -163,27 +164,29 @@ export function createWorld({ from, fork }: { from?: ID; fork?: string } = {}) {
 }
 
 export function uploadLocalStorageWorld(storageKey: string) {
-  return function (dispatch: Dispatch<MainActions>) {
+  return function (dispatch: Dispatch<MainActions>): Promise<void> {
     let json = null;
     try {
+      // The copy takes the game's saved version, and a game made signed out is
+      // usually only autosaved as a draft — make its latest changes the saved
+      // version first, or the account would get an empty or stale copy.
+      commitLocalDraft(storageKey);
       const world = JSON.parse(window.localStorage.getItem(storageKey)!);
       if (world.uploadedAsId) {
         window.location.href = `/editor/${world.uploadedAsId}`;
-        return;
+        return Promise.resolve();
       }
       json = { name: world.name, data: world.data, thumbnail: world.thumbnail };
     } catch (err) {
       alert(`Sorry, your world could not be uploaded. ${err}`);
       window.location.href = "/dashboard";
-      return;
+      return Promise.resolve();
     }
 
-    console.log("Creating a new world");
-    makeRequest<Game>(`/worlds`, { method: "POST" }).then((created) => {
-      console.log("Uploading localstorage data to world");
-
+    // Returned so callers can show progress until the redirect, and stop
+    // showing it if a request fails.
+    return makeRequest<Game>(`/worlds`, { method: "POST" }).then((created) =>
       makeRequest(`/worlds/${created.id}`, { method: "PUT", json }).then(() => {
-        console.log("Removing localstorage, redirecting to world");
         window.localStorage.setItem(storageKey, JSON.stringify({ uploadedAsId: created.id }));
 
         dispatch({
@@ -191,8 +194,8 @@ export function uploadLocalStorageWorld(storageKey: string) {
           worlds: [Object.assign({}, created, json)],
         });
         window.location.href = `/editor/${created.id}`;
-      });
-    });
+      }),
+    );
   };
 }
 
