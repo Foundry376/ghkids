@@ -1,0 +1,145 @@
+/* ============================================================
+   Sign-in pages — /login, /join, /forgot-password,
+   /reset-password and /join-send-world. One narrow column in
+   the middle of the canvas: back to the menu, a big heading,
+   the form on a raised tile, and a dashed box underneath for
+   "New here? / Already have an account?".
+   ============================================================ */
+
+@use "./app-tokens" as *;
+
+.auth-page {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px 24px 56px;
+
+  &__column {
+    width: 100%;
+    max-width: 480px;
+  }
+
+  &__masthead {
+    margin: 4px 0 24px;
+
+    /* No back button above it, so it needs its own room under the header. */
+    &--centered {
+      margin-top: 24px;
+      text-align: center;
+    }
+  }
+
+  &__title {
+    margin: 0 0 8px;
+    font-family: $app-display;
+    font-size: clamp(30px, 6vw, 40px);
+    font-weight: 800;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    color: $app-ink;
+    text-shadow: 2px 2px 0 $app-green;
+    overflow-wrap: break-word;
+  }
+
+  &__subtitle {
+    margin: 0;
+    font-size: 17px;
+    line-height: 1.4;
+    color: $app-ink-soft;
+  }
+
+  /* The form tile. A touch more room than the default panel, since the
+     fields inside are big. */
+  &__form.kid-panel {
+    padding: 28px 28px 24px;
+  }
+
+  &__text {
+    margin: 0 0 20px;
+    font-size: 17px;
+    line-height: 1.45;
+    color: $app-ink;
+  }
+
+  &__under-submit {
+    margin: 18px 0 0;
+    text-align: center;
+    font-size: 16px;
+  }
+
+  &__fine-print {
+    margin: 4px 0 20px;
+    font-size: 14px;
+    line-height: 1.45;
+    color: $app-ink-soft;
+
+    .kid-link {
+      color: $app-ink-soft;
+      font-weight: 600;
+    }
+  }
+
+  /* "Saving your game…": the squares, then what's happening. */
+  &__waiting.kid-panel {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+    padding: 40px 28px;
+    text-align: center;
+
+    .pixel-spinner i {
+      width: 20px;
+      height: 20px;
+    }
+    .pixel-spinner {
+      gap: 12px;
+    }
+  }
+
+  /* The way to the other sign-in page: present, but quieter than the form. */
+  &__alt {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px 16px;
+    margin-top: 24px;
+    padding: 14px 16px 14px 22px;
+    border: 2px dashed $app-line;
+    background: rgba($app-tile, 0.55);
+    font-family: $app-display;
+    font-size: 18px;
+    font-weight: 700;
+    color: $app-ink-soft;
+  }
+
+  /* Notices sit between the heading and the form. */
+  .kid-notice {
+    margin-bottom: 20px;
+  }
+}
+
+@media (max-width: 560px) {
+  .auth-page {
+    padding: 4px 16px 40px;
+
+    &__masthead {
+      margin-bottom: 20px;
+    }
+
+    &__subtitle {
+      font-size: 16px;
+    }
+
+    &__form.kid-panel {
+      padding: 20px 18px 18px;
+    }
+
+    &__alt {
+      padding: 12px 14px 12px 16px;
+      font-size: 16px;
+    }
+  }
+}

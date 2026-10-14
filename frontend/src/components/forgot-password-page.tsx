@@ -1,20 +1,24 @@
-import { Button, Col, Container, Row } from "reactstrap";
-import React, { useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import React, { useState } from "react";
 
 import { makeRequest } from "../helpers/api";
+import { usePageTitle } from "../hooks/usePageTitle";
+import { AuthPageAlt, AuthPageFrame } from "./auth-page-frame";
+import { friendlyErrorMessage } from "./auth-params";
+import { KidButton, KidNotice, KidPanel, KidTextField } from "./kid";
 
 const ForgotPasswordPage: React.FC = () => {
-  const emailRef = useRef<HTMLInputElement>(null);
+  const [email, setEmail] = useState("");
   const [submitted, setSubmitted] = useState(false);
+  const [fieldError, setFieldError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  usePageTitle("Forgot your password?");
+
   const onSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
-    const email = emailRef.current?.value ?? "";
-    if (!email) {
-      setError("Please enter your email address.");
+    if (!email.trim()) {
+      setFieldError("Type the email that's on your account.");
       return;
     }
 
@@ -23,70 +27,70 @@ const ForgotPasswordPage: React.FC = () => {
     try {
       await makeRequest("/users/forgot-password", {
         method: "POST",
-        json: { email },
+        json: { email: email.trim() },
       });
       setSubmitted(true);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
+      setError(friendlyErrorMessage(err));
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <Container>
-      <Row>
-        <Col lg={{ size: 4, offset: 4 }}>
-          <div style={{ textAlign: "center", marginTop: 60, marginBottom: 30 }}>
-            <h3>Reset your password</h3>
-          </div>
-          <div className="card">
-            {submitted ? (
-              <div className="card-body">
-                <p>
-                  If an account with that email exists, we've sent a password reset link. Please
-                  check your inbox.
-                </p>
-              </div>
-            ) : (
-              <>
-                {error && (
-                  <div className="card card-inverse bg-danger text-white card-body text-xs-center">
-                    {error}
-                  </div>
-                )}
-                <form className="card-body" onSubmit={onSubmit}>
-                  <div className="form-group">
-                    <label htmlFor="email">
-                      Enter the email address associated with your account and we'll send you a link
-                      to reset your password.
-                    </label>
-                    <input
-                      className="form-control"
-                      id="email"
-                      ref={emailRef}
-                      type="email"
-                      autoFocus
-                      autoComplete="email"
-                      autoCorrect="off"
-                      autoCapitalize="off"
-                    />
-                  </div>
-                  <Button block color="primary" type="submit" disabled={isSubmitting}>
-                    {isSubmitting ? "Sending..." : "Send reset link"}
-                  </Button>
-                </form>
-              </>
-            )}
-          </div>
-          <div className="card" style={{ marginTop: 20 }}>
-            <div className="card-body text-xs-center">
-              <Link to="/login">Back to login</Link>
-            </div>
-          </div>
-        </Col>
-      </Row>
-    </Container>
+    <AuthPageFrame
+      title="Forgot your password?"
+      subtitle="No problem! We'll email a link for making a new one."
+    >
+      {submitted ? (
+        <KidPanel className="auth-page__form">
+          <KidNotice tone="success" title="Check your email!">
+            If <strong>{email.trim()}</strong> has a Codako account, we just sent it a link for
+            making a new password. It can take a few minutes, so check the spam folder too.
+          </KidNotice>
+          <KidButton variant="primary" size="large" block to="/login">
+            Back to sign in
+          </KidButton>
+        </KidPanel>
+      ) : (
+        <>
+          {error && (
+            <KidNotice tone="error" title="Hmm, that didn't work.">
+              {error}
+            </KidNotice>
+          )}
+          <KidPanel as="form" className="auth-page__form" noValidate onSubmit={onSubmit}>
+            <KidTextField
+              label="Grown-up's email"
+              name="email"
+              type="email"
+              hint="The email you used when you made your account."
+              autoFocus
+              autoComplete="email"
+              autoCorrect="off"
+              autoCapitalize="off"
+              spellCheck={false}
+              value={email}
+              error={fieldError}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                setFieldError(null);
+              }}
+            />
+            <KidButton variant="primary" size="large" block type="submit" busy={isSubmitting}>
+              {isSubmitting ? "Sending…" : "Send me a link"}
+            </KidButton>
+          </KidPanel>
+        </>
+      )}
+
+      {!submitted && (
+        <AuthPageAlt>
+          <span>Remembered it?</span>
+          <KidButton to="/login">Back to sign in</KidButton>
+        </AuthPageAlt>
+      )}
+    </AuthPageFrame>
   );
 };
 

@@ -3,7 +3,20 @@ import * as types from "../constants/action-types";
 import { makeRequest } from "../helpers/api";
 import { Game, World } from "../types";
 
-const DEFAULT_POST_AUTH_PATH = "/dashboard";
+// Kids land back on the home menu, where the identity bubble shows they're in.
+const DEFAULT_POST_AUTH_PATH = "/";
+
+/**
+ * Where to go after signing in or joining. `redirectTo` arrives in the URL, so
+ * only follow it within Codako ("/dashboard"), never off-site ("//evil.com",
+ * "https://…").
+ */
+export function postAuthPath(redirectTo: string | null | undefined) {
+  if (redirectTo && redirectTo.startsWith("/") && !/^\/[/\\]/.test(redirectTo)) {
+    return redirectTo;
+  }
+  return DEFAULT_POST_AUTH_PATH;
+}
 
 // unfortunately they're numbers, but I wish they were strings so making a type
 type ID = number;
@@ -26,8 +39,10 @@ export function register(
   redirectTo: string,
   captchaToken?: string,
 ) {
+  // Returns the request so the page can show it's working, and show what
+  // went wrong if it fails. On success the page reloads at the destination.
   return function (dispatch: Dispatch<MainActions>) {
-    makeRequest<User>("/users", {
+    return makeRequest<User>("/users", {
       method: "POST",
       json: { username, password, email, captchaToken },
     }).then((user) => {
@@ -35,7 +50,7 @@ export function register(
         type: types.SET_ME,
         me: Object.assign(user, { password }),
       });
-      window.location.href = redirectTo || DEFAULT_POST_AUTH_PATH;
+      window.location.href = postAuthPath(redirectTo);
     });
   };
 }
@@ -44,8 +59,9 @@ export function login(
   { username, password }: Pick<User, "username" | "password">,
   redirectTo: string,
 ) {
+  // Returns the request, like register().
   return function (dispatch: Dispatch<MainActions>) {
-    makeRequest<User>("/users/me", {
+    return makeRequest<User>("/users/me", {
       headers: {
         Authorization: `Basic ${btoa(username + ":" + password)}`,
       },
@@ -54,7 +70,7 @@ export function login(
         type: types.SET_ME,
         me: Object.assign(user, { password }),
       });
-      window.location.href = redirectTo || DEFAULT_POST_AUTH_PATH;
+      window.location.href = postAuthPath(redirectTo);
     });
   };
 }
