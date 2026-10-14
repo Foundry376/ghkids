@@ -3,25 +3,40 @@ import React, { useEffect, useRef, useState } from "react";
 interface TickClockProps {
   running: boolean;
   speed: number;
-  tickKey?: number;
+  /**
+   * The world's `evaluatedTickFrames`. Every tick and every step back replaces
+   * this array, while edits to the stage leave it alone, so a new reference
+   * means the simulation moved.
+   */
+  tickFrames?: unknown[];
+  /** The world's history length: it shrinks when the simulation steps back. */
+  historyLength: number;
 }
 
-const TickClock: React.FC<TickClockProps> = ({ running, speed, tickKey }) => {
+const TickClock: React.FC<TickClockProps> = ({ running, speed, tickFrames, historyLength }) => {
   const [pulse, setPulse] = useState(false);
   const [tickCount, setTickCount] = useState(0);
-  const prevTickKey = useRef(tickKey);
+  const prevTickFrames = useRef(tickFrames);
+  const prevHistoryLength = useRef(historyLength);
   const isFirstRender = useRef(true);
 
   useEffect(() => {
+    const historyDelta = historyLength - prevHistoryLength.current;
+    prevHistoryLength.current = historyLength;
+
     if (isFirstRender.current) {
       isFirstRender.current = false;
-      prevTickKey.current = tickKey;
+      prevTickFrames.current = tickFrames;
       return;
     }
 
-    if (tickKey !== prevTickKey.current) {
-      setTickCount((c) => c + 1);
-      prevTickKey.current = tickKey;
+    if (tickFrames !== prevTickFrames.current) {
+      prevTickFrames.current = tickFrames;
+      // Stepping back pops one history entry per tick (rewinding to the start
+      // pops them all in one go), so wind the hand back by as many notches.
+      // Anything else is a forward tick, including the ones that evaluate no
+      // rules and so leave the history as it was.
+      setTickCount((c) => (historyDelta < 0 ? c + historyDelta : c + 1));
 
       if (!running) {
         setPulse(true);
@@ -29,11 +44,12 @@ const TickClock: React.FC<TickClockProps> = ({ running, speed, tickKey }) => {
         return () => clearTimeout(timer);
       }
     }
-  }, [tickKey, running]);
+  }, [tickFrames, historyLength, running]);
 
   // Drive the hand off real ticks in every mode. `tickCount` accumulates without
-  // wrapping so the hand always rotates forward; a CSS transition glides it from
-  // one notch to the next. While playing we stretch the glide across (most of) the
+  // wrapping so the hand turns forward as the game plays and backward as it
+  // rewinds, never the long way round; a CSS transition glides it from one
+  // notch to the next. While playing we stretch the glide across (most of) the
   // tick interval so the motion reads as continuous; while stopped/stepping we use
   // a short snap. Crucially this stays in sync with the simulation even when
   // high-speed ticks batch into a single render (the hand just glides 60° once

@@ -1434,8 +1434,14 @@ export const Stage = ({
   // For image backgrounds, optionally apply a white overlay to dim the image.
   // For solid color backgrounds the overlay is never applied.
   const applyFade = isImageBackground && stage.backgroundFade !== false;
+  // The grid is for building: hide it while the game plays, and always in the
+  // player (the only read-only stage that isn't part of a rule recording).
+  const isPlayerStage = interactionMode === "selectable" && !recordingExtent;
+  const showGrid = !playback.running && !isPlayerStage;
   const backgroundCSS = [
-    `url('${new URL("../../img/board-grid.png", import.meta.url).href}') top left / ${STAGE_CELL_SIZE}px`,
+    showGrid
+      ? `url('${new URL("../../img/board-grid.png", import.meta.url).href}') top left / ${STAGE_CELL_SIZE}px`
+      : null,
     applyFade ? `linear-gradient(rgba(255,255,255,0.25), rgba(255,255,255,0.25))` : null,
     `${backgroundValue}${isImageBackground ? " 50% 50% / cover" : ""}`,
   ]

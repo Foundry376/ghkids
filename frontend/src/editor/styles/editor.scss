@@ -181,6 +181,12 @@ html {
     display: flex;
     flex-direction: row;
 
+    // Clear the iPad's fullscreen exit button, which sits over the top-left
+    // corner (see IPAD_FULLSCREEN_CLASS in useFullscreen).
+    .ipad-fullscreen & {
+      padding-left: 84px;
+    }
+
     // Stretches a button's hit area across the dead space around it without
     // moving anything on screen. Edges shared with a neighbouring button are
     // left alone so the two never overlap and steal presses from each other.

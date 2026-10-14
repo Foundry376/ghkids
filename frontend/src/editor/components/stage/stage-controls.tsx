@@ -170,7 +170,12 @@ const StageControls: React.FC<StageControlsProps> = ({
           </svg>
         </Button>
         {/* Clock */}
-        <TickClock running={running} speed={speed} tickKey={world.evaluatedTickFrames?.[0]?.id} />
+        <TickClock
+          running={running}
+          speed={speed}
+          tickFrames={world.evaluatedTickFrames}
+          historyLength={world.history?.length ?? 0}
+        />
       </div>
 
       <div style={{ flex: 1 }} />

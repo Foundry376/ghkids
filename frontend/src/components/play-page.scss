@@ -39,6 +39,12 @@ $play-tint: #5bc0de;
   flex-shrink: 0;
   transition: opacity 0.3s ease;
 
+  // Clear the iPad's fullscreen exit button, which sits over the top-left
+  // corner (see IPAD_FULLSCREEN_CLASS in useFullscreen).
+  .ipad-fullscreen & {
+    padding-left: 96px;
+  }
+
   &__brand-group {
     display: flex;
     align-items: center;
