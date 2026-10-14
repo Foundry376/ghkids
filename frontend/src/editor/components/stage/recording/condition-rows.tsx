@@ -239,7 +239,14 @@ export const FreeformConditionValue = ({
 
   const [droppingValue, setDroppingValue] = useState(false);
 
+  // The dice side of a random condition is fixed: it doesn't take drops, and
+  // trashing it removes the whole row (see onToolClick).
+  const isRandom = !!value && "random" in value;
+
   const onDropValue = (e: React.DragEvent) => {
+    if (isRandom) {
+      return;
+    }
     if (e.dataTransfer.types.includes("variable")) {
       const value = ruleValueFromDragPayload(e.dataTransfer.getData("variable"));
       if (value) {
@@ -378,6 +385,10 @@ export const FreeformConditionValue = ({
   };
 
   const onToolClick = (e: React.MouseEvent) => {
+    if (isRandom) {
+      // Let the row's handler delete the condition.
+      return;
+    }
     e.stopPropagation();
 
     if (selectedToolId === TOOLS.TRASH) {
@@ -396,6 +407,9 @@ export const FreeformConditionValue = ({
       className={`right tool-supported dropping-${droppingValue}`}
       title="Drop a variable or appearance here to create an expression linking two variables."
       onDragOver={(e) => {
+        if (isRandom) {
+          return;
+        }
         if (
           e.dataTransfer.types.includes(`variable`) ||
           (e.dataTransfer.types.includes("sprite") && impliedDatatype?.type === "actor")

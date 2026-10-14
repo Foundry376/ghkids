@@ -137,7 +137,9 @@ export function buildNamingPayload(
       const leftVariableId = "variableId" in condition.left ? condition.left.variableId : "";
       const leftVariableName = leftActorId
         ? getVariableName(actors, characters, leftActorId, leftVariableId)
-        : leftVariableId;
+        : "random" in condition.left
+          ? `random number from ${condition.left.random.min} to ${condition.left.random.max}`
+          : leftVariableId;
 
       // Translate appearance constant to display name
       let right = condition.right;

@@ -51,7 +51,7 @@ function setup(right: RuleValue, comparator: RuleCondition["comparator"] = "<") 
     position: { x: 1, y: 1 },
   });
   const world = makeWorld({
-    stage: makeStage({ id: "stage-1", width: 20, actors: { [actorId]: stageActor } }),
+    stage: makeStage({ id: "stage-1", actors: { [actorId]: stageActor } }),
   });
   return { world, characters };
 }
