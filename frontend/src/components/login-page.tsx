@@ -1,104 +1,121 @@
-import { Button, Col, Container, Row } from "reactstrap";
-import React, { useRef } from "react";
+import React, { useState } from "react";
 import { useDispatch } from "react-redux";
-import { Link, useLocation } from "react-router-dom";
+import { Link } from "react-router-dom";
 
 import { login } from "../actions/main-actions";
-import { useAppSelector } from "../hooks/redux";
+import { usePageTitle } from "../hooks/usePageTitle";
+import { AuthPageAlt, AuthPageFrame } from "./auth-page-frame";
+import { friendlyErrorMessage, useAuthParams } from "./auth-params";
+import { KidButton, KidNotice, KidPanel, KidTextField } from "./kid";
 import PasswordInput from "./password-input";
 
+type Errors = { username?: string; password?: string; form?: string };
+
+/**
+ * The one sign-in page, for kids and grown-ups alike. The first box takes a
+ * nickname or the email on the account - the API checks both.
+ */
 const LoginPage: React.FC = () => {
-  const usernameRef = useRef<HTMLInputElement>(null);
-  const passRef = useRef<HTMLInputElement>(null);
-  const location = useLocation();
   const dispatch = useDispatch();
-  const networkError = useAppSelector((state) => state.network.error);
+  const { redirectTo, why, linkTo } = useAuthParams();
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [errors, setErrors] = useState<Errors>({});
+  const [busy, setBusy] = useState(false);
 
-  const locationState = location.state as { redirectTo?: string } | null;
+  usePageTitle("Sign in");
 
-  const onSubmit = (event: React.FormEvent) => {
+  const onSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
 
-    const nextPathname = locationState?.redirectTo ?? null;
+    const missing: Errors = {};
+    if (!username.trim()) missing.username = "Type your nickname or email first.";
+    if (!password) missing.password = "Type your password.";
+    if (missing.username || missing.password) {
+      setErrors(missing);
+      return;
+    }
 
-    dispatch(
-      login(
-        {
-          username: usernameRef.current?.value ?? "",
-          password: passRef.current?.value ?? "",
-        },
-        nextPathname ?? "",
-      ),
-    );
+    setErrors({});
+    setBusy(true);
+    try {
+      // On success this navigates away, so the button stays busy until then.
+      await dispatch(login({ username: username.trim(), password }, redirectTo));
+    } catch (err) {
+      setBusy(false);
+      // The API's 401s: "This username does not exist." / "The password you
+      // entered is incorrect." Put each next to the box it's about.
+      const message = err instanceof Error ? err.message : "";
+      if (/username does not exist/i.test(message)) {
+        setErrors({
+          username: "We couldn't find that nickname or email. Check the spelling?",
+        });
+      } else if (/password/i.test(message)) {
+        setErrors({ password: "That password isn't right. Try again!" });
+      } else {
+        setErrors({ form: friendlyErrorMessage(err) });
+      }
+    }
   };
 
-  const redirectPresent = locationState?.redirectTo;
-
-  let message: string | null = null;
-  let messageClass: string | null = null;
-  if (redirectPresent) {
-    message = "Sorry, you need to log in to view that page.";
-    messageClass = "bg-info text-white";
-  }
-  if (networkError) {
-    message =
-      "statusCode" in networkError && (networkError as { statusCode: number }).statusCode === 401
-        ? "Sorry, your username or password was incorrect."
-        : networkError.message;
-    messageClass = "bg-danger text-white ";
-  }
-
   return (
-    <Container>
-      <Row>
-        <Col lg={{ size: 4, offset: 4 }}>
-          <div style={{ textAlign: "center", marginTop: 60, marginBottom: 30 }}>
-            <h3>Sign in to Codako</h3>
-          </div>
-          <div className="card">
-            {message && (
-              <div className={`card card-inverse ${messageClass} card-body text-xs-center`}>
-                {message}
-              </div>
-            )}
-            <form className="card-body" onSubmit={onSubmit}>
-              <div className="form-group">
-                <label htmlFor="username">Username or email address:</label>
-                <input
-                  className="form-control"
-                  id="username"
-                  ref={usernameRef}
-                  autoFocus
-                  autoComplete="username"
-                  autoCorrect="off"
-                  autoCapitalize="off"
-                />
-              </div>
-              <div className="form-group">
-                <label htmlFor="password">Password:</label>
-                <PasswordInput
-                  className="form-control"
-                  id="password"
-                  ref={passRef}
-                  autoComplete="password"
-                />
-              </div>
-              <Button block color="primary" type="submit">
-                Login
-              </Button>
-              <div style={{ textAlign: "center", marginTop: 10 }}>
-                <Link to="/forgot-password">Forgot your password?</Link>
-              </div>
-            </form>
-          </div>
-          <div className="card" style={{ marginTop: 20 }}>
-            <div className="card-body text-xs-center">
-              New to Codako? <Link to="/join">Create an account</Link>.
-            </div>
-          </div>
-        </Col>
-      </Row>
-    </Container>
+    <AuthPageFrame
+      title={why ? `Sign in${why}` : "Welcome back!"}
+      subtitle="Sign in to open your saved games."
+    >
+      {redirectTo && !why && !errors.form && (
+        <KidNotice tone="info" title="Sign in to keep going">
+          You need to be signed in to see that page.
+        </KidNotice>
+      )}
+      {errors.form && (
+        <KidNotice tone="error" title="Hmm, that didn't work.">
+          {errors.form}
+        </KidNotice>
+      )}
+
+      <KidPanel as="form" className="auth-page__form" noValidate onSubmit={onSubmit}>
+        <KidTextField
+          label="Nickname or grown-up's email"
+          name="username"
+          autoFocus
+          autoComplete="username"
+          autoCorrect="off"
+          autoCapitalize="off"
+          spellCheck={false}
+          value={username}
+          error={errors.username}
+          onChange={(e) => {
+            setUsername(e.target.value);
+            if (errors.username) setErrors({ ...errors, username: undefined });
+          }}
+        />
+        <PasswordInput
+          label="Password"
+          name="password"
+          autoComplete="current-password"
+          value={password}
+          error={errors.password}
+          onChange={(e) => {
+            setPassword(e.target.value);
+            if (errors.password) setErrors({ ...errors, password: undefined });
+          }}
+        />
+        <KidButton variant="primary" size="large" block type="submit" busy={busy}>
+          {busy ? "Signing in…" : "Sign in"}
+        </KidButton>
+        <p className="auth-page__under-submit">
+          <Link className="kid-link" to="/forgot-password">
+            Forgot your password?
+          </Link>
+        </p>
+      </KidPanel>
+
+      <AuthPageAlt>
+        <span>New here?</span>
+        <KidButton to={linkTo("/join")}>Make an account</KidButton>
+      </AuthPageAlt>
+    </AuthPageFrame>
   );
 };
 

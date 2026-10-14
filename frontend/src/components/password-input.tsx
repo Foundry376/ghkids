@@ -1,36 +1,41 @@
-import React, { useState, forwardRef } from "react";
+import { forwardRef, useState } from "react";
 
-const PasswordInput = forwardRef<HTMLInputElement, React.InputHTMLAttributes<HTMLInputElement>>(
-  (props, ref) => {
-    const [visible, setVisible] = useState(false);
+import { KidTextField, KidTextFieldProps } from "./kid";
 
-    return (
-      <div style={{ position: "relative" }}>
-        <input {...props} ref={ref} type={visible ? "text" : "password"} />
+import "./password-input.scss";
+
+export type PasswordInputProps = Omit<KidTextFieldProps, "type" | "trailing">;
+
+/**
+ * A KidTextField for passwords, with a Show / Hide button inside the box so
+ * kids can check what they typed. Takes every KidTextField prop (label, hint,
+ * error…) and forwards the ref to the <input>.
+ */
+const PasswordInput = forwardRef<HTMLInputElement, PasswordInputProps>((props, ref) => {
+  const [visible, setVisible] = useState(false);
+
+  return (
+    <KidTextField
+      autoCorrect="off"
+      autoCapitalize="off"
+      spellCheck={false}
+      {...props}
+      ref={ref}
+      type={visible ? "text" : "password"}
+      trailing={
         <button
           type="button"
+          className="password-toggle"
           onClick={() => setVisible((v) => !v)}
-          style={{
-            position: "absolute",
-            right: 8,
-            top: "50%",
-            transform: "translateY(-50%)",
-            background: "none",
-            border: "none",
-            cursor: "pointer",
-            padding: "2px 4px",
-            fontSize: 13,
-            color: "#666",
-          }}
-          tabIndex={-1}
           aria-label={visible ? "Hide password" : "Show password"}
+          aria-pressed={visible}
         >
           {visible ? "Hide" : "Show"}
         </button>
-      </div>
-    );
-  },
-);
+      }
+    />
+  );
+});
 
 PasswordInput.displayName = "PasswordInput";
 
