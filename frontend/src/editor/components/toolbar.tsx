@@ -58,8 +58,12 @@ const Toolbar = () => {
 
   const renderLeft = () => {
     if (usingLocalStorage) {
-      // Signed out, the game lives in this browser: there's no menu, just a
-      // way out (to My Games, which lists it) and a nudge to make an account.
+      // The game lives in this browser: there's no menu, just a way out (to My
+      // Games, which lists it) and a way to keep it safe. Signed-out kids are
+      // nudged to make an account; signed-in kids (who opened it from "On this
+      // computer" in My Games) can move it straight into theirs.
+      const signedIn = !!window.store.getState().me;
+      const sendToAccount = `/join-send-world?storageKey=${metadata.id}`;
       return (
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <Button onClick={() => saveAndExit("/dashboard")} title="Save, then go to My Games">
@@ -68,17 +72,23 @@ const Toolbar = () => {
           </Button>
           <div className="create-account-notice">
             <span>Only saved on this computer</span>
-            <Link
-              to={{
-                pathname: `/join`,
-                search: new URLSearchParams({
-                  why: ` to save "${metadata.name || "your game"}"`,
-                  redirectTo: `/join-send-world?storageKey=${metadata.id}`,
-                }).toString(),
-              }}
-            >
-              <Button color="success">Create Account</Button>
-            </Link>
+            {signedIn ? (
+              <Button color="success" onClick={() => saveAndExit(sendToAccount)}>
+                Save to My Account
+              </Button>
+            ) : (
+              <Link
+                to={{
+                  pathname: `/join`,
+                  search: new URLSearchParams({
+                    why: ` to save "${metadata.name || "your game"}"`,
+                    redirectTo: sendToAccount,
+                  }).toString(),
+                }}
+              >
+                <Button color="success">Create Account</Button>
+              </Link>
+            )}
           </div>
         </div>
       );

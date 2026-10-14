@@ -2,22 +2,8 @@ import { Dispatch } from "redux";
 import * as types from "../constants/action-types";
 import { makeRequest } from "../helpers/api";
 import { commitLocalDraft } from "../helpers/local-worlds";
+import { postAuthPath } from "../helpers/post-auth-path";
 import { Game, World } from "../types";
-
-// Kids land back on the home menu, where the identity bubble shows they're in.
-const DEFAULT_POST_AUTH_PATH = "/";
-
-/**
- * Where to go after signing in or joining. `redirectTo` arrives in the URL, so
- * only follow it within Codako ("/dashboard"), never off-site ("//evil.com",
- * "https://…").
- */
-export function postAuthPath(redirectTo: string | null | undefined) {
-  if (redirectTo && redirectTo.startsWith("/") && !/^\/[/\\]/.test(redirectTo)) {
-    return redirectTo;
-  }
-  return DEFAULT_POST_AUTH_PATH;
-}
 
 // unfortunately they're numbers, but I wish they were strings so making a type
 type ID = number;
@@ -77,8 +63,10 @@ export function login(
 }
 
 export function fetchUser(username: string) {
+  // Returned so the profile page can tell a player who doesn't exist from one
+  // who's still loading.
   return function (dispatch: Dispatch<MainActions>) {
-    makeRequest<User>(`/users/${username}`).then((profile) => {
+    return makeRequest<User>(`/users/${username}`).then((profile) => {
       dispatch({ type: types.UPSERT_PROFILE, profile });
     });
   };
