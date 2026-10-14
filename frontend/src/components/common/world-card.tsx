@@ -76,14 +76,29 @@ const WorldCard = ({ name, thumbnail, to, opens, tag, details, actions, menu }: 
     return () => document.removeEventListener("pointerdown", onPointerDown);
   }, [revealed]);
 
+  const pictureTarget = opens.length === 1 ? opens[0].to : to;
+
   const onPictureClick = (e: React.MouseEvent) => {
     // A press on one of the buttons is that button's to handle.
     if ((e.target as HTMLElement).closest("a, button")) return;
+    // The picture isn't a link (it holds links), so do what a link would on
+    // a Cmd/Ctrl- or Shift-click: open it in a new tab or window.
+    if (e.metaKey || e.ctrlKey || e.shiftKey) {
+      window.open(pictureTarget, "_blank");
+      return;
+    }
     if (pointerType.current !== "mouse" && opens.length > 1 && !revealed) {
       setRevealed(true);
       return;
     }
-    navigate(opens.length === 1 ? opens[0].to : to);
+    navigate(pictureTarget);
+  };
+
+  // A middle-click, likewise.
+  const onPictureAuxClick = (e: React.MouseEvent) => {
+    if (e.button !== 1 || (e.target as HTMLElement).closest("a, button")) return;
+    e.preventDefault();
+    window.open(pictureTarget, "_blank");
   };
 
   return (
@@ -96,6 +111,7 @@ const WorldCard = ({ name, thumbnail, to, opens, tag, details, actions, menu }: 
           pointerType.current = e.pointerType;
         }}
         onClick={onPictureClick}
+        onAuxClick={onPictureAuxClick}
       >
         {picture ? (
           <img src={picture} alt="" loading="lazy" onError={() => setBroken(true)} />

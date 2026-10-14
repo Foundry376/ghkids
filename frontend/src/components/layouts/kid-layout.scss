@@ -35,20 +35,19 @@
   gap: 16px;
   min-width: 0;
 
-  /* The bubble itself — the one rounded thing on the kid side, so it reads
-     as "you" rather than as another square to press. */
-  /* The same height, type size and shadow as a regular button (44px, 16px,
-     4px), so the header reads as one row with "← Menu" and "New Game". */
+  /* The bubble itself: the same height, type size, square corners and
+     shadow as a regular button (44px, 16px, 4px), so the header reads as
+     one row with "← Menu" and "New Game". */
   &__bubble {
     display: flex;
     align-items: center;
     gap: 10px;
     min-width: 0;
-    min-height: 44px;
+    height: 44px;
     margin: 0;
-    padding: 3px 14px 3px 4px;
+    padding: 0 14px 0 4px;
     border: 2px solid $app-line;
-    border-radius: 12px;
+    border-radius: 0;
     background: $app-tile;
     color: $app-ink;
     font-family: $app-body;
@@ -58,7 +57,6 @@
       width: 32px;
       height: 32px;
       font-size: 18px;
-      border-radius: 8px;
     }
   }
 
@@ -161,7 +159,6 @@
     width: 28px;
     height: 28px;
     font-size: 15px;
-    border-radius: 6px;
   }
 
   &__menu-item {
@@ -204,14 +201,15 @@
 
   &--signed-out {
     align-items: flex-start;
+    gap: 8px;
   }
 
-  /* The Sign in button is level with the bubble beside it (both 44px),
-     with "Create an account" hanging underneath. */
+  /* The Sign in button is level with the bubble beside it (both 44px) and
+     tucked up against it, with "Create an account" hanging underneath. */
   &__actions {
     display: flex;
     flex-direction: column;
-    align-items: center;
+    align-items: flex-start;
     gap: 6px;
   }
 
