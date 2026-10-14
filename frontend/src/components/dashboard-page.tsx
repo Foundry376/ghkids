@@ -10,9 +10,7 @@ import WorldList from "./common/world-list";
 import "./app-surface.scss";
 
 /**
- * "Open a Game" — the player's own games, inside the app rather than on the
- * marketing site, so it carries the app surface and its own way back to the
- * start menu instead of the site navigation.
+ * "My Games" — the player's own games, with a way back to the home menu.
  */
 const DashboardPage: React.FC = () => {
   const dispatch = useDispatch();
@@ -35,11 +33,11 @@ const DashboardPage: React.FC = () => {
   }, [dispatch]);
 
   return (
-    <div className="app-surface games-page">
+    <div className="games-page">
       <div className="games-page__body">
         <div className="games-page__heading">
           <div>
-            <Link className="app-back" to="/start">
+            <Link className="app-back" to="/">
               <span aria-hidden="true">&larr;</span> Menu
             </Link>
             <h1>My Games</h1>

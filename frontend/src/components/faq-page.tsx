@@ -1,7 +1,11 @@
 import { Col, Container, Row } from "reactstrap";
 import React from "react";
 
+import { usePageTitle } from "../hooks/usePageTitle";
+
 const FAQPage: React.FC = () => {
+  usePageTitle("FAQ for Parents");
+
   return (
     <Container className="faq">
       <Row>
@@ -19,9 +23,8 @@ const FAQPage: React.FC = () => {
           <h5>Q: Is Codako free?</h5>
           <p>
             Yes! Codako is completely free to play and learn. 20 years ago, I learned to program
-            using Apple's{" "}
-            <a href="http://acypher.com/Publications/CHI95/KidSimCHI.html">KidSIM</a>, and Codako
-            is my effort to bring back the platform that inspired me in my childhood.
+            using Apple's <a href="http://acypher.com/Publications/CHI95/KidSimCHI.html">KidSIM</a>,
+            and Codako is my effort to bring back the platform that inspired me in my childhood.
           </p>
 
           <h5>Q: Where did the idea for Codako come from?</h5>
@@ -61,15 +64,15 @@ const FAQPage: React.FC = () => {
           <h5>Q: How does the site work?</h5>
           <p>
             Codako runs in a web browser and all of your game information is stored in the cloud.
-            There's nothing to download, and no plugins are required. From a technical
-            perspective, Codako is written in TypeScript (React, Redux) and HTML5. The Codako
-            backend is a NodeJS application.
+            There's nothing to download, and no plugins are required. From a technical perspective,
+            Codako is written in TypeScript (React, Redux) and HTML5. The Codako backend is a NodeJS
+            application.
           </p>
           <h5>Q: Is Codako COPPA complaint?</h5>
           <p>
             COPPA is federal legislation that governs how data about children can be collected and
-            stored. Codako does not require any information that might identify your child. Sign
-            up requires an email address and nickname, but you do not need to reveal you child's
+            stored. Codako does not require any information that might identify your child. Sign up
+            requires an email address and nickname, but you do not need to reveal you child's
             identity in any way. Your child will never be asked for personally identifying
             information while they play with Codako.
           </p>

@@ -1,0 +1,250 @@
+/* ============================================================
+   Kid home — the menu at "/". Four big squares, each with its
+   own color, and a dashed way to the pages for grown-ups.
+   ============================================================ */
+
+@use "./app-tokens" as *;
+
+.kid-home {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 24px 56px;
+
+  &__masthead {
+    text-align: center;
+    margin-bottom: 40px;
+  }
+
+  &__wordmark {
+    font-size: clamp(48px, 9vw, 84px);
+    line-height: 1;
+    margin: 0 0 14px;
+    text-shadow: 5px 5px 0 rgba($app-green, 0.9);
+  }
+
+  &__prompt {
+    font-size: 18px;
+    color: $app-ink-soft;
+    margin: 0;
+  }
+
+  &__menu {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 24px;
+    width: 100%;
+    max-width: 640px;
+  }
+}
+
+/* Wide enough for all four in a row. */
+@media (min-width: 1000px) {
+  .kid-home__menu {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    max-width: 1080px;
+  }
+}
+
+/* Accent per kind of thing to do, used for the square behind the icon. */
+$tile-accents: (
+  "green": $app-green,
+  "cyan": $app-cyan,
+  "amber": $app-amber,
+  "coral": $app-coral,
+);
+
+.home-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 24px 24px 28px;
+  text-align: left;
+  background: $app-tile;
+  border: 2px solid $app-line;
+  border-radius: 0;
+  color: $app-ink;
+  cursor: pointer;
+  @include pixel-transition(transform, box-shadow, border-color);
+  @include pixel-raise();
+
+  &__plate {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 104px;
+    height: 104px;
+    border: 2px solid;
+  }
+
+  @each $name, $color in $tile-accents {
+    &--#{$name} &__plate {
+      background: rgba($color, 0.18);
+      border-color: rgba($color, 0.55);
+    }
+    &--#{$name}:hover &__plate,
+    &--#{$name}:focus-visible &__plate {
+      background: rgba($color, 0.3);
+    }
+  }
+
+  &__text {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  &__title {
+    font-family: $app-display;
+    font-size: 24px;
+    font-weight: 800;
+    letter-spacing: -0.015em;
+    line-height: 1.15;
+  }
+
+  &__caption {
+    font-size: 15px;
+    line-height: 1.35;
+    color: $app-ink-soft;
+  }
+
+  &:hover,
+  &:focus-visible {
+    color: $app-ink;
+    text-decoration: none;
+    border-color: $app-ink;
+    transform: translate(-$px, -$px);
+    @include pixel-raise($px * 2.5);
+  }
+
+  &:focus {
+    outline: none;
+  }
+
+  /* "You are on this square", like the editor's selected stage square. */
+  &:focus-visible {
+    @include pixel-focus(4px);
+  }
+
+  &:active {
+    transform: translate(0, 0);
+    box-shadow: none;
+  }
+
+  /* Disabled only while the tile is working — it keeps its normal colors so
+     it still reads as the thing you just picked. */
+  &:disabled {
+    color: $app-ink;
+    cursor: default;
+    transform: none;
+    @include pixel-raise();
+  }
+}
+
+/* The way to the grown-up pages: present, but quiet — dashed and grey, and
+   on its own row under the squares. */
+.home-parents {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 8px;
+  padding: 14px 22px;
+  border: 2px dashed $app-line;
+  color: $app-ink-soft;
+  @include pixel-transition(background-color, border-color);
+
+  &__text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  &__title {
+    font-family: $app-display;
+    font-size: 18px;
+    font-weight: 700;
+    color: $app-ink-soft;
+  }
+
+  &__caption {
+    font-size: 14px;
+  }
+
+  &:hover,
+  &:focus-visible {
+    background: rgba($app-tile, 0.7);
+    border-color: $app-ink-soft;
+    color: $app-ink-soft;
+    text-decoration: none;
+  }
+
+  &:focus {
+    outline: none;
+  }
+  &:focus-visible {
+    @include pixel-focus(4px);
+  }
+}
+
+/* Phone: still two by two, just smaller squares. */
+@media (max-width: 560px) {
+  .kid-home {
+    padding: 8px 16px 40px;
+    justify-content: flex-start;
+
+    &__masthead {
+      margin: 16px 0 28px;
+    }
+
+    &__prompt {
+      font-size: 16px;
+    }
+
+    &__menu {
+      gap: 16px;
+    }
+  }
+
+  .home-tile {
+    min-height: 0;
+    padding: 16px;
+    gap: 12px;
+
+    &__plate {
+      width: 64px;
+      height: 64px;
+
+      .pixel-icon {
+        width: 44px;
+        height: 44px;
+      }
+    }
+
+    &__title {
+      font-size: 19px;
+    }
+
+    &__caption {
+      font-size: 13px;
+    }
+  }
+
+  .home-parents {
+    padding: 12px 16px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-tile {
+    transition: none;
+
+    &:hover,
+    &:focus-visible {
+      transform: none;
+    }
+  }
+}

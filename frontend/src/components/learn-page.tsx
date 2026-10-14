@@ -32,10 +32,10 @@ const LearnPage: React.FC = () => {
   };
 
   return (
-    <div className="app-surface learn-page">
+    <div className="learn-page">
       <div className="learn-page__body">
         <div className="learn-page__intro">
-          <Link className="app-back" to="/start">
+          <Link className="app-back" to="/">
             <span aria-hidden="true">&larr;</span> Menu
           </Link>
           <h1>Learn Codako</h1>
