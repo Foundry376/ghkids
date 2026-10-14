@@ -22,7 +22,11 @@ export const ContentFlowGroup = ({
   rule: RuleTreeFlowItem;
   character: Character;
 }) => {
-  const [checkCollapsed, setCheckCollapsed] = useState(isCollapsePersisted(rule.id));
+  // The "When" check and the child rule list toggle separately, so each is
+  // remembered under its own id.
+  const [checkCollapsed, setCheckCollapsed] = useState(
+    rule.check ? isCollapsePersisted(rule.check.id) : false,
+  );
   const [collapsed, setCollapsed] = useState(isCollapsePersisted(rule.id));
   const { onRuleChanged, onRuleReRecord } = useContext(RuleActionsContext);
   const selectedActors = useEditorSelector((s) => s.ui.selectedActors);
@@ -95,7 +99,7 @@ export const ContentFlowGroup = ({
             onClick={() => {
               setCheckCollapsed(!checkCollapsed);
               if (rule.check) {
-                persistCollapsedState(rule.check.id, !collapsed);
+                persistCollapsedState(rule.check.id, !checkCollapsed);
               }
             }}
             enabled={!!rule.check}
