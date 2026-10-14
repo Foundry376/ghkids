@@ -17,8 +17,8 @@ const ProfilePage = () => {
   const dispatch = useDispatch();
 
   const username = useParams().username!;
-  // "missing" when there's no player by this name; "failed" when we couldn't
-  // ask. Either way the games will never load, so stop waiting for them.
+  // "missing" when there's no player by this name (a 404); "failed" for any
+  // other error. Either way the games will never load, so stop waiting.
   const [lookup, setLookup] = useState<"ok" | "missing" | "failed">("ok");
 
   const { me, profile, worlds } = useAppSelector((state) => {
@@ -42,6 +42,7 @@ const ProfilePage = () => {
     if (!username) {
       return;
     }
+    let current = true;
     setLookup("ok");
     dispatch(fetchWorldsForUser(username));
 
@@ -49,13 +50,16 @@ const ProfilePage = () => {
       try {
         await dispatch(fetchUser(username));
       } catch (err) {
-        // The server answered and said no (a 404) versus the request never
-        // getting an answer (offline: TypeError; not JSON: SyntaxError).
-        const unreachable = err instanceof TypeError || err instanceof SyntaxError;
-        setLookup(unreachable ? "failed" : "missing");
+        // A late answer about the previous player doesn't apply to this one.
+        if (!current) return;
+        const status = (err as { statusCode?: number } | null)?.statusCode;
+        setLookup(status === 404 ? "missing" : "failed");
       }
     };
     lookUp();
+    return () => {
+      current = false;
+    };
   }, [dispatch, username]);
 
   usePageTitle(profile?.username ?? username);
