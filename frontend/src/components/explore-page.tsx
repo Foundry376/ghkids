@@ -1,5 +1,4 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { Link } from "react-router-dom";
 
 import { makeRequest } from "../helpers/api";
 import { usePageTitle } from "../hooks/usePageTitle";
@@ -84,9 +83,6 @@ const ExplorePage: React.FC = () => {
       <div className="games-page__body">
         <div className="games-page__heading">
           <div className="games-page__title">
-            <Link className="app-back" to="/">
-              <span aria-hidden="true">&larr;</span> Menu
-            </Link>
             <h1>Play Games</h1>
             <p>Games other kids made and shared. The most played are first.</p>
           </div>

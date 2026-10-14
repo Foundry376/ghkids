@@ -23,24 +23,12 @@
   &__start {
     display: flex;
     align-items: center;
-    min-height: 64px;
+    /* As tall as the identity bubble, so the two line up. */
+    min-height: 72px;
   }
 
-  &__wordmark {
-    font-size: 30px;
-    line-height: 1;
-    text-shadow: 2px 2px 0 $app-green;
-
-    &:hover {
-      color: $app-ink;
-      text-decoration: none;
-    }
-    &:focus {
-      outline: none;
-    }
-    &:focus-visible {
-      @include pixel-focus(4px);
-    }
+  &__back {
+    margin-bottom: 0;
   }
 }
 
@@ -207,15 +195,22 @@
     color: $app-ink-soft;
   }
 
+  &--signed-out {
+    align-items: flex-start;
+  }
+
   &--signed-out &__name {
     font-size: 20px;
   }
 
+  /* The Sign in button is centered on the bubble beside it, with "Make an
+     account" hanging underneath: bubble 72px, button 56px. */
   &__actions {
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 8px;
+    padding-top: 8px;
   }
 
   &__join {
@@ -236,10 +231,6 @@
 
     &__start:empty {
       display: none;
-    }
-
-    &__wordmark {
-      font-size: 26px;
     }
   }
 
@@ -277,8 +268,10 @@
       margin-left: auto;
     }
 
+    /* Bubble 56px, button 48px. */
     &__actions {
       gap: 6px;
+      padding-top: 4px;
     }
 
     .kid-button--large {

@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
 
 import { usePageTitle } from "../hooks/usePageTitle";
 import { LESSONS } from "../lessons/lessons";
@@ -35,9 +34,6 @@ const LearnPage: React.FC = () => {
     <div className="learn-page">
       <div className="learn-page__body">
         <div className="learn-page__intro">
-          <Link className="app-back" to="/">
-            <span aria-hidden="true">&larr;</span> Menu
-          </Link>
           <h1>Learn Codako</h1>
           <p>
             {LESSONS.length} lessons that build a game one step at a time. Each one teaches a new

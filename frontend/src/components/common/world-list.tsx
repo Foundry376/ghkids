@@ -125,7 +125,7 @@ const WorldList: React.FC<{
       const edit = `/editor/${world.id}`;
       const actions: WorldCardAction[] = canEdit
         ? [
-            { label: "Edit", icon: "edit", to: edit, primary: true },
+            { label: "Edit", icon: "edit", to: edit },
             { label: "Play", icon: "go", to: play },
           ]
         : [{ label: "Play", icon: "go", to: play, primary: true }];

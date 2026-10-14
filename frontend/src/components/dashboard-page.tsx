@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { useDispatch } from "react-redux";
-import { Link } from "react-router-dom";
 import { format } from "timeago.js";
 
 import {
@@ -97,7 +96,7 @@ const DashboardPage: React.FC = () => {
 
   const localCards = local.worlds.map((world) => {
     const actions: WorldCardAction[] = [
-      { label: "Edit", icon: "edit", to: localWorldHref(world.storageKey), primary: true },
+      { label: "Edit", icon: "edit", to: localWorldHref(world.storageKey) },
     ];
     if (me) {
       actions.push({
@@ -137,9 +136,6 @@ const DashboardPage: React.FC = () => {
   const heading = (subtitle: string) => (
     <div className="games-page__heading">
       <div className="games-page__title">
-        <Link className="app-back" to="/">
-          <span aria-hidden="true">&larr;</span> Menu
-        </Link>
         <h1>My Games</h1>
         <p>{subtitle}</p>
       </div>
@@ -162,7 +158,7 @@ const DashboardPage: React.FC = () => {
               <KidButton variant="primary" to="/login?redirectTo=/dashboard">
                 Sign in
               </KidButton>
-              <KidButton to="/join?redirectTo=/dashboard">Make an account</KidButton>
+              <KidButton to="/join?redirectTo=/dashboard">Create an account</KidButton>
             </div>
           </KidNotice>
 

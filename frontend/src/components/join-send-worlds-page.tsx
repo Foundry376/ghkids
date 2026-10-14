@@ -44,7 +44,7 @@ const JoinSendWorldsPage: React.FC = () => {
   }
 
   return (
-    <AuthPageFrame title="Saving your game…" showBack={false} centered>
+    <AuthPageFrame title="Saving your game…" centered>
       <KidPanel className="auth-page__form auth-page__waiting" aria-busy="true">
         <PixelSpinner />
         <p className="auth-page__text" role="status">

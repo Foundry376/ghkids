@@ -113,7 +113,7 @@ const LoginPage: React.FC = () => {
 
       <AuthPageAlt>
         <span>New here?</span>
-        <KidButton to={linkTo("/join")}>Make an account</KidButton>
+        <KidButton to={linkTo("/join")}>Create an account</KidButton>
       </AuthPageAlt>
     </AuthPageFrame>
   );
