@@ -36,25 +36,25 @@ const SignedOut = () => {
 
   return (
     <div className="identity identity--signed-out">
-      <div className="identity__bubble">
-        <PixelBadge />
-        <span className="identity__text">
-          <span className="identity__name">Not signed in</span>
-          <span className="identity__status">Games save on this computer only</span>
-        </span>
-      </div>
-      <div className="identity__actions">
+      <div className="identity__row">
+        <div className="identity__bubble">
+          <PixelBadge />
+          <span className="identity__text">
+            <span className="identity__name">Not signed in</span>
+            <span className="identity__status">Games save on this computer only</span>
+          </span>
+        </div>
         {!onLogin && (
           <KidButton variant="primary" to={authLink("/login")} className="identity__sign-in">
             Sign in
           </KidButton>
         )}
-        {!onJoin && (
-          <Link className="kid-link identity__join" to={authLink("/join")}>
-            Create an account
-          </Link>
-        )}
       </div>
+      {!onJoin && (
+        <Link className="kid-link identity__join" to={authLink("/join")}>
+          Create an account
+        </Link>
+      )}
     </div>
   );
 };
