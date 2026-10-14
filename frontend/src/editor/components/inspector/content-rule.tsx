@@ -12,8 +12,14 @@ import { isCollapsePersisted, persistCollapsedState } from "./collapse-state-sto
 import { RuleActionsContext } from "./container-pane-rules";
 import { InspectorContext } from "./inspector-context";
 
+// A rule's conditions are a lot of detail, so they start hidden until the
+// author opens them.
+const CONDITIONS_COLLAPSED_BY_DEFAULT = true;
+
 export const ContentRule = ({ rule }: { rule: Rule }) => {
-  const [collapsed, setCollapsed] = useState(isCollapsePersisted(rule.id));
+  const [collapsed, setCollapsed] = useState(
+    isCollapsePersisted(rule.id, CONDITIONS_COLLAPSED_BY_DEFAULT),
+  );
   const { characters, world, evaluatedRuleDetailsForActor } = useContext(InspectorContext);
   const { onRuleChanged } = useContext(RuleActionsContext);
 
@@ -59,7 +65,7 @@ export const ContentRule = ({ rule }: { rule: Rule }) => {
       <DisclosureTriangle
         onClick={() => {
           setCollapsed(!collapsed);
-          persistCollapsedState(rule.id, !collapsed);
+          persistCollapsedState(rule.id, !collapsed, CONDITIONS_COLLAPSED_BY_DEFAULT);
         }}
         enabled={conditions.length > 0}
         collapsed={conditions.length === 0 || collapsed}

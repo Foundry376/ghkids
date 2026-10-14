@@ -4,6 +4,10 @@ let setorder: string[] | null = null;
 /** This implements a small LRU cache that saves the last 1000
  * toggled disclosure states to local storage. (to avoid taking
  * too much space)
+ *
+ * Older versions only stored `true` (collapsed) and treated a missing entry as
+ * expanded, so a missing entry means "never toggled" and falls back to the
+ * caller's default.
  */
 
 function ensureLoadedFromStorage() {
@@ -28,15 +32,15 @@ function saveToStorage() {
     console.error(err);
   }
 }
-export function isCollapsePersisted(id: string) {
+export function isCollapsePersisted(id: string, defaultCollapsed = false) {
   ensureLoadedFromStorage();
-  return states![id] || false;
+  return id in states! ? states![id] : defaultCollapsed;
 }
 
-export function persistCollapsedState(id: string, val: boolean) {
+export function persistCollapsedState(id: string, val: boolean, defaultCollapsed = false) {
   ensureLoadedFromStorage();
-  if (val) {
-    states![id] = true;
+  if (val !== defaultCollapsed) {
+    states![id] = val;
     setorder = setorder!.filter((l) => l !== id).concat([id]);
     if (setorder.length > 1000) {
       const oldestId = setorder.shift();
@@ -46,6 +50,7 @@ export function persistCollapsedState(id: string, val: boolean) {
     }
   } else {
     delete states![id];
+    setorder = setorder!.filter((l) => l !== id);
   }
   saveToStorage();
 }

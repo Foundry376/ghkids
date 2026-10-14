@@ -28,6 +28,29 @@ export const FULLSCREEN_SHORTCUT_LABEL =
     ? "\u21e7\u2318F"
     : "F11";
 
+/**
+ * iPadOS draws a large, fixed "exit full screen" button over the top-left corner
+ * of the page while it's fullscreen. It isn't part of the DOM, so nothing can be
+ * stacked above it or moved out of its way except our own UI. iPads have
+ * reported themselves as Macs since iPadOS 13; a Mac with a touchscreen doesn't
+ * exist, so touch support gives them away.
+ */
+const IS_IPAD =
+  typeof navigator !== "undefined" &&
+  (/iPad/.test(navigator.userAgent) ||
+    (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1));
+
+/** Set on <html> while the iPad's exit button covers the top-left corner. */
+export const IPAD_FULLSCREEN_CLASS = "ipad-fullscreen";
+
+if (IS_IPAD && typeof document !== "undefined") {
+  // Kept at module scope rather than in the hook so the class is cleared even
+  // when fullscreen ends after the page that entered it has unmounted.
+  document.addEventListener("fullscreenchange", () => {
+    document.documentElement.classList.toggle(IPAD_FULLSCREEN_CLASS, !!document.fullscreenElement);
+  });
+}
+
 export function isFullscreenShortcut(event: KeyboardEvent) {
   if (event.repeat) return false;
   if (event.key === "F11") {
