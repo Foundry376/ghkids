@@ -51,7 +51,11 @@ const SignedOut = () => {
         )}
       </div>
       {!onJoin && (
-        <Link className="kid-link identity__join" to={authLink("/join")}>
+        <Link
+          className="kid-link identity__join"
+          style={{ alignSelf: "self-end" }}
+          to={authLink("/join")}
+        >
           Create an account
         </Link>
       )}
