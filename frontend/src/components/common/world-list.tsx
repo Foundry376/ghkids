@@ -5,7 +5,7 @@ import { format } from "timeago.js";
 import { Game } from "../../types";
 import { PixelBadge, PixelSpinner } from "../kid";
 import { PixelIcon, PixelIconName } from "./pixel-icon";
-import WorldCard, { WorldCardAction } from "./world-card";
+import WorldCard, { WorldCardOpen } from "./world-card";
 import { WorldMenuItem } from "./world-options-menu";
 
 import "./world-card.scss";
@@ -123,12 +123,12 @@ const WorldList: React.FC<{
     {worlds?.map((world) => {
       const play = `/play/${world.id}`;
       const edit = `/editor/${world.id}`;
-      const actions: WorldCardAction[] = canEdit
+      const opens: WorldCardOpen[] = canEdit
         ? [
             { label: "Edit", icon: "edit", to: edit },
             { label: "Play", icon: "go", to: play },
           ]
-        : [{ label: "Play", icon: "go", to: play, primary: true }];
+        : [{ label: "Play", icon: "go", to: play }];
       const menu: WorldMenuItem[] = [];
       if (canEdit && onDuplicateWorld) {
         menu.push({ label: "Make a copy", onSelect: () => onDuplicateWorld(world) });
@@ -149,9 +149,8 @@ const WorldList: React.FC<{
           name={world.name || "Untitled game"}
           thumbnail={world.thumbnail}
           to={canEdit ? edit : play}
-          verb={canEdit ? "edit" : "play"}
+          opens={opens}
           tag={canEdit && world.published ? "Published" : undefined}
-          actions={actions}
           menu={menu}
           details={
             <>

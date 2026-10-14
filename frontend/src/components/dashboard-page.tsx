@@ -95,9 +95,7 @@ const DashboardPage: React.FC = () => {
   };
 
   const localCards = local.worlds.map((world) => {
-    const actions: WorldCardAction[] = [
-      { label: "Edit", icon: "edit", to: localWorldHref(world.storageKey) },
-    ];
+    const actions: WorldCardAction[] = [];
     if (me) {
       actions.push({
         label: uploading === world.storageKey ? "Saving…" : "Save to my account",
@@ -114,7 +112,7 @@ const DashboardPage: React.FC = () => {
         name={world.name}
         thumbnail={world.thumbnail}
         to={localWorldHref(world.storageKey)}
-        verb="edit"
+        opens={[{ label: "Edit", icon: "edit", to: localWorldHref(world.storageKey) }]}
         details={when ? <span>Changed {format(when)}</span> : undefined}
         actions={actions}
         menu={[{ label: "Delete", onSelect: () => onDeleteLocal(world), danger: true }]}

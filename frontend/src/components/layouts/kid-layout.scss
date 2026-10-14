@@ -23,12 +23,6 @@
   &__start {
     display: flex;
     align-items: center;
-    /* As tall as the identity bubble, so the two line up. */
-    min-height: 72px;
-  }
-
-  &__back {
-    margin-bottom: 0;
   }
 }
 
@@ -43,38 +37,41 @@
 
   /* The bubble itself — the one rounded thing on the kid side, so it reads
      as "you" rather than as another square to press. */
+  /* The same height, type size and shadow as a regular button (44px, 16px,
+     4px), so the header reads as one row with "← Menu" and "New Game". */
   &__bubble {
     display: flex;
     align-items: center;
-    gap: 14px;
+    gap: 10px;
     min-width: 0;
+    min-height: 44px;
     margin: 0;
-    padding: 8px 20px 8px 8px;
+    padding: 3px 14px 3px 4px;
     border: 2px solid $app-line;
-    border-radius: 20px;
+    border-radius: 12px;
     background: $app-tile;
     color: $app-ink;
     font-family: $app-body;
     text-align: left;
 
     .pixel-badge {
-      width: 52px;
-      height: 52px;
-      font-size: 28px;
-      border-radius: 12px;
+      width: 32px;
+      height: 32px;
+      font-size: 18px;
+      border-radius: 8px;
     }
   }
 
   &__text {
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 1px;
     min-width: 0;
   }
 
   &__name {
     font-family: $app-display;
-    font-size: 26px;
+    font-size: 16px;
     font-weight: 800;
     letter-spacing: -0.02em;
     line-height: 1.1;
@@ -86,8 +83,8 @@
   &__status {
     display: flex;
     align-items: center;
-    gap: 6px;
-    font-size: 14px;
+    gap: 5px;
+    font-size: 12px;
     font-weight: 600;
     line-height: 1.2;
     color: $app-ink-soft;
@@ -98,12 +95,12 @@
   &--signed-in &__bubble {
     cursor: pointer;
     border-color: $app-ink;
-    @include pixel-raise($px * 1.5);
+    @include pixel-raise($px);
     @include pixel-transition(transform, box-shadow);
 
     &:hover {
       transform: translate(-2px, -2px);
-      @include pixel-raise($px * 2);
+      @include pixel-raise($px + 2px);
     }
     &:active {
       transform: translate($px, $px);
@@ -129,17 +126,19 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 16px;
-    height: 16px;
+    width: 13px;
+    height: 13px;
     background: $app-green;
     color: #fff;
-    font-size: 11px;
+    font-size: 9px;
     font-weight: 800;
   }
 
   &__caret {
     flex-shrink: 0;
-    margin-left: 6px;
+    width: 14px;
+    height: 8px;
+    margin-left: 4px;
     color: $app-ink-soft;
   }
 
@@ -155,6 +154,14 @@
     background: $app-tile;
     border: 2px solid $app-ink;
     @include pixel-raise($px * 1.5);
+  }
+
+  /* Your letter square, standing in for an icon next to "My Profile". */
+  &__menu-badge.pixel-badge {
+    width: 28px;
+    height: 28px;
+    font-size: 15px;
+    border-radius: 6px;
   }
 
   &__menu-item {
@@ -199,18 +206,13 @@
     align-items: flex-start;
   }
 
-  &--signed-out &__name {
-    font-size: 20px;
-  }
-
-  /* The Sign in button is centered on the bubble beside it, with "Make an
-     account" hanging underneath: bubble 72px, button 56px. */
+  /* The Sign in button is level with the bubble beside it (both 44px),
+     with "Create an account" hanging underneath. */
   &__actions {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 8px;
-    padding-top: 8px;
+    gap: 6px;
   }
 
   &__join {
@@ -240,44 +242,10 @@
 
     &__bubble {
       flex: 1;
-      gap: 10px;
-      padding: 6px 14px 6px 6px;
-      border-radius: 16px;
-
-      .pixel-badge {
-        width: 40px;
-        height: 40px;
-        font-size: 22px;
-        border-radius: 10px;
-      }
-    }
-
-    &__name {
-      font-size: 20px;
-    }
-
-    &--signed-out &__name {
-      font-size: 17px;
-    }
-
-    &__status {
-      font-size: 12px;
     }
 
     &__caret {
       margin-left: auto;
-    }
-
-    /* Bubble 56px, button 48px. */
-    &__actions {
-      gap: 6px;
-      padding-top: 4px;
-    }
-
-    .kid-button--large {
-      min-height: 48px;
-      padding: 8px 18px;
-      font-size: 18px;
     }
 
     &__join {

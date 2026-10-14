@@ -100,6 +100,7 @@
     overflow: hidden;
     background: #dfe6d8;
     border-bottom: 2px solid $app-line;
+    cursor: pointer;
 
     img {
       display: block;
@@ -137,29 +138,43 @@
     text-transform: uppercase;
   }
 
-  /* "Play" or "Edit", over the picture while you point at it. */
-  &__verb {
+  /* "Edit" and "Play", over the picture: while a mouse points at the tile,
+     while a button in it has keyboard focus, or after a first tap on a touch
+     screen (--revealed). Hidden buttons can't be pressed, so a tap on a
+     hidden one lands on the picture and brings them up instead. */
+  &__opens {
     position: absolute;
-    left: 50%;
-    top: 50%;
-    display: inline-flex;
+    inset: 0;
+    display: flex;
+    flex-wrap: wrap;
     align-items: center;
-    gap: 8px;
-    padding: 8px 16px 8px 12px;
-    background: $app-tile;
-    border: 2px solid $app-ink;
-    color: $app-ink;
-    font-family: $app-display;
-    font-size: 18px;
-    font-weight: 800;
+    align-content: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 12px;
+    background: rgba(20, 18, 14, 0.28);
     opacity: 0;
-    transform: translate(-50%, -50%);
-    @include pixel-raise($px, rgba(20, 18, 14, 0.4));
+    pointer-events: none;
     @include pixel-transition(opacity);
   }
 
-  &__picture:hover &__verb {
+  &__open.kid-button {
+    border-color: $app-ink;
+    padding-left: 14px;
+    padding-right: 18px;
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    &:hover &__opens {
+      opacity: 1;
+      pointer-events: auto;
+    }
+  }
+
+  &:focus-within &__opens,
+  &--revealed &__opens {
     opacity: 1;
+    pointer-events: auto;
   }
 
   /* ---- Words ---- */
@@ -172,7 +187,16 @@
     padding: 14px 16px 16px;
   }
 
+  /* The name, with the "⋮" menu beside it. */
+  &__heading {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
   &__name {
+    flex: 1;
+    min-width: 0;
     margin: 0;
     font-family: $app-display;
     font-size: 20px;
@@ -258,6 +282,7 @@
   }
 
   &__menu {
+    flex-shrink: 0;
     margin-left: auto;
   }
 
@@ -349,7 +374,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .game-tile,
-  .game-tile__verb {
+  .game-tile__opens {
     transition: none;
   }
 }
