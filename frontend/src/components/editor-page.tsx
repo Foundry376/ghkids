@@ -136,14 +136,14 @@ const LocalStorageAdapter = {
     const _value = _stored ?? { id: worldId, data: json.data, updatedAt: new Date().toISOString() };
 
     if (action === "save") {
-      // Copy unsavedData to data, clear unsavedData and its timestamp
-      if (_value.unsavedData) {
-        _value.data = _value.unsavedData;
-        delete _value.unsavedData;
-        delete _value.unsavedDataUpdatedAt;
-      } else if (json.data) {
-        _value.data = json.data;
+      // Commit what the editor has now, like the server does (it takes the
+      // request's data over the stored draft) - the draft can be up to one
+      // autosave behind. Then clear the draft and its timestamp.
+      if (json.data || _value.unsavedData) {
+        _value.data = json.data ?? _value.unsavedData;
       }
+      delete _value.unsavedData;
+      delete _value.unsavedDataUpdatedAt;
       if (json.name) _value.name = json.name;
       if (json.thumbnail) _value.thumbnail = json.thumbnail;
       _value.updatedAt = new Date().toISOString();

@@ -59,7 +59,10 @@ export async function makeRequest<T>(
 
     const responseJSON = await resp.json();
     if (responseJSON.error || resp.status !== 200) {
-      throw new Error(responseJSON.message ?? resp.statusText);
+      // statusCode lets callers tell "not found" from other failures.
+      throw Object.assign(new Error(responseJSON.message ?? resp.statusText), {
+        statusCode: resp.status,
+      });
     }
 
     dispatch({ type: types.NETWORK_ACTIVITY, error: null, delta: -1 });
