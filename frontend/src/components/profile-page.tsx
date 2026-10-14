@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useDispatch } from "react-redux";
 import { useParams } from "react-router";
 import { Link } from "react-router-dom";
@@ -8,6 +8,7 @@ import { useAppSelector } from "../hooks/redux";
 import { usePageTitle } from "../hooks/usePageTitle";
 import WorldList, { WorldListEmpty } from "./common/world-list";
 import { KidPanel, PixelBadge } from "./kid";
+import NotFoundPage from "./not-found-page";
 
 import "./app-surface.scss";
 
@@ -16,6 +17,9 @@ const ProfilePage = () => {
   const dispatch = useDispatch();
 
   const username = useParams().username!;
+  // "missing" when there's no player by this name; "failed" when we couldn't
+  // ask. Either way the games will never load, so stop waiting for them.
+  const [lookup, setLookup] = useState<"ok" | "missing" | "failed">("ok");
 
   const { me, profile, worlds } = useAppSelector((state) => {
     const profile = state.profiles[username];
@@ -36,8 +40,20 @@ const ProfilePage = () => {
     if (!username) {
       return;
     }
-    dispatch(fetchUser(username));
+    setLookup("ok");
     dispatch(fetchWorldsForUser(username));
+
+    const lookUp = async () => {
+      try {
+        await dispatch(fetchUser(username));
+      } catch (err) {
+        // The server answered and said no (a 404) versus the request never
+        // getting an answer (offline: TypeError; not JSON: SyntaxError).
+        const unreachable = err instanceof TypeError || err instanceof SyntaxError;
+        setLookup(unreachable ? "failed" : "missing");
+      }
+    };
+    lookUp();
   }, [dispatch, username]);
 
   usePageTitle(profile?.username ?? username);
@@ -45,6 +61,10 @@ const ProfilePage = () => {
   const name = profile?.username ?? username;
   const isMe = !!me && !!profile && me.id === profile.id;
   const gameCount = worlds && (worlds.length === 1 ? "1 game" : `${worlds.length} games`);
+
+  if (lookup === "missing") {
+    return <NotFoundPage />;
+  }
 
   return (
     <div className="games-page">
@@ -63,7 +83,7 @@ const ProfilePage = () => {
         </KidPanel>
 
         <WorldList
-          worlds={worlds}
+          worlds={lookup === "failed" ? [] : worlds}
           canEdit={isMe}
           showPlays
           label={`Games by ${name}`}
