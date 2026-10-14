@@ -105,10 +105,13 @@ $tile-accents: (
     line-height: 1.15;
   }
 
+  /* A caption is a line or two, so even the lines out rather than leave
+     one word hanging ("published."), which pretty alone doesn't always do. */
   &__caption {
     font-size: 15px;
     line-height: 1.35;
     color: $app-ink-soft;
+    text-wrap: balance;
   }
 
   &:hover,

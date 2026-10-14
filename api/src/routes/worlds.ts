@@ -42,6 +42,22 @@ router.get("/worlds/explore", async (req, res) => {
   res.json(worlds.map((w) => w.serialize()));
 });
 
+/**
+ * Count a play or a remix. These are other people's doing - they don't change
+ * the game - so they leave updatedAt alone; otherwise every play would bump
+ * the game to the top of its owner's My Games. (TypeORM sets an
+ * @UpdateDateColumn on any save or update unless it's given explicitly.) The
+ * increment happens in the database, so two at once can't lose a count.
+ */
+async function incrementCount(id: number, column: "playCount" | "forkCount") {
+  await AppDataSource.getRepository(World)
+    .createQueryBuilder()
+    .update()
+    .set({ [column]: () => `"${column}" + 1`, updatedAt: () => `"updatedAt"` })
+    .where("id = :id", { id })
+    .execute();
+}
+
 router.get("/worlds/:objectId", async (req, res) => {
   let objectId = req.params.objectId;
   if (objectId === "tutorial") {
@@ -56,8 +72,8 @@ router.get("/worlds/:objectId", async (req, res) => {
     return;
   }
 
+  await incrementCount(world.id, "playCount");
   world.playCount = Number(world.playCount) + 1;
-  await AppDataSource.getRepository(World).save(world);
 
   // Return both data and unsavedData with their timestamps - let frontend decide which to use
   res.json(
@@ -115,8 +131,8 @@ router.post("/worlds", userFromBasicAuth, async (req, res) => {
   }
   if (sourceWorld) {
     if (fork) {
-      sourceWorld.forkCount += 1;
-      await AppDataSource.getRepository(World).save(sourceWorld);
+      await incrementCount(sourceWorld.id, "forkCount");
+      sourceWorld.forkCount = Number(sourceWorld.forkCount) + 1;
 
       // Send fork notification email to owner
       const owner = sourceWorld.user;

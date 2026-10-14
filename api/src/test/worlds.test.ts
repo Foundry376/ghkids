@@ -148,6 +148,63 @@ describe("Worlds API", () => {
     });
   });
 
+  // Plays and remixes are other people's doing: they count, but they don't
+  // change the game, so the owner's My Games (newest first) shouldn't reorder.
+  describe("play and remix counts", () => {
+    const longAgo = new Date("2024-01-02T03:04:05.000Z");
+
+    const makeOldWorld = async (userId: string) => {
+      const worldRepo = AppDataSource.getRepository(World);
+      const world = await worldRepo.save({
+        name: "Old World",
+        thumbnail: "#",
+        userId,
+        data: { test: "data" },
+        playCount: 0,
+        forkCount: 0,
+      });
+      await worldRepo
+        .createQueryBuilder()
+        .update()
+        .set({ updatedAt: longAgo })
+        .where("id = :id", { id: world.id })
+        .execute();
+      return world;
+    };
+
+    it("counts a play without changing updatedAt", async () => {
+      const { user } = await createTestUser("owner", "password123");
+      const world = await makeOldWorld(user.id);
+
+      const res = await request(app).get(`/worlds/${world.id}`).expect(200);
+      expect(res.body.playCount).to.equal(1);
+
+      const after = await AppDataSource.getRepository(World).findOneBy({ id: world.id });
+      expect(Number(after!.playCount)).to.equal(1);
+      expect(after!.updatedAt.toISOString()).to.equal(longAgo.toISOString());
+    });
+
+    it("counts a remix without changing the original's updatedAt", async () => {
+      const sendForkEmailStub = sinon.stub(email, "sendForkEmail").resolves(true);
+      try {
+        const { user: owner } = await createTestUser("owner", "password123");
+        const world = await makeOldWorld(owner.id);
+
+        const { authHeader: forkerAuth } = await createTestUser("forker", "password123");
+        await request(app)
+          .post(`/worlds?from=${world.id}&fork=true`)
+          .set("Authorization", forkerAuth)
+          .expect(200);
+
+        const after = await AppDataSource.getRepository(World).findOneBy({ id: world.id });
+        expect(Number(after!.forkCount)).to.equal(1);
+        expect(after!.updatedAt.toISOString()).to.equal(longAgo.toISOString());
+      } finally {
+        sendForkEmailStub.restore();
+      }
+    });
+  });
+
   describe("POST /worlds", () => {
     it("should return 401 without authentication", async () => {
       await request(app).post("/worlds").expect(401);
