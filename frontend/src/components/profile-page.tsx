@@ -1,39 +1,34 @@
-import { Col, Container, Row } from "reactstrap";
 import { useEffect } from "react";
 import { useDispatch } from "react-redux";
-import {
-  createWorld,
-  deleteWorld,
-  fetchUser,
-  fetchWorldsForUser,
-  Profile,
-} from "../actions/main-actions";
-
 import { useParams } from "react-router";
-import { usePageTitle } from "../hooks/usePageTitle";
+import { Link } from "react-router-dom";
+
+import { createWorld, deleteWorld, fetchUser, fetchWorldsForUser } from "../actions/main-actions";
 import { useAppSelector } from "../hooks/redux";
-import WorldList from "./common/world-list";
+import { usePageTitle } from "../hooks/usePageTitle";
+import WorldList, { WorldListEmpty } from "./common/world-list";
+import { KidPanel, PixelBadge } from "./kid";
 
-const LOADING_PROFILE: Profile = {
-  username: "loading",
-  id: 0,
-};
+import "./app-surface.scss";
 
+/** A player's page, at /u/:username: their square, their name, their games. */
 const ProfilePage = () => {
   const dispatch = useDispatch();
 
-  const { username } = useParams();
+  const username = useParams().username!;
 
   const { me, profile, worlds } = useAppSelector((state) => {
-    const profile = state.profiles[username!];
+    const profile = state.profiles[username];
     return {
       me: state.me,
-      profile: profile || LOADING_PROFILE,
-      worlds: state.worlds
-        ? Object.values(state.worlds)
-            .filter((w) => profile && w.userId === profile.id)
-            .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
-        : null,
+      profile,
+      // Until we know who this is, we can't tell which games are theirs.
+      worlds:
+        state.worlds && profile
+          ? Object.values(state.worlds)
+              .filter((w) => w.userId === profile.id)
+              .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+          : null,
     };
   });
 
@@ -45,34 +40,43 @@ const ProfilePage = () => {
     dispatch(fetchWorldsForUser(username));
   }, [dispatch, username]);
 
-  usePageTitle(profile.username !== "loading" ? profile.username : null);
+  usePageTitle(profile?.username ?? username);
+
+  const name = profile?.username ?? username;
+  const isMe = !!me && !!profile && me.id === profile.id;
+  const gameCount = worlds && (worlds.length === 1 ? "1 game" : `${worlds.length} games`);
 
   return (
-    <Container style={{ marginTop: 30 }} className="dashboard">
-      <Row>
-        <Col md={3}>
-          <div className="dashboard-sidebar">
-            <img
-              src={new URL("../img/profile-placeholder.png", import.meta.url).href}
-              style={{ maxWidth: "100%" }}
-            />
-            <h4>{profile.username}</h4>
+    <div className="games-page">
+      <div className="games-page__body">
+        <Link className="app-back" to="/">
+          <span aria-hidden="true">&larr;</span> Menu
+        </Link>
+
+        <KidPanel className="profile-header">
+          <PixelBadge username={name} size="large" />
+          <div className="profile-header__text">
+            <h1>{name}</h1>
+            {/* Kept while the games load, so the tile doesn't change height. */}
+            <p>{[gameCount, isMe && "This is you"].filter(Boolean).join(" \u00b7 ") || "\u00a0"}</p>
           </div>
-        </Col>
-        <Col md={9}>
-          <div className="card card-body">
-            <h5>Public Worlds</h5>
-            <hr />
-            <WorldList
-              worlds={worlds}
-              onDeleteWorld={(s) => dispatch(deleteWorld(s.id))}
-              onDuplicateWorld={(s) => dispatch(createWorld({ from: s.id }))}
-              canEdit={me ? me.id === profile.id : false}
-            />
-          </div>
-        </Col>
-      </Row>
-    </Container>
+        </KidPanel>
+
+        <WorldList
+          worlds={worlds}
+          canEdit={isMe}
+          showPlays
+          label={`Games by ${name}`}
+          onDeleteWorld={(s) => dispatch(deleteWorld(s.id))}
+          onDuplicateWorld={(s) => dispatch(createWorld({ from: s.id }))}
+          empty={
+            <WorldListEmpty icon="play" title={`${name} hasn’t made any games yet.`}>
+              {isMe ? "Games you make will show up here." : "Check back soon."}
+            </WorldListEmpty>
+          }
+        />
+      </div>
+    </div>
   );
 };
 

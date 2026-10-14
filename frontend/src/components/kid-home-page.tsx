@@ -99,7 +99,7 @@ const KidHomePage: React.FC = () => {
           icon="open"
           accent="cyan"
           title="My Games"
-          caption={signedIn ? "Your saved games." : "Sign in to see games you saved."}
+          caption={signedIn ? "Your saved games." : "Games saved on this computer."}
           to="/dashboard"
         />
         <HomeTile
