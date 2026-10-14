@@ -127,7 +127,7 @@ const DashboardPage: React.FC = () => {
       busy={creating}
       onClick={onNewGame}
     >
-      {creating ? "Making your game…" : "New Game"}
+      {creating ? "Preparing the editor…" : "New Game"}
     </KidButton>
   );
 
@@ -167,7 +167,7 @@ const DashboardPage: React.FC = () => {
                 title="No games on this computer yet."
                 action={
                   <KidButton variant="primary" busy={creating} onClick={onNewGame}>
-                    {creating ? "Making your game…" : "Create a Game"}
+                    {creating ? "Preparing the editor…" : "Create a Game"}
                   </KidButton>
                 }
               >
@@ -203,7 +203,7 @@ const DashboardPage: React.FC = () => {
               title="No games in your account yet."
               action={
                 <KidButton variant="primary" busy={creating} onClick={onNewGame}>
-                  {creating ? "Making your game…" : "Create a Game"}
+                  {creating ? "Preparing the editor…" : "Create a Game"}
                 </KidButton>
               }
             >

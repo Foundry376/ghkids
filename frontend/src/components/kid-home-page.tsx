@@ -92,7 +92,7 @@ const KidHomePage: React.FC = () => {
           title="Create a Game"
           caption="Start with an empty stage."
           busy={creating}
-          busyCaption="Making your game…"
+          busyCaption="Preparing the editor…"
           onClick={onCreateGame}
         />
         <HomeTile
