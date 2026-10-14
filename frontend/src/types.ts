@@ -183,7 +183,9 @@ export type RuleValue =
   | { constant: string }
   | { actorId: string; variableId: string | "appearance" | "transform" | "x" | "y" }
   | { globalId: string }
-  | { stageVariableId: string };
+  | { stageVariableId: string }
+  /** A fresh random integer in [min, max] (inclusive), rolled each time the condition is checked. */
+  | { random: { min: number; max: number } };
 
 /**
  * Within a rule, the main actor is always at "0,0" and the extent

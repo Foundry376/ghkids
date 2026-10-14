@@ -448,10 +448,18 @@ html {
 
   .tool-click,
   .tool-keypress,
+  .tool-random,
   .tool-ignored-square {
     img {
       width: 30px;
       height: 30px;
+    }
+    .tool-emoji {
+      display: block;
+      width: 30px;
+      height: 30px;
+      font-size: 24px;
+      line-height: 30px;
     }
     padding: 4px;
   }

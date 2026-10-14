@@ -15,7 +15,7 @@ import Sprite from "../../sprites/sprite";
 import { actorLabel, RuleActorsContext } from "./rule-actors";
 
 /** A rule value that points at a variable rather than holding a literal. */
-export type VariableRuleValue = Exclude<RuleValue, { constant: string }>;
+export type VariableRuleValue = Exclude<RuleValue, { constant: string } | { random: unknown }>;
 
 export const ActorBlock = ({
   character,
@@ -114,6 +114,18 @@ const GlobalBlock = ({ globalId, name }: { globalId: string; name?: string }) =>
         <EmojiIcon>🌐</EmojiIcon>
       )}
       {(name ?? globalId).trim()}
+    </code>
+  );
+};
+
+/** The left-hand side of a "dice" condition: a number rolled fresh each time the rule is checked. */
+export const RandomBlock = ({ min, max }: { min: number; max: number }) => {
+  return (
+    <code
+      title={`A random whole number from ${min} to ${max}, rolled each time the rule is checked.`}
+    >
+      <EmojiIcon>🎲</EmojiIcon>
+      random {min}–{max}
     </code>
   );
 };

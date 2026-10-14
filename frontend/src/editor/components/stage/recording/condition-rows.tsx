@@ -24,7 +24,7 @@ import {
   BackgroundEditorModal,
   BackgroundPreview,
 } from "../../modal-stages/background-editor-modal";
-import { ActorBlock, AppearanceBlock, TransformBlock, VariableBlock } from "./blocks";
+import { ActorBlock, AppearanceBlock, RandomBlock, TransformBlock, VariableBlock } from "./blocks";
 
 interface FreeformConditionRowProps {
   actors: Stage["actors"];
@@ -39,6 +39,7 @@ type ImpliedDatatype =
   | { type: "transform"; characterId?: string; appearance?: string }
   | { type: "appearance"; character: Character }
   | { type: "position" }
+  | { type: "random" }
   | { type: "key" }
   | { type: "actor" }
   | { type: "stage" }
@@ -73,6 +74,9 @@ export const FreeformConditionRow = ({
   const dispatch = useDispatch();
 
   const impliedDatatype: ImpliedDatatype = (() => {
+    if ("random" in left || "random" in right) {
+      return { type: "random" };
+    }
     const variableIds = [
       "variableId" in left && left.variableId,
       "variableId" in right && right.variableId,
@@ -257,6 +261,9 @@ export const FreeformConditionValue = ({
     if ("actorId" in value || "globalId" in value || "stageVariableId" in value) {
       return <VariableBlock value={value} world={world} actors={actors} characters={characters} />;
     }
+    if ("random" in value) {
+      return <RandomBlock min={value.random.min} max={value.random.max} />;
+    }
     if ("constant" in value) {
       if (impliedDatatype?.type === "transform") {
         if (onChange) {
@@ -356,6 +363,9 @@ export const FreeformConditionValue = ({
       onChange?.({ constant: appearanceIds[0] });
     } else if (impliedDatatype?.type === "transform" || impliedDatatype?.type === "position") {
       onChange?.({ constant: "0" });
+    } else if (impliedDatatype?.type === "random" && "random" in value) {
+      // The dice is the point of the row - remove the whole condition instead.
+      return;
     } else {
       onChange?.({ constant: "" });
     }
@@ -427,7 +437,7 @@ function comparatorsForImpliedDatatype(inferred: ImpliedDatatype) {
   if (inferred?.type === "appearance") {
     return ["=", "!=", "contains", "starts-with", "ends-with"];
   }
-  if (inferred?.type === "position") {
+  if (inferred?.type === "position" || inferred?.type === "random") {
     return ["=", "!=", "<", ">", "<=", ">="];
   }
   if (inferred?.type === "background") {

@@ -100,6 +100,10 @@ Rules are organized hierarchically:
 - `{ constant: string }` - Literal value
 - `{ actorId, variableId }` - Actor's variable/appearance/transform
 - `{ globalId }` - Global variable
+- `{ stageVariableId }` - Stage (level) variable
+- `{ random: { min, max } }` - A whole number rolled fresh each time the
+  condition is checked (the dice button adds `random 0-99 < 50`). Skipped in
+  `actorsMatch` so each rule check rolls exactly once
 
 **RuleAction** types:
 - `move` - Change position (delta or offset)
