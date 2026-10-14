@@ -2,6 +2,8 @@ import { Col, Container, Row } from "reactstrap";
 import React, { useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
 
+import { usePageTitle } from "../hooks/usePageTitle";
+
 const CHANGELOG_URL =
   "https://raw.githubusercontent.com/Foundry376/ghkids/refs/heads/master/CHANGELOG.md";
 
@@ -9,6 +11,8 @@ const ChangelogPage: React.FC = () => {
   const [content, setContent] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+
+  usePageTitle("Changelog");
 
   useEffect(() => {
     fetch(CHANGELOG_URL)

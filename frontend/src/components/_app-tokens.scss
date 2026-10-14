@@ -1,0 +1,61 @@
+/* ============================================================
+   App tokens — the pixel unit, palette, type and shared mixins
+   for the kid side of Codako. Emits no CSS, so any stylesheet
+   can pull it in without duplicating rules:
+
+     @use "../app-tokens" as *;     // path relative to your file
+
+   Then $px, $app-ink, @include pixel-raise() etc. are in scope.
+   ============================================================ */
+
+@use "sass:list";
+
+$px: 4px;
+
+$app-ink: #3c3830;
+$app-ink-soft: #7c7466;
+$app-paper: #f2eee4;
+$app-tile: #fffdf7;
+$app-line: #d8d0be;
+$app-green: #6db33f;
+$app-green-dark: #55912f;
+$app-cyan: #5bc0de;
+$app-amber: #e2a12b;
+$app-coral: #e0645a;
+$app-muted: #9d968a;
+
+$app-display:
+  "Avenir Next",
+  "Segoe UI",
+  system-ui,
+  -apple-system,
+  "Helvetica Neue",
+  sans-serif;
+$app-body:
+  system-ui,
+  -apple-system,
+  "Segoe UI",
+  "Helvetica Neue",
+  sans-serif;
+$app-utility: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+/* Cards, tiles and buttons all cast the same hard pixel shadow. */
+@mixin pixel-raise($depth: $px * 1.5, $color: rgba(60, 56, 48, 0.28)) {
+  box-shadow: $depth $depth 0 $color;
+}
+
+/* Movement snaps in two steps, like a sprite, rather than easing. */
+@mixin pixel-transition($props...) {
+  $list: ();
+  @each $prop in $props {
+    $list: list.append($list, $prop 0.12s steps(2), $separator: comma);
+  }
+  transition: $list;
+}
+
+/* The editor marks a selected stage square with a dashed cyan ring; keyboard
+   focus everywhere on the kid side is the same idea. */
+@mixin pixel-focus($offset: 3px) {
+  outline: 3px dashed $app-cyan;
+  outline-offset: $offset;
+}

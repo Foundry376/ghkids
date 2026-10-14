@@ -1,0 +1,509 @@
+/* ============================================================
+   Kid kit — the controls the kid side of Codako is built from.
+
+     KidButton        .kid-button        primary / secondary / quiet,
+                                         regular / large, <button> or <Link>
+     KidTextField     .kid-field         label + chunky input + hint/error
+     KidSearchField   .kid-field--search the same input with a magnifier
+     KidPanel         .kid-panel         a tile to hold a form or a list
+     KidNotice        .kid-notice        info / success / error message
+     PixelBadge       .pixel-badge       a player's letter on their color square
+     PixelSpinner     .pixel-spinner     three squares lighting up in turn
+     (plain class)    .kid-link          an inline text link
+
+   Same rules as the rest of the app surface: square corners,
+   2px borders, hard offset shadows, movement in steps, and a
+   dashed cyan ring for keyboard focus. Import the components
+   from "components/kid"; each one pulls in this stylesheet.
+   ============================================================ */
+
+@use "../app-tokens" as *;
+
+/* ---- Buttons ---- */
+
+.kid-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 8px 18px;
+  border: 2px solid $app-line;
+  border-radius: 0;
+  background: $app-tile;
+  color: $app-ink;
+  font-family: $app-display;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.005em;
+  text-align: center;
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+  @include pixel-raise($px);
+  @include pixel-transition(transform, box-shadow, border-color, background-color);
+
+  &:hover {
+    color: $app-ink;
+    text-decoration: none;
+    border-color: $app-ink;
+    transform: translate(-2px, -2px);
+    @include pixel-raise($px + 2px);
+  }
+
+  /* Pressed: the button sinks into its own shadow. */
+  &:active {
+    transform: translate($px, $px);
+    box-shadow: none;
+  }
+
+  &:focus {
+    outline: none;
+  }
+  &:focus-visible {
+    @include pixel-focus();
+  }
+
+  .pixel-icon {
+    flex-shrink: 0;
+  }
+
+  /* ---- Variants ---- */
+
+  &--primary {
+    background: $app-green;
+    border-color: $app-green-dark;
+    color: #fff;
+    text-shadow: 0 2px 0 rgba($app-green-dark, 0.8);
+
+    &:hover {
+      color: #fff;
+      border-color: #477a27;
+      background: #78bf48;
+    }
+
+    .pixel-spinner i {
+      background: #fff;
+    }
+  }
+
+  &--quiet {
+    background: transparent;
+    border-style: dashed;
+    color: $app-ink-soft;
+    box-shadow: none;
+
+    &:hover {
+      background: rgba($app-tile, 0.7);
+      border-color: $app-ink-soft;
+      color: $app-ink;
+      transform: none;
+      box-shadow: none;
+    }
+    &:active {
+      transform: none;
+    }
+  }
+
+  /* ---- Sizes ---- */
+
+  &--large {
+    min-height: 56px;
+    padding: 12px 28px;
+    font-size: 20px;
+    font-weight: 800;
+    @include pixel-raise($px * 1.5);
+
+    &:hover {
+      transform: translate(-$px, -$px);
+      @include pixel-raise($px * 2.5);
+    }
+    &:active {
+      transform: translate($px * 1.5, $px * 1.5);
+      box-shadow: none;
+    }
+  }
+
+  &--block {
+    display: flex;
+    width: 100%;
+  }
+
+  /* ---- States ---- */
+
+  /* Disabled reads as greyed out; busy keeps its colors, since it's the thing
+     you just pressed, and only stops answering. */
+  &:disabled,
+  &[aria-disabled="true"] {
+    cursor: not-allowed;
+    opacity: 0.5;
+    transform: none;
+    @include pixel-raise($px, rgba(60, 56, 48, 0.15));
+
+    &.kid-button--quiet {
+      box-shadow: none;
+    }
+  }
+
+  &[aria-busy="true"] {
+    cursor: progress;
+    opacity: 1;
+  }
+}
+
+/* A plain inline link in the kid palette — "Make an account", "Forgot your
+   password?". Underlined in steps of the pixel unit rather than a hairline. */
+.kid-link {
+  color: $app-ink;
+  font-weight: 600;
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+  text-decoration-color: rgba($app-green, 0.8);
+
+  &:hover {
+    color: $app-ink;
+    text-decoration-color: $app-ink;
+  }
+  &:focus {
+    outline: none;
+  }
+  &:focus-visible {
+    @include pixel-focus(2px);
+  }
+}
+
+/* ---- Text fields ---- */
+
+.kid-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  margin: 0 0 20px;
+  font-family: $app-body;
+
+  &__label {
+    margin: 0;
+    font-family: $app-display;
+    font-size: 16px;
+    font-weight: 700;
+    color: $app-ink;
+  }
+
+  /* The box the input sits in, so an icon or a "Show" button can share its
+     border. Sunken rather than raised: a hard inset shadow on the top-left. */
+  &__control {
+    position: relative;
+    display: flex;
+    align-items: center;
+    background: #fff;
+    border: 2px solid $app-line;
+    border-radius: 0;
+    box-shadow: inset 0 $px 0 rgba(60, 56, 48, 0.06);
+    @include pixel-transition(border-color);
+
+    &:hover {
+      border-color: $app-ink-soft;
+    }
+    &:focus-within {
+      border-color: $app-ink;
+      @include pixel-focus();
+    }
+  }
+
+  /* Zero width plus flex-grow: fills the box without the input's built-in
+     width (its `size`) forcing grids and flex rows wider than the screen. */
+  &__input {
+    flex: 1 1 auto;
+    width: 0;
+    min-width: 0;
+    min-height: 54px;
+    padding: 10px 14px;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    color: $app-ink;
+    font-family: $app-body;
+    font-size: 20px;
+    font-weight: 600;
+    outline: none;
+    appearance: none;
+
+    &::placeholder {
+      color: rgba($app-ink-soft, 0.75);
+      font-weight: 500;
+    }
+  }
+
+  &__leading {
+    display: flex;
+    padding-left: 14px;
+  }
+
+  &__trailing {
+    display: flex;
+    align-items: center;
+    padding-right: 8px;
+  }
+
+  &__hint {
+    font-size: 14px;
+    color: $app-ink-soft;
+  }
+
+  &__error {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 15px;
+    font-weight: 600;
+    color: #b8423a;
+
+    &::before {
+      content: "";
+      flex-shrink: 0;
+      width: 8px;
+      height: 8px;
+      background: $app-coral;
+    }
+  }
+
+  &--invalid &__control {
+    border-color: $app-coral;
+  }
+
+  &--disabled {
+    opacity: 0.6;
+  }
+
+  /* ---- Search ---- */
+
+  &--search &__input {
+    padding-left: 10px;
+
+    /* Chrome's own clear button is a tiny blue x; leave clearing to the
+       keyboard and keep the box in the app's style. */
+    &::-webkit-search-cancel-button {
+      appearance: none;
+    }
+  }
+}
+
+/* Visually hidden, still read out — for labels a search box doesn't need to
+   show because its icon and placeholder already say what it is. */
+.kid-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ---- Panels ---- */
+
+.kid-panel {
+  padding: 24px;
+  background: $app-tile;
+  border: 2px solid $app-line;
+  border-radius: 0;
+  color: $app-ink;
+  @include pixel-raise();
+
+  &__heading {
+    margin: 0 0 16px;
+    font-family: $app-display;
+    font-size: 24px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    color: $app-ink;
+  }
+
+  &--quiet {
+    background: rgba($app-tile, 0.55);
+    border-style: dashed;
+    box-shadow: none;
+  }
+
+  > :last-child {
+    margin-bottom: 0;
+  }
+}
+
+/* ---- Notices ---- */
+
+.kid-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin: 0 0 20px;
+  padding: 12px 16px;
+  border: 2px solid;
+  border-radius: 0;
+  color: $app-ink;
+  font-size: 15px;
+  line-height: 1.4;
+
+  &__badge {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 24px;
+    height: 24px;
+    color: #fff;
+    font-family: $app-display;
+    font-size: 15px;
+    font-weight: 800;
+    line-height: 1;
+  }
+
+  &__body {
+    flex: 1;
+    min-width: 0;
+    padding-top: 2px;
+  }
+
+  &__title {
+    display: block;
+    font-family: $app-display;
+    font-weight: 700;
+    font-size: 16px;
+  }
+
+  &--info {
+    background: #e8f5f9;
+    border-color: $app-cyan;
+    .kid-notice__badge {
+      background: #3a9fbd;
+    }
+  }
+
+  &--success {
+    background: #edf5e6;
+    border-color: $app-green;
+    .kid-notice__badge {
+      background: $app-green-dark;
+    }
+  }
+
+  &--error {
+    background: #fbeae7;
+    border-color: $app-coral;
+    .kid-notice__badge {
+      background: #c4493f;
+    }
+  }
+}
+
+/* ---- Player badges ----
+   A raised pixel block: lighter on the top-left edge, darker on the bottom-
+   right, like a sprite tile. */
+
+.pixel-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  color: #fff;
+  font-family: $app-display;
+  font-size: 26px;
+  font-weight: 800;
+  line-height: 1;
+  text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.22);
+  box-shadow:
+    inset $px $px 0 rgba(255, 255, 255, 0.28),
+    inset (-$px) (-$px) 0 rgba(0, 0, 0, 0.2);
+
+  &--small {
+    width: 32px;
+    height: 32px;
+    font-size: 17px;
+    box-shadow:
+      inset 2px 2px 0 rgba(255, 255, 255, 0.28),
+      inset -2px -2px 0 rgba(0, 0, 0, 0.2);
+  }
+
+  &--large {
+    width: 72px;
+    height: 72px;
+    font-size: 40px;
+  }
+
+  &--empty {
+    background: #c9c2b4;
+    text-shadow: none;
+  }
+}
+
+/* ---- Waiting ----
+   Drawn in the same medium as everything else: three squares that light up
+   in turn instead of a spinning circle. */
+
+.pixel-spinner {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+
+  i {
+    display: block;
+    width: 12px;
+    height: 12px;
+    background: $app-green;
+    opacity: 0.2;
+    animation: pixel-spinner-step 0.9s steps(1, end) infinite;
+
+    &:nth-child(2) {
+      animation-delay: 0.3s;
+    }
+    &:nth-child(3) {
+      animation-delay: 0.6s;
+    }
+  }
+
+  &--small {
+    gap: 4px;
+
+    i {
+      width: 6px;
+      height: 6px;
+    }
+  }
+}
+
+@keyframes pixel-spinner-step {
+  0%,
+  33% {
+    opacity: 1;
+  }
+  34%,
+  100% {
+    opacity: 0.2;
+  }
+}
+
+/* ---- Motion ---- */
+
+@media (prefers-reduced-motion: reduce) {
+  .kid-button {
+    transition: none;
+
+    &:hover,
+    &:active {
+      transform: none;
+    }
+  }
+
+  /* A busy label carries the message; the squares just sit there lit. */
+  .pixel-spinner i {
+    animation: none;
+    opacity: 1;
+  }
+}

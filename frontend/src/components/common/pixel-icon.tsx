@@ -13,6 +13,8 @@ export const PIXEL_GREEN = "#6db33f";
 export const PIXEL_CYAN = "#5bc0de";
 export const PIXEL_AMBER = "#e2a12b";
 export const PIXEL_MUTED = "#9d968a";
+export const PIXEL_CORAL = "#e0645a";
+export const PIXEL_TILE = "#fffdf7";
 
 type PixelGlyph = { legend: Record<string, string>; rows: string[] };
 
@@ -71,6 +73,60 @@ const GLYPHS = {
       "............",
     ],
   },
+  /** A game controller — games other people made, ready to play. */
+  play: {
+    legend: { "#": PIXEL_INK, o: PIXEL_CORAL, "+": PIXEL_TILE },
+    rows: [
+      "............",
+      "............",
+      "..########..",
+      ".#oooooooo#.",
+      "#oo#oooo+oo#",
+      "#o###oo+o+o#",
+      "#oo#oooo+oo#",
+      "#oooooooooo#",
+      "#ooo####ooo#",
+      ".###....###.",
+      "............",
+      "............",
+    ],
+  },
+  /** A grown-up and a kid, side by side. */
+  parents: {
+    legend: { "#": PIXEL_MUTED },
+    rows: [
+      "............",
+      "..##........",
+      "..##........",
+      "............",
+      ".####...##..",
+      ".####...##..",
+      ".####.......",
+      ".####..####.",
+      ".#..#..####.",
+      ".#..#..#..#.",
+      ".#..#..#..#.",
+      "............",
+    ],
+  },
+  /** A magnifying glass, for finding things. */
+  search: {
+    legend: { "#": PIXEL_INK, o: PIXEL_CYAN },
+    rows: [
+      "............",
+      "..####......",
+      ".#oooo#.....",
+      "#oooooo#....",
+      "#oooooo#....",
+      "#oooooo#....",
+      "#oooooo#....",
+      ".#oooo#.....",
+      "..####.##...",
+      ".......###..",
+      "........###.",
+      ".........##.",
+    ],
+  },
   /** A door out. */
   exit: {
     legend: { "#": PIXEL_MUTED },
@@ -93,14 +149,22 @@ const GLYPHS = {
 
 export type PixelIconName = keyof typeof GLYPHS;
 
-export const PixelIcon = ({ name, size = 72 }: { name: PixelIconName; size?: number }) => {
+export const PixelIcon = ({
+  name,
+  size = 72,
+  className,
+}: {
+  name: PixelIconName;
+  size?: number;
+  className?: string;
+}) => {
   const glyph: PixelGlyph = GLYPHS[name];
   const height = glyph.rows.length;
   const width = glyph.rows[0].length;
 
   return (
     <svg
-      className="pixel-icon"
+      className={className ? `pixel-icon ${className}` : "pixel-icon"}
       width={size}
       height={size}
       viewBox={`0 0 ${width} ${height}`}

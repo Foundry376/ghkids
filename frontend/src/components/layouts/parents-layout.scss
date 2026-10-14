@@ -1,0 +1,53 @@
+/* The parents nav: Bootstrap's navbar, plus a green door into the kid side
+   drawn in the kid kit's style so it reads as "this is where Codako is". */
+
+@use "../app-tokens" as *;
+
+/* Component styles load before Bootstrap's (see main.tsx), so rules that
+   override Bootstrap's own need its specificity plus one. */
+.navbar.parents-nav {
+  > .container {
+    flex-wrap: wrap;
+    gap: 8px 0;
+  }
+
+  .parents-nav__brand {
+    font-weight: 700;
+  }
+
+  .parents-nav__for {
+    font-weight: 400;
+    font-size: 0.8em;
+    color: #888;
+  }
+
+  .parents-nav__links {
+    flex: 1;
+
+    .nav-link.active {
+      color: $app-green-dark;
+      font-weight: 600;
+    }
+  }
+
+  /* `.navbar a` colors every link grey; the button keeps its own colors. */
+  a.parents-nav__open,
+  a.parents-nav__open:hover {
+    color: #fff;
+  }
+}
+
+/* Too narrow for one row: the page links drop under the brand and button. */
+@media (max-width: 640px) {
+  .navbar.parents-nav {
+    .parents-nav__links {
+      order: 3;
+      flex-basis: 100%;
+      margin-left: -1rem;
+    }
+
+    .parents-nav__open {
+      margin-left: auto;
+    }
+  }
+}

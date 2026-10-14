@@ -1,0 +1,304 @@
+/* ============================================================
+   Kid layout — the header on every kid page, and the identity
+   bubble in its corner. The header stays light (no bar, no
+   background) so a page's own heading is still the loudest
+   thing on it; only the bubble is meant to stand out.
+   ============================================================ */
+
+@use "../app-tokens" as *;
+
+.kid-layout__main {
+  flex: 1 0 auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.kid-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px 24px;
+  padding: 16px 24px 0;
+
+  &__start {
+    display: flex;
+    align-items: center;
+    min-height: 64px;
+  }
+
+  &__wordmark {
+    font-size: 30px;
+    line-height: 1;
+    text-shadow: 2px 2px 0 $app-green;
+
+    &:hover {
+      color: $app-ink;
+      text-decoration: none;
+    }
+    &:focus {
+      outline: none;
+    }
+    &:focus-visible {
+      @include pixel-focus(4px);
+    }
+  }
+}
+
+/* ---- Identity bubble ---- */
+
+.identity {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-width: 0;
+
+  /* The bubble itself — the one rounded thing on the kid side, so it reads
+     as "you" rather than as another square to press. */
+  &__bubble {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    min-width: 0;
+    margin: 0;
+    padding: 8px 20px 8px 8px;
+    border: 2px solid $app-line;
+    border-radius: 20px;
+    background: $app-tile;
+    color: $app-ink;
+    font-family: $app-body;
+    text-align: left;
+
+    .pixel-badge {
+      width: 52px;
+      height: 52px;
+      font-size: 28px;
+      border-radius: 12px;
+    }
+  }
+
+  &__text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  &__name {
+    font-family: $app-display;
+    font-size: 26px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__status {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.2;
+    color: $app-ink-soft;
+  }
+
+  /* ---- Signed in ---- */
+
+  &--signed-in &__bubble {
+    cursor: pointer;
+    border-color: $app-ink;
+    @include pixel-raise($px * 1.5);
+    @include pixel-transition(transform, box-shadow);
+
+    &:hover {
+      transform: translate(-2px, -2px);
+      @include pixel-raise($px * 2);
+    }
+    &:active {
+      transform: translate($px, $px);
+      box-shadow: none;
+    }
+    &:focus {
+      outline: none;
+    }
+    &:focus-visible {
+      @include pixel-focus(4px);
+    }
+    &[aria-expanded="true"] {
+      transform: translate($px, $px);
+      box-shadow: none;
+    }
+  }
+
+  &--signed-in &__status {
+    color: $app-green-dark;
+  }
+
+  &__check {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    background: $app-green;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 800;
+  }
+
+  &__caret {
+    flex-shrink: 0;
+    margin-left: 6px;
+    color: $app-ink-soft;
+  }
+
+  &__menu {
+    position: absolute;
+    top: calc(100% + 12px);
+    right: 0;
+    z-index: 20;
+    display: flex;
+    flex-direction: column;
+    min-width: 220px;
+    padding: 6px;
+    background: $app-tile;
+    border: 2px solid $app-ink;
+    @include pixel-raise($px * 1.5);
+  }
+
+  &__menu-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    padding: 10px 12px;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    color: $app-ink;
+    font-family: $app-display;
+    font-size: 18px;
+    font-weight: 700;
+    text-align: left;
+    cursor: pointer;
+
+    &:hover,
+    &:focus {
+      background: $app-paper;
+      color: $app-ink;
+      text-decoration: none;
+      outline: none;
+    }
+    &:focus-visible {
+      outline: 3px dashed $app-cyan;
+      outline-offset: -3px;
+    }
+  }
+
+  /* ---- Signed out ---- */
+
+  &--signed-out &__bubble {
+    background: rgba(233, 228, 217, 0.85);
+    border-style: dashed;
+    border-color: $app-muted;
+    color: $app-ink-soft;
+  }
+
+  &--signed-out &__name {
+    font-size: 20px;
+  }
+
+  &__actions {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+
+  &__join {
+    font-size: 14px;
+  }
+}
+
+/* ---- Phone ---- */
+
+@media (max-width: 640px) {
+  .kid-header {
+    flex-wrap: wrap;
+    padding: 12px 16px 0;
+
+    &__start {
+      min-height: 0;
+    }
+
+    &__start:empty {
+      display: none;
+    }
+
+    &__wordmark {
+      font-size: 26px;
+    }
+  }
+
+  .identity {
+    flex: 1 1 100%;
+    gap: 12px;
+
+    &__bubble {
+      flex: 1;
+      gap: 10px;
+      padding: 6px 14px 6px 6px;
+      border-radius: 16px;
+
+      .pixel-badge {
+        width: 40px;
+        height: 40px;
+        font-size: 22px;
+        border-radius: 10px;
+      }
+    }
+
+    &__name {
+      font-size: 20px;
+    }
+
+    &--signed-out &__name {
+      font-size: 17px;
+    }
+
+    &__status {
+      font-size: 12px;
+    }
+
+    &__caret {
+      margin-left: auto;
+    }
+
+    &__actions {
+      gap: 6px;
+    }
+
+    .kid-button--large {
+      min-height: 48px;
+      padding: 8px 18px;
+      font-size: 18px;
+    }
+
+    &__join {
+      font-size: 13px;
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .identity--signed-in .identity__bubble {
+    transition: none;
+
+    &:hover {
+      transform: none;
+    }
+  }
+}

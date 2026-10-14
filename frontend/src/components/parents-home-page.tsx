@@ -1,8 +1,16 @@
 import { Link } from "react-router-dom";
 
+import { usePageTitle } from "../hooks/usePageTitle";
+
 import "./app-surface.scss";
 
-const HomePage = () => {
+/**
+ * What Codako is, for grown-ups — the overview at /parents. The kids' own
+ * front door is "/".
+ */
+const ParentsHomePage = () => {
+  usePageTitle("For Parents");
+
   return (
     <div>
       <div className="hero">
@@ -11,9 +19,11 @@ const HomePage = () => {
             <div className="col-md-12">
               <h2>Create your own games!</h2>
               <div>
-                <p>Codako is a video game construction set designed for young learners ages 6 and up.</p>
+                <p>
+                  Codako is a video game construction set designed for young learners ages 6 and up.
+                </p>
                 <br />
-                <Link className="app-cta" to="/start">
+                <Link className="app-cta" to="/">
                   Start Codako
                 </Link>
               </div>
@@ -106,7 +116,7 @@ const HomePage = () => {
                 required email address, nickname and password. 20 years ago, I learned to program
                 using Apple's KidSIM and subsequently Stagecast Creator, and Codako is my effort to
                 bring back the platform that inspired me in my childhood. For more about why I've
-                built Codako, see the <Link to={"/faq"}>FAQ for Parents</Link>
+                built Codako, see the <Link to="/parents/faq">FAQ for Parents</Link>
               </p>
             </div>
             <div className="offset-md-2 col-md-3">
@@ -119,4 +129,4 @@ const HomePage = () => {
   );
 };
 
-export default HomePage;
+export default ParentsHomePage;
