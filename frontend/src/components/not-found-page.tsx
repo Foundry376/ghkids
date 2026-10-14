@@ -1,13 +1,27 @@
-import { Container } from "reactstrap";
 import React from "react";
-import { Link } from "react-router-dom";
+
+import { usePageTitle } from "../hooks/usePageTitle";
+import { PixelIcon } from "./common/pixel-icon";
+import { KidButton, KidPanel } from "./kid";
+
+import "./app-surface.scss";
 
 const NotFoundPage: React.FC = () => {
+  usePageTitle("Page not found");
+
   return (
-    <Container>
-      <h4>404 Page Not Found</h4>
-      <Link to="/"> Go back to homepage </Link>
-    </Container>
+    <div className="lost-page">
+      <KidPanel className="lost-page__panel">
+        <span className="lost-page__plate" aria-hidden="true">
+          <PixelIcon name="lost" size={72} />
+        </span>
+        <h1>That page isn&rsquo;t here</h1>
+        <p>The link might be old, or it might have a typo in it.</p>
+        <KidButton variant="primary" size="large" to="/">
+          Back to the menu
+        </KidButton>
+      </KidPanel>
+    </div>
   );
 };
 

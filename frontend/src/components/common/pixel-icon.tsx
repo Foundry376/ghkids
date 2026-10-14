@@ -145,6 +145,168 @@ const GLYPHS = {
       "............",
     ],
   },
+  /** A play triangle — start a game. */
+  go: {
+    legend: { "#": PIXEL_INK },
+    rows: [
+      "............",
+      "...#........",
+      "...##.......",
+      "...###......",
+      "...####.....",
+      "...#####....",
+      "...#####....",
+      "...####.....",
+      "...###......",
+      "...##.......",
+      "...#........",
+      "............",
+    ],
+  },
+  /** A pencil — keep building a game. */
+  edit: {
+    legend: { "#": PIXEL_INK },
+    rows: [
+      "............",
+      "........###.",
+      ".......####.",
+      "......####..",
+      ".....####...",
+      "....####....",
+      "...####.....",
+      "..####......",
+      "..###.......",
+      "..##........",
+      ".#..........",
+      "............",
+    ],
+  },
+  /** Three dots, for a menu of more things to do. */
+  more: {
+    legend: { "#": PIXEL_INK },
+    rows: [
+      "............",
+      "............",
+      ".....##.....",
+      ".....##.....",
+      "............",
+      ".....##.....",
+      ".....##.....",
+      "............",
+      ".....##.....",
+      ".....##.....",
+      "............",
+      "............",
+    ],
+  },
+  /** A bin. */
+  trash: {
+    legend: { "#": PIXEL_INK },
+    rows: [
+      "............",
+      "....####....",
+      ".##########.",
+      "............",
+      "..########..",
+      "..#.#..#.#..",
+      "..#.#..#.#..",
+      "..#.#..#.#..",
+      "..#.#..#.#..",
+      "..#.#..#.#..",
+      "..########..",
+      "............",
+    ],
+  },
+  /** An arrow up out of a tray — send a game to your account. */
+  upload: {
+    legend: { "#": PIXEL_INK },
+    rows: [
+      "............",
+      ".....##.....",
+      "....####....",
+      "...######...",
+      "..##.##.##..",
+      ".....##.....",
+      ".....##.....",
+      ".....##.....",
+      "............",
+      ".#........#.",
+      ".##########.",
+      "............",
+    ],
+  },
+  /** A plus — make something new. */
+  plus: {
+    legend: { "#": PIXEL_INK },
+    rows: [
+      "............",
+      "............",
+      ".....##.....",
+      ".....##.....",
+      ".....##.....",
+      "..########..",
+      "..########..",
+      ".....##.....",
+      ".....##.....",
+      ".....##.....",
+      "............",
+      "............",
+    ],
+  },
+  /** A screen — games kept on this computer. */
+  computer: {
+    legend: { "#": PIXEL_INK, o: PIXEL_CYAN },
+    rows: [
+      "............",
+      ".##########.",
+      ".#oooooooo#.",
+      ".#oooooooo#.",
+      ".#oooooooo#.",
+      ".#oooooooo#.",
+      ".#oooooooo#.",
+      ".##########.",
+      ".....##.....",
+      "...######...",
+      "............",
+      "............",
+    ],
+  },
+  /** A picture frame with a hill and a sun — a game with no picture yet. */
+  picture: {
+    legend: { "#": PIXEL_MUTED },
+    rows: [
+      "............",
+      ".##########.",
+      ".#........#.",
+      ".#.....##.#.",
+      ".#.....##.#.",
+      ".#........#.",
+      ".#...#....#.",
+      ".#..###...#.",
+      ".#.#####.##.",
+      ".##########.",
+      "............",
+      "............",
+    ],
+  },
+  /** A question mark in a frame — a page that isn't there. */
+  lost: {
+    legend: { "#": PIXEL_INK, o: PIXEL_AMBER },
+    rows: [
+      "............",
+      ".##########.",
+      ".#........#.",
+      ".#..oooo..#.",
+      ".#.oo..oo.#.",
+      ".#.....oo.#.",
+      ".#....oo..#.",
+      ".#...oo...#.",
+      ".#........#.",
+      ".#...oo...#.",
+      ".##########.",
+      "............",
+    ],
+  },
 } satisfies Record<string, PixelGlyph>;
 
 export type PixelIconName = keyof typeof GLYPHS;
@@ -152,10 +314,14 @@ export type PixelIconName = keyof typeof GLYPHS;
 export const PixelIcon = ({
   name,
   size = 72,
+  tint,
   className,
 }: {
   name: PixelIconName;
   size?: number;
+  /** Paint every pixel this one color instead of the glyph's own palette —
+   *  "currentColor" makes an icon inside a button follow the button's text. */
+  tint?: string;
   className?: string;
 }) => {
   const glyph: PixelGlyph = GLYPHS[name];
@@ -173,11 +339,20 @@ export const PixelIcon = ({
       focusable="false"
     >
       {glyph.rows.map((row, y) =>
-        row.split("").map((char, x) =>
-          char === "." ? null : (
-            <rect key={`${x}-${y}`} x={x} y={y} width={1} height={1} fill={glyph.legend[char]} />
+        row
+          .split("")
+          .map((char, x) =>
+            char === "." ? null : (
+              <rect
+                key={`${x}-${y}`}
+                x={x}
+                y={y}
+                width={1}
+                height={1}
+                fill={tint ?? glyph.legend[char]}
+              />
+            ),
           ),
-        ),
       )}
     </svg>
   );

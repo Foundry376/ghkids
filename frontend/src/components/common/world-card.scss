@@ -1,0 +1,355 @@
+/* ============================================================
+   Game tiles — one square per game, in a grid. Shared by My
+   Games, Play Games and profiles. A big picture of the stage,
+   the name in the display face, and square buttons underneath.
+   ============================================================ */
+
+@use "../app-tokens" as *;
+
+.game-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(272px, 1fr));
+  gap: 24px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  > li {
+    display: flex;
+    min-width: 0;
+  }
+
+  &__loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    padding: 64px 16px;
+    color: $app-ink-soft;
+    font-size: 16px;
+  }
+
+  /* Nothing to show: a dashed square on the paper, with a way forward. */
+  &__empty {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    padding: 28px;
+    border: 2px dashed $app-line;
+    background: rgba($app-tile, 0.55);
+  }
+
+  &__empty-plate {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 88px;
+    height: 88px;
+    border: 2px solid $app-line;
+    background: $app-tile;
+  }
+
+  &__empty-text {
+    min-width: 0;
+  }
+
+  &__empty-title {
+    margin: 0 0 4px;
+    font-family: $app-display;
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: -0.015em;
+    color: $app-ink;
+  }
+
+  &__empty-caption {
+    margin: 0;
+    font-size: 16px;
+    color: $app-ink-soft;
+  }
+
+  &__empty-action {
+    margin-top: 16px;
+  }
+}
+
+.game-tile {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: $app-tile;
+  border: 2px solid $app-line;
+  border-radius: 0;
+  color: $app-ink;
+  @include pixel-raise();
+  @include pixel-transition(border-color);
+
+  &:hover,
+  &:focus-within {
+    border-color: $app-ink-soft;
+  }
+
+  /* ---- Picture ---- */
+
+  &__picture {
+    position: relative;
+    display: block;
+    aspect-ratio: 4 / 3;
+    overflow: hidden;
+    background: #dfe6d8;
+    border-bottom: 2px solid $app-line;
+
+    img {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      /* Stage pictures are pixel art: keep the squares square. */
+      image-rendering: pixelated;
+    }
+
+    &:focus {
+      outline: none;
+    }
+  }
+
+  &__blank {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    background: repeating-linear-gradient(45deg, #ebe6da, #ebe6da 8px, #e4ded0 8px, #e4ded0 16px);
+  }
+
+  &__tag {
+    position: absolute;
+    top: 0;
+    left: 0;
+    padding: 4px 10px;
+    background: $app-ink;
+    color: $app-paper;
+    font-family: $app-utility;
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+  }
+
+  /* "Play" or "Edit", over the picture while you point at it. */
+  &__verb {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px 8px 12px;
+    background: $app-tile;
+    border: 2px solid $app-ink;
+    color: $app-ink;
+    font-family: $app-display;
+    font-size: 18px;
+    font-weight: 800;
+    opacity: 0;
+    transform: translate(-50%, -50%);
+    @include pixel-raise($px, rgba(20, 18, 14, 0.4));
+    @include pixel-transition(opacity);
+  }
+
+  &__picture:hover &__verb {
+    opacity: 1;
+  }
+
+  /* ---- Words ---- */
+
+  &__body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 14px 16px 16px;
+  }
+
+  &__name {
+    margin: 0;
+    font-family: $app-display;
+    font-size: 20px;
+    font-weight: 800;
+    letter-spacing: -0.015em;
+    line-height: 1.2;
+    overflow-wrap: anywhere;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+
+    a {
+      color: $app-ink;
+
+      &:hover {
+        color: $app-ink;
+        text-decoration: underline;
+        text-decoration-thickness: 2px;
+        text-underline-offset: 3px;
+        text-decoration-color: rgba($app-green, 0.8);
+      }
+      &:focus {
+        outline: none;
+      }
+      &:focus-visible {
+        @include pixel-focus(2px);
+      }
+    }
+  }
+
+  &__details {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 14px;
+    line-height: 1.4;
+    color: $app-ink-soft;
+    overflow-wrap: anywhere;
+
+    .kid-link {
+      color: $app-ink-soft;
+      font-weight: 600;
+
+      &:hover {
+        color: $app-ink;
+      }
+    }
+  }
+
+  &__byline {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    .pixel-badge--small {
+      width: 24px;
+      height: 24px;
+      font-size: 13px;
+    }
+  }
+
+  /* ---- Buttons ---- */
+
+  &__actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    margin-top: auto;
+    padding-top: 6px;
+  }
+
+  &__action {
+    padding-left: 14px;
+    padding-right: 16px;
+  }
+
+  /* After the menu button, on a row of its own. */
+  &__action--wide {
+    flex-basis: 100%;
+    order: 1;
+  }
+
+  &__menu {
+    margin-left: auto;
+  }
+
+  /* Bootstrap draws the menu after this stylesheet loads, so these restate it
+     at a higher specificity. */
+  .game-tile__more {
+    width: 44px;
+    padding: 0;
+
+    &::after {
+      display: none;
+    }
+  }
+
+  .dropdown-menu {
+    min-width: 200px;
+    margin-top: 6px;
+    padding: 4px;
+    background: $app-tile;
+    border: 2px solid $app-ink;
+    border-radius: 0;
+    @include pixel-raise($px, rgba(20, 18, 14, 0.3));
+  }
+
+  .dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 44px;
+    padding: 8px 14px;
+    color: $app-ink;
+    font-family: $app-display;
+    font-size: 16px;
+    font-weight: 700;
+
+    &:hover,
+    &:focus,
+    &:active {
+      background: rgba($app-green, 0.16);
+      color: $app-ink;
+      outline: none;
+    }
+  }
+
+  .dropdown-divider {
+    margin: 4px 0;
+    border-top: 2px solid $app-line;
+  }
+
+  .game-tile__menu-item--danger {
+    color: #b8423a;
+
+    &:hover,
+    &:focus,
+    &:active {
+      background: rgba($app-coral, 0.16);
+      color: #b8423a;
+    }
+  }
+}
+
+@media (max-width: 560px) {
+  /* One tile per row: a shorter picture keeps more of the list on screen. */
+  .game-tile__picture {
+    aspect-ratio: 16 / 10;
+  }
+
+  .game-grid {
+    gap: 16px;
+
+    &__empty {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 16px;
+      padding: 20px;
+    }
+
+    &__empty-plate {
+      width: 64px;
+      height: 64px;
+
+      .pixel-icon {
+        width: 40px;
+        height: 40px;
+      }
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .game-tile,
+  .game-tile__verb {
+    transition: none;
+  }
+}

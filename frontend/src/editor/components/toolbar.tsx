@@ -58,20 +58,28 @@ const Toolbar = () => {
 
   const renderLeft = () => {
     if (usingLocalStorage) {
+      // Signed out, the game lives in this browser: there's no menu, just a
+      // way out (to My Games, which lists it) and a nudge to make an account.
       return (
-        <div className="create-account-notice">
-          <span>Your work has not been saved!</span>
-          <Link
-            to={{
-              pathname: `/join`,
-              search: new URLSearchParams({
-                why: ` to save "${metadata.name}"`,
-                redirectTo: `/join-send-world?storageKey=${metadata.id}`,
-              }).toString(),
-            }}
-          >
-            <Button color="success">Create Account</Button>
-          </Link>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <Button onClick={() => saveAndExit("/dashboard")} title="Save, then go to My Games">
+            <i className="fa fa-sign-out fa-flip-horizontal" style={{ marginRight: 6 }} />
+            Save &amp; Exit
+          </Button>
+          <div className="create-account-notice">
+            <span>Only saved on this computer</span>
+            <Link
+              to={{
+                pathname: `/join`,
+                search: new URLSearchParams({
+                  why: ` to save "${metadata.name || "your game"}"`,
+                  redirectTo: `/join-send-world?storageKey=${metadata.id}`,
+                }).toString(),
+              }}
+            >
+              <Button color="success">Create Account</Button>
+            </Link>
+          </div>
         </div>
       );
     }

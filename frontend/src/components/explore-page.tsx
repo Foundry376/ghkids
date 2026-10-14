@@ -1,10 +1,13 @@
-import { Button, Col, Container, Input, Row } from "reactstrap";
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 
 import { makeRequest } from "../helpers/api";
 import { usePageTitle } from "../hooks/usePageTitle";
 import { Game } from "../types";
-import WorldList from "./common/world-list";
+import WorldList, { WorldListEmpty } from "./common/world-list";
+import { KidButton, KidSearchField } from "./kid";
+
+import "./app-surface.scss";
 
 const PAGE_SIZE = 24;
 /** Long enough that typing a name doesn't fire a search per letter. */
@@ -23,7 +26,7 @@ const ExplorePage: React.FC = () => {
   /** Bumped whenever the list starts over, so a late "More Games" for an older list is dropped. */
   const listVersion = useRef(0);
 
-  usePageTitle("Published Games");
+  usePageTitle("Play Games");
 
   useEffect(() => {
     const timer = setTimeout(() => setQuery(search.trim()), SEARCH_DELAY_MS);
@@ -77,41 +80,51 @@ const ExplorePage: React.FC = () => {
   };
 
   return (
-    <Container style={{ marginTop: 30 }} className="explore">
-      <Row>
-        <Col md={12}>
-          <div className="card card-body">
-            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <h5 style={{ flex: 1, margin: 0 }}>Published Games</h5>
-              <Input
-                type="search"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search by game or author"
-                aria-label="Search by game or author"
-                style={{ maxWidth: 260 }}
-              />
-            </div>
-            <hr />
-            <WorldList
-              worlds={worlds}
-              onDeleteWorld={() => {}}
-              onDuplicateWorld={() => {}}
-              canEdit={false}
-              showAuthorAndPlays
-              emptyText={query ? `No published games match "${query}".` : undefined}
-            />
-            {worlds && hasMore && (
-              <div style={{ textAlign: "center", marginTop: 16 }}>
-                <Button outline disabled={loadingMore} onClick={onMore}>
-                  {loadingMore ? "Loading…" : "More Games"}
-                </Button>
-              </div>
-            )}
+    <div className="games-page">
+      <div className="games-page__body">
+        <div className="games-page__heading">
+          <div className="games-page__title">
+            <Link className="app-back" to="/">
+              <span aria-hidden="true">&larr;</span> Menu
+            </Link>
+            <h1>Play Games</h1>
+            <p>Games other kids made and shared. The most played are first.</p>
           </div>
-        </Col>
-      </Row>
-    </Container>
+          <KidSearchField
+            className="games-page__search"
+            label="Search by game or author"
+            placeholder="Search by game or author"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+
+        <WorldList
+          worlds={worlds}
+          canEdit={false}
+          showAuthor
+          showPlays
+          empty={
+            query ? (
+              <WorldListEmpty icon="search" title={`No games match \u201c${query}\u201d.`}>
+                Try a different word, or part of someone&rsquo;s name.
+              </WorldListEmpty>
+            ) : (
+              <WorldListEmpty icon="play" title="No games to play yet.">
+                When kids share their games, they&rsquo;ll show up here.
+              </WorldListEmpty>
+            )
+          }
+        />
+        {worlds && hasMore && (
+          <div className="games-page__more">
+            <KidButton size="large" busy={loadingMore} onClick={onMore}>
+              {loadingMore ? "Loading more…" : "More Games"}
+            </KidButton>
+          </div>
+        )}
+      </div>
+    </div>
   );
 };
 

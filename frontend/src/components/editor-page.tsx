@@ -58,7 +58,7 @@ const APIAdapter = {
     return makeRequest<Game>(`/worlds/${worldId}`).then((world) => {
       if (!world || !me || world.userId !== me.id) {
         if (!me) {
-          window.location.href = `login?redirectTo=/editor/${worldId}`;
+          window.location.href = `/login?redirectTo=${encodeURIComponent(`/editor/${worldId}`)}`;
           return Promise.reject(new Error("Redirecting..."));
         }
         return Promise.reject(new Error("Sorry, this world could not be found."));
@@ -112,7 +112,8 @@ const LocalStorageAdapter = {
     const _value = readStoredWorld(worldId);
 
     if (!_value) {
-      window.location.href = `/`;
+      // My Games lists whatever is still on this computer.
+      window.location.href = `/dashboard`;
       return Promise.reject(new Error("This world was not found in your browser's storage."));
     } else if (_value.uploadedAsId) {
       window.location.href = `/editor/${_value.uploadedAsId}`;

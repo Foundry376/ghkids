@@ -172,54 +172,6 @@ body {
   }
 }
 
-.world-list {
-  margin-left: -10px;
-  margin-right: -10px;
-
-  .world-card {
-    display: inline-block;
-    margin-left: 10px;
-    margin-right: 10px;
-    margin-bottom: 20px;
-    width: calc(33% - 20px);
-    vertical-align: top;
-
-    .btn-group {
-      float: right;
-    }
-  }
-  .world-thumbnail {
-    background: #ccc;
-    background-size: cover;
-    background-position: center;
-    width: 100%;
-    height: 150px;
-    object-fit: cover;
-    text-align: center;
-    font-size: 20px;
-    color: white;
-  }
-
-  .world-thumbnail > div {
-    opacity: 0;
-    background: rgba(0, 0, 0, 0.2);
-    height: 100%;
-
-    a {
-      color: white;
-      display: inline-block;
-      padding: 60px 15px;
-    }
-    &:hover {
-      opacity: 1;
-    }
-  }
-}
-
-.col-md-9 .world-list .world-card {
-  width: calc(50% - 20px);
-}
-
 .network-bar {
   height: 2px;
   position: absolute;
@@ -295,12 +247,6 @@ body {
 }
 .footer a {
   color: #6db33f;
-}
-
-.dashboard-sidebar {
-  h4 {
-    padding-top: 20px;
-  }
 }
 
 .hero {
