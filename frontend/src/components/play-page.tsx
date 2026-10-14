@@ -73,39 +73,51 @@ const PlayPage: React.FC = () => {
     }
   }, []);
 
-  const onPlay = useCallback(() => {
+  /**
+   * Leaves the landing overlay for the game, going fullscreen where the
+   * browser allows. Resolves once the game should start ticking: right away,
+   * or after the fullscreen transition animation has had time to finish.
+   */
+  const enterImmersive = useCallback((): Promise<void> => {
     setImmersive(true);
 
-    // Attempt to enter fullscreen for a more immersive experience.
     // Silently falls back on platforms that don't support it (e.g. iPhone iOS Safari).
-    if (canFullscreen) {
-      // Guard against the exit-fullscreen effect firing during the async transition
-      enteringFullscreenRef.current = true;
-      // Delay playback start so the fullscreen transition animation completes
-      // before the game begins ticking
-      enterFullscreen()
-        .then(() => {
-          enteringFullscreenRef.current = false;
-          setTimeout(startPlayback, 400);
-        })
-        .catch(() => {
-          enteringFullscreenRef.current = false;
-          startPlayback();
-        });
-    } else {
-      startPlayback();
+    if (!canFullscreen) {
+      return Promise.resolve();
     }
-  }, [startPlayback, canFullscreen, enterFullscreen]);
+    // Guard against the exit-fullscreen effect firing during the async transition
+    enteringFullscreenRef.current = true;
+    return enterFullscreen().then(
+      () => {
+        enteringFullscreenRef.current = false;
+        return new Promise<void>((resolve) => setTimeout(resolve, 400));
+      },
+      () => {
+        enteringFullscreenRef.current = false;
+      },
+    );
+  }, [canFullscreen, enterFullscreen]);
+
+  const onPlay = useCallback(() => {
+    enterImmersive().then(startPlayback);
+  }, [enterImmersive, startPlayback]);
+
+  /** What a restarted game waits for before it starts: going fullscreen, when restarted from the landing overlay. */
+  const restartReadyRef = useRef<Promise<void>>(Promise.resolve());
 
   // RootPlayer hands over its new store in an effect, which runs before this
   // one (children's effects go first), so the restarted game is the one we start.
   useEffect(() => {
     if (session > 0) {
-      startPlayback();
+      restartReadyRef.current.then(startPlayback);
     }
   }, [session, startPlayback]);
 
-  const onRestart = useCallback(() => setSession((s) => s + 1), []);
+  // From the landing overlay, Restart also starts playing, like Play does.
+  const onRestart = useCallback(() => {
+    restartReadyRef.current = immersive ? Promise.resolve() : enterImmersive();
+    setSession((s) => s + 1);
+  }, [immersive, enterImmersive]);
 
   const onExitImmersive = useCallback(() => {
     // Stop playback
@@ -189,12 +201,10 @@ const PlayPage: React.FC = () => {
                     Back to Game Info
                   </DropdownItem>
                 )}
-                {immersive && (
-                  <DropdownItem onClick={onRestart}>
-                    <i className="fa fa-refresh fa-fw" style={{ marginRight: 8 }} />
-                    Restart Game
-                  </DropdownItem>
-                )}
+                <DropdownItem onClick={onRestart}>
+                  <i className="fa fa-refresh fa-fw" style={{ marginRight: 8 }} />
+                  Restart Game
+                </DropdownItem>
                 {canFullscreen && (
                   <DropdownItem
                     onClick={toggleFullscreen}
@@ -210,7 +220,7 @@ const PlayPage: React.FC = () => {
                     </span>
                   </DropdownItem>
                 )}
-                {(immersive || canFullscreen) && <DropdownItem divider />}
+                <DropdownItem divider />
                 <DropdownItem onClick={onEditOrRemix}>
                   <i className="fa fa-pencil fa-fw" style={{ marginRight: 8 }} />
                   {editLabel}
