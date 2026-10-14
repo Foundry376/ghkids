@@ -21,6 +21,9 @@
   font-family: $app-body;
   display: flex;
   flex-direction: column;
+  /* No lone word on the last line of a caption or notice. Inherited, so it
+     covers every kid page; browsers without it just wrap as usual. */
+  text-wrap: pretty;
 }
 
 /* ---- Shared bits ---- */

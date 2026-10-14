@@ -113,7 +113,7 @@ const KidHomePage: React.FC = () => {
           icon="play"
           accent="coral"
           title="Play Games"
-          caption="Try games other kids made."
+          caption="Try games other kids have published."
           to="/explore"
         />
 
