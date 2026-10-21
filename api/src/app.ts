@@ -54,7 +54,6 @@ app.use("/", require("./routes/worlds").default);
 app.use("/", require("./routes/characters").default);
 app.use("/", require("./routes/openai").default);
 app.use("/", require("./routes/backgrounds").default);
-app.use("/", require("./routes/sounds").default);
 app.use("/", require("./routes/youtube").default);
 
 if (process.env.NODE_ENV !== "production") {
