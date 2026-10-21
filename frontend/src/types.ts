@@ -92,6 +92,11 @@ export type RuleAction = (
       operation: MathOperation;
       value: RuleValue;
     }
+  | {
+      type: "sound";
+      url: string;
+      name: string;
+    }
 ) & { animationStyle?: RuleActionAnimationStyle };
 
 export type RuleActionAnimationStyle = "linear" | "none" | "skip";
@@ -399,6 +404,8 @@ export type WorldMinimal = {
   input: FrameInput;
   evaluatedRuleDetails: EvaluatedRuleDetailsMap;
   evaluatedTickFrames?: Frame[];
+  /** URLs of the sounds played by rules during the last tick. */
+  evaluatedSounds?: string[];
 };
 
 export type World = WorldMinimal & {

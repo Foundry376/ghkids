@@ -1,4 +1,16 @@
-import { runScenario } from "./__tests__/test-fixtures";
+import { expect } from "chai";
+import { World } from "../../types";
+import {
+  makeActor,
+  makeCharacter,
+  makeEventGroup,
+  makeRule,
+  makeStage,
+  makeWorld,
+  runScenario,
+  runSimulation,
+} from "./__tests__/test-fixtures";
+import WorldOperator from "./world-operator";
 import {
   movementOnIdleScenario,
   movementOnKeyPressScenario,
@@ -187,6 +199,46 @@ describe("world-operator integration", () => {
 
     it("should handle score accumulation game", () => {
       runScenario(scoreAccumulationScenario());
+    });
+  });
+
+  describe("sounds", () => {
+    const coin = "https://example.com/coin.mp3";
+    const jump = "https://example.com/jump.mp3";
+    const rule = makeRule({
+      id: "play-sounds",
+      mainActorId: "rule-actor",
+      actors: { "rule-actor": makeActor({ id: "rule-actor", characterId: "char-1" }) },
+      actions: [
+        { type: "sound", url: coin, name: "Coin" },
+        { type: "sound", url: jump, name: "Jump" },
+        { type: "sound", url: coin, name: "Coin" },
+      ],
+    });
+    const characters = {
+      "char-1": makeCharacter({
+        id: "char-1",
+        rules: [makeEventGroup({ id: "idle", event: "idle", rules: [rule] })],
+      }),
+    };
+    const world = makeWorld({
+      stage: makeStage({
+        id: "stage-1",
+        actors: { a1: makeActor({ id: "a1", characterId: "char-1", position: { x: 1, y: 1 } }) },
+      }),
+    });
+
+    it("collects each sound played during a tick once", () => {
+      const result = runSimulation(world, characters, 1);
+      expect(result.evaluatedSounds).to.deep.equal([coin, jump]);
+    });
+
+    it("stays silent when previewing a rule", () => {
+      const result = WorldOperator(world, characters).resetForRule(rule, {
+        offset: { x: 1, y: 1 },
+        applyActions: true,
+      }) as World;
+      expect(result.evaluatedSounds).to.deep.equal([]);
     });
   });
 });

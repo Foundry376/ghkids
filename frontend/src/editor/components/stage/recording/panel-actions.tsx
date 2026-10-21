@@ -18,7 +18,7 @@ import { changeActors } from "../../../actions/stage-actions";
 import { selectToolId } from "../../../actions/ui-actions";
 import { TOOLS } from "../../../constants/constants";
 import { ruleValueFromDragPayload } from "../../../utils/stage-helpers";
-import { deepClone } from "../../../utils/utils";
+import { deepClone, playSound } from "../../../utils/utils";
 import { TransformEditorModal } from "../../inspector/transform-editor";
 import { RELATIVE_TRANSFORMS } from "../../inspector/transform-lookup";
 import { ActorDeltaCanvas } from "./actor-delta-canvas";
@@ -27,6 +27,7 @@ import { ActorBlock, VariableBlock, VariableRuleValue } from "./blocks";
 import { RuleActorsContext } from "./rule-actors";
 import { BackgroundConditionValue, FreeformConditionValue } from "./condition-rows";
 import { TransformActionPicker } from "./transform-action-picker";
+import { PickedSound, SoundPickerModal } from "./sound-picker-modal";
 import { getAfterWorldForRecording } from "./utils";
 import { VariableActionPicker } from "./variable-action-picker";
 
@@ -355,6 +356,18 @@ export const RecordingActions = (props: { characters: Characters; recording: Rec
       );
     }
 
+    if (a.type === "sound") {
+      return (
+        <>
+          Play sound
+          <SoundActionValue
+            value={{ url: a.url, name: a.name }}
+            onChange={(sound) => onChange({ ...a, ...sound })}
+          />
+        </>
+      );
+    }
+
     throw new Error(`Unknown action type: ${(a as RuleAction).type}`);
   };
 
@@ -500,8 +513,39 @@ export const RecordingActions = (props: { characters: Characters; recording: Rec
   );
 };
 
+const SoundActionValue = ({
+  value,
+  onChange,
+}: {
+  value: PickedSound;
+  onChange: (sound: PickedSound) => void;
+}) => {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <code style={{ cursor: "pointer" }} title="Preview" onClick={() => playSound(value.url)}>
+        <i className="fa fa-volume-up" style={{ marginRight: 4 }} />
+        {value.name}
+      </code>
+      <Button size="xs" style={{ marginLeft: 4 }} onClick={() => setOpen(true)}>
+        Change…
+      </Button>
+      <SoundPickerModal
+        open={open}
+        value={value}
+        onCancel={() => setOpen(false)}
+        onPick={(sound) => {
+          setOpen(false);
+          onChange(sound);
+        }}
+      />
+    </>
+  );
+};
+
 const StageAfterTools = () => {
   const [open, setOpen] = useState(false);
+  const [soundOpen, setSoundOpen] = useState(false);
   const dispatch = useDispatch();
 
   const characters = useEditorSelector((state) => state.characters);
@@ -542,6 +586,20 @@ const StageAfterTools = () => {
       )}
       <Button disabled={!enabled} className={classNames({ enabled })} onClick={() => setOpen(true)}>
         Turn…
+      </Button>
+      <SoundPickerModal
+        open={soundOpen}
+        value={null}
+        onCancel={() => setSoundOpen(false)}
+        onPick={(sound) => {
+          setSoundOpen(false);
+          dispatch(
+            updateRecordingActions([...(recording.actions ?? []), { type: "sound", ...sound }]),
+          );
+        }}
+      />
+      <Button className="enabled" onClick={() => setSoundOpen(true)}>
+        Sound…
       </Button>
     </div>
   );

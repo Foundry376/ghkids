@@ -89,7 +89,7 @@ export default class StoreProvider extends React.Component<
         // Drop the transient sub-frame timeline used to animate the last tick.
         // Persisting it makes reopening a saved world replay that tick's
         // animation from frame zero on load.
-        world: { evaluatedTickFrames: u.constant([]) },
+        world: { evaluatedTickFrames: u.constant([]), evaluatedSounds: u.constant([]) },
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } as any,
       this.state.editorStore.getState()
