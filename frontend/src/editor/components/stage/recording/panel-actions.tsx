@@ -569,6 +569,7 @@ const StageAfterTools = () => {
         transform: "translate(0, -100%)",
         paddingBottom: 5,
         display: "flex",
+        flexDirection: "row",
         gap: 4,
       }}
     >
@@ -598,8 +599,13 @@ const StageAfterTools = () => {
           );
         }}
       />
-      <Button className="enabled" onClick={() => setSoundOpen(true)}>
-        Sound…
+      <Button
+        className="enabled"
+        title="Play a sound"
+        aria-label="Play a sound"
+        onClick={() => setSoundOpen(true)}
+      >
+        <i className="fa fa-volume-up" />
       </Button>
     </div>
   );
