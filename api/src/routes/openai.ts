@@ -4,6 +4,7 @@ import fs from "fs";
 import https from "https";
 import multer from "multer";
 import OpenAI from "openai";
+import path from "path";
 import { toFile } from "openai/uploads";
 import { userFromBasicAuth } from "src/middleware";
 
@@ -598,10 +599,22 @@ router.post("/upload-sound", upload.single("sound") as any, async (req, res) => 
 
     // Prefix with a unique id so two users' "jump.mp3" don't overwrite each other.
     const safeName = file.originalname.replace(/[^\w.-]/g, "_");
-    const path = `sounds/${Date.now()}-${Math.random().toString(36).slice(2, 8)}-${safeName}`;
+    const key = `sounds/${Date.now()}-${Math.random().toString(36).slice(2, 8)}-${safeName}`;
+
+    // Local development stores uploads on disk (served from /storage in app.ts)
+    // so sounds can be tested without Supabase credentials.
+    if (process.env.NODE_ENV !== "production") {
+      const localPath = path.join(__dirname, "..", "..", "storage", key);
+      fs.mkdirSync(path.dirname(localPath), { recursive: true });
+      fs.writeFileSync(localPath, file.buffer);
+      return res.json({ publicUrl: `${req.protocol}://${req.get("host")}/storage/${key}` });
+    }
+
+    // Recorded audio arrives as e.g. "audio/webm;codecs=opus"; bucket MIME allow-lists
+    // match on the bare type.
     const { data, error } = await supabase.storage
       .from("codako-assets")
-      .upload(path, file.buffer, { contentType: file.mimetype });
+      .upload(key, file.buffer, { contentType: file.mimetype.split(";")[0] });
 
     if (error) {
       return res.status(400).json({ error: error.message });
