@@ -1,28 +1,14 @@
 import { useEffect, useRef, useState } from "react";
 import { Button, Modal, ModalBody, ModalFooter, ModalHeader } from "reactstrap";
-import { makeRequest } from "../../../../helpers/api";
+import { SOUND_LIBRARY, SOUND_LIBRARY_ATTRIBUTION } from "../../../constants/sound-library";
 import { playSound } from "../../../utils/utils";
 
 export type PickedSound = { url: string; name: string };
 
-type LibrarySound = {
-  id: string;
-  label: string;
-  url: string;
-  tags: string[];
-  featured: boolean;
-};
-
-type LibraryResponse = {
-  provider: string;
-  attribution: { label: string; url: string } | null;
-  tags: string[];
-  sounds: LibrarySound[];
-};
-
 const API_ROOT = window.location.host.includes("codako") ? `` : `http://localhost:8080`;
 const ALL_TAG = "__all__";
 const MAX_RECORDING_MS = 10 * 1000;
+const LIBRARY_TAGS = Array.from(new Set(SOUND_LIBRARY.flatMap((s) => s.tags))).sort();
 
 /**
  * Picker for the sound played by a "sound" rule action. Clicking a sound previews
@@ -40,8 +26,6 @@ export const SoundPickerModal = ({
   onCancel: () => void;
 }) => {
   const [local, setLocal] = useState<PickedSound | null>(value);
-  const [data, setData] = useState<LibraryResponse | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const [activeTag, setActiveTag] = useState<string>(ALL_TAG);
   const [isUploading, setUploading] = useState(false);
   const [isRecording, setRecording] = useState(false);
@@ -66,13 +50,6 @@ export const SoundPickerModal = ({
       recorderRef.current = null;
     };
   }, [open]);
-
-  useEffect(() => {
-    if (!open || data) return;
-    makeRequest<LibraryResponse>(`/sounds/kenney`)
-      .then(setData)
-      .catch((e) => setError(e instanceof Error ? e.message : String(e)));
-  }, [open, data]);
 
   const _onSelect = (sound: PickedSound) => {
     setLocal(sound);
@@ -139,18 +116,16 @@ export const SoundPickerModal = ({
     setTimeout(() => recorder.state === "recording" && recorder.stop(), MAX_RECORDING_MS);
   };
 
-  const visible = data
-    ? [...data.sounds]
-        .filter((s) => activeTag === ALL_TAG || s.tags.includes(activeTag))
-        .sort((a, b) => Number(b.featured) - Number(a.featured))
-    : [];
+  const visible = SOUND_LIBRARY.filter(
+    (s) => activeTag === ALL_TAG || s.tags.includes(activeTag),
+  ).sort((a, b) => Number(b.featured) - Number(a.featured));
 
   return (
     <Modal isOpen={open} toggle={onCancel} size="lg">
       <ModalHeader>Choose a sound</ModalHeader>
       <ModalBody>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 16 }}>
-          {[ALL_TAG, ...(data?.tags ?? [])].map((tag) => {
+          {[ALL_TAG, ...LIBRARY_TAGS].map((tag) => {
             const isActive = tag === activeTag;
             return (
               <button
@@ -175,64 +150,49 @@ export const SoundPickerModal = ({
           })}
         </div>
 
-        {error ? (
-          <div style={{ textAlign: "center", color: "#a00", padding: "32px 0" }}>
-            Failed to load sounds.
-          </div>
-        ) : !data ? (
-          <div style={{ textAlign: "center", color: "#888", padding: "32px 0" }}>
-            <i className="fa fa-spinner fa-spin" style={{ marginRight: 8 }} />
-            Loading sounds...
-          </div>
-        ) : (
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(4, 1fr)",
-              gap: 8,
-              maxHeight: 360,
-              overflowY: "auto",
-            }}
-          >
-            {visible.map((sound) => {
-              const isSelected = local?.url === sound.url;
-              return (
-                <button
-                  key={sound.id}
-                  type="button"
-                  onClick={() => _onSelect({ url: sound.url, name: sound.label })}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 8,
-                    padding: "8px 10px",
-                    borderRadius: 6,
-                    border: isSelected ? "2px solid #7c3aed" : "1px solid #ddd",
-                    background: isSelected ? "#f3edff" : "#fff",
-                    cursor: "pointer",
-                    fontSize: 13,
-                    textAlign: "left",
-                  }}
-                >
-                  <i className="fa fa-play" style={{ color: "#7c3aed" }} />
-                  <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>
-                    {sound.label}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        )}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(4, 1fr)",
+            gap: 8,
+            maxHeight: 360,
+            overflowY: "auto",
+          }}
+        >
+          {visible.map((sound) => {
+            const isSelected = local?.url === sound.url;
+            return (
+              <button
+                key={sound.url}
+                type="button"
+                onClick={() => _onSelect({ url: sound.url, name: sound.label })}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  padding: "8px 10px",
+                  borderRadius: 6,
+                  border: isSelected ? "2px solid #7c3aed" : "1px solid #ddd",
+                  background: isSelected ? "#f3edff" : "#fff",
+                  cursor: "pointer",
+                  fontSize: 13,
+                  textAlign: "left",
+                }}
+              >
+                <i className="fa fa-play" style={{ color: "#7c3aed" }} />
+                <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{sound.label}</span>
+              </button>
+            );
+          })}
+        </div>
 
-        {data?.attribution && (
-          <div style={{ marginTop: 10, fontSize: 11, color: "#888" }}>
-            Sounds from{" "}
-            <a href={data.attribution.url} target="_blank" rel="noreferrer">
-              {data.attribution.label}
-            </a>
-            .
-          </div>
-        )}
+        <div style={{ marginTop: 10, fontSize: 11, color: "#888" }}>
+          Sounds from{" "}
+          <a href={SOUND_LIBRARY_ATTRIBUTION.url} target="_blank" rel="noreferrer">
+            {SOUND_LIBRARY_ATTRIBUTION.label}
+          </a>
+          .
+        </div>
 
         <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 16 }}>
           <input
