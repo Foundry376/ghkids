@@ -601,9 +601,9 @@ router.post("/upload-sound", upload.single("sound") as any, async (req, res) => 
     const safeName = file.originalname.replace(/[^\w.-]/g, "_");
     const key = `sounds/${Date.now()}-${Math.random().toString(36).slice(2, 8)}-${safeName}`;
 
-    // Local development stores uploads on disk (served from /storage in app.ts)
-    // so sounds can be tested without Supabase credentials.
-    if (process.env.NODE_ENV !== "production") {
+    // Set LOCAL_UPLOADS=true in development to store uploads on disk (served from
+    // /storage in app.ts) and test sounds without Supabase credentials.
+    if (process.env.NODE_ENV !== "production" && process.env.LOCAL_UPLOADS === "true") {
       const localPath = path.join(__dirname, "..", "..", "storage", key);
       fs.mkdirSync(path.dirname(localPath), { recursive: true });
       fs.writeFileSync(localPath, file.buffer);
