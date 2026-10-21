@@ -58,6 +58,7 @@ app.use("/", require("./routes/youtube").default);
 
 if (process.env.NODE_ENV !== "production") {
   app.use("/", require("./routes/testing").default);
+  app.use("/storage", express.static(path.join(__dirname, "..", "storage")));
 }
 
 app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
