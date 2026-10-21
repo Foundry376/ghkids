@@ -23,6 +23,7 @@ import { BUILTIN_STAGE_VARIABLES } from "../../utils/builtin-stage-variables";
 import { collectDoorsByDestinationStage } from "../../utils/door-constants";
 import { getCurrentStageForWorld } from "../../utils/selectors";
 import { actorIntersectsExtent } from "../../utils/stage-helpers";
+import { playSound } from "../../utils/utils";
 import { Library } from "../library";
 
 /**
@@ -252,6 +253,18 @@ const StageContainer = ({ readonly, immersive }: { readonly?: boolean; immersive
       clearTimeout(intervalRef.current);
     };
   }, [playback.running, playback.speed, stage, world.evaluatedTickFrames]);
+
+  // Seeded with the current sounds so remounting doesn't replay the last tick.
+  const playedSoundsRef = useRef(world.evaluatedSounds);
+  useEffect(() => {
+    if (world.evaluatedSounds === playedSoundsRef.current) {
+      return;
+    }
+    playedSoundsRef.current = world.evaluatedSounds;
+    for (const url of world.evaluatedSounds ?? []) {
+      playSound(url);
+    }
+  }, [world.evaluatedSounds]);
 
   return (
     <div className="stage-container">

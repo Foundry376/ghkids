@@ -1,0 +1,21 @@
+{
+  "_comment": "Reference schema for the per-provider manifest.json uploaded to Supabase Storage at `codako-assets/sounds-<provider>/manifest.json`. Not loaded at runtime — the real file lives in the bucket.",
+  "attribution": {
+    "label": "Kenney",
+    "url": "https://kenney.nl/assets"
+  },
+  "sounds": [
+    {
+      "file": "coin.mp3",
+      "label": "Coin",
+      "tags": ["pickup", "retro"],
+      "featured": true
+    },
+    {
+      "file": "jump.mp3",
+      "label": "Jump",
+      "tags": ["movement", "retro"],
+      "featured": true
+    }
+  ]
+}

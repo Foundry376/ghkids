@@ -587,6 +587,34 @@ router.post("/upload-image", upload.single("image") as any, async (req, res) => 
   }
 });
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+router.post("/upload-sound", upload.single("sound") as any, async (req, res) => {
+  try {
+    const file = req.file;
+    if (!file) return res.status(400).json({ error: "No file uploaded" });
+    if (!file.mimetype.startsWith("audio/")) {
+      return res.status(400).json({ error: "File must be an audio file" });
+    }
+
+    // Prefix with a unique id so two users' "jump.mp3" don't overwrite each other.
+    const safeName = file.originalname.replace(/[^\w.-]/g, "_");
+    const path = `sounds/${Date.now()}-${Math.random().toString(36).slice(2, 8)}-${safeName}`;
+    const { data, error } = await supabase.storage
+      .from("codako-assets")
+      .upload(path, file.buffer, { contentType: file.mimetype });
+
+    if (error) {
+      return res.status(400).json({ error: error.message });
+    }
+
+    const publicUrl = supabase.storage.from("codako-assets").getPublicUrl(data.path).data.publicUrl;
+    res.json({ publicUrl });
+  } catch (error) {
+    console.error("Error uploading sound:", error);
+    res.status(500).json({ error: "Failed to upload sound" });
+  }
+});
+
 // Function to upload image to Supabase
 const uploadImageToSupabase = async (imageBuffer: Buffer, filename: string, mimetype: string) => {
   try {

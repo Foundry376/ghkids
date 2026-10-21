@@ -46,7 +46,13 @@ type StateWithStacks = EditorState & {
 // once the game had run on - the actors and rules it points at are gone.
 // They're also by far the largest part of the state (`history` holds up to 500
 // deltas), which made every diff slow.
-const DERIVED_WORLD_KEYS = ["history", "evaluatedRuleDetails", "evaluatedTickFrames", "input"];
+const DERIVED_WORLD_KEYS = [
+  "history",
+  "evaluatedRuleDetails",
+  "evaluatedTickFrames",
+  "evaluatedSounds",
+  "input",
+];
 
 function omitDerivedWorldState<T>(world: T): T {
   if (!world || typeof world !== "object") {

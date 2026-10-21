@@ -113,6 +113,7 @@ export default function WorldOperator(
   let input: FrameInput;
   let evaluatedRuleDetails: EvaluatedRuleDetailsMap = {};
   let frameAccumulator: FrameAccumulator;
+  let sounds: string[] = [];
   let crossStageActorsForDestStage: { [destStageId: string]: { [actorId: string]: Actor } } = {};
 
   // Built once per tick/resetForRule. Members are references to the mutable
@@ -716,6 +717,8 @@ export default function WorldOperator(
             action.operation,
             value,
           );
+        } else if (action.type === "sound") {
+          sounds.push(action.url);
         } else if ("actorId" in action && action.actorId) {
           // find the actor on the stage that matches
           const stageActor = stageActorForId[action.actorId];
@@ -939,6 +942,7 @@ export default function WorldOperator(
         globals: u.constant(globals),
         stages: stageUpdates,
         evaluatedTickFrames: frameAccumulator.getFrames(),
+        evaluatedSounds: u.constant([]),
       },
       previousWorld,
     );
@@ -964,6 +968,7 @@ export default function WorldOperator(
 
     actors = deepClone(stage.actors);
     frameAccumulator = new FrameAccumulator(stage.actors);
+    sounds = [];
     evaluatedRuleDetails = {};
     crossStageActorsForDestStage = {};
 
@@ -1042,6 +1047,7 @@ export default function WorldOperator(
       globals: u.constant(globals),
       evaluatedRuleDetails: u.constant(evaluatedRuleDetails),
       evaluatedTickFrames: frameAccumulator.getFrames(),
+      evaluatedSounds: u.constant(Array.from(new Set(sounds))),
       history: (values: HistoryItem[]) =>
         evaluatedSomeRule && historyDelta
           ? [...values.slice(values.length - 500), historyDelta]
@@ -1097,6 +1103,7 @@ export default function WorldOperator(
         },
         evaluatedRuleDetails: u.constant(previousSnapshot.evaluatedRuleDetails),
         evaluatedTickFrames: [],
+        evaluatedSounds: u.constant([]),
         history: history.slice(0, history.length - 1),
       },
       previousWorld,
