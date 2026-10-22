@@ -103,18 +103,18 @@ const KidHomePage: React.FC = () => {
           to="/dashboard"
         />
         <HomeTile
+          icon="play"
+          accent="coral"
+          title="Public Games"
+          caption="Try games other kids have published."
+          to="/explore"
+        />
+        <HomeTile
           icon="learn"
           accent="amber"
           title="Learn Codako"
           caption="Short lessons, one step at a time."
           to="/learn"
-        />
-        <HomeTile
-          icon="play"
-          accent="coral"
-          title="Play Games"
-          caption="Try games other kids have published."
-          to="/explore"
         />
 
         <Link className="home-parents" to="/parents">
