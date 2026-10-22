@@ -12,7 +12,7 @@ const EXPLORE_MAX_PAGE_SIZE = 60;
 
 /**
  * Published games, most played first. Pages through with `offset` and `limit`
- * (the Published Games page asks for more as you go), and `q` narrows it to
+ * (the Public Games page asks for more as you go), and `q` narrows it to
  * games whose title or author's username contains it.
  */
 router.get("/worlds/explore", async (req, res) => {
