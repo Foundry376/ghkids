@@ -201,8 +201,15 @@ export function useRestoreFullscreenAfterKeyboard(enter: () => Promise<void>, en
     const onFullscreenChange = () => restorer.fullscreenChange();
     const onGesture = (e: Event) => restorer.gesture(isTextField(e.target));
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") restorer.leftFullscreenOnPurpose();
-      else onGesture(e);
+      if (e.key === "Escape") {
+        // Escape only means "leave fullscreen" while we're still in it. Once the
+        // keyboard has already knocked us out, it's how some fields (the comment
+        // editor) finish editing, and the restore should still happen. Escape
+        // never counts as user activation, so it isn't treated as a gesture.
+        if (document.fullscreenElement) restorer.leftFullscreenOnPurpose();
+      } else {
+        onGesture(e);
+      }
     };
 
     const gestures = ["pointerup", "touchend", "click"] as const;
