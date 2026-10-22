@@ -111,7 +111,7 @@ const RecordingHandle = ({
           position: "absolute",
           ...HIT_AREA_INSETS[side],
           pointerEvents: "auto",
-          cursor: "grab",
+          cursor: side === "left" || side === "right" ? "ew-resize" : "ns-resize",
           touchAction: "none",
           userSelect: "none",
           WebkitUserSelect: "none",
