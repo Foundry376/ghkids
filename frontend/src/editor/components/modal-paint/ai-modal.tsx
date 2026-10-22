@@ -1,6 +1,7 @@
 import { Button, Modal, ModalBody, ModalHeader } from "reactstrap";
 import React, { useEffect, useRef, useState } from "react";
 
+import { AUTOFOCUS_TEXT_FIELDS } from "../../../hooks/useFullscreen";
 import { getDataURLFromImageData } from "./helpers";
 import { PaintModel } from "./paint-model";
 import { PixelImageData } from "./types";
@@ -58,7 +59,7 @@ const AIModal: React.FC<AIModalProps> = ({ model, isOpen, mode, onClose }) => {
 
   // Focus input when on prompt step (delay matches Bootstrap modal fade duration)
   useEffect(() => {
-    if (step === "prompt" && isOpen) {
+    if (step === "prompt" && isOpen && AUTOFOCUS_TEXT_FIELDS) {
       const id = setTimeout(() => inputRef.current?.focus(), 320);
       return () => clearTimeout(id);
     }

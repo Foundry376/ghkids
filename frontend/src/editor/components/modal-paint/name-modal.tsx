@@ -1,5 +1,6 @@
 import { Button, Modal, ModalBody, ModalFooter, ModalHeader } from "reactstrap";
 import React, { useEffect, useRef, useState } from "react";
+import { AUTOFOCUS_TEXT_FIELDS } from "../../../hooks/useFullscreen";
 
 interface NameModalProps {
   isOpen: boolean;
@@ -23,7 +24,7 @@ const NameModal: React.FC<NameModalProps> = ({
 
   // Select the proposed name once it arrives so it's easy to type over
   useEffect(() => {
-    if (isOpen && !isGenerating) {
+    if (isOpen && !isGenerating && AUTOFOCUS_TEXT_FIELDS) {
       const id = setTimeout(() => inputRef.current?.select(), 320);
       return () => clearTimeout(id);
     }
