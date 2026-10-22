@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 
 export const TapToEditLabel = ({
   value,
@@ -10,20 +10,23 @@ export const TapToEditLabel = ({
   onChange?: (str: string) => void;
 }) => {
   const [editing, setEditing] = useState(false);
-  const el = useRef<HTMLDivElement | null>(null);
 
-  useEffect(() => {
-    if (editing && el.current) {
-      el.current.focus();
-      const selection = window.getSelection();
-      if (selection) {
-        const range = document.createRange();
-        range.selectNodeContents(el.current);
-        selection.removeAllRanges();
-        selection.addRange(range);
-      }
+  // Focus and select synchronously inside the tap/click handler. iOS Safari only
+  // shows the on-screen keyboard when focus() is called during a user gesture, so
+  // deferring this to an effect after setEditing(true) selects the text without
+  // bringing up the keyboard.
+  const beginEditing = (node: HTMLDivElement) => {
+    node.contentEditable = "true";
+    node.focus();
+    const selection = window.getSelection();
+    if (selection) {
+      const range = document.createRange();
+      range.selectNodeContents(node);
+      selection.removeAllRanges();
+      selection.addRange(range);
     }
-  }, [editing]);
+    setEditing(true);
+  };
 
   const commit = (text: string) => {
     setEditing(false);
@@ -42,7 +45,6 @@ export const TapToEditLabel = ({
     <div
       contentEditable={editing}
       suppressContentEditableWarning
-      ref={el}
       className={`tap-to-edit editing-${editing} enabled ${isUntitled ? "untitled" : ""} ${className}`}
       onDragStart={(e) => {
         e.stopPropagation();
@@ -50,7 +52,7 @@ export const TapToEditLabel = ({
       onClick={(e) => {
         e.stopPropagation();
         if (!editing) {
-          setEditing(true);
+          beginEditing(e.currentTarget);
           e.preventDefault();
         }
       }}
