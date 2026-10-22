@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { useDispatch } from "react-redux";
 
 import ActorSprite from "../sprites/actor-sprite";
-import RecordingHandle from "../sprites/recording-handle";
+import RecordingHandle, { RecordingHandleSide } from "../sprites/recording-handle";
 import RecordingIgnoredSprite from "../sprites/recording-ignored-sprite";
 import RecordingMaskSprite from "../sprites/recording-mask-sprite";
 import { RecordingSquareStatus } from "../sprites/recording-square-status";
@@ -594,9 +594,6 @@ export const Stage = ({
 
   const onDragOver = (event: React.DragEvent) => {
     event.preventDefault();
-    if (event.dataTransfer.types.includes("handle")) {
-      onUpdateHandle(event);
-    }
   };
 
   const onDrop = (event: React.DragEvent) => {
@@ -611,32 +608,29 @@ export const Stage = ({
     if (event.dataTransfer.types.includes("appearance")) {
       onDropAppearance(event);
     }
-    if (event.dataTransfer.types.includes("handle")) {
-      onUpdateHandle(event);
-    }
   };
 
-  const onUpdateHandle = (event: React.DragEvent) => {
-    const side = event.dataTransfer.types
-      .find((t) => t.startsWith("handle:"))!
-      .split(":")
-      .pop();
+  const onUpdateHandle = (side: RecordingHandleSide, clientX: number, clientY: number) => {
     if (!el.current) {
       return;
     }
     const stageOffset = el.current.getBoundingClientRect();
     // Cell-fractional position. X is 1-indexed cell-from-left;
     // worldY is 1-indexed cell-from-bottom (Y-up).
-    const fracX = (event.clientX - stageOffset.left) / STAGE_CELL_SIZE + 1;
-    const worldY = stageHeight - (event.clientY - stageOffset.top) / STAGE_CELL_SIZE;
+    const fracX = (clientX - stageOffset.left) / STAGE_CELL_SIZE + 1;
+    const worldY = stageHeight - (clientY - stageOffset.top) / STAGE_CELL_SIZE;
 
     // expand the extent of the recording rule to reflect this new extent
     const nextExtent = Object.assign({}, recordingExtent);
+    // clientX/clientY are where the handle's center should be. Each side rounds
+    // so the extent is stable while the center stays within half a cell of rest.
     if (side === "left") {
-      nextExtent.xmin = Math.min(nextExtent.xmax, Math.max(1, Math.round(fracX + 0.25)));
+      // Handle sits at x = xmin - 1, center at fracX = xmin - 0.5.
+      nextExtent.xmin = Math.min(nextExtent.xmax, Math.max(1, Math.round(fracX + 0.5)));
     }
     if (side === "right") {
-      nextExtent.xmax = Math.max(nextExtent.xmin, Math.min(stageWidth, Math.round(fracX - 1)));
+      // Handle sits at x = xmax + 1, center at fracX = xmax + 1.5.
+      nextExtent.xmax = Math.max(nextExtent.xmin, Math.min(stageWidth, Math.round(fracX - 1.5)));
     }
     if (side === "top") {
       // Visually-top handle drags the topmost row of the extent (ymax in Y-up).
@@ -1406,14 +1400,17 @@ export const Stage = ({
     }
 
     // add the handles. Y-up: ymin is the bottom row, ymax is the top row.
-    const handles = {
+    const handles: { [side in RecordingHandleSide]: [number, number] } = {
       top: [xmin + (xmax - xmin) / 2.0, ymax + 1],
       bottom: [xmin + (xmax - xmin) / 2.0, ymin - 1],
       left: [xmin - 1, ymin + (ymax - ymin) / 2.0],
       right: [xmax + 1, ymin + (ymax - ymin) / 2.0],
     };
-    for (const [side, [x, y]] of Object.entries(handles)) {
-      components.push(<RecordingHandle key={side} side={side} position={{ x, y }} />);
+    for (const side of Object.keys(handles) as RecordingHandleSide[]) {
+      const [x, y] = handles[side];
+      components.push(
+        <RecordingHandle key={side} side={side} position={{ x, y }} onDrag={onUpdateHandle} />,
+      );
     }
 
     return components;
