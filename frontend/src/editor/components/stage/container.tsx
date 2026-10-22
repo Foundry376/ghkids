@@ -23,7 +23,7 @@ import { BUILTIN_STAGE_VARIABLES } from "../../utils/builtin-stage-variables";
 import { collectDoorsByDestinationStage } from "../../utils/door-constants";
 import { getCurrentStageForWorld } from "../../utils/selectors";
 import { actorIntersectsExtent } from "../../utils/stage-helpers";
-import { playSound } from "../../utils/utils";
+import { playSound, preloadSounds, soundUrlsForCharacters } from "../../utils/sound-player";
 import { Library } from "../library";
 
 /**
@@ -253,6 +253,12 @@ const StageContainer = ({ readonly, immersive }: { readonly?: boolean; immersive
       clearTimeout(intervalRef.current);
     };
   }, [playback.running, playback.speed, stage, world.evaluatedTickFrames]);
+
+  // Fetch and decode every sound the game's rules can play, so a rule firing
+  // for the first time doesn't wait on the network.
+  useEffect(() => {
+    preloadSounds(soundUrlsForCharacters(characters));
+  }, [characters]);
 
   // Seeded with the current sounds so remounting doesn't replay the last tick.
   const playedSoundsRef = useRef(world.evaluatedSounds);

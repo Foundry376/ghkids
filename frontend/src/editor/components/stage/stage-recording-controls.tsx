@@ -5,7 +5,14 @@ import { Dispatch } from "redux";
 import { makeRequest } from "../../../helpers/api";
 import { cancelRecording, finishRecording } from "../../actions/recording-actions";
 import { getCurrentStageForWorld } from "../../utils/selectors";
-import { Actor, Characters, RecordingState, RuleAction, RuleCondition, Stage } from "../../../types";
+import {
+  Actor,
+  Characters,
+  RecordingState,
+  RuleAction,
+  RuleCondition,
+  Stage,
+} from "../../../types";
 
 interface StageRecordingControlsProps {
   dispatch: Dispatch;
@@ -19,6 +26,7 @@ interface NamingPayloadAction {
   operation?: string;
   variableName?: string;
   appearanceName?: string;
+  soundName?: string;
   value?: unknown;
   offset?: { x: number; y: number };
 }
@@ -51,7 +59,7 @@ interface NamingPayload {
 /** Build a mapping from actorId -> display name (e.g., "Cat", "Cat 2") */
 function buildActorIdToNameMap(
   actors: Stage["actors"],
-  characters: Characters
+  characters: Characters,
 ): Record<string, string> {
   const nameCount: Record<string, number> = {};
   const actorIdToName: Record<string, string> = {};
@@ -71,7 +79,7 @@ function getAppearanceName(
   actors: Stage["actors"],
   characters: Characters,
   actorId: string,
-  appearanceId: string
+  appearanceId: string,
 ): string {
   const charId = actors[actorId]?.characterId;
   return characters[charId]?.spritesheet?.appearanceNames?.[appearanceId] || appearanceId;
@@ -82,7 +90,7 @@ function getVariableName(
   actors: Stage["actors"],
   characters: Characters,
   actorId: string,
-  variableId: string
+  variableId: string,
 ): string {
   const charId = actors[actorId]?.characterId;
   return characters[charId]?.variables?.[variableId]?.name || variableId;
@@ -92,7 +100,7 @@ function getVariableName(
 // eslint-disable-next-line react-refresh/only-export-components
 export function buildNamingPayload(
   recording: RecordingState,
-  characters: Characters
+  characters: Characters,
 ): NamingPayload {
   const stage = getCurrentStageForWorld(recording.beforeWorld);
   const actors = stage?.actors ?? {};
@@ -101,8 +109,7 @@ export function buildNamingPayload(
   const getActorName = (actorId: string) => actorIdToName[actorId] || actorId;
   const getCharName = (charId: string) => characters[charId]?.name || charId;
 
-  const mainActorName =
-    actorIdToName[recording.actorId!] || getCharName(recording.characterId!);
+  const mainActorName = actorIdToName[recording.actorId!] || getCharName(recording.characterId!);
 
   const mappedActions: NamingPayloadAction[] = (recording.actions || []).map(
     (action: RuleAction) => {
@@ -126,8 +133,9 @@ export function buildNamingPayload(
         ...("value" in action && { value: action.value }),
         ...(variableName && { variableName }),
         ...(appearanceName && { appearanceName }),
+        ...(action.type === "sound" && { soundName: action.name }),
       };
-    }
+    },
   );
 
   const mappedConditions: NamingPayloadCondition[] = recording.conditions.map(
@@ -152,7 +160,7 @@ export function buildNamingPayload(
         left: { actorName: leftActorName, variableName: leftVariableName },
         right,
       };
-    }
+    },
   );
 
   const start_scene: NamingPayload["start_scene"] = Object.entries(actors).map(
@@ -161,7 +169,7 @@ export function buildNamingPayload(
       actorName: getActorName(actorId),
       position: actor.position,
       appearance: getAppearanceName(actors, characters, actorId, actor.appearance),
-    })
+    }),
   );
 
   return {
@@ -219,7 +227,9 @@ const StageRecordingControls: React.FC<StageRecordingControlsProps> = ({
       </div>
       <div style={{ flex: 1 }} />
       <div className="right">
-        <Button onClick={onCancel} disabled={isFinishing}>Cancel</Button>{" "}
+        <Button onClick={onCancel} disabled={isFinishing}>
+          Cancel
+        </Button>{" "}
         <Button
           data-tutorial-id="record-next-step"
           color="success"

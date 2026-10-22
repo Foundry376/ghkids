@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import { Button, Modal, ModalBody, ModalFooter, ModalHeader } from "reactstrap";
 import { SOUND_LIBRARY, SOUND_LIBRARY_ATTRIBUTION } from "../../../constants/sound-library";
-import { playSound } from "../../../utils/utils";
+import { playSound } from "../../../utils/sound-player";
 
 export type PickedSound = { url: string; name: string };
 
@@ -29,12 +30,23 @@ export const SoundPickerModal = ({
   const [activeTag, setActiveTag] = useState<string>(ALL_TAG);
   const [isUploading, setUploading] = useState(false);
   const [isRecording, setRecording] = useState(false);
+  const [isRequestingMic, setRequestingMic] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
+  // Id of the microphone request in flight (0 when there isn't one). Closing the
+  // picker clears it, so a permission prompt answered afterwards doesn't start a
+  // recording nobody can see.
+  const micRequestRef = useRef(0);
+  const nextMicRequestId = useRef(0);
+
+  // Uploads create permanent public files, so the API only takes them from
+  // signed-in users.
+  const signedIn = !!window.store.getState().me;
 
   useEffect(() => {
     setLocal(value);
     setRecording(false);
+    setRequestingMic(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
@@ -42,6 +54,7 @@ export const SoundPickerModal = ({
   useEffect(() => {
     if (!open) return;
     return () => {
+      micRequestRef.current = 0;
       const recorder = recorderRef.current;
       if (!recorder) return;
       recorder.onstop = null;
@@ -93,19 +106,40 @@ export const SoundPickerModal = ({
       recorderRef.current.stop();
       return;
     }
+    if (micRequestRef.current) {
+      return;
+    }
+    const requestId = ++nextMicRequestId.current;
+    micRequestRef.current = requestId;
+    setRequestingMic(true);
+
     let stream: MediaStream;
     try {
       stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     } catch {
-      alert("Codako needs permission to use your microphone to record a sound.");
+      if (micRequestRef.current === requestId) {
+        micRequestRef.current = 0;
+        setRequestingMic(false);
+        alert("Codako needs permission to use your microphone to record a sound.");
+      }
       return;
     }
+    if (micRequestRef.current !== requestId) {
+      // The picker closed while the permission prompt was up.
+      stream.getTracks().forEach((t) => t.stop());
+      return;
+    }
+    micRequestRef.current = 0;
+    setRequestingMic(false);
+
     const recorder = new MediaRecorder(stream);
     const chunks: Blob[] = [];
     recorder.ondataavailable = (e) => chunks.push(e.data);
     recorder.onstop = () => {
       stream.getTracks().forEach((t) => t.stop());
-      recorderRef.current = null;
+      if (recorderRef.current === recorder) {
+        recorderRef.current = null;
+      }
       setRecording(false);
       const ext = recorder.mimeType.includes("mp4") ? "m4a" : "webm";
       _upload(new Blob(chunks, { type: recorder.mimeType }), `recording.${ext}`, "Recording");
@@ -202,29 +236,51 @@ export const SoundPickerModal = ({
             style={{ display: "none" }}
             onChange={_onUpload}
           />
-          <Button
-            className="btn btn-outline-secondary btn-sm"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={isUploading}
-            style={{ whiteSpace: "nowrap", display: "flex", alignItems: "center", gap: 5 }}
-          >
-            <i className={`fa ${isUploading ? "fa-spinner fa-spin" : "fa-upload"}`} />
-            {isUploading ? "Uploading..." : "Upload an MP3"}
-          </Button>
-          {window.MediaRecorder && (
-            <Button
-              className="btn btn-outline-secondary btn-sm"
-              onClick={_onToggleRecording}
-              disabled={isUploading}
-              title="Record up to 10 seconds from your microphone"
-              style={{ whiteSpace: "nowrap", display: "flex", alignItems: "center", gap: 5 }}
-            >
-              <i
-                className={`fa ${isRecording ? "fa-stop" : "fa-microphone"}`}
-                style={{ color: isRecording ? "#d00" : undefined }}
-              />
-              {isRecording ? "Stop recording" : "Record a sound"}
-            </Button>
+          {signedIn ? (
+            <>
+              <Button
+                outline
+                size="sm"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isUploading}
+                style={{ whiteSpace: "nowrap", display: "flex", alignItems: "center", gap: 5 }}
+              >
+                <i className={`fa ${isUploading ? "fa-spinner fa-spin" : "fa-upload"}`} />
+                {isUploading ? "Uploading..." : "Upload an MP3"}
+              </Button>
+              {window.MediaRecorder && (
+                <Button
+                  outline
+                  size="sm"
+                  onClick={_onToggleRecording}
+                  disabled={isUploading || isRequestingMic}
+                  title="Record up to 10 seconds from your microphone"
+                  style={{ whiteSpace: "nowrap", display: "flex", alignItems: "center", gap: 5 }}
+                >
+                  <i
+                    className={`fa ${isRecording ? "fa-stop" : "fa-microphone"}`}
+                    style={{ color: isRecording ? "#d00" : undefined }}
+                  />
+                  {isRecording ? "Stop recording" : "Record a sound"}
+                </Button>
+              )}
+            </>
+          ) : (
+            <div style={{ fontSize: 13, color: "#666" }}>
+              <i className="fa fa-lock" style={{ marginRight: 6 }} />
+              <Link
+                to={{
+                  pathname: "/login",
+                  search: new URLSearchParams({
+                    redirectTo: window.location.pathname,
+                    why: " to upload or record sounds",
+                  }).toString(),
+                }}
+              >
+                Sign in
+              </Link>{" "}
+              to upload or record your own sounds.
+            </div>
           )}
           {local && (
             <div style={{ fontSize: 12, color: "#888" }}>
