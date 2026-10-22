@@ -24,7 +24,7 @@ import { WORLDS } from "../constants/constants";
 import { defaultAppearanceId } from "../utils/character-helpers";
 import { extentByShiftingExtent } from "../utils/recording-helpers";
 import { getCurrentStageForWorld } from "../utils/selectors";
-import { actorFilledPoints } from "../utils/stage-helpers";
+import { actorFilledPoints, pointIsInside } from "../utils/stage-helpers";
 import WorldOperator from "../utils/world-operator";
 
 function stateForEditingRule(
@@ -273,12 +273,24 @@ function recordingReducer(
 }
 
 function buildActionsFromStageActions(
-  { actorId, beforeWorld, afterWorld }: RecordingState,
+  { actorId, beforeWorld, afterWorld, extent }: RecordingState,
   action: Actions,
   characters: Characters,
 ): RuleAction[] | null {
   const beforeStage = getCurrentStageForWorld(beforeWorld)!;
   const mainActorBeforePosition = beforeStage.actors[actorId!].position;
+
+  // A rule only contains the actors inside its extent (see
+  // `ruleFromRecordingState`), so an action naming anything else would throw
+  // when the after-world is rebuilt. The after-view also draws the surrounding
+  // actors as scenery, and the stage refuses to select or target them, so this
+  // shouldn't come up - it's here so the invariant holds however the edit
+  // arrived. An id that isn't on the before stage at all is a newly created
+  // actor, which is allowed to join the rule.
+  const isInRule = (id: string) => {
+    const before = beforeStage.actors[id];
+    return !before || actorFilledPoints(before, characters).some((p) => pointIsInside(p, extent));
+  };
 
   const doorActorAtPosition = (x: number, y: number): Actor | null => {
     for (const a of Object.values(beforeStage.actors)) {
@@ -292,6 +304,9 @@ function buildActionsFromStageActions(
     case Types.UPSERT_ACTORS: {
       return action.upserts
         .flatMap(({ id: actorId, values }): RuleAction | RuleAction[] | null => {
+          if (!isInRule(actorId)) {
+            return null;
+          }
           const existing = afterWorld && getCurrentStageForWorld(afterWorld)?.actors[actorId];
           if (!existing) {
             return {
@@ -360,7 +375,7 @@ function buildActionsFromStageActions(
         .filter((a): a is RuleAction => !!a);
     }
     case Types.DELETE_ACTORS: {
-      return action.actorIds.map((actorId) => ({
+      return action.actorIds.filter(isInRule).map((actorId) => ({
         type: "delete",
         actorId,
       }));
