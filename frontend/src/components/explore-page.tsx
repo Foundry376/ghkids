@@ -25,7 +25,7 @@ const ExplorePage: React.FC = () => {
   /** Bumped whenever the list starts over, so a late "More Games" for an older list is dropped. */
   const listVersion = useRef(0);
 
-  usePageTitle("Published Games");
+  usePageTitle("Public Games");
 
   useEffect(() => {
     const timer = setTimeout(() => setQuery(search.trim()), SEARCH_DELAY_MS);
@@ -83,7 +83,7 @@ const ExplorePage: React.FC = () => {
       <div className="games-page__body">
         <div className="games-page__heading">
           <div className="games-page__title">
-            <h1>Published Games</h1>
+            <h1>Public Games</h1>
             <p>Games other kids have published. The most played are first.</p>
           </div>
           <KidSearchField
