@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Button, Modal, ModalBody, ModalFooter, ModalHeader } from "reactstrap";
 import { makeRequest } from "../../../helpers/api";
+import { AUTOFOCUS_TEXT_FIELDS } from "../../../hooks/useFullscreen";
 import {
   BACKGROUND_PROVIDERS,
   BackgroundProvider,
@@ -242,7 +243,7 @@ const SearchPanel = ({
           className="form-control"
           placeholder="e.g. forest, ocean, mountains, city night..."
           value={query}
-          autoFocus
+          autoFocus={AUTOFOCUS_TEXT_FIELDS}
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === "Enter") {
