@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { useContext, useEffect, useRef, useState } from "react";
 import { Button, Modal, ModalBody, ModalFooter, ModalHeader } from "reactstrap";
+import { EditorContext } from "../../../../components/editor-context";
 import { SOUND_LIBRARY, SOUND_LIBRARY_ATTRIBUTION } from "../../../constants/sound-library";
 import { playSound } from "../../../utils/sound-player";
 
@@ -42,6 +42,18 @@ export const SoundPickerModal = ({
   // Uploads create permanent public files, so the API only takes them from
   // signed-in users.
   const signedIn = !!window.store.getState().me;
+  const { saveAndExit } = useContext(EditorContext);
+
+  // Save first (a client-side navigation would skip the editor's draft save),
+  // and come back to the full URL so a local game keeps ?localstorage=true.
+  const _onSignIn = (e: React.MouseEvent) => {
+    e.preventDefault();
+    const search = new URLSearchParams({
+      redirectTo: window.location.pathname + window.location.search,
+      why: " to upload or record sounds",
+    });
+    saveAndExit(`/login?${search}`);
+  };
 
   useEffect(() => {
     setLocal(value);
@@ -268,17 +280,9 @@ export const SoundPickerModal = ({
           ) : (
             <div style={{ fontSize: 13, color: "#666" }}>
               <i className="fa fa-lock" style={{ marginRight: 6 }} />
-              <Link
-                to={{
-                  pathname: "/login",
-                  search: new URLSearchParams({
-                    redirectTo: window.location.pathname,
-                    why: " to upload or record sounds",
-                  }).toString(),
-                }}
-              >
+              <a href="/login" onClick={_onSignIn}>
                 Sign in
-              </Link>{" "}
+              </a>{" "}
               to upload or record your own sounds.
             </div>
           )}
