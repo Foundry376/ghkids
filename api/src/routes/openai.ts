@@ -82,7 +82,9 @@ router.get("/generate-sprite", userFromBasicAuth, async (req, res) => {
         max_tokens: 10,
         temperature: 0.9,
       });
-      spriteName = (nameResponse.choices[0]?.message?.content?.trim() || "unnamed sprite").toLowerCase();
+      spriteName = (
+        nameResponse.choices[0]?.message?.content?.trim() || "unnamed sprite"
+      ).toLowerCase();
     } catch (err) {
       console.error("Error generating sprite name:", err);
     }
@@ -131,7 +133,9 @@ router.post("/generate-sprite-name", userFromBasicAuth, async (req, res) => {
       max_tokens: 10,
       temperature: 0.9,
     });
-    const name = (completion.choices[0]?.message?.content?.trim() || "unnamed sprite").toLowerCase();
+    const name = (
+      completion.choices[0]?.message?.content?.trim() || "unnamed sprite"
+    ).toLowerCase();
     console.log("Generated sprite name:", name, { hasPrompt: !!prompt, hasImage: !!imageData });
     res.setHeader("Access-Control-Allow-Origin", "*");
     res.setHeader("Content-Type", "application/json");
@@ -589,7 +593,12 @@ router.post("/upload-image", upload.single("image") as any, async (req, res) => 
 });
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-router.post("/upload-sound", upload.single("sound") as any, async (req, res) => {
+router.post("/upload-sound", userFromBasicAuth, upload.single("sound") as any, async (req, res) => {
+  // Each upload is a new permanent public object, so only signed-in users can add them.
+  // userFromBasicAuth lets requests without credentials through, so check here.
+  if (!req.user) {
+    return res.status(401).json({ error: "Sign in to upload or record sounds" });
+  }
   try {
     const file = req.file;
     if (!file) return res.status(400).json({ error: "No file uploaded" });

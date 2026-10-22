@@ -3,12 +3,6 @@ export const isTextInput = (el: EventTarget | null) =>
   (el instanceof HTMLInputElement && el.type === "text") ||
   (el instanceof HTMLElement && el.isContentEditable);
 
-export const playSound = (url: string) => {
-  new Audio(url).play().catch(() => {
-    // Ignore autoplay rejections and unreachable sounds
-  });
-};
-
 export function deepClone<T>(obj: T): T {
   if (!obj) {
     return obj;
