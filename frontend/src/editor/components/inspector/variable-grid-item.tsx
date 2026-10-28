@@ -21,7 +21,7 @@ import ConnectedStagePicker from "./connected-stage-picker";
  * Editor for `type: "background"` stage variables — shows a small preview of
  * the current background and a Set… button that opens a modal picker
  * (color / explore tabs / custom URL). Pattern mirrors the AppearanceGridItem
- * "Turn…" button + TransformEditorModal flow.
+ * "Turn" button + TransformEditorModal flow.
  */
 const BackgroundValueEditor = ({
   value,
