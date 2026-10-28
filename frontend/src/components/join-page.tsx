@@ -38,6 +38,9 @@ const JoinPageForm: React.FC = () => {
     const problems: Errors = {};
     if (!username.trim()) {
       problems.username = "Make up a nickname first!";
+    } else if (username.includes("@")) {
+      // Nicknames are public, so keep email addresses out of them.
+      problems.username = "Don't use your email here. Make up a nickname instead!";
     }
     if (!email.trim()) {
       problems.email = "Ask a grown-up to type their email here.";

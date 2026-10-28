@@ -89,6 +89,12 @@ router.get("/users/:username", async (req, res) => {
 router.post("/users", async (req, res) => {
   const { username, email, password, captchaToken } = req.body;
 
+  // Usernames are shown publicly (profiles, explore, notification emails), so
+  // don't let anyone, usually a kid, put their email address there.
+  if (typeof username === "string" && username.includes("@")) {
+    return res.status(400).json({ message: "Usernames can't contain @. Please pick a nickname." });
+  }
+
   // Verify reCAPTCHA token
   const captchaResult = await verifyRecaptcha(captchaToken || "");
   if (!captchaResult.success) {
