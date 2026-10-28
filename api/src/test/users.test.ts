@@ -81,6 +81,23 @@ describe("Users API", () => {
       expect(savedUser!.email).to.equal("newuser@example.com");
     });
 
+    it("should reject a username containing @", async () => {
+      const res = await request(app)
+        .post("/users")
+        .send({
+          username: "kid@school.example.com",
+          email: "kid@school.example.com",
+          password: "password123",
+        })
+        .expect(400);
+
+      expect(res.body.message).to.match(/@/);
+      const user = await AppDataSource.getRepository(User).findOneBy({
+        email: "kid@school.example.com",
+      });
+      expect(user).to.be.null;
+    });
+
     it("should normalize username to lowercase", async () => {
       const res = await request(app)
         .post("/users")
