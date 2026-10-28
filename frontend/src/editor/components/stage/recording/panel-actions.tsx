@@ -587,7 +587,7 @@ const StageAfterTools = () => {
         />
       )}
       <Button disabled={!enabled} className={classNames({ enabled })} onClick={() => setOpen(true)}>
-        Turn…
+        Turn
       </Button>
       <SoundPickerModal
         open={soundOpen}

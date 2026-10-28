@@ -101,7 +101,7 @@ const AppearanceGridItem = ({ actor, spritesheet, appearance, transform, onChang
       )}
       <div style={{ display: "flex", marginTop: 2 }}>
         <Button size="sm" style={{ width: 120 }} onClick={() => setOpen(true)} disabled={isMixedAppearance && isMixedTransform}>
-          Turn…
+          Turn
         </Button>
         {!isMixedAppearance && (
           <TransformEditorModal
