@@ -12,10 +12,11 @@ import { useParams } from "react-router";
 import { Button, Modal, ModalBody } from "reactstrap";
 import { applyDataMigrations } from "../editor/data-migrations";
 import { useAppSelector } from "../hooks/redux";
-import { useFullscreen, useRestoreFullscreenAfterKeyboard } from "../hooks/useFullscreen";
+import { useFullscreen } from "../hooks/useFullscreen";
 import { Game } from "../types";
 import PageMessage from "./common/page-message";
 import { EditorContext } from "./editor-context";
+import { HomeScreenAppPrompt } from "./home-screen-app-prompt";
 
 function useFullscreenPrompt() {
   // Fullscreen the document, not just the editor container: only the fullscreen
@@ -23,10 +24,6 @@ function useFullscreenPrompt() {
   // cursor, every reactstrap modal and the sprite drag preview into document.body.
   const fullscreen = useFullscreen<HTMLDivElement>({ target: "document", shortcut: true });
   const [showPrompt, setShowPrompt] = useState(false);
-
-  // Renaming a rule or typing a variable value raises the iPad keyboard, which
-  // ends fullscreen; go back into it when the edit is done.
-  useRestoreFullscreenAfterKeyboard(fullscreen.enter);
 
   useEffect(() => {
     const isTouchDevice = "ontouchstart" in window || navigator.maxTouchPoints > 0;
@@ -562,6 +559,7 @@ const EditorPage = () => {
           </>
         )}
 
+        {loaded && <HomeScreenAppPrompt />}
         {fullscreen.showPrompt && (
           <div className="editor-fullscreen-overlay">
             <div className="editor-fullscreen-overlay__backdrop" onClick={fullscreen.dismiss} />

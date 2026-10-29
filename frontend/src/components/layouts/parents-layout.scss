@@ -6,6 +6,9 @@
 /* Component styles load before Bootstrap's (see main.tsx), so rules that
    override Bootstrap's own need its specificity plus one. */
 .navbar.parents-nav {
+  /* Clear of the status bar in the Home Screen app; 0 elsewhere. */
+  padding-top: calc(0.5rem + env(safe-area-inset-top));
+
   > .container {
     flex-wrap: wrap;
     gap: 8px 0;
