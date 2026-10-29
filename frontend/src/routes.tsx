@@ -5,6 +5,7 @@ import DashboardPage from "./components/dashboard-page";
 import EditorPage from "./components/editor-page";
 import ExplorePage from "./components/explore-page";
 import FAQPage from "./components/faq-page";
+import HowItWorksPage from "./components/how-it-works-page";
 import ForgotPasswordPage from "./components/forgot-password-page";
 import JoinPage from "./components/join-page";
 import JoinSendWorldsPage from "./components/join-send-worlds-page";
@@ -16,8 +17,12 @@ import LoginPage from "./components/login-page";
 import NotFoundPage from "./components/not-found-page";
 import ParentsHomePage from "./components/parents-home-page";
 import PlayPage from "./components/play-page";
+import PrivacyPolicyPage from "./components/privacy-policy-page";
 import ProfilePage from "./components/profile-page";
+import ResearchPage from "./components/research-page";
 import ResetPasswordPage from "./components/reset-password-page";
+import TermsOfUsePage from "./components/terms-of-use-page";
+import WhyCodakoAIPage from "./components/why-codako-ai-page";
 
 export default (
   <Routes>
@@ -40,8 +45,15 @@ export default (
       {/* For grown-ups: Bootstrap site nav and footer. */}
       <Route path="parents" element={<ParentsLayout />}>
         <Route index element={<ParentsHomePage />} />
+        <Route path="research" element={<ResearchPage />} />
+        <Route path="how-it-works" element={<HowItWorksPage />} />
+        <Route path="ai" element={<WhyCodakoAIPage />} />
         <Route path="faq" element={<FAQPage />} />
         <Route path="changelog" element={<ChangelogPage />} />
+      </Route>
+      <Route element={<ParentsLayout />}>
+        <Route path="privacy-policy" element={<PrivacyPolicyPage />} />
+        <Route path="terms-of-use" element={<TermsOfUsePage />} />
       </Route>
 
       {/* Full window, no chrome: these pages bring their own controls. */}
