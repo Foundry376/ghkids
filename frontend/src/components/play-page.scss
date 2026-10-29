@@ -24,6 +24,13 @@ $play-tint: #5bc0de;
   }
 }
 
+/* See .home-screen-app .page-container in styles.scss. The bottom padding
+   keeps the on-screen keys clear of the home indicator. */
+.home-screen-app .play-page {
+  height: 100vh;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
 /* ---- Top bar ---- */
 
 .play-top-bar {
@@ -31,19 +38,14 @@ $play-tint: #5bc0de;
   align-items: center;
   justify-content: space-between;
   position: relative;
-  height: $play-top-bar-height;
-  padding: 0 16px;
+  /* Clear of the status bar in the Home Screen app; 0 elsewhere. */
+  height: calc(#{$play-top-bar-height} + env(safe-area-inset-top));
+  padding: env(safe-area-inset-top) 16px 0;
   background: #111;
   color: #eee;
   z-index: 100;
   flex-shrink: 0;
   transition: opacity 0.3s ease;
-
-  // Clear the iPad's fullscreen exit button, which sits over the top-left
-  // corner (see IPAD_FULLSCREEN_CLASS in useFullscreen).
-  .ipad-fullscreen & {
-    padding-left: 96px;
-  }
 
   &__brand-group {
     display: flex;
