@@ -37,8 +37,9 @@
   }
 }
 
-/* Too narrow for one row: the page links drop under the brand and button. */
-@media (max-width: 640px) {
+/* Too narrow for one row (tablets and phones): the page links drop under the
+   brand and button. */
+@media (max-width: 991px) {
   .navbar.parents-nav {
     .parents-nav__links {
       order: 3;

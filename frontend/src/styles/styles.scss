@@ -154,8 +154,105 @@ body {
   }
 }
 
+.parents-article {
+  max-width: 800px;
+
+  blockquote {
+    margin: 20px 0;
+    padding: 4px 0 4px 20px;
+    border-left: 4px solid #ccc;
+    color: #555;
+    footer {
+      margin-top: 6px;
+      font-size: 0.9em;
+      &:before {
+        content: "— ";
+      }
+    }
+  }
+
+  sup a {
+    margin-left: 1px;
+    text-decoration: none;
+  }
+}
+
+.parents-article__in-short {
+  margin: 10px 0 30px;
+  padding: 16px 20px;
+  background-color: #ebf1e7;
+  border-radius: 6px;
+  ul {
+    margin: 6px 0 0;
+    padding-left: 20px;
+  }
+  li + li {
+    margin-top: 4px;
+  }
+}
+
+.parents-article__credit {
+  font-size: 0.9em;
+  font-style: italic;
+  color: #777;
+}
+
+.parents-article__figure {
+  margin: 24px 0;
+  text-align: center;
+
+  .parents-article__figure-images {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    /* A sequence of frames stays in one row at every width, so it reads as
+       "before, during, after", and the frames share one shape. */
+    a:not(:only-child) {
+      flex: 1 1 0;
+      min-width: 0;
+      max-width: 290px;
+      img {
+        width: 100%;
+        aspect-ratio: 5 / 4;
+        object-fit: cover;
+      }
+    }
+  }
+  img {
+    min-width: 0;
+    max-width: 100%;
+    height: auto;
+    border: 1px solid #e5e5e5;
+  }
+  &.narrow img {
+    max-width: 320px;
+  }
+  figcaption {
+    margin-top: 8px;
+    font-size: 0.9em;
+    color: #777;
+  }
+}
+
+.parents-article__table {
+  font-size: 0.9em;
+  th {
+    white-space: nowrap;
+  }
+  td:first-child {
+    font-weight: 600;
+  }
+}
+
+.parents-article__references {
+  font-size: 0.9em;
+  color: #555;
+  word-break: break-word;
+}
+
 .faq,
-.changelog {
+.changelog,
+.parents-article {
   padding-top: 40px;
   padding-bottom: 40px;
   h4 {
@@ -229,6 +326,55 @@ body {
 }
 .home-region.light-green {
   background-color: #ebf1e7;
+}
+.home-region h3 {
+  margin-bottom: 16px;
+}
+
+/* The overview's "Safe and free" list: a small icon beside each point. */
+.parents-points {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 20px 32px;
+  margin: 0 0 20px;
+  padding: 0;
+  list-style: none;
+  li {
+    display: flex;
+    gap: 12px;
+  }
+  .fa {
+    flex-shrink: 0;
+    width: 28px;
+    font-size: 24px;
+    color: $brand-green;
+  }
+}
+
+.parents-screens {
+  margin-top: 24px;
+  img {
+    width: 100%;
+    /* The two screenshots have slightly different shapes; match them. */
+    aspect-ratio: 2 / 1;
+    object-fit: cover;
+    object-position: top;
+    border: 1px solid #d8d2c4;
+    border-radius: 4px;
+  }
+  p {
+    margin: 8px 0 16px;
+    font-size: 0.9em;
+    color: #666;
+  }
+}
+
+.parents-steps {
+  max-width: 760px;
+  padding-left: 22px;
+  li {
+    margin-bottom: 10px;
+  }
 }
 
 .footer {

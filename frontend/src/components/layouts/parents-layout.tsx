@@ -5,9 +5,9 @@ import { KidButton } from "../kid";
 import "./parents-layout.scss";
 
 /**
- * The pages for grown-ups under /parents: what Codako is, the FAQ, the
- * changelog. They keep the plain Bootstrap look of a website, with one big
- * green way into the kid side. There's no sign-in here — kids sign in on the
+ * The pages for grown-ups under /parents (what Codako is, how it works and
+ * why, the FAQ), plus the privacy policy and terms. They keep the plain
+ * Bootstrap look of a website, with one big green way into the kid side. There's no sign-in here — kids sign in on the
  * kid side, so there's only ever one place to do it.
  */
 const ParentsLayout = () => {
@@ -25,18 +25,28 @@ const ParentsLayout = () => {
               </NavLink>
             </li>
             <li className="nav-item">
+              <NavLink className="nav-link" to="/parents/how-it-works">
+                How It Works
+              </NavLink>
+            </li>
+            <li className="nav-item">
+              <NavLink className="nav-link" to="/parents/research">
+                Ideas
+              </NavLink>
+            </li>
+            <li className="nav-item">
+              <NavLink className="nav-link" to="/parents/ai">
+                Codako &amp; AI
+              </NavLink>
+            </li>
+            <li className="nav-item">
               <NavLink className="nav-link" to="/parents/faq">
                 FAQ
               </NavLink>
             </li>
-            <li className="nav-item">
-              <NavLink className="nav-link" to="/parents/changelog">
-                Changelog
-              </NavLink>
-            </li>
           </ul>
           <KidButton variant="primary" to="/" className="parents-nav__open">
-            Open Codako <span aria-hidden="true">&rarr;</span>
+            Start Codako <span aria-hidden="true">&rarr;</span>
           </KidButton>
         </div>
       </nav>
@@ -49,8 +59,8 @@ const ParentsLayout = () => {
             <div className="col-md-12">
               {"Open sourced with love by "}
               <a href="http://www.foundry376.com/">Foundry376.</a>{" "}
-              <a href="/terms-of-use">Terms of Use</a> and{" "}
-              <a href="/privacy-policy">Privacy Policy</a>
+              <Link to="/terms-of-use">Terms of Use</Link> and{" "}
+              <Link to="/privacy-policy">Privacy Policy</Link>.{" "}
             </div>
           </div>
         </div>
