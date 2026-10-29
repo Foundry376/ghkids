@@ -67,6 +67,9 @@ export const TapToEditLabel = ({
         }
       }}
       onBlur={(e) => {
+        // The window losing focus (switching to another app, say) blurs the
+        // label without moving focus off it. That isn't the end of editing.
+        if (document.activeElement === e.currentTarget) return;
         commit(e.currentTarget.textContent || "");
       }}
     >

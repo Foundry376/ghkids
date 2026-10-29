@@ -107,7 +107,13 @@ export const CommentTextEditor = ({
       placeholder={placeholder ?? "Write a note…"}
       onChange={(e) => setText(e.target.value)}
       onDoubleClick={(e) => e.stopPropagation()}
-      onBlur={commit}
+      onBlur={(e) => {
+        // The window losing focus (switching to another app, say) blurs the
+        // textarea without moving focus off it. That isn't the end of editing,
+        // and would otherwise delete a new comment that's still empty.
+        if (document.activeElement === e.currentTarget) return;
+        commit();
+      }}
       onKeyDown={(e) => {
         if (e.key === "Escape") {
           e.currentTarget.blur();

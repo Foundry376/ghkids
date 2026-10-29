@@ -138,6 +138,18 @@ body {
   }
 }
 
+/* The Home Screen app has no Safari bars to come and go, so 100vh is the whole
+   screen. 100dvh comes out short there by the status bar's height, leaving a
+   strip along the bottom. */
+.home-screen-app .page-container {
+  height: 100vh;
+}
+
+/* Dialogs keep clear of the status bar too. */
+.home-screen-app .modal-dialog {
+  margin-top: max(1.75rem, calc(env(safe-area-inset-top) + 8px));
+}
+
 .page-content-flex {
   flex: 1;
 }

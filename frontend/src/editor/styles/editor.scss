@@ -96,6 +96,12 @@ html {
   display: flex;
   flex-direction: column;
 
+  // In the Home Screen app the page extends under the status bar and the home
+  // indicator (see home-screen-app.ts); keep clear of them. Elsewhere the
+  // insets are 0.
+  padding-top: max(10px, env(safe-area-inset-top));
+  padding-bottom: max(10px, env(safe-area-inset-bottom));
+
   .circle {
     display: inline-block;
     width: 12px;
@@ -180,12 +186,6 @@ html {
     flex-shrink: 0;
     display: flex;
     flex-direction: row;
-
-    // Clear the iPad's fullscreen exit button, which sits over the top-left
-    // corner (see IPAD_FULLSCREEN_CLASS in useFullscreen).
-    .ipad-fullscreen & {
-      padding-left: 84px;
-    }
 
     // Stretches a button's hit area across the dead space around it without
     // moving anything on screen. Edges shared with a neighbouring button are
@@ -2272,6 +2272,37 @@ button.btn.selected:active {
   &:hover {
     background: color.adjust($tint-color, $lightness: -10%);
   }
+}
+
+.home-screen-prompt {
+  text-align: left;
+
+  h2 {
+    text-align: center;
+  }
+}
+
+.home-screen-prompt__steps {
+  color: #333;
+  font-size: 16px;
+  line-height: 1.5;
+  padding-left: 24px;
+  margin-bottom: 16px;
+
+  li {
+    margin-bottom: 8px;
+  }
+}
+
+.home-screen-prompt__share-icon {
+  color: $tint-color;
+  vertical-align: -3px;
+  margin: 0 2px;
+}
+
+.home-screen-prompt__note {
+  font-size: 13px;
+  color: #888;
 }
 
 .editor-fullscreen-overlay__dismiss {

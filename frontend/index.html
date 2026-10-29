@@ -4,10 +4,22 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Codako" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <script>
+      // Opened from the Home Screen: draw under the status bar and the home
+      // indicator. This has to be set before the first layout, or Safari pads
+      // the page down by the status bar's height instead. See home-screen-app.ts.
+      if (navigator.standalone || matchMedia("(display-mode: standalone)").matches) {
+        document.querySelector('meta[name="viewport"]').content += ", viewport-fit=cover";
+        document.documentElement.classList.add("home-screen-app");
+      }
+    </script>
     <script src="https://cdn.ravenjs.com/3.13.1/raven.min.js" crossorigin="anonymous"></script>
 
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta
       name="description"
       content="Codako is a free game construction set for kids ages 6 and up. Draw characters, show them what to do, and play the games you make."

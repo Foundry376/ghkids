@@ -167,7 +167,9 @@ export function applyDataMigrations(game: Game): Game {
 
   const migrated = JSON.stringify(result);
 
-  if (migrated !== nonmigrated) {
+  // A game that has never been saved (a new game on this computer) has only
+  // unsavedData, and data is null.
+  if (migrated !== nonmigrated && result.data) {
     delete result.data.ui;
     delete result.data.recording;
     console.log(result);
