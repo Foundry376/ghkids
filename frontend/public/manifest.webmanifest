@@ -1,0 +1,11 @@
+{
+  "name": "Codako",
+  "short_name": "Codako",
+  "description": "Make your own games: draw characters and show them what to do.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f2eee4",
+  "theme_color": "#f2eee4",
+  "icons": [{ "src": "/apple-touch-icon.png", "sizes": "144x144", "type": "image/png" }]
+}
