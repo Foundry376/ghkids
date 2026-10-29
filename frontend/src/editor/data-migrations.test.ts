@@ -963,5 +963,36 @@ describe("data-migrations", () => {
         expect((migrated.data.world.stageVariables.difficulty as any).defaultValue).to.be.undefined;
       });
     });
+
+    describe("games that have never been saved", () => {
+      it("should migrate the unsaved draft when there is no saved data", () => {
+        // A new game on this computer that was edited but never saved, as
+        // localStorage holds it: data is null and only the draft exists.
+        const draft = makeMinimalGame({
+          characters: {
+            char1: {
+              id: "char1",
+              name: "box",
+              rules: [
+                {
+                  id: "rule:1",
+                  type: "group-flow",
+                  behavior: "first",
+                  name: "Untitled Rule Box",
+                  rules: [],
+                },
+              ],
+              spritesheet: { appearances: {}, appearanceNames: {} },
+              variables: {},
+            } as any,
+          },
+        }).data;
+        const game = { id: "ls-1", data: null, unsavedData: draft } as any as Game;
+
+        const migrated = applyDataMigrations(game) as any;
+        expect(migrated.data).to.equal(null);
+        expect(migrated.unsavedData.characters.char1.rules[0].name).to.equal("Untitled Rule Box");
+      });
+    });
   });
 });
