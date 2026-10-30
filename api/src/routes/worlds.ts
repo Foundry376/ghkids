@@ -58,7 +58,7 @@ async function incrementCount(id: number, column: "playCount" | "forkCount") {
     .execute();
 }
 
-router.get("/worlds/:objectId", async (req, res) => {
+router.get("/worlds/:objectId", userFromBasicAuth, async (req, res) => {
   let objectId = req.params.objectId;
   if (objectId === "tutorial") {
     objectId = process.env.TUTORIAL_WORLD_ID!;
@@ -75,11 +75,13 @@ router.get("/worlds/:objectId", async (req, res) => {
   await incrementCount(world.id, "playCount");
   world.playCount = Number(world.playCount) + 1;
 
-  // Return both data and unsavedData with their timestamps - let frontend decide which to use
+  // Return both data and unsavedData with their timestamps - let frontend decide which to use.
+  // The draft is the owner's unfinished work, so only the owner gets it.
+  const isOwner = req.user?.id === world.userId;
   res.json(
     Object.assign({}, world.serialize(), {
       data: world.data,
-      unsavedData: world.unsavedData ?? null,
+      unsavedData: isOwner ? (world.unsavedData ?? null) : null,
     }),
   );
 });
