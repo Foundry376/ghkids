@@ -146,6 +146,37 @@ describe("Worlds API", () => {
       const updatedWorld = await worldRepo.findOneBy({ id: world.id });
       expect(Number(updatedWorld!.playCount)).to.equal(1);
     });
+
+    it("should only return the unsaved draft to the owner", async () => {
+      const { user, authHeader } = await createTestUser("owner", "password123");
+      const { authHeader: otherAuthHeader } = await createTestUser("other", "password123");
+
+      const world = await AppDataSource.getRepository(World).save({
+        name: "Published World",
+        thumbnail: "#",
+        userId: user.id,
+        published: true,
+        data: { saved: true },
+        unsavedData: { draft: true },
+        unsavedDataUpdatedAt: new Date(),
+      });
+
+      const anonymous = await request(app).get(`/worlds/${world.id}`).expect(200);
+      expect(anonymous.body.data).to.deep.equal({ saved: true });
+      expect(anonymous.body.unsavedData).to.be.null;
+
+      const other = await request(app)
+        .get(`/worlds/${world.id}`)
+        .set("Authorization", otherAuthHeader)
+        .expect(200);
+      expect(other.body.unsavedData).to.be.null;
+
+      const owner = await request(app)
+        .get(`/worlds/${world.id}`)
+        .set("Authorization", authHeader)
+        .expect(200);
+      expect(owner.body.unsavedData).to.deep.equal({ draft: true });
+    });
   });
 
   // Plays and remixes are other people's doing: they count, but they don't
