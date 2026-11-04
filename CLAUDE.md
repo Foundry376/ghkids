@@ -12,7 +12,7 @@ Codako is a programming-by-demonstration tool that allows users to create simula
 ```bash
 cd frontend
 yarn install
-yarn dev      # Start dev server
+yarn dev      # Start dev server (talks to the local API on port 8080)
 yarn build    # Production build (outputs to api/frontend/)
 yarn lint     # ESLint
 ```

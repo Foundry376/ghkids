@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Button, Modal, ModalBody, ModalFooter, ModalHeader } from "reactstrap";
-import { makeRequest } from "../../../helpers/api";
+import { API_ROOT, makeRequest } from "../../../helpers/api";
 import { AUTOFOCUS_TEXT_FIELDS } from "../../../hooks/useFullscreen";
 import {
   BACKGROUND_PROVIDERS,
@@ -438,7 +438,6 @@ const GeneratePanel = ({
 };
 
 const DEFAULT_COLOR = "#005392";
-const API_ROOT = window.location.host.includes("codako") ? `` : `http://localhost:8080`;
 
 const COLOR_TAB_KEY = "__color__";
 const CUSTOM_TAB_KEY = "__custom__";
@@ -514,12 +513,11 @@ const CustomPanel = ({
     if (!file) return;
     setUploading(true);
     try {
-      const me = window.store.getState().me;
       const formData = new FormData();
       formData.append("image", file);
       const resp = await fetch(`${API_ROOT}/upload-image`, {
         method: "POST",
-        headers: { Authorization: me && `Basic ${btoa(me.username + ":" + me.password)}` },
+        credentials: "include",
         body: formData,
       });
       const data = await resp.json();

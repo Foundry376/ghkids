@@ -1,35 +1,37 @@
-/* eslint no-unused-vars: 0 */
 import Cookies from "js-cookie";
-import { MainState } from "../reducers/initial-state";
+import * as types from "../constants/action-types";
 
+/**
+ * The API sets this cookie when someone signs in, with their id and username,
+ * so we know who they are before the first page draws. Their login itself is
+ * in an HttpOnly cookie that scripts can't see.
+ */
 const KEY = "session";
-const ONE_DAY = 24 * 60 * 60 * 1000;
 
-let value = Cookies.get(KEY);
-
-export const sessionStorageMiddleware =
-  (store: { getState: () => MainState }) =>
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  (next: (action: any) => any) =>
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  (action: any) => {
-    const result = next(action);
-
-    const { me } = store.getState();
-    const nextValue = JSON.stringify({ me });
-    if (value !== nextValue) {
-      Cookies.set(KEY, nextValue, {
-        expires: new Date(Date.now() + ONE_DAY * 365),
-      });
-      value = nextValue;
-    }
-
-    return result;
-  };
-
-export const getInitialState = () => {
-  if (!value) {
+function readSession() {
+  try {
+    return JSON.parse(Cookies.get(KEY) ?? "null");
+  } catch {
     return null;
   }
-  return JSON.parse(value);
+}
+
+export const sessionStorageMiddleware =
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  () => (next: (action: any) => any) => (action: any) => {
+    if (action.type === types.SET_ME && !action.me) {
+      Cookies.remove(KEY);
+    }
+    return next(action);
+  };
+
+/**
+ * Browsers signed in before sessions existed still have the password in this
+ * cookie. Hand it to upgradeLegacySession once, and keep it out of the store.
+ */
+export const legacyPassword = (): string | undefined => readSession()?.me?.password;
+
+export const getInitialState = () => {
+  const me = readSession()?.me;
+  return me ? { me: { id: me.id, username: me.username } } : null;
 };

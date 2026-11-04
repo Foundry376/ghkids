@@ -1,12 +1,12 @@
 import { useContext, useEffect, useRef, useState } from "react";
 import { Button, Modal, ModalBody, ModalFooter, ModalHeader } from "reactstrap";
 import { EditorContext } from "../../../../components/editor-context";
+import { API_ROOT } from "../../../../helpers/api";
 import { SOUND_LIBRARY, SOUND_LIBRARY_ATTRIBUTION } from "../../../constants/sound-library";
 import { playSound } from "../../../utils/sound-player";
 
 export type PickedSound = { url: string; name: string };
 
-const API_ROOT = window.location.host.includes("codako") ? `` : `http://localhost:8080`;
 const ALL_TAG = "__all__";
 const MAX_RECORDING_MS = 10 * 1000;
 const LIBRARY_TAGS = Array.from(new Set(SOUND_LIBRARY.flatMap((s) => s.tags))).sort();
@@ -84,12 +84,11 @@ export const SoundPickerModal = ({
   const _upload = async (file: Blob, filename: string, name: string) => {
     setUploading(true);
     try {
-      const me = window.store.getState().me;
       const formData = new FormData();
       formData.append("sound", file, filename);
       const resp = await fetch(`${API_ROOT}/upload-sound`, {
         method: "POST",
-        headers: { Authorization: me && `Basic ${btoa(me.username + ":" + me.password)}` },
+        credentials: "include",
         body: formData,
       });
       const data = await resp.json();

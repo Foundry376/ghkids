@@ -10,6 +10,7 @@ describe("makeRequest", () => {
   let alerts: string[];
   let dispatched: any[];
   let status: number;
+  let fetched: { url: string; init: RequestInit }[];
 
   const stillPending = (promise: Promise<unknown>) =>
     Promise.race([
@@ -22,15 +23,17 @@ describe("makeRequest", () => {
 
   before(async () => {
     (globalThis as any).window = {
-      location: { host: "localhost", pathname: "/editor/5", search: "?a=1", href: "" },
+      location: { host: "localhost:5173", hostname: "localhost", pathname: "/editor/5", search: "?a=1", href: "" },
       alert: (message: string) => alerts.push(message),
       store: {
         dispatch: (action: any) => dispatched.push(action),
         getState: () => ({ me }),
       },
     };
-    globalThis.fetch = (async () =>
-      ({ status, statusText: "", json: async () => ({ message: "Nope." }) }) as Response) as any;
+    globalThis.fetch = (async (url: string, init: RequestInit) => {
+      fetched.push({ url, init });
+      return { status, statusText: "", json: async () => ({ message: "Nope." }) } as Response;
+    }) as any;
     ({ makeRequest, isSignInRequired } = await import("./api"));
   });
 
@@ -42,6 +45,16 @@ describe("makeRequest", () => {
   beforeEach(() => {
     alerts = [];
     dispatched = [];
+    fetched = [];
+  });
+
+  it("sends the session cookie to the local API, and never a password", async () => {
+    status = 200;
+    await makeRequest("/worlds");
+
+    expect(fetched[0].url).to.equal("http://localhost:8080/worlds");
+    expect(fetched[0].init.credentials).to.equal("include");
+    expect(fetched[0].init.headers).to.deep.equal({ "Content-Type": "application/json" });
   });
 
   // The redirect test comes last: once it runs, the module stays "signed out".
@@ -57,7 +70,7 @@ describe("makeRequest", () => {
 
   it("leaves a rejected password to the login form", async () => {
     status = 403;
-    const error = await makeRequest("/users/me", {
+    const error = await makeRequest("/sessions", {
       headers: { Authorization: "Basic abc" },
     }).catch((e) => e);
 
@@ -66,7 +79,7 @@ describe("makeRequest", () => {
     expect(isSignInRequired()).to.equal(false);
   });
 
-  it("asks once for a new login when the saved one is rejected", async () => {
+  it("asks once for a new login when the session is rejected", async () => {
     status = 403;
     const requests = [makeRequest("/worlds/5"), makeRequest("/worlds?user=me")];
 
