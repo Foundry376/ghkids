@@ -682,6 +682,9 @@ export default function WorldOperator(
             position: nextPos,
             variableValues: {},
           });
+          // An actor born mid-tick missed this tick's roll; give it one now so
+          // rules that check it this tick don't all see the default value.
+          rollRandomVariablesForActor(nextActor);
           frameAccumulator?.push({ ...nextActor, actionIdx });
           actors[nextActor.id] = nextActor;
 
@@ -966,14 +969,18 @@ export default function WorldOperator(
       }
     }
     for (const actor of Object.values(actors)) {
-      const character = characters[actor.characterId];
-      if (!character) continue;
-      for (const definition of Object.values(character.variables)) {
-        if (definition.random) {
-          actor.variableValues[definition.id] = String(
-            rollRandomInRange(definition.random.min, definition.random.max),
-          );
-        }
+      rollRandomVariablesForActor(actor);
+    }
+  }
+
+  function rollRandomVariablesForActor(actor: Actor) {
+    const character = characters[actor.characterId];
+    if (!character) return;
+    for (const definition of Object.values(character.variables)) {
+      if (definition.random) {
+        actor.variableValues[definition.id] = String(
+          rollRandomInRange(definition.random.min, definition.random.max),
+        );
       }
     }
   }
