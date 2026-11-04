@@ -134,6 +134,7 @@ describe("Worlds API", () => {
         userId: user.id,
         data: { test: "data" },
         playCount: 0,
+        published: true,
       });
 
       const res = await request(app).get(`/worlds/${world.id}`).expect(200);
@@ -177,6 +178,46 @@ describe("Worlds API", () => {
         .expect(200);
       expect(owner.body.unsavedData).to.deep.equal({ draft: true });
     });
+
+    it("hides an unpublished world from everyone but its owner", async () => {
+      const { user: owner, authHeader: ownerAuth } = await createTestUser("owner", "password123");
+      const { authHeader: otherAuth } = await createTestUser("other", "password123");
+      const world = await AppDataSource.getRepository(World).save({
+        name: "Secret World",
+        thumbnail: "#",
+        userId: owner.id,
+        data: { test: "data" },
+        published: false,
+      });
+
+      const anon = await request(app).get(`/worlds/${world.id}`).expect(404);
+      expect(anon.body.data).to.be.undefined;
+      await request(app).get(`/worlds/${world.id}`).set("Authorization", otherAuth).expect(404);
+
+      const mine = await request(app)
+        .get(`/worlds/${world.id}`)
+        .set("Authorization", ownerAuth)
+        .expect(200);
+      expect(mine.body.data).to.deep.equal({ test: "data" });
+    });
+
+    it("serves the tutorial world even though it isn't published", async () => {
+      const { user } = await createTestUser("admin", "password123");
+      const world = await AppDataSource.getRepository(World).save({
+        name: "Tutorial",
+        thumbnail: "#",
+        userId: user.id,
+        published: false,
+      });
+      const previous = process.env.TUTORIAL_WORLD_ID;
+      process.env.TUTORIAL_WORLD_ID = String(world.id);
+      try {
+        const res = await request(app).get("/worlds/tutorial").expect(200);
+        expect(res.body.name).to.equal("Tutorial");
+      } finally {
+        process.env.TUTORIAL_WORLD_ID = previous;
+      }
+    });
   });
 
   // Plays and remixes are other people's doing: they count, but they don't
@@ -193,6 +234,7 @@ describe("Worlds API", () => {
         data: { test: "data" },
         playCount: 0,
         forkCount: 0,
+        published: true,
       });
       await worldRepo
         .createQueryBuilder()
@@ -250,6 +292,33 @@ describe("Worlds API", () => {
       expect(res.body.id).to.be.a("number");
     });
 
+    it("won't copy an unpublished world someone else made", async () => {
+      const { user: owner, authHeader: ownerAuth } = await createTestUser("owner", "password123");
+      const { authHeader: otherAuth } = await createTestUser("other", "password123");
+      const world = await AppDataSource.getRepository(World).save({
+        name: "Secret World",
+        thumbnail: "#",
+        userId: owner.id,
+        published: false,
+      });
+
+      await request(app)
+        .post(`/worlds?from=${world.id}&fork=true`)
+        .set("Authorization", otherAuth)
+        .expect(404);
+      await request(app)
+        .post(`/worlds?from=${world.id}`)
+        .set("Authorization", otherAuth)
+        .expect(404);
+
+      // The owner can still duplicate their own.
+      const copy = await request(app)
+        .post(`/worlds?from=${world.id}`)
+        .set("Authorization", ownerAuth)
+        .expect(200);
+      expect(copy.body.name).to.equal("Secret World");
+    });
+
     it("should send fork email when forking a world", async () => {
       const sendForkEmailStub = sinon.stub(email, "sendForkEmail").resolves(true);
 
@@ -267,6 +336,7 @@ describe("Worlds API", () => {
           name: "Original World",
           thumbnail: "#",
           userId: owner.id,
+          published: true,
         });
 
         // Fork the world as a different user
@@ -306,6 +376,7 @@ describe("Worlds API", () => {
           name: "Original World",
           thumbnail: "#",
           userId: owner.id,
+          published: true,
         });
 
         // Fork the world as a different user
@@ -345,6 +416,33 @@ describe("Worlds API", () => {
         .expect(200);
 
       expect(res.body).to.have.length(2);
+    });
+  });
+
+  describe("GET /worlds?user=<username>", () => {
+    it("lists only published worlds to anyone but the owner", async () => {
+      const { user, authHeader } = await createTestUser("maker", "password123");
+      const { authHeader: otherAuth } = await createTestUser("other", "password123");
+      await AppDataSource.getRepository(World).save([
+        { name: "Shown", thumbnail: "#", userId: user.id, published: true },
+        { name: "Hidden", thumbnail: "#", userId: user.id, published: false },
+      ]);
+      const names = (res: request.Response) => res.body.map((w: { name: string }) => w.name);
+
+      const anon = await request(app).get("/worlds?user=maker").expect(200);
+      expect(names(anon)).to.deep.equal(["Shown"]);
+
+      const other = await request(app)
+        .get("/worlds?user=maker")
+        .set("Authorization", otherAuth)
+        .expect(200);
+      expect(names(other)).to.deep.equal(["Shown"]);
+
+      const mine = await request(app)
+        .get("/worlds?user=maker")
+        .set("Authorization", authHeader)
+        .expect(200);
+      expect(names(mine)).to.have.members(["Shown", "Hidden"]);
     });
   });
 

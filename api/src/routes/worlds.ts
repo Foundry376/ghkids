@@ -58,6 +58,23 @@ async function incrementCount(id: number, column: "playCount" | "forkCount") {
     .execute();
 }
 
+function isOwner(world: World, user: User | undefined | null) {
+  return !!user && String(world.userId) === String(user.id);
+}
+
+/**
+ * A game nobody has published is private to the person who made it: the
+ * privacy policy and terms promise that. The tutorial is the one exception -
+ * everyone starts from it, published or not.
+ */
+function canView(world: World, user: User | undefined | null) {
+  return (
+    world.published ||
+    isOwner(world, user) ||
+    String(world.id) === String(process.env.TUTORIAL_WORLD_ID)
+  );
+}
+
 router.get("/worlds/:objectId", userFromBasicAuth, async (req, res) => {
   let objectId = req.params.objectId;
   if (objectId === "tutorial") {
@@ -67,7 +84,9 @@ router.get("/worlds/:objectId", userFromBasicAuth, async (req, res) => {
     where: { id: Number(objectId) },
     relations: ["user", "forkParent"],
   });
-  if (!world) {
+  // An unpublished game someone else made looks exactly like a missing one,
+  // so ids can't be used to find out which games exist.
+  if (!world || !canView(world, req.user)) {
     res.status(404).json({ message: "Sorry, this world could not be found." });
     return;
   }
@@ -75,13 +94,13 @@ router.get("/worlds/:objectId", userFromBasicAuth, async (req, res) => {
   await incrementCount(world.id, "playCount");
   world.playCount = Number(world.playCount) + 1;
 
-  // Return both data and unsavedData with their timestamps - let frontend decide which to use.
-  // The draft is the owner's unfinished work, so only the owner gets it.
-  const isOwner = req.user?.id === world.userId;
+  // The owner gets both data and unsavedData - the editor decides which to use.
+  // Anyone else gets only the saved game: an unsaved draft is as private as an
+  // unpublished game.
   res.json(
     Object.assign({}, world.serialize(), {
       data: world.data,
-      unsavedData: isOwner ? (world.unsavedData ?? null) : null,
+      unsavedData: isOwner(world, req.user) ? (world.unsavedData ?? null) : null,
     }),
   );
 });
@@ -106,9 +125,11 @@ router.get("/worlds", userFromBasicAuth, async (req, res) => {
     return res.status(401).json({ message: "This user does not exist." });
   }
 
+  // Someone else's list - their profile page - holds only what they've published.
+  const owner = !!req.user && String(req.user.id) === String(user.id);
   const worlds = await AppDataSource.getRepository(World).find({
     relations: ["user", "forkParent"],
-    where: { userId: user.id },
+    where: owner ? { userId: user.id } : { userId: user.id, published: true },
   });
   res.json(worlds.map((w) => w.serialize()));
 });
@@ -130,6 +151,10 @@ router.post("/worlds", userFromBasicAuth, async (req, res) => {
       where: { id: Number(from) },
       relations: ["user"],
     });
+    // Copying an unpublished game someone else made would hand out a private game.
+    if (!sourceWorld || !canView(sourceWorld, req.user)) {
+      return res.status(404).json({ message: "Sorry, this world could not be found." });
+    }
   }
   if (sourceWorld) {
     if (fork) {
