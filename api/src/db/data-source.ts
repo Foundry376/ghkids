@@ -1,4 +1,5 @@
 import { DataSource } from "typeorm";
+import { Session } from "./entity/session";
 import { User } from "./entity/user";
 import { World } from "./entity/world";
 
@@ -14,7 +15,7 @@ export const AppDataSource = new DataSource({
   synchronize: process.env.NODE_ENV !== "production",
   logging: ["error"],
   maxQueryExecutionTime: 30000,
-  entities: [User, World],
+  entities: [User, World, Session],
   subscribers: [],
   ssl: process.env.NODE_ENV === "production" ? { rejectUnauthorized: false } : false,
   migrations: process.env.NODE_ENV === "test" ? [] : ["dist/db/migrations/*.js"],

@@ -47,7 +47,22 @@ if (process.env.NODE_ENV !== "test") {
 app.set("json spaces", 2);
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 app.use(compression() as any);
-app.use(cors({ origin: true, credentials: true }));
+
+// Anyone can read public data from anywhere, but only our own pages may make
+// requests that use someone's session.
+const isOwnOrigin = (origin: string | undefined) =>
+  !!origin &&
+  (["https://www.codako.org", "https://codako.org", "https://staging.codako.org"].includes(
+    origin,
+  ) ||
+    (process.env.NODE_ENV !== "production" &&
+      /^http:\/\/(localhost|127\.0\.0\.1):\d+$/.test(origin)));
+
+app.use(
+  cors((req, callback) =>
+    callback(null, { origin: true, credentials: isOwnOrigin(req.headers.origin) }),
+  ),
+);
 
 app.use("/", require("./routes/users").default);
 app.use("/", require("./routes/worlds").default);

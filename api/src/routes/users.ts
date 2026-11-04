@@ -3,8 +3,9 @@ import crypto from "node:crypto";
 import { AppDataSource } from "src/db/data-source";
 import { sendPasswordResetEmail } from "src/connectors/email";
 import { User } from "src/db/entity/user";
-import { userFromBasicAuth } from "src/middleware";
+import { userFromAuth, userFromAuthHeader } from "src/middleware";
 import { logger } from "src/logger";
+import { clearSessionCookies, createSession, endAllSessions, endSession } from "src/sessions";
 
 const APP_URL = process.env.APP_URL || "https://www.codako.org";
 
@@ -22,7 +23,9 @@ interface RecaptchaResponse {
   "error-codes"?: string[];
 }
 
-async function verifyRecaptcha(token: string): Promise<{ success: boolean; score?: number; error?: string }> {
+async function verifyRecaptcha(
+  token: string,
+): Promise<{ success: boolean; score?: number; error?: string }> {
   const isProduction = process.env.NODE_ENV === "production";
 
   if (!RECAPTCHA_SECRET_KEY) {
@@ -57,7 +60,10 @@ async function verifyRecaptcha(token: string): Promise<{ success: boolean; score
     const data = (await response.json()) as RecaptchaResponse;
 
     if (!data.success) {
-      return { success: false, error: `reCAPTCHA verification failed: ${data["error-codes"]?.join(", ") || "unknown error"}` };
+      return {
+        success: false,
+        error: `reCAPTCHA verification failed: ${data["error-codes"]?.join(", ") || "unknown error"}`,
+      };
     }
 
     if (data.score !== undefined && data.score < RECAPTCHA_SCORE_THRESHOLD) {
@@ -71,7 +77,24 @@ async function verifyRecaptcha(token: string): Promise<{ success: boolean; score
   }
 }
 
-router.get("/users/me", userFromBasicAuth, async (req, res) => {
+router.post("/sessions", async (req, res) => {
+  const { user, error } = await userFromAuthHeader(req);
+  if (error) {
+    return res.status(403).json({ message: error });
+  }
+  if (!user) {
+    return res.status(401).json({ message: "Authentication required." });
+  }
+  await createSession(res, user);
+  res.json(user.serialize());
+});
+
+router.delete("/sessions/current", async (req, res) => {
+  await endSession(req, res);
+  res.json({ success: true });
+});
+
+router.get("/users/me", userFromAuth, async (req, res) => {
   if (!req.user) {
     return res.status(401).json({ message: "Authentication required." });
   }
@@ -115,6 +138,7 @@ router.post("/users", async (req, res) => {
       passwordSalt,
     });
     await AppDataSource.getRepository(User).save(user);
+    await createSession(res, user);
     res.json(user.serialize());
   } catch (err) {
     if (`${err}`.includes("unique constraint")) {
@@ -135,7 +159,9 @@ router.post("/users/forgot-password", async (req, res) => {
 
   // Always return success to avoid leaking whether an email exists
   if (!user) {
-    return res.json({ message: "If an account with that email exists, we've sent a password reset link." });
+    return res.json({
+      message: "If an account with that email exists, we've sent a password reset link.",
+    });
   }
 
   const token = crypto.randomBytes(32).toString("hex");
@@ -171,6 +197,9 @@ router.post("/users/reset-password", async (req, res) => {
   user.passwordResetToken = null;
   user.passwordResetExpiry = null;
   await AppDataSource.getRepository(User).save(user);
+
+  await endAllSessions(user);
+  clearSessionCookies(res);
 
   res.json({ message: "Your password has been reset. You can now log in." });
 });
