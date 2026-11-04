@@ -478,7 +478,8 @@ describe("data-migrations", () => {
     });
 
     describe("dice condition migration", () => {
-      const diceRule = (id: string, mainActorId: string) => ({
+      // These are old saves, which the current types rightly don't describe.
+      const diceRule = (id: string, mainActorId: string): any => ({
         id,
         type: "rule",
         mainActorId,
@@ -510,7 +511,7 @@ describe("data-migrations", () => {
                   rules: [diceRule("right", "actor-a"), diceRule("left", "actor-b")],
                 },
               ],
-            },
+            } as any,
           },
         });
 
@@ -560,7 +561,7 @@ describe("data-migrations", () => {
                   rules: [],
                 },
               ],
-            },
+            } as any,
           },
         });
 

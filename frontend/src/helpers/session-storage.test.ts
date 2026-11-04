@@ -59,7 +59,13 @@ describe("upgradeLegacySession", () => {
   let respond: () => Promise<unknown>;
 
   const run = () =>
-    upgradeLegacySession()((action: any) => dispatched.push(action), () => ({ me }) as any);
+    upgradeLegacySession()(
+      (action: any) => {
+        dispatched.push(action);
+        return action;
+      },
+      () => ({ me }) as any,
+    );
 
   before(async () => {
     (globalThis as any).window = {

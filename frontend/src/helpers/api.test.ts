@@ -60,7 +60,7 @@ describe("makeRequest", () => {
   // The redirect test comes last: once it runs, the module stays "signed out".
   it("leaves other failures to the caller", async () => {
     status = 401;
-    const error = await makeRequest("/worlds").catch((e) => e);
+    const error: any = await makeRequest("/worlds").catch((e) => e);
 
     expect(error.message).to.equal("Nope.");
     expect(error.statusCode).to.equal(401);
@@ -70,7 +70,7 @@ describe("makeRequest", () => {
 
   it("leaves a rejected password to the login form", async () => {
     status = 403;
-    const error = await makeRequest("/sessions", {
+    const error: any = await makeRequest("/sessions", {
       headers: { Authorization: "Basic abc" },
     }).catch((e) => e);
 
