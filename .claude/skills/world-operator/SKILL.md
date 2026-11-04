@@ -101,9 +101,6 @@ Rules are organized hierarchically:
 - `{ actorId, variableId }` - Actor's variable/appearance/transform
 - `{ globalId }` - Global variable
 - `{ stageVariableId }` - Stage (level) variable
-- `{ random: { min, max } }` - A whole number rolled fresh each time the
-  condition is checked (the dice button adds `random 0-99 < 50`). Skipped in
-  `actorsMatch` so each rule check rolls exactly once
 
 **RuleAction** types:
 - `move` - Change position (delta or offset)
@@ -127,7 +124,11 @@ WorldOperator(previousWorld, characters, characterZOrder) → {
 ### tick() Flow
 
 1. **Snapshot** previous state to history
-2. **Clone** globals and actors for mutation
+2. **Clone** globals and actors for mutation, then `rollRandomVariables()`:
+   every variable definition with `random: { min, max }` (character variables,
+   world globals, level/stage variables) gets a fresh whole number. Character
+   variables roll once per actor, globals and level variables once per tick,
+   so every rule checked in the tick sees the same roll
 3. **Update** special globals (keypress, click)
 4. **Evaluate** each actor's rules via `ActorOperator`, top-most character
    first (`sortActorIdsByTickOrder`: descending `characterZOrder`, then actor

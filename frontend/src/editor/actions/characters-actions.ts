@@ -1,5 +1,5 @@
 import { DeepPartial } from "redux";
-import { Character, Position } from "../../types";
+import { Character, Position, RandomRange } from "../../types";
 import * as types from "../constants/action-types";
 import { DOOR_VARIABLE_IDS } from "../utils/door-constants";
 import { makeId } from "../utils/utils";
@@ -112,12 +112,16 @@ export type ActionCreateCharacterFlowContainer = {
   id: string;
 };
 
-export function createCharacterVariable(characterId: string): ActionCreateCharacterVariable {
+export function createCharacterVariable(
+  characterId: string,
+  options: { random?: RandomRange } = {},
+): ActionCreateCharacterVariable {
   const variableId = makeId("var");
   return {
     type: types.CREATE_CHARACTER_VARIABLE,
     characterId,
     variableId,
+    ...(options.random ? { random: options.random } : {}),
   };
 }
 
@@ -125,6 +129,7 @@ export type ActionCreateCharacterVariable = {
   type: "CREATE_CHARACTER_VARIABLE";
   characterId: string;
   variableId: string;
+  random?: RandomRange;
 };
 
 export function deleteCharacterVariable(

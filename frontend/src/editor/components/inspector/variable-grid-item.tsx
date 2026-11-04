@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
-import { Button } from "reactstrap";
+import { Button, Modal, ModalBody, ModalFooter, ModalHeader } from "reactstrap";
 import { useDraggableContainer } from "../../../hooks/useDraggableContainer";
 import { useEditorSelector } from "../../../hooks/redux";
-import { Character, Global, StageVariable } from "../../../types";
+import { Character, Global, RandomRange, StageVariable } from "../../../types";
 import {
   getStageVariableBooleanInEffect,
   isStageVariableValueValid,
@@ -119,6 +119,88 @@ const NumberValueEditor = ({
   );
 };
 
+/**
+ * The dice in the corner of a random variable's box. Tapping it opens a small
+ * editor for the range the variable is rolled from each tick.
+ */
+const RandomVariableBadge = ({
+  range,
+  scope,
+  disabled,
+  onChange,
+}: {
+  range: RandomRange;
+  scope: "character" | "level" | "world";
+  disabled: boolean;
+  onChange: (range: RandomRange) => void;
+}) => {
+  const [open, setOpen] = useState(false);
+  const [min, setMin] = useState(String(range.min));
+  const [max, setMax] = useState(String(range.max));
+
+  useEffect(() => {
+    if (open) {
+      setMin(String(range.min));
+      setMax(String(range.max));
+    }
+  }, [open, range.min, range.max]);
+
+  const who = {
+    character: "Each character gets its own roll.",
+    level: "The level gets one roll that every character sees.",
+    world: "The world gets one roll that every character sees.",
+  }[scope];
+
+  const _onSave = () => {
+    const lo = Math.floor(Number(min));
+    const hi = Math.floor(Number(max));
+    if (Number.isFinite(lo) && Number.isFinite(hi)) {
+      onChange({ min: Math.min(lo, hi), max: Math.max(lo, hi) });
+    }
+    setOpen(false);
+  };
+
+  return (
+    <>
+      <span
+        className="variable-random-badge"
+        role="button"
+        title={`Random: a new whole number from ${range.min} to ${range.max} every tick. ${who}`}
+        onClick={(e) => {
+          if (disabled) return; // let the box handle tools like the trash can
+          e.stopPropagation();
+          setOpen(true);
+        }}
+      >
+        🎲
+      </span>
+      <Modal isOpen={open} toggle={() => setOpen(false)} size="sm">
+        <ModalHeader toggle={() => setOpen(false)}>Random Variable</ModalHeader>
+        <ModalBody>
+          <p>
+            Every tick, before any rules run, this variable gets a new random whole number. Every
+            rule checked during the tick sees the same number. {who}
+          </p>
+          <div className="variable-random-range">
+            From{" "}
+            <input type="number" step={1} value={min} onChange={(e) => setMin(e.target.value)} />{" "}
+            to{" "}
+            <input type="number" step={1} value={max} onChange={(e) => setMax(e.target.value)} />
+          </div>
+        </ModalBody>
+        <ModalFooter>
+          <Button color="secondary" onClick={() => setOpen(false)}>
+            Cancel
+          </Button>
+          <Button color="primary" onClick={_onSave}>
+            Done
+          </Button>
+        </ModalFooter>
+      </Modal>
+    </>
+  );
+};
+
 export const VariableGridItem = ({
   actorId,
   kind = "actor",
@@ -174,6 +256,10 @@ export const VariableGridItem = ({
     kind === "stageVariable" &&
     !isMixed &&
     !isStageVariableValueValid(definition as StageVariable, displayValue);
+
+  const randomRange = "random" in definition ? definition.random : undefined;
+  const randomScope =
+    kind === "stageVariable" ? "level" : "defaultValue" in definition ? "character" : "world";
 
   const [dropping, setDropping] = useState(false);
   const { containerProps } = useDraggableContainer();
@@ -291,7 +377,7 @@ export const VariableGridItem = ({
 
   return (
     <div
-      className={`variable-box ${readonly ? "variable-readonly" : `variable-set-${value !== undefined && !isMixed}`} dropping-${dropping} ${isInvalid ? "variable-invalid" : ""}`}
+      className={`variable-box ${randomRange ? "variable-random" : ""} ${readonly ? "variable-readonly" : `variable-set-${value !== undefined && !isMixed}`} dropping-${dropping} ${isInvalid ? "variable-invalid" : ""}`}
       title={
         isInvalid
           ? `"${displayValue}" can't be used for ${definition.name}, so the level is using its usual value instead.`
@@ -315,6 +401,14 @@ export const VariableGridItem = ({
             : (name) => onChangeDefinition(definition.id, { name })
         }
       />
+      {randomRange && (
+        <RandomVariableBadge
+          range={randomRange}
+          scope={randomScope}
+          disabled={readonly || disabled}
+          onChange={(random) => onChangeDefinition(definition.id, { random })}
+        />
+      )}
       {content}
     </div>
   );

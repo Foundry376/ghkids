@@ -454,18 +454,10 @@ html {
 
   .tool-click,
   .tool-keypress,
-  .tool-random,
   .tool-ignored-square {
     img {
       width: 30px;
       height: 30px;
-    }
-    .tool-emoji {
-      display: block;
-      width: 30px;
-      height: 30px;
-      font-size: 24px;
-      line-height: 30px;
     }
     padding: 4px;
   }
@@ -1329,9 +1321,25 @@ html {
   align-items: baseline;
 
   .variable-box {
+    position: relative;
     width: 110px;
     padding: 5px;
     padding-top: 0;
+
+    // A random variable gets a new value every tick; the dice in the corner
+    // says so and opens the range editor.
+    &.variable-random .name {
+      padding-right: 18px;
+    }
+    .variable-random-badge {
+      position: absolute;
+      top: 1px;
+      right: 3px;
+      font-size: 14px;
+      line-height: 1;
+      cursor: pointer;
+      user-select: none;
+    }
     background-color: #c6c6c6;
     box-sizing: content-box;
     margin: 8px 0;
@@ -2287,4 +2295,8 @@ button.btn.selected:active {
   &:hover {
     color: #666;
   }
+}
+
+.variable-random-range input {
+  width: 70px;
 }

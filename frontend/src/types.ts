@@ -188,9 +188,7 @@ export type RuleValue =
   | { constant: string }
   | { actorId: string; variableId: string | "appearance" | "transform" | "x" | "y" }
   | { globalId: string }
-  | { stageVariableId: string }
-  /** A fresh random integer in [min, max] (inclusive), rolled each time the condition is checked. */
-  | { random: { min: number; max: number } };
+  | { stageVariableId: string };
 
 /**
  * Within a rule, the main actor is always at "0,0" and the extent
@@ -243,10 +241,19 @@ export type Stage = {
   variableValues: Record<string, string>;
 };
 
+/**
+ * Marks a variable as a "random variable": at the start of every tick the
+ * engine replaces its value with a whole number from min to max (inclusive).
+ * Every rule checked during that tick sees the same roll, so "< 10" in one
+ * rule and ">= 10" in another always agree.
+ */
+export type RandomRange = { min: number; max: number };
+
 export type StageVariable =
   | {
       id: string;
       name: string;
+      random?: RandomRange;
     }
   | {
       id: "wrapX" | "wrapY";
@@ -295,6 +302,7 @@ export type Character = {
       name: string;
       defaultValue: string;
       type?: "stage";
+      random?: RandomRange;
     }
   >;
 };
@@ -352,6 +360,7 @@ export type Global =
       id: string;
       name: string;
       value: string;
+      random?: RandomRange;
     }
   | {
       id: "selectedStageId";

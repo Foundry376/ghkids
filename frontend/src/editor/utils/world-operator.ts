@@ -50,6 +50,7 @@ import {
   getVariableValue,
   pointByAdding,
   resolveRuleValue,
+  rollRandomInRange,
   RuleValueContext,
   shuffleArray,
   sortActorIdsByTickOrder,
@@ -172,14 +173,9 @@ export default function WorldOperator(
     }
 
     const character = characters[stageActor.characterId];
-    // Random conditions are skipped here: they say nothing about which stage
-    // actor fits the rule, and rolling once per candidate actor (and then
-    // again when the rule's conditions are checked) would skew the odds.
     const rconditions = conditions.filter(
       (a) =>
         a.enabled &&
-        !("random" in a.left) &&
-        !("random" in a.right) &&
         (("actorId" in a.left && a.left.actorId === ruleActor.id) ||
           ("actorId" in a.right && a.right.actorId === ruleActor.id)),
     );
@@ -948,6 +944,40 @@ export default function WorldOperator(
     );
   }
 
+  /**
+   * Give every random variable its roll for this tick, before any rule runs.
+   * World variables get one roll shared by everyone, level variables one roll
+   * for the current level, and character variables one roll per actor - so
+   * rules checking the same variable during a tick always see the same
+   * number, and the game maker picks the unit of randomness by picking where
+   * the variable lives.
+   */
+  function rollRandomVariables() {
+    for (const global of Object.values(globals)) {
+      if ("random" in global && global.random) {
+        global.value = String(rollRandomInRange(global.random.min, global.random.max));
+      }
+    }
+    for (const definition of Object.values(stageVariables)) {
+      if ("random" in definition && definition.random) {
+        stageVariableValues[definition.id] = String(
+          rollRandomInRange(definition.random.min, definition.random.max),
+        );
+      }
+    }
+    for (const actor of Object.values(actors)) {
+      const character = characters[actor.characterId];
+      if (!character) continue;
+      for (const definition of Object.values(character.variables)) {
+        if (definition.random) {
+          actor.variableValues[definition.id] = String(
+            rollRandomInRange(definition.random.min, definition.random.max),
+          );
+        }
+      }
+    }
+  }
+
   function tick(options: { clearInput?: boolean } = {}) {
     // read-only things
     const currentStage = getCurrentStageForWorld(previousWorld);
@@ -967,6 +997,7 @@ export default function WorldOperator(
     ctx = { globals, characters, stageVariables, stage: { variableValues: stageVariableValues } };
 
     actors = deepClone(stage.actors);
+    rollRandomVariables();
     frameAccumulator = new FrameAccumulator(stage.actors);
     sounds = [];
     evaluatedRuleDetails = {};
