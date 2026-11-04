@@ -6,7 +6,7 @@ import multer from "multer";
 import OpenAI from "openai";
 import path from "path";
 import { toFile } from "openai/uploads";
-import { userFromBasicAuth } from "src/middleware";
+import { userFromAuth } from "src/middleware";
 
 // Initialize OpenAI API client
 
@@ -14,7 +14,7 @@ const router = express.Router();
 
 let openai: OpenAI;
 
-router.get("/generate-sprite", userFromBasicAuth, async (req, res) => {
+router.get("/generate-sprite", userFromAuth, async (req, res) => {
   const prompt = (req.query.prompt as string) || "A sprite of a fantasy creature"; // Default prompt if none provided
   openai = openai || new OpenAI({});
 
@@ -101,7 +101,7 @@ router.get("/generate-sprite", userFromBasicAuth, async (req, res) => {
   }
 });
 
-router.post("/generate-sprite-name", userFromBasicAuth, async (req, res) => {
+router.post("/generate-sprite-name", userFromAuth, async (req, res) => {
   openai = openai || new OpenAI({});
   const { prompt, imageData } = req.body;
 
@@ -146,7 +146,7 @@ router.post("/generate-sprite-name", userFromBasicAuth, async (req, res) => {
   }
 });
 
-router.post("/edit-sprite", userFromBasicAuth, async (req, res) => {
+router.post("/edit-sprite", userFromAuth, async (req, res) => {
   try {
     openai = openai || new OpenAI({});
     const { imageData, maskData, prompt } = req.body;
@@ -275,7 +275,7 @@ router.post("/edit-sprite", userFromBasicAuth, async (req, res) => {
   }
 });
 
-router.post("/generate-rule-name", userFromBasicAuth, async (req, res) => {
+router.post("/generate-rule-name", userFromAuth, async (req, res) => {
   try {
     openai = openai || new OpenAI({});
     const { recording } = req.body as { recording?: unknown };
@@ -453,7 +453,7 @@ Output: "Roll Ball"
   }
 });
 
-router.get("/generate-background", userFromBasicAuth, async (req, res) => {
+router.get("/generate-background", userFromAuth, async (req, res) => {
   const prompt = (req.query.prompt as string) || "A fantasy game background scene"; // Default prompt if none provided
   const filename = (req.query.filename as string) || "background"; // Default filename if none provided
   openai = openai || new OpenAI({});
@@ -593,9 +593,9 @@ router.post("/upload-image", upload.single("image") as any, async (req, res) => 
 });
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-router.post("/upload-sound", userFromBasicAuth, upload.single("sound") as any, async (req, res) => {
+router.post("/upload-sound", userFromAuth, upload.single("sound") as any, async (req, res) => {
   // Each upload is a new permanent public object, so only signed-in users can add them.
-  // userFromBasicAuth lets requests without credentials through, so check here.
+  // userFromAuth lets requests without credentials through, so check here.
   if (!req.user) {
     return res.status(401).json({ error: "Sign in to upload or record sounds" });
   }

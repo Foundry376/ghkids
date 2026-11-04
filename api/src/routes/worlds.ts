@@ -3,7 +3,7 @@ import { sendForkEmail } from "src/connectors/email";
 import { AppDataSource } from "src/db/data-source";
 import { DEFAULT_NOTIFICATION_SETTINGS, User } from "src/db/entity/user";
 import { World } from "src/db/entity/world";
-import { optionalUserFromBasicAuth, userFromBasicAuth } from "src/middleware";
+import { optionalUserFromAuth, userFromAuth } from "src/middleware";
 
 const router = express.Router();
 
@@ -45,7 +45,7 @@ const EXPLORE_MAX_PAGE_SIZE = 60;
  * (the Public Games page asks for more as you go), and `q` narrows it to
  * games whose title or author's username contains it.
  */
-router.get("/worlds/explore", optionalUserFromBasicAuth, async (req, res) => {
+router.get("/worlds/explore", optionalUserFromAuth, async (req, res) => {
   const limit = Math.min(
     Math.max(Math.floor(Number(req.query.limit)) || EXPLORE_PAGE_SIZE, 1),
     EXPLORE_MAX_PAGE_SIZE,
@@ -88,7 +88,7 @@ async function incrementCount(id: number, column: "playCount" | "forkCount") {
     .execute();
 }
 
-router.get("/worlds/:objectId", optionalUserFromBasicAuth, async (req, res) => {
+router.get("/worlds/:objectId", optionalUserFromAuth, async (req, res) => {
   let objectId = req.params.objectId;
   if (objectId === "tutorial") {
     objectId = process.env.TUTORIAL_WORLD_ID!;
@@ -124,9 +124,7 @@ router.get(
   "/worlds",
   // "My games" is meaningless without a working login, unlike a public profile.
   (req, res, next) =>
-    req.query.user === "me"
-      ? userFromBasicAuth(req, res, next)
-      : optionalUserFromBasicAuth(req, res, next),
+    req.query.user === "me" ? userFromAuth(req, res, next) : optionalUserFromAuth(req, res, next),
   async (req, res) => {
     let user: User | null = null;
     if (req.query.user === "me") {
@@ -155,7 +153,7 @@ router.get(
   },
 );
 
-router.post("/worlds", userFromBasicAuth, async (req, res) => {
+router.post("/worlds", userFromAuth, async (req, res) => {
   if (!req.user) {
     return res.status(401).json({ message: "Authentication required." });
   }
@@ -221,7 +219,7 @@ function descriptionFrom(body: Record<string, unknown>, world: World): string | 
   return "description" in body ? ((body.description as string | null) ?? null) : world.description;
 }
 
-router.put("/worlds/:objectId", userFromBasicAuth, async (req, res) => {
+router.put("/worlds/:objectId", userFromAuth, async (req, res) => {
   if (!req.user) {
     return res.status(401).json({ message: "This user does not exist." });
   }
@@ -288,7 +286,7 @@ router.put("/worlds/:objectId", userFromBasicAuth, async (req, res) => {
   );
 });
 
-router.delete("/worlds/:objectId", userFromBasicAuth, async (req, res) => {
+router.delete("/worlds/:objectId", userFromAuth, async (req, res) => {
   if (!req.user) {
     return res.status(401).json({ message: "Authentication required." });
   }
