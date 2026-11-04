@@ -201,6 +201,14 @@ describe("Worlds API", () => {
       expect(mine.body.data).to.deep.equal({ test: "data" });
     });
 
+    it("rejects a stale saved login asking for its own games", async () => {
+      await createTestUser("owner", "password123");
+      const wrongPassword = `Basic ${Buffer.from("owner:oldpassword").toString("base64")}`;
+
+      await request(app).get("/worlds?user=me").set("Authorization", wrongPassword).expect(403);
+      await request(app).get("/worlds?user=me").expect(404);
+    });
+
     it("treats a stale saved login as signed out", async () => {
       const { user } = await createTestUser("owner", "password123");
       const world = await AppDataSource.getRepository(World).save({

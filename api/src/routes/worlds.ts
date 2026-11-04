@@ -120,32 +120,40 @@ router.get("/worlds/:objectId", optionalUserFromBasicAuth, async (req, res) => {
 
 // Auth Required:
 
-router.get("/worlds", optionalUserFromBasicAuth, async (req, res) => {
-  let user: User | null = null;
-  if (req.query.user === "me") {
-    if (req.user) {
-      user = req.user;
+router.get(
+  "/worlds",
+  // "My games" is meaningless without a working login, unlike a public profile.
+  (req, res, next) =>
+    req.query.user === "me"
+      ? userFromBasicAuth(req, res, next)
+      : optionalUserFromBasicAuth(req, res, next),
+  async (req, res) => {
+    let user: User | null = null;
+    if (req.query.user === "me") {
+      if (req.user) {
+        user = req.user;
+      } else {
+        return res.status(404).json({ message: "Sorry, you must sign in." });
+      }
     } else {
-      return res.status(404).json({ message: "Sorry, you must sign in." });
+      user = await AppDataSource.getRepository(User).findOneBy({
+        username: req.query.user as string,
+      });
     }
-  } else {
-    user = await AppDataSource.getRepository(User).findOneBy({
-      username: req.query.user as string,
+
+    if (!user) {
+      return res.status(401).json({ message: "This user does not exist." });
+    }
+
+    // Someone else's list - their profile page - holds only what they've published.
+    const owner = !!req.user && String(req.user.id) === String(user.id);
+    const worlds = await AppDataSource.getRepository(World).find({
+      relations: ["user", "forkParent"],
+      where: owner ? { userId: user.id } : { userId: user.id, published: true },
     });
-  }
-
-  if (!user) {
-    return res.status(401).json({ message: "This user does not exist." });
-  }
-
-  // Someone else's list - their profile page - holds only what they've published.
-  const owner = !!req.user && String(req.user.id) === String(user.id);
-  const worlds = await AppDataSource.getRepository(World).find({
-    relations: ["user", "forkParent"],
-    where: owner ? { userId: user.id } : { userId: user.id, published: true },
-  });
-  res.json(worlds.map((w) => serializeFor(w, req.user)));
-});
+    res.json(worlds.map((w) => serializeFor(w, req.user)));
+  },
+);
 
 router.post("/worlds", userFromBasicAuth, async (req, res) => {
   if (!req.user) {
