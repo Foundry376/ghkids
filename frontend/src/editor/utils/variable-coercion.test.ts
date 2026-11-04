@@ -27,6 +27,32 @@ const stageWith = (values: Record<string, string>): Pick<Stage, "variableValues"
   variableValues: { ...BUILTIN_STAGE_VARIABLE_INITIAL_VALUES, ...values },
 });
 
+describe("variable-coercion with non-string values", () => {
+  // Older saved games hold raw numbers, such as defaultValue: 4, despite the
+  // string types. World 101 crashed on one of these as a loop count.
+  const four = 4 as unknown as string;
+
+  it("reads a raw number as a number", () => {
+    expect(isNumericValue(four)).to.equal(true);
+    expect(coerceToNumber(four, 0)).to.equal(4);
+    expect(isBoundedIntegerValue(four, { min: 0, max: 10 })).to.equal(true);
+    expect(coerceToBoundedInteger(four, { min: 0, max: 10, fallback: 0 })).to.equal(4);
+  });
+
+  it("does not throw when reading a raw number as a boolean", () => {
+    const one = 1 as unknown as string;
+    expect(isBooleanValue(one)).to.equal(true);
+    expect(coerceToBoolean(one, false)).to.equal(true);
+    expect(isBooleanValue(four)).to.equal(false);
+    expect(coerceToBoolean(four, true)).to.equal(true);
+  });
+
+  it("does not throw when reading a raw number as a background", () => {
+    expect(() => isCSSBackgroundValue(four)).to.not.throw();
+    expect(() => coerceToCSSBackground(four, "white")).to.not.throw();
+  });
+});
+
 describe("variable-coercion", () => {
   describe("isNumericValue", () => {
     it("accepts numbers, including negatives and floats", () => {
