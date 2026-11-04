@@ -3,16 +3,25 @@ import * as types from "../constants/action-types";
 import { makeRequest } from "../helpers/api";
 import { commitLocalDraft } from "../helpers/local-worlds";
 import { postAuthPath } from "../helpers/post-auth-path";
+import { legacyPassword } from "../helpers/session-storage";
 import { Game, World } from "../types";
 
 // unfortunately they're numbers, but I wish they were strings so making a type
 type ID = number;
 
-export type User = { id: ID; username: string; password: string; email: string };
+export type User = { id: ID; username: string; email: string };
 export type Profile = { id: ID; username: string };
 
 export function logout() {
-  return function (dispatch: Dispatch<MainActions>) {
+  return async function (dispatch: Dispatch<MainActions>) {
+    try {
+      await makeRequest("/sessions/current", { method: "DELETE" });
+    } catch {
+      // Their login is in a cookie only the server can end, so looking signed
+      // out here would leave it working on what may be a shared computer.
+      window.alert("We couldn't sign you out. Check your internet connection and try again.");
+      return;
+    }
     dispatch({
       type: types.SET_ME,
       me: null,
@@ -21,8 +30,34 @@ export function logout() {
   };
 }
 
+/**
+ * A browser signed in before sessions existed has its password in a cookie.
+ * Trade it for a session so nobody is signed out by the switch. The response
+ * replaces that cookie, removing the password. If the request fails, the
+ * cookie stays and we try again on the next page load.
+ */
+export function upgradeLegacySession() {
+  return async function (dispatch: Dispatch<MainActions>, getState: () => { me: User | null }) {
+    const { me } = getState();
+    const password = legacyPassword();
+    if (!me || !password) {
+      return;
+    }
+    try {
+      await makeRequest("/sessions", {
+        method: "POST",
+        headers: { Authorization: `Basic ${btoa(me.username + ":" + password)}` },
+      });
+    } catch (err) {
+      if ((err as { statusCode?: number }).statusCode === 403) {
+        dispatch({ type: types.SET_ME, me: null });
+      }
+    }
+  };
+}
+
 export function register(
-  { username, password, email }: Omit<User, "id">,
+  { username, password, email }: Omit<User, "id"> & { password: string },
   redirectTo: string,
   captchaToken?: string,
 ) {
@@ -33,30 +68,25 @@ export function register(
       method: "POST",
       json: { username, password, email, captchaToken },
     }).then((user) => {
-      dispatch({
-        type: types.SET_ME,
-        me: Object.assign(user, { password }),
-      });
+      dispatch({ type: types.SET_ME, me: user });
       window.location.href = postAuthPath(redirectTo);
     });
   };
 }
 
 export function login(
-  { username, password }: Pick<User, "username" | "password">,
+  { username, password }: { username: string; password: string },
   redirectTo: string,
 ) {
   // Returns the request, like register().
   return function (dispatch: Dispatch<MainActions>) {
-    return makeRequest<User>("/users/me", {
+    return makeRequest<User>("/sessions", {
+      method: "POST",
       headers: {
         Authorization: `Basic ${btoa(username + ":" + password)}`,
       },
     }).then((user) => {
-      dispatch({
-        type: types.SET_ME,
-        me: Object.assign(user, { password }),
-      });
+      dispatch({ type: types.SET_ME, me: user });
       window.location.href = postAuthPath(redirectTo);
     });
   };

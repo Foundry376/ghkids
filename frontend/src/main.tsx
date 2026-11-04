@@ -11,6 +11,7 @@ import "core-js";
 import { initializeSentry } from "./utils/sentry";
 initializeSentry();
 
+import { upgradeLegacySession } from "./actions/main-actions";
 import routes from "./routes";
 import initialState from "./reducers/initial-state";
 import configureStore from "./store/configureStore";
@@ -23,9 +24,14 @@ import "./styles/styles.scss";
 const store = configureStore(initialState);
 window.store = store;
 
-render(
-  <Provider store={store}>
-    <BrowserRouter>{routes}</BrowserRouter>
-  </Provider>,
-  document.getElementById("root"),
-);
+// Pages load data as soon as they appear, so an old login has to become a
+// session first. For everyone else this finishes immediately.
+const dispatch = store.dispatch as unknown as (action: unknown) => Promise<void>;
+dispatch(upgradeLegacySession()).finally(() => {
+  render(
+    <Provider store={store}>
+      <BrowserRouter>{routes}</BrowserRouter>
+    </Provider>,
+    document.getElementById("root"),
+  );
+});

@@ -233,6 +233,6 @@ Migrations run automatically on load, allowing old saved worlds to work with cur
 1. **Play Count Tracking**: Every `GET /worlds/:id` increments `playCount`
 2. **Fork Tracking**: Forking increments source's `forkCount` and sets `forkParentId`
 3. **Tutorial World**: Special ID "tutorial" maps to `process.env.TUTORIAL_WORLD_ID`
-4. **Basic Auth**: All authenticated requests use `Authorization: Basic {base64(user:pass)}`
+4. **Sessions**: Signing in (`POST /sessions`) sets an HttpOnly `codako_session` cookie and a readable `session` cookie with `{ me: { id, username } }`. The browser sends the cookie with `credentials: "include"`. Basic auth still works for the headless runner.
 5. **Debounced Saves**: Editor saves 5 seconds after last change
 6. **Upload Deduplication**: localStorage stores `uploadedAsId` to prevent re-uploads
