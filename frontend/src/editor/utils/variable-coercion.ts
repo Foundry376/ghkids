@@ -20,15 +20,24 @@
  */
 
 /**
+ * Stored values are meant to be strings, but older saved games hold raw
+ * numbers (a defaultValue of 4, say), so a read can't assume string methods.
+ */
+function asText(raw: string | undefined | null): string | null {
+  return raw === undefined || raw === null ? null : String(raw);
+}
+
+/**
  * True if `raw` reads as a finite number. Unlike bare `Number()`, blank and
  * whitespace-only strings are rejected rather than silently becoming 0 — an
  * empty box means "nothing here", not "zero".
  */
 export function isNumericValue(raw: string | undefined | null): boolean {
-  if (raw === undefined || raw === null || raw.trim() === "") {
+  const text = asText(raw);
+  if (text === null || text.trim() === "") {
     return false;
   }
-  return Number.isFinite(Number(raw));
+  return Number.isFinite(Number(text));
 }
 
 /** Read `raw` as a number, falling back when it isn't one. */
@@ -74,10 +83,11 @@ const FALSE_VALUES = ["false", "0", "no", "off", ""];
 
 /** True if `raw` reads as a yes/no value. */
 export function isBooleanValue(raw: string | undefined | null): boolean {
-  if (raw === undefined || raw === null) {
+  const text = asText(raw);
+  if (text === null) {
     return false;
   }
-  const v = raw.trim().toLowerCase();
+  const v = text.trim().toLowerCase();
   return TRUE_VALUES.includes(v) || FALSE_VALUES.includes(v);
 }
 
@@ -87,10 +97,11 @@ export function isBooleanValue(raw: string | undefined | null): boolean {
  * anything else.
  */
 export function coerceToBoolean(raw: string | undefined | null, fallback: boolean): boolean {
-  if (raw === undefined || raw === null) {
+  const text = asText(raw);
+  if (text === null) {
     return fallback;
   }
-  const v = raw.trim().toLowerCase();
+  const v = text.trim().toLowerCase();
   if (TRUE_VALUES.includes(v)) {
     return true;
   }
@@ -107,10 +118,11 @@ export function coerceToBoolean(raw: string | undefined | null, fallback: boolea
  * browser (headless runner, tests) there's nothing to ask, so we accept.
  */
 export function isCSSBackgroundValue(raw: string | undefined | null): boolean {
-  if (raw === undefined || raw === null || raw.trim() === "") {
+  const text = asText(raw);
+  if (text === null || text.trim() === "") {
     return false;
   }
-  if (raw.includes("url(")) {
+  if (text.includes("url(")) {
     return true;
   }
   // Reached through globalThis rather than the `CSS` global directly: this
@@ -119,7 +131,7 @@ export function isCSSBackgroundValue(raw: string | undefined | null): boolean {
   if (!css || typeof css.supports !== "function") {
     return true;
   }
-  return css.supports("background-color", raw);
+  return css.supports("background-color", text);
 }
 
 /** Read `raw` as a CSS background, falling back when it isn't usable as one. */
