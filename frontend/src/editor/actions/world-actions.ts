@@ -1,5 +1,5 @@
 import { DeepPartial } from "redux";
-import { Global, StageVariable, World } from "../../types";
+import { Global, RandomRange, StageVariable, World } from "../../types";
 import * as types from "../constants/action-types";
 import { makeId } from "../utils/utils";
 
@@ -23,7 +23,10 @@ export type ActionUpsertGlobal = {
   changes: DeepPartial<Global>;
 };
 
-export function createGlobal(worldId?: string): ActionUpsertGlobal {
+export function createGlobal(
+  worldId?: string,
+  options: { random?: RandomRange } = {},
+): ActionUpsertGlobal {
   const globalId = makeId("global");
   return {
     type: types.UPSERT_GLOBAL,
@@ -31,8 +34,9 @@ export function createGlobal(worldId?: string): ActionUpsertGlobal {
     globalId,
     changes: {
       id: globalId,
-      name: "Untitled",
+      name: options.random ? "Random" : "Untitled",
       value: "0",
+      ...(options.random ? { random: options.random } : {}),
     },
   };
 }
@@ -71,7 +75,10 @@ export type ActionUpsertStageVariable = {
   changes: Partial<StageVariable>;
 };
 
-export function createStageVariable(worldId?: string): ActionUpsertStageVariable {
+export function createStageVariable(
+  worldId?: string,
+  options: { random?: RandomRange } = {},
+): ActionUpsertStageVariable {
   const stageVariableId = makeId("stagevar");
   return {
     type: types.UPSERT_STAGE_VARIABLE,
@@ -79,7 +86,8 @@ export function createStageVariable(worldId?: string): ActionUpsertStageVariable
     stageVariableId,
     changes: {
       id: stageVariableId,
-      name: "Untitled",
+      name: options.random ? "Random" : "Untitled",
+      ...(options.random ? { random: options.random } : {}),
     },
   };
 }

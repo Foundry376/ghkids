@@ -411,9 +411,13 @@ export const ContainerPaneVariables = ({
   // The right-panel section reads/writes the currently-selected stage's value.
 
   const _onRenameStageVariable = (stageVariableId: string, changes: Partial<StageVariable>) => {
-    // Only `name` is editable here; values live on the stage, not the definition.
+    // Only `name` and a random variable's range are editable here; values
+    // live on the stage, not the definition.
     if ("name" in changes) {
       dispatch(upsertStageVariable(world.id, stageVariableId, { name: changes.name }));
+    }
+    if ("random" in changes && changes.random) {
+      dispatch(upsertStageVariable(world.id, stageVariableId, { random: changes.random }));
     }
   };
 

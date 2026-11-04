@@ -51,8 +51,9 @@ export default function charactersReducer(
           variables: {
             [action.variableId]: {
               defaultValue: "0",
-              name: "Untitled",
+              name: action.random ? "Random" : "Untitled",
               id: action.variableId,
+              ...(action.random ? { random: u.constant(action.random) } : {}),
             },
           },
         } as Pick<Character, "variables">,

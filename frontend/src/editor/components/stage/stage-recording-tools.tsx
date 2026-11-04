@@ -3,12 +3,9 @@ import { useDispatch } from "react-redux";
 
 import classNames from "classnames";
 import { useEditorSelector } from "../../../hooks/redux";
-import { upsertRecordingCondition } from "../../actions/recording-actions";
 import { pickConditionValueFromKeyboard, selectToolId } from "../../actions/ui-actions";
 import { TOOLS } from "../../constants/constants";
 import { forgivingPress } from "../../utils/pointer";
-import { RANDOM_CONDITION_RANGE } from "../../utils/stage-helpers";
-import { makeId } from "../../utils/utils";
 
 const StageRecordingTools = () => {
   const selectedToolId = useEditorSelector((state) => state.ui.selectedToolId);
@@ -69,26 +66,6 @@ const StageRecordingTools = () => {
           src={new URL("../../img/icon_event_click.png", import.meta.url).href}
           draggable={false}
         />
-      </Button>
-      <Button
-        className={classNames({ "tool-random": true, enabled: true })}
-        data-tutorial-id="record-tool-random"
-        title="Add a condition that only matches some of the time"
-        {...forgivingPress(
-          () =>
-            dispatch(
-              upsertRecordingCondition({
-                key: makeId("condition"),
-                enabled: true,
-                left: { random: { ...RANDOM_CONDITION_RANGE } },
-                comparator: "<",
-                right: { constant: "50" },
-              }),
-            ),
-          { fireOn: "press" },
-        )}
-      >
-        <span className="tool-emoji">🎲</span>
       </Button>
     </div>
   );

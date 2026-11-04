@@ -354,20 +354,19 @@ export function resolveRuleValue(
     // should have been scrubbed) or the seeding invariant was violated.
     return ctx.stage?.variableValues?.[val.stageVariableId] ?? null;
   }
-  if ("random" in val) {
-    return String(rollRandomInRange(val.random.min, val.random.max));
-  }
   isNever(val);
   return "";
 }
 
-/** The default range of the dice condition: "random < 25" matches 25% of the time. */
-export const RANDOM_CONDITION_RANGE = { min: 0, max: 99 };
-
 /** A uniformly distributed integer between min and max, inclusive. */
 export function rollRandomInRange(min: number, max: number) {
-  return min + Math.floor(Math.random() * (max - min + 1));
+  const lo = Math.ceil(Math.min(min, max));
+  const hi = Math.floor(Math.max(min, max));
+  return lo + Math.floor(Math.random() * (hi - lo + 1));
 }
+
+/** The range a new random variable starts with: "Random < 25" is true 25% of the time. */
+export const DEFAULT_RANDOM_RANGE = { min: 0, max: 99 };
 
 /**
  * Parse a "variable" drag-and-drop payload (set by VariableGridItem) into the
@@ -376,7 +375,7 @@ export function rollRandomInRange(min: number, max: number) {
  */
 export function ruleValueFromDragPayload(
   raw: string,
-): Exclude<RuleValue, { constant: string } | { random: unknown }> | null {
+): Exclude<RuleValue, { constant: string }> | null {
   const p = JSON.parse(raw) as {
     actorId?: string;
     globalId?: string;
