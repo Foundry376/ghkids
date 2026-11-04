@@ -142,6 +142,47 @@ describe("random variables", () => {
     expect(values.sort()).to.deep.equal(["10", "90"]);
   });
 
+  it("rolls random variables for an actor created mid-tick", () => {
+    Math.random = () => 0.37;
+    const { characters } = setup([]);
+    const spawner = makeCharacter({
+      id: "spawner",
+      rules: [
+        makeEventGroup({
+          id: "spawn-group",
+          event: "idle",
+          rules: [
+            makeRule({
+              id: "spawn",
+              mainActorId: "rule-spawner",
+              actors: { "rule-spawner": makeActor({ id: "rule-spawner", characterId: "spawner" }) },
+              extent: { xmin: 0, xmax: 1, ymin: 0, ymax: 0, ignored: { "1,0": true } },
+              actions: [
+                {
+                  type: "create",
+                  actorId: "new-ship",
+                  actor: makeActor({ id: "new-ship", characterId: charId }),
+                  offset: { x: 1, y: 0 },
+                },
+              ],
+            }),
+          ],
+        }),
+      ],
+    });
+    const world = makeWorld({
+      stage: makeStage({
+        id: "stage-1",
+        actors: { s: makeActor({ id: "s", characterId: "spawner", position: { x: 1, y: 1 } }) },
+      }),
+    });
+    const next = runSimulation(world, { ...characters, spawner }, 1);
+    const created = Object.values(next.stages["stage-1"].actors).find(
+      (a) => a.characterId === charId,
+    );
+    expect(created?.variableValues[rollVar]).to.equal("37");
+  });
+
   it("re-rolls world and level random variables every tick, once each", () => {
     let calls = 0;
     const sequence = [0.05, 0.6, 0.7, 0.2];
