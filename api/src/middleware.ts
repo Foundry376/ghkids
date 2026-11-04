@@ -35,7 +35,10 @@ export const userFromBasicAuth = async (
 ) => {
   const { user, error } = await userFromAuthHeader(req);
   if (error) {
-    return res.status(401).json({ message: error });
+    // 403 means "these credentials were rejected". The frontend asks people to
+    // sign in again when it gets one for a saved login, so routes shouldn't
+    // send it for anything else. "This needs an account" is a 401.
+    return res.status(403).json({ message: error });
   }
   if (user) {
     req.user = user;

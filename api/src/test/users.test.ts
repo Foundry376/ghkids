@@ -29,6 +29,26 @@ describe("Users API", () => {
     });
   });
 
+  describe("rejected credentials", () => {
+    it("should return 403 for a wrong password or an unknown username", async () => {
+      await createTestUser("stale", "password123");
+      const wrongPassword = `Basic ${Buffer.from("stale:oldpassword").toString("base64")}`;
+      const unknownUser = `Basic ${Buffer.from("gone:password123").toString("base64")}`;
+
+      const wrong = await request(app)
+        .get("/users/me")
+        .set("Authorization", wrongPassword)
+        .expect(403);
+      expect(wrong.body.message).to.include("password");
+
+      const unknown = await request(app)
+        .get("/users/me")
+        .set("Authorization", unknownUser)
+        .expect(403);
+      expect(unknown.body.message).to.include("does not exist");
+    });
+  });
+
   describe("GET /users/:username", () => {
     it("should return 404 for non-existent user", async () => {
       const res = await request(app).get("/users/nonexistent").expect(404);

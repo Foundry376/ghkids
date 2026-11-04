@@ -5,7 +5,7 @@ import { User } from "../actions/main-actions";
 import RootEditor from "../editor/root-editor";
 import StoreProvider from "../editor/store-provider";
 import { deepClone } from "../editor/utils/utils";
-import { makeRequest } from "../helpers/api";
+import { isSignInRequired, makeRequest } from "../helpers/api";
 import { usePageTitle } from "../hooks/usePageTitle";
 
 import { useParams } from "react-router";
@@ -228,6 +228,10 @@ const EditorPage = () => {
     };
 
     const _onBeforeUnload = (event: BeforeUnloadEvent) => {
+      // We've already told them why they're leaving, and a save can't work.
+      if (isSignInRequired()) {
+        return undefined;
+      }
       // Also try to save on beforeunload as backup, but not if exiting without saving or saving and exiting
       if (
         hasUnsavedChanges &&
@@ -346,7 +350,12 @@ const EditorPage = () => {
   }, [me, Adapter, worldId]);
 
   const saveDraft = () => {
-    if (!storeProvider.current || _isCommitting.current || _isExitingWithoutSaving.current) {
+    if (
+      !storeProvider.current ||
+      _isCommitting.current ||
+      _isExitingWithoutSaving.current ||
+      isSignInRequired()
+    ) {
       return Promise.resolve();
     }
     const json = storeProvider.current.getWorldSaveData();
@@ -374,10 +383,12 @@ const EditorPage = () => {
           return;
         }
         _savePromise.current = null;
+        // The alert is the whole response: drafts save in the background, so
+        // nothing is waiting on this promise and rethrowing only makes an
+        // unhandled rejection out of an expected network failure.
         alert(
           `Codako was unable to save changes to your world. Your internet connection may be offline. \n(Detail: ${e.message})`,
         );
-        throw e;
       });
 
     return _savePromise.current;
