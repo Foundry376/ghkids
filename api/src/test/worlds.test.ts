@@ -201,6 +201,67 @@ describe("Worlds API", () => {
       expect(mine.body.data).to.deep.equal({ test: "data" });
     });
 
+    it("treats a stale saved login as signed out", async () => {
+      const { user } = await createTestUser("owner", "password123");
+      const world = await AppDataSource.getRepository(World).save({
+        name: "Published World",
+        thumbnail: "#",
+        userId: user.id,
+        published: true,
+      });
+      const wrongPassword = `Basic ${Buffer.from("owner:oldpassword").toString("base64")}`;
+      const deletedAccount = `Basic ${Buffer.from("gone:password123").toString("base64")}`;
+
+      await request(app).get(`/worlds/${world.id}`).set("Authorization", wrongPassword).expect(200);
+      await request(app)
+        .get(`/worlds/${world.id}`)
+        .set("Authorization", deletedAccount)
+        .expect(200);
+      const list = await request(app)
+        .get("/worlds?user=owner")
+        .set("Authorization", wrongPassword)
+        .expect(200);
+      expect(list.body).to.have.length(1);
+    });
+
+    it("leaves off an unpublished game a published remix came from", async () => {
+      const { user: maker, authHeader: makerAuth } = await createTestUser("maker", "password123");
+      const { user: remixer } = await createTestUser("remixer", "password123");
+      const worldRepo = AppDataSource.getRepository(World);
+      const original = await worldRepo.save({
+        name: "Secret Original",
+        thumbnail: "#",
+        userId: maker.id,
+        published: false,
+      });
+      const remix = await worldRepo.save({
+        name: "Public Remix",
+        thumbnail: "#",
+        userId: remixer.id,
+        published: true,
+        forkParentId: original.id,
+      });
+
+      const play = await request(app).get(`/worlds/${remix.id}`).expect(200);
+      expect(play.body.forkParent).to.equal(null);
+      const explore = await request(app).get("/worlds/explore").expect(200);
+      expect(explore.body[0].forkParent).to.equal(null);
+      const profile = await request(app).get("/worlds?user=remixer").expect(200);
+      expect(profile.body[0].forkParent).to.equal(null);
+
+      // The original's maker can still see where the remix came from.
+      const mine = await request(app)
+        .get(`/worlds/${remix.id}`)
+        .set("Authorization", makerAuth)
+        .expect(200);
+      expect(mine.body.forkParent.name).to.equal("Secret Original");
+
+      // And once the original is published, everyone can.
+      await worldRepo.update(original.id, { published: true });
+      const later = await request(app).get(`/worlds/${remix.id}`).expect(200);
+      expect(later.body.forkParent.name).to.equal("Secret Original");
+    });
+
     it("serves the tutorial world even though it isn't published", async () => {
       const { user } = await createTestUser("admin", "password123");
       const world = await AppDataSource.getRepository(World).save({
