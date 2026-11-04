@@ -3,9 +3,39 @@ import { sendForkEmail } from "src/connectors/email";
 import { AppDataSource } from "src/db/data-source";
 import { DEFAULT_NOTIFICATION_SETTINGS, User } from "src/db/entity/user";
 import { World } from "src/db/entity/world";
-import { userFromBasicAuth } from "src/middleware";
+import { optionalUserFromBasicAuth, userFromBasicAuth } from "src/middleware";
 
 const router = express.Router();
+
+function isOwner(world: World, user: User | undefined | null) {
+  return !!user && String(world.userId) === String(user.id);
+}
+
+/**
+ * A game nobody has published is private to the person who made it: the
+ * privacy policy and terms promise that. The tutorial is the one exception -
+ * everyone starts from it, published or not.
+ */
+function canView(world: World, user: User | undefined | null) {
+  return (
+    world.published ||
+    isOwner(world, user) ||
+    String(world.id) === String(process.env.TUTORIAL_WORLD_ID)
+  );
+}
+
+/**
+ * A world as the viewer may see it. A published remix of a game that isn't
+ * published (or stopped being) mustn't show that game's name, thumbnail,
+ * description or author, so its "remixed from" is left off.
+ */
+function serializeFor(world: World, user: User | undefined | null) {
+  const json = world.serialize();
+  if (world.forkParent && !canView(world.forkParent, user)) {
+    json.forkParent = null;
+  }
+  return json;
+}
 
 const EXPLORE_PAGE_SIZE = 24;
 const EXPLORE_MAX_PAGE_SIZE = 60;
@@ -15,7 +45,7 @@ const EXPLORE_MAX_PAGE_SIZE = 60;
  * (the Public Games page asks for more as you go), and `q` narrows it to
  * games whose title or author's username contains it.
  */
-router.get("/worlds/explore", async (req, res) => {
+router.get("/worlds/explore", optionalUserFromBasicAuth, async (req, res) => {
   const limit = Math.min(
     Math.max(Math.floor(Number(req.query.limit)) || EXPLORE_PAGE_SIZE, 1),
     EXPLORE_MAX_PAGE_SIZE,
@@ -39,7 +69,7 @@ router.get("/worlds/explore", async (req, res) => {
     .skip(offset)
     .take(limit)
     .getMany();
-  res.json(worlds.map((w) => w.serialize()));
+  res.json(worlds.map((w) => serializeFor(w, req.user)));
 });
 
 /**
@@ -58,24 +88,7 @@ async function incrementCount(id: number, column: "playCount" | "forkCount") {
     .execute();
 }
 
-function isOwner(world: World, user: User | undefined | null) {
-  return !!user && String(world.userId) === String(user.id);
-}
-
-/**
- * A game nobody has published is private to the person who made it: the
- * privacy policy and terms promise that. The tutorial is the one exception -
- * everyone starts from it, published or not.
- */
-function canView(world: World, user: User | undefined | null) {
-  return (
-    world.published ||
-    isOwner(world, user) ||
-    String(world.id) === String(process.env.TUTORIAL_WORLD_ID)
-  );
-}
-
-router.get("/worlds/:objectId", userFromBasicAuth, async (req, res) => {
+router.get("/worlds/:objectId", optionalUserFromBasicAuth, async (req, res) => {
   let objectId = req.params.objectId;
   if (objectId === "tutorial") {
     objectId = process.env.TUTORIAL_WORLD_ID!;
@@ -98,7 +111,7 @@ router.get("/worlds/:objectId", userFromBasicAuth, async (req, res) => {
   // Anyone else gets only the saved game: an unsaved draft is as private as an
   // unpublished game.
   res.json(
-    Object.assign({}, world.serialize(), {
+    Object.assign({}, serializeFor(world, req.user), {
       data: world.data,
       unsavedData: isOwner(world, req.user) ? (world.unsavedData ?? null) : null,
     }),
@@ -107,7 +120,7 @@ router.get("/worlds/:objectId", userFromBasicAuth, async (req, res) => {
 
 // Auth Required:
 
-router.get("/worlds", userFromBasicAuth, async (req, res) => {
+router.get("/worlds", optionalUserFromBasicAuth, async (req, res) => {
   let user: User | null = null;
   if (req.query.user === "me") {
     if (req.user) {
@@ -131,7 +144,7 @@ router.get("/worlds", userFromBasicAuth, async (req, res) => {
     relations: ["user", "forkParent"],
     where: owner ? { userId: user.id } : { userId: user.id, published: true },
   });
-  res.json(worlds.map((w) => w.serialize()));
+  res.json(worlds.map((w) => serializeFor(w, req.user)));
 });
 
 router.post("/worlds", userFromBasicAuth, async (req, res) => {

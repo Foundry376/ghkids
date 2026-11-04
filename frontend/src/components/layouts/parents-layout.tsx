@@ -1,4 +1,5 @@
-import { Link, NavLink, Outlet } from "react-router-dom";
+import { useEffect } from "react";
+import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
 
 import { KidButton } from "../kid";
 
@@ -11,6 +12,14 @@ import "./parents-layout.scss";
  * kid side, so there's only ever one place to do it.
  */
 const ParentsLayout = () => {
+  // These pages are long and end in links to each other. The router keeps the
+  // window's scroll position across navigation, so without this the next page
+  // would open partway down, past its summary.
+  const { pathname } = useLocation();
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+
   return (
     <>
       <nav className="navbar navbar-expand parents-nav" aria-label="Pages for parents">
