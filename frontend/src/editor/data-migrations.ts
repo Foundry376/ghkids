@@ -43,6 +43,42 @@ function migrateRuleKeys(rule: any) {
   }
 }
 
+/**
+ * Nov 4 2026 - the dice condition, a { random: { min, max } } rule value, was
+ * replaced by random variables. Each dice condition gets its own variable so it
+ * keeps rolling independently: in a "first" group, a shared roll would mean a
+ * second "random <= 10" could never pass on a tick where the first one failed.
+ */
+function migrateDiceConditions(characters: any) {
+  for (const character of Object.values<any>(characters ?? {})) {
+    const migrateConditions = (scenario: any) => {
+      for (const condition of scenario?.conditions ?? []) {
+        for (const side of ["left", "right"]) {
+          const random = condition[side]?.random;
+          if (!random) continue;
+          const variableId = makeId("var");
+          character.variables ||= {};
+          character.variables[variableId] = {
+            id: variableId,
+            name: "Random",
+            defaultValue: "0",
+            random,
+          };
+          condition[side] = { actorId: scenario.mainActorId, variableId };
+        }
+      }
+    };
+    const migrateRules = (rules: any[] | undefined) => {
+      for (const rule of rules ?? []) {
+        migrateConditions(rule);
+        migrateConditions(rule.check);
+        migrateRules(rule.rules);
+      }
+    };
+    migrateRules(character.rules);
+  }
+}
+
 export function applyDataMigrations(game: Game): Game {
   const nonmigrated = JSON.stringify(game);
   const migrationErrors: Error[] = [];
@@ -164,6 +200,9 @@ export function applyDataMigrations(game: Game): Game {
   // draft (if any) — both can be picked as the source world by editor-page.
   applyStageVariableMigrations(result.data?.world);
   applyStageVariableMigrations(result.unsavedData?.world);
+
+  migrateDiceConditions(result.data?.characters);
+  migrateDiceConditions(result.unsavedData?.characters);
 
   const migrated = JSON.stringify(result);
 

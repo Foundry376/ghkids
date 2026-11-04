@@ -477,6 +477,123 @@ describe("data-migrations", () => {
       });
     });
 
+    describe("dice condition migration", () => {
+      const diceRule = (id: string, mainActorId: string) => ({
+        id,
+        type: "rule",
+        mainActorId,
+        actors: {},
+        actions: [],
+        conditions: [
+          {
+            key: `cond-${id}`,
+            enabled: true,
+            left: { random: { min: 0, max: 99 } },
+            comparator: "<=",
+            right: { constant: "10" },
+          },
+        ],
+      });
+
+      it("should turn each dice condition into its own random variable", () => {
+        const game = makeMinimalGame({
+          characters: {
+            ship: {
+              id: "ship",
+              name: "Ship",
+              variables: {},
+              rules: [
+                {
+                  id: "group",
+                  type: "group-flow",
+                  behavior: "first",
+                  rules: [diceRule("right", "actor-a"), diceRule("left", "actor-b")],
+                },
+              ],
+            },
+          },
+        });
+
+        const migrated = applyDataMigrations(game as unknown as Game) as any;
+        const ship = migrated.data.characters.ship;
+        const [right, left] = ship.rules[0].rules;
+
+        expect(right.conditions[0].left.actorId).to.equal("actor-a");
+        expect(left.conditions[0].left.actorId).to.equal("actor-b");
+        // In a "first" group a shared roll would stop the second rule from ever
+        // passing once the first had failed, so each keeps its own roll.
+        expect(right.conditions[0].left.variableId).to.not.equal(left.conditions[0].left.variableId);
+        expect(ship.variables[right.conditions[0].left.variableId]).to.deep.equal({
+          id: right.conditions[0].left.variableId,
+          name: "Random",
+          defaultValue: "0",
+          random: { min: 0, max: 99 },
+        });
+      });
+
+      it("should migrate a dice condition on either side, and in a group's check", () => {
+        const game = makeMinimalGame({
+          characters: {
+            ship: {
+              id: "ship",
+              name: "Ship",
+              variables: {},
+              rules: [
+                {
+                  id: "group",
+                  type: "group-flow",
+                  behavior: "all",
+                  check: {
+                    id: "check",
+                    mainActorId: "actor-a",
+                    actors: {},
+                    conditions: [
+                      {
+                        key: "check-cond",
+                        enabled: true,
+                        left: { constant: "10" },
+                        comparator: ">=",
+                        right: { random: { min: 1, max: 6 } },
+                      },
+                    ],
+                  },
+                  rules: [],
+                },
+              ],
+            },
+          },
+        });
+
+        const migrated = applyDataMigrations(game as unknown as Game) as any;
+        const ship = migrated.data.characters.ship;
+        const { right } = ship.rules[0].check.conditions[0];
+
+        expect(right.actorId).to.equal("actor-a");
+        expect(ship.variables[right.variableId].random).to.deep.equal({ min: 1, max: 6 });
+      });
+
+      it("should migrate an unsaved draft too", () => {
+        const game = makeMinimalGame({}) as any;
+        game.unsavedData = {
+          ...game.data,
+          characters: {
+            ship: {
+              id: "ship",
+              name: "Ship",
+              variables: {},
+              rules: [diceRule("right", "actor-a")],
+            },
+          },
+        };
+
+        const migrated = applyDataMigrations(game as Game) as any;
+        const ship = migrated.unsavedData.characters.ship;
+
+        expect(ship.rules[0].conditions[0].left.actorId).to.equal("actor-a");
+        expect(Object.keys(ship.variables)).to.have.length(1);
+      });
+    });
+
     describe("nested rule containers", () => {
       it("should migrate rules inside flow containers", () => {
         const game = makeMinimalGame({
