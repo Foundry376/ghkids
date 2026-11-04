@@ -282,15 +282,16 @@ export const Library: React.FC = () => {
   }, [dispatch]);
 
   const onCreateAppearance = useCallback(() => {
-    if (!ui.selectedCharacterId) return;
+    const character = ui.selectedCharacterId ? characters[ui.selectedCharacterId] : null;
+    if (!character) return;
 
-    const { spritesheet } = characters[ui.selectedCharacterId];
+    const { spritesheet } = character;
     const appearance = spritesheet.appearances[defaultAppearanceId(spritesheet)];
 
     const newAppearanceId = makeId("appearance");
     const newAppearanceData = appearance ? appearance[0] : null;
-    dispatch(createCharacterAppearance(ui.selectedCharacterId, newAppearanceId, newAppearanceData));
-    dispatch(paintCharacterAppearance(ui.selectedCharacterId, newAppearanceId));
+    dispatch(createCharacterAppearance(character.id, newAppearanceId, newAppearanceData));
+    dispatch(paintCharacterAppearance(character.id, newAppearanceId));
   }, [ui.selectedCharacterId, characters, dispatch]);
 
   const toggleCharacterDropdown = useCallback(() => {
@@ -333,7 +334,7 @@ export const Library: React.FC = () => {
           <Button
             size="sm"
             data-tutorial-id="appearances-add-button"
-            disabled={!ui.selectedCharacterId}
+            disabled={!ui.selectedCharacterId || !characters[ui.selectedCharacterId]}
             onClick={onCreateAppearance}
           >
             <i className="fa fa-plus" />
