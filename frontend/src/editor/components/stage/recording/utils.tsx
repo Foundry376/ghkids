@@ -77,6 +77,12 @@ export function getAfterWorldForRecording(
     {
       offset: offset,
       applyActions: true,
+      // Keep everything else that's on the stage. The before-view shows the
+      // whole world (or, when editing a saved rule, just the rule's actors),
+      // and the after-view has to show that same scene with the actions
+      // applied - otherwise the two halves of the rule editor look like
+      // different places.
+      keepStageActors: true,
     },
   ) as WorldMinimal;
 }
