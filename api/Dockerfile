@@ -1,7 +1,7 @@
 # syntax = docker/dockerfile:1
 
 # Adjust NODE_VERSION as desired
-ARG NODE_VERSION=20.10.0
+ARG NODE_VERSION=26
 FROM node:${NODE_VERSION}-slim AS base
 
 LABEL fly_launch_runtime="NodeJS"
@@ -11,8 +11,10 @@ WORKDIR /app
 
 # Set production environment
 ENV NODE_ENV=production
-# ARG YARN_VERSION=1.22.19
-# RUN npm install -g yarn@$YARN_VERSION
+
+# Node images no longer bundle yarn
+ARG YARN_VERSION=1.22.22
+RUN npm install -g yarn@$YARN_VERSION
 
 
 # Throw-away build stage to reduce size of final image

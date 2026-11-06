@@ -21,6 +21,11 @@ jobs:
       - name: Build Front-end
         run: cd frontend && yarn install && yarn build
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '26'
+
       - name: Build API
         run: cd api && yarn install && yarn build
 
@@ -44,6 +49,11 @@ jobs:
 
       - name: Build Front-end
         run: cd frontend && yarn install && yarn build
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '26'
 
       - name: Build API
         run: cd api && yarn install && yarn build
