@@ -2348,13 +2348,3 @@ button.btn.selected:active {
 .variable-random-range input {
   width: 70px;
 }
-
-// "true about 25% of the time" beside a condition on a random variable, in
-// the recording panel and in the rules list.
-.condition-random-chance {
-  margin-left: 8px;
-  font-size: 0.85em;
-  font-style: italic;
-  color: #777;
-  white-space: nowrap;
-}

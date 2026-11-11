@@ -391,31 +391,6 @@ export function parseRandomInput(text: string) {
 }
 
 /**
- * The fraction of rolls in `range` for which `roll <comparator> value` holds,
- * or null if the comparison isn't a numeric one. Used to tell the kid "true
- * about 25% of the time" next to a condition on a random variable.
- */
-export function chanceOfRandomComparison(
-  range: RandomRange,
-  comparator: VariableComparator,
-  value: string,
-  side: "left" | "right" = "left",
-): number | null {
-  if (!["<", "<=", ">", ">=", "=", "!="].includes(comparator)) return null;
-  if (value.trim() === "" || !Number.isFinite(Number(value))) return null;
-  const lo = Math.ceil(Math.min(range.min, range.max));
-  const hi = Math.floor(Math.max(range.min, range.max));
-  const total = hi - lo + 1;
-  if (total <= 0 || total > 1_000_000) return null;
-  let hits = 0;
-  for (let roll = lo; roll <= hi; roll++) {
-    const [a, b] = side === "left" ? [String(roll), value] : [value, String(roll)];
-    if (comparatorMatches(comparator, a, b)) hits++;
-  }
-  return hits / total;
-}
-
-/**
  * The range of the random variable a rule value reads, if it reads one.
  * `actors` are the rule's (or recording's) actors that actorId values name.
  */

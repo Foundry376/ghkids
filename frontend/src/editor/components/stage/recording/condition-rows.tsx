@@ -19,7 +19,6 @@ import {
 import { pickConditionValueFromKeyboard, selectToolId } from "../../../actions/ui-actions";
 import { TOOLS } from "../../../constants/constants";
 import {
-  chanceOfRandomComparison,
   isPercentRange,
   parseRandomInput,
   randomRangeForRuleValue,
@@ -51,7 +50,7 @@ type ImpliedDatatype =
   | { type: "stage" }
   | { type: "background"; stageName: string }
   // A random variable on one side: the other side is a number from its range.
-  | { type: "random"; range: RandomRange; side: "left" | "right" }
+  | { type: "random"; range: RandomRange }
   | null;
 
 /** Status circle for condition evaluation */
@@ -99,9 +98,7 @@ export const FreeformConditionRow = ({
     const leftRange = randomRangeForRuleValue(left, randomContext);
     const rightRange = randomRangeForRuleValue(right, randomContext);
     if (leftRange || rightRange) {
-      return leftRange
-        ? { type: "random", range: leftRange, side: "left" }
-        : { type: "random", range: rightRange!, side: "right" };
+      return { type: "random", range: (leftRange ?? rightRange)! };
     }
 
     const stageVarType = stageVarDefs
@@ -181,14 +178,6 @@ export const FreeformConditionRow = ({
         comparator={comparator}
       />
 
-      {impliedDatatype?.type === "random" && (
-        <RandomConditionChance
-          condition={condition}
-          range={impliedDatatype.range}
-          side={impliedDatatype.side}
-        />
-      )}
-
       <div style={{ flex: 1 }} />
       {onChange && (
         <div onClick={() => onChange(false, condition)} className="condition-remove">
@@ -196,44 +185,6 @@ export const FreeformConditionRow = ({
         </div>
       )}
     </li>
-  );
-};
-
-/**
- * "true about 25% of the time" beside a condition on a random variable, so
- * kids can pick the number that gives the odds they want without having to
- * know the variable's range.
- */
-const RandomConditionChance = ({
-  condition,
-  range,
-  side,
-}: {
-  condition: RuleCondition;
-  range: RandomRange;
-  side: "left" | "right";
-}) => {
-  const other = side === "left" ? condition.right : condition.left;
-  if (!("constant" in other)) return null;
-  const chance = chanceOfRandomComparison(range, condition.comparator, other.constant, side);
-  if (chance === null) return null;
-  const percent = chance * 100;
-  // Never round a possible outcome to "0%" or "100%".
-  const shown = Math.min(99, Math.max(1, Math.round(percent)));
-  const exact = Math.abs(shown - percent) < 1e-9;
-  const text =
-    chance === 0
-      ? "never true"
-      : chance === 1
-        ? "always true"
-        : `true ${exact ? "" : "about "}${shown}% of the time`;
-  return (
-    <span
-      className="condition-random-chance"
-      title={`The variable gets a new whole number from ${range.min} to ${range.max} every tick.`}
-    >
-      {text}
-    </span>
   );
 };
 

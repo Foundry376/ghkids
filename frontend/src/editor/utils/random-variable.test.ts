@@ -12,7 +12,6 @@ import {
 } from "./__tests__/test-fixtures";
 import { BUILTIN_STAGE_VARIABLES } from "./builtin-stage-variables";
 import {
-  chanceOfRandomComparison,
   defaultRandomCondition,
   formatRandomValue,
   parseRandomInput,
@@ -260,30 +259,9 @@ describe("random variables in the editor", () => {
     expect(parseRandomInput("25")).to.equal("25");
   });
 
-  it("works out how often a condition on a roll is true", () => {
-    expect(chanceOfRandomComparison(percent, "<", "25")).to.equal(0.25);
-    expect(chanceOfRandomComparison(percent, "<=", "25")).to.equal(0.26);
-    expect(chanceOfRandomComparison(percent, ">=", "90")).to.equal(0.1);
-    expect(chanceOfRandomComparison(percent, "=", "7")).to.equal(0.01);
-    expect(chanceOfRandomComparison(percent, "<", "100")).to.equal(1);
-    expect(chanceOfRandomComparison(die, "=", "6")).to.equal(1 / 6);
-    expect(chanceOfRandomComparison(die, ">", "6")).to.equal(0);
-    // "25 > Random" is the same as "Random < 25".
-    expect(chanceOfRandomComparison(percent, ">", "25", "right")).to.equal(0.25);
-    // Not a number, or not a numeric comparison: no answer.
-    expect(chanceOfRandomComparison(percent, "<", "")).to.equal(null);
-    expect(chanceOfRandomComparison(percent, "<", "lots")).to.equal(null);
-    expect(chanceOfRandomComparison(percent, "contains", "5")).to.equal(null);
-  });
-
   it("starts a dropped random variable's condition at about half the time", () => {
     expect(defaultRandomCondition(percent)).to.deep.equal({ comparator: "<", value: "50" });
     expect(defaultRandomCondition(die)).to.deep.equal({ comparator: "<", value: "4" });
-    for (const range of [percent, die, { min: 0, max: 0 }]) {
-      const { comparator, value } = defaultRandomCondition(range);
-      const chance = chanceOfRandomComparison(range, comparator, value)!;
-      expect(chance).to.be.within(0.5, 1);
-    }
   });
 
   it("finds the range of the random variable a rule value reads", () => {
