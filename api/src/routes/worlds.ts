@@ -1,8 +1,10 @@
 import express from "express";
+import { IsNull, Not } from "typeorm";
 import { sendForkEmail } from "src/connectors/email";
 import { AppDataSource } from "src/db/data-source";
 import { DEFAULT_NOTIFICATION_SETTINGS, User } from "src/db/entity/user";
 import { World } from "src/db/entity/world";
+import { WorldVersion } from "src/db/entity/world-version";
 import { optionalUserFromAuth, userFromAuth } from "src/middleware";
 
 const router = express.Router();
@@ -18,11 +20,22 @@ function isOwner(world: World, user: User | undefined | null) {
  */
 function canView(world: World, user: User | undefined | null) {
   return (
-    world.published ||
+    world.isPublished() ||
     isOwner(world, user) ||
     String(world.id) === String(process.env.TUTORIAL_WORLD_ID)
   );
 }
+
+/**
+ * Whether the viewer gets the published version rather than the author's
+ * working copy: everyone but the author does, once there is one.
+ */
+function seesPublished(world: World, user: User | undefined | null) {
+  return world.isPublished() && !isOwner(world, user);
+}
+
+/** What lists of games load: the published version's title and picture, but not its game. */
+const LIST_RELATIONS = ["user", "forkParent", "forkParent.publishedVersion", "publishedVersion"];
 
 /**
  * A world as the viewer may see it. A published remix of a game that isn't
@@ -30,11 +43,20 @@ function canView(world: World, user: User | undefined | null) {
  * description or author, so its "remixed from" is left off.
  */
 function serializeFor(world: World, user: User | undefined | null) {
-  const json = world.serialize();
+  const json = world.serialize(seesPublished(world, user));
   if (world.forkParent && !canView(world.forkParent, user)) {
     json.forkParent = null;
   }
   return json;
+}
+
+/** The published version with its game, which lists of games leave out. */
+function publishedVersionWithData(world: World) {
+  return AppDataSource.getRepository(WorldVersion)
+    .createQueryBuilder("version")
+    .addSelect("version.data")
+    .where("version.id = :id", { id: world.publishedVersionId })
+    .getOneOrFail();
 }
 
 const EXPLORE_PAGE_SIZE = 24;
@@ -57,11 +79,12 @@ router.get("/worlds/explore", optionalUserFromAuth, async (req, res) => {
     .createQueryBuilder("world")
     .leftJoinAndSelect("world.user", "user")
     .leftJoinAndSelect("world.forkParent", "forkParent")
-    .where("world.published = true");
+    .leftJoinAndSelect("forkParent.publishedVersion", "forkParentVersion")
+    .innerJoinAndSelect("world.publishedVersion", "version");
   if (q) {
     // Match the text literally: % and _ in a search mean themselves.
     const pattern = `%${q.replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
-    query.andWhere("(world.name ILIKE :pattern OR user.username ILIKE :pattern)", { pattern });
+    query.andWhere("(version.name ILIKE :pattern OR user.username ILIKE :pattern)", { pattern });
   }
   const worlds = await query
     .orderBy("world.playCount", "DESC")
@@ -95,7 +118,7 @@ router.get("/worlds/:objectId", optionalUserFromAuth, async (req, res) => {
   }
   const world = await AppDataSource.getRepository(World).findOne({
     where: { id: Number(objectId) },
-    relations: ["user", "forkParent"],
+    relations: LIST_RELATIONS,
   });
   // An unpublished game someone else made looks exactly like a missing one,
   // so ids can't be used to find out which games exist.
@@ -108,11 +131,13 @@ router.get("/worlds/:objectId", optionalUserFromAuth, async (req, res) => {
   world.playCount = Number(world.playCount) + 1;
 
   // The owner gets both data and unsavedData - the editor decides which to use.
-  // Anyone else gets only the saved game: an unsaved draft is as private as an
-  // unpublished game.
+  // Anyone else gets the published version: the author's saves and unsaved
+  // draft stay private until they publish them.
   res.json(
     Object.assign({}, serializeFor(world, req.user), {
-      data: world.data,
+      data: seesPublished(world, req.user)
+        ? (await publishedVersionWithData(world)).data
+        : world.data,
       unsavedData: isOwner(world, req.user) ? (world.unsavedData ?? null) : null,
     }),
   );
@@ -146,8 +171,8 @@ router.get(
     // Someone else's list - their profile page - holds only what they've published.
     const owner = !!req.user && String(req.user.id) === String(user.id);
     const worlds = await AppDataSource.getRepository(World).find({
-      relations: ["user", "forkParent"],
-      where: owner ? { userId: user.id } : { userId: user.id, published: true },
+      relations: LIST_RELATIONS,
+      where: owner ? { userId: user.id } : { userId: user.id, publishedVersionId: Not(IsNull()) },
     });
     res.json(worlds.map((w) => serializeFor(w, req.user)));
   },
@@ -176,6 +201,10 @@ router.post("/worlds", userFromAuth, async (req, res) => {
     }
   }
   if (sourceWorld) {
+    // Someone else's published game is copied as it's published, not as its author last saved it.
+    const source: Pick<World, "name" | "data" | "thumbnail"> = seesPublished(sourceWorld, req.user)
+      ? await publishedVersionWithData(sourceWorld)
+      : sourceWorld;
     if (fork) {
       await incrementCount(sourceWorld.id, "forkCount");
       sourceWorld.forkCount = Number(sourceWorld.forkCount) + 1;
@@ -186,16 +215,16 @@ router.post("/worlds", userFromAuth, async (req, res) => {
       if (owner?.email && notificationSettings.forks) {
         await sendForkEmail(owner, {
           forkerUsername: req.user.username,
-          worldName: sourceWorld.name,
+          worldName: source.name,
           worldId: sourceWorld.id,
         });
       }
     }
     newWorld = AppDataSource.getRepository(World).create({
       userId: req.user.id,
-      name: sourceWorld.name,
-      data: sourceWorld.data,
-      thumbnail: sourceWorld.thumbnail,
+      name: source.name,
+      data: source.data,
+      thumbnail: source.thumbnail,
       forkParentId: fork ? sourceWorld.id : null,
     });
   } else {
@@ -244,9 +273,7 @@ router.put("/worlds/:objectId", userFromAuth, async (req, res) => {
     // Also update name and thumbnail if provided
     world.name = req.body.name || world.name;
     world.thumbnail = req.body.thumbnail || world.thumbnail;
-    // Allow updating published/description on save
     world.description = descriptionFrom(req.body, world);
-    world.published = req.body.published ?? world.published;
     // updatedAt will be automatically updated by TypeORM
   } else if (action === "discard") {
     // Discard: clear unsavedData and timestamp. If the world was never
@@ -270,10 +297,17 @@ router.put("/worlds/:objectId", userFromAuth, async (req, res) => {
       world.unsavedData = req.body.data;
       world.unsavedDataUpdatedAt = new Date();
     }
-    // Allow updating published/description during draft save too
     world.description = descriptionFrom(req.body, world);
-    world.published = req.body.published ?? world.published;
     // Don't update updatedAt when saving draft
+
+    // No game in the request means the author edited the title and description
+    // from the play page, where they're looking at the published version.
+    if (!req.body.data && world.publishedVersionId) {
+      await AppDataSource.getRepository(WorldVersion).update(world.publishedVersionId, {
+        name: world.name,
+        description: world.description,
+      });
+    }
   }
 
   await AppDataSource.getRepository(World).save(world);
@@ -284,6 +318,59 @@ router.put("/worlds/:objectId", userFromAuth, async (req, res) => {
       unsavedData: world.unsavedData ?? null,
     }),
   );
+});
+
+/**
+ * Publish the game as it's saved now, or update the published game to it.
+ * Players keep this copy until the author publishes again.
+ */
+router.post("/worlds/:objectId/publish", userFromAuth, async (req, res) => {
+  if (!req.user) {
+    return res.status(401).json({ message: "Authentication required." });
+  }
+  const world = await AppDataSource.getRepository(World).findOneBy({
+    userId: req.user.id,
+    id: Number(req.params.objectId),
+  });
+  if (!world) {
+    return res.status(404).json({ message: "No world with that ID exists for that user." });
+  }
+  if (!world.data) {
+    return res.status(400).json({ message: "Save your game before publishing it." });
+  }
+  world.name = req.body.name || world.name;
+  world.description = descriptionFrom(req.body, world);
+
+  const version = await AppDataSource.getRepository(WorldVersion).save({
+    worldId: world.id,
+    data: world.data,
+    name: world.name,
+    description: world.description,
+    thumbnail: world.thumbnail,
+  });
+  world.publishedVersionId = version.id;
+  world.publishedVersion = version;
+  world.published = true;
+  await AppDataSource.getRepository(World).save(world);
+  res.json(world.serialize());
+});
+
+/** Take the game off the Public Games page. Its published versions are kept. */
+router.delete("/worlds/:objectId/publish", userFromAuth, async (req, res) => {
+  if (!req.user) {
+    return res.status(401).json({ message: "Authentication required." });
+  }
+  const world = await AppDataSource.getRepository(World).findOneBy({
+    userId: req.user.id,
+    id: Number(req.params.objectId),
+  });
+  if (!world) {
+    return res.status(404).json({ message: "No world with that ID exists for that user." });
+  }
+  world.publishedVersionId = null;
+  world.published = false;
+  await AppDataSource.getRepository(World).save(world);
+  res.json(world.serialize());
 });
 
 router.delete("/worlds/:objectId", userFromAuth, async (req, res) => {

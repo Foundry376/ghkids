@@ -26,7 +26,7 @@ interface StoreProviderState {
   loaded: boolean;
 }
 
-export type WorldSaveData = Pick<Game, "thumbnail" | "published"> &
+export type WorldSaveData = Pick<Game, "thumbnail"> &
   Partial<Pick<Game, "name" | "description">> & {
     data: EditorState;
   };
@@ -102,7 +102,6 @@ export default class StoreProvider extends React.Component<
       thumbnail: currentStage ? (getStageScreenshot(currentStage, { size: 400 }) ?? "") : "",
       ...(name !== this.savedInfo.name ? { name } : {}),
       ...(description !== this.savedInfo.description ? { description } : {}),
-      published: savedState.world.metadata.published,
       data: savedState,
     };
   };

@@ -7,6 +7,7 @@ import { updateWorldMetadata } from "../../actions/world-actions";
 import { dismissModal } from "../../actions/ui-actions";
 import { MODALS, WORLDS } from "../../constants/constants";
 import { EditorContext } from "../../../components/editor-context";
+import { publishWorld } from "../../../actions/main-actions";
 
 export const PublishContainer = () => {
   const dispatch = useDispatch();
@@ -30,28 +31,23 @@ export const PublishContainer = () => {
     dispatch(dismissModal());
   };
 
-  const _onPublish = () => {
+  const _onPublish = async () => {
     if (!title.trim()) {
       alert("Please enter a title for your game.");
       return;
     }
+    const info = { name: title.trim(), description: description.trim() || null };
 
-    // Update the metadata with the new title, description, and published=true
-    dispatch(
-      updateWorldMetadata(WORLDS.ROOT, {
-        ...metadata,
-        name: title.trim(),
-        description: description.trim() || null,
-        published: true,
-      }),
-    );
-
-    // Trigger a save to persist the changes
-    if (saveWorld) {
-      saveWorld();
-    }
-
+    // Save the game with its new title and description, then publish what was saved.
+    dispatch(updateWorldMetadata(WORLDS.ROOT, { ...metadata, ...info, published: true }));
     dispatch(dismissModal());
+    try {
+      await saveWorld();
+      await publishWorld(metadata.id, info);
+    } catch (e) {
+      dispatch(updateWorldMetadata(WORLDS.ROOT, { ...metadata, ...info, published: false }));
+      alert(`Codako was unable to publish your game. (Detail: ${(e as Error).message})`);
+    }
   };
 
   return (

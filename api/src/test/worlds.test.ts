@@ -6,7 +6,9 @@ import * as email from "../connectors/email";
 import { AppDataSource } from "../db/data-source";
 import { User } from "../db/entity/user";
 import { World } from "../db/entity/world";
-import { createTestUser } from "./helpers";
+import { WorldVersion } from "../db/entity/world-version";
+import { AddWorldVersions1794400000000 } from "../db/migrations/1794400000000-AddWorldVersions";
+import { createTestUser, publishWorld, saveWorld, saveWorlds } from "./helpers";
 import { resetDatabase } from "./setup";
 
 describe("Worlds API", () => {
@@ -25,8 +27,7 @@ describe("Worlds API", () => {
     it("should return worlds ordered by play count", async () => {
       const { user } = await createTestUser("testuser", "password123");
 
-      const worldRepo = AppDataSource.getRepository(World);
-      await worldRepo.save([
+      await saveWorlds([
         { name: "World A", thumbnail: "#", userId: user.id, playCount: 5, published: true },
         { name: "World B", thumbnail: "#", userId: user.id, playCount: 10, published: true },
         { name: "World C", thumbnail: "#", userId: user.id, playCount: 1, published: true },
@@ -43,8 +44,7 @@ describe("Worlds API", () => {
     async function seedPublished() {
       const { user: dave } = await createTestUser("dave", "password123");
       const { user: marcus } = await createTestUser("marcus", "password123");
-      const worldRepo = AppDataSource.getRepository(World);
-      await worldRepo.save([
+      await saveWorlds([
         { name: "Space Invaders", thumbnail: "#", userId: dave.id, playCount: 3, published: true },
         { name: "Train World", thumbnail: "#", userId: dave.id, playCount: 9, published: true },
         { name: "Space Race", thumbnail: "#", userId: marcus.id, playCount: 7, published: true },
@@ -128,7 +128,7 @@ describe("Worlds API", () => {
       const { user } = await createTestUser("testuser", "password123");
 
       const worldRepo = AppDataSource.getRepository(World);
-      const world = await worldRepo.save({
+      const world = await saveWorld({
         name: "Test World",
         thumbnail: "#",
         userId: user.id,
@@ -152,7 +152,7 @@ describe("Worlds API", () => {
       const { user, authHeader } = await createTestUser("owner", "password123");
       const { authHeader: otherAuthHeader } = await createTestUser("other", "password123");
 
-      const world = await AppDataSource.getRepository(World).save({
+      const world = await saveWorld({
         name: "Published World",
         thumbnail: "#",
         userId: user.id,
@@ -211,7 +211,7 @@ describe("Worlds API", () => {
 
     it("treats a stale saved login as signed out", async () => {
       const { user } = await createTestUser("owner", "password123");
-      const world = await AppDataSource.getRepository(World).save({
+      const world = await saveWorld({
         name: "Published World",
         thumbnail: "#",
         userId: user.id,
@@ -242,7 +242,7 @@ describe("Worlds API", () => {
         userId: maker.id,
         published: false,
       });
-      const remix = await worldRepo.save({
+      const remix = await saveWorld({
         name: "Public Remix",
         thumbnail: "#",
         userId: remixer.id,
@@ -265,7 +265,7 @@ describe("Worlds API", () => {
       expect(mine.body.forkParent.name).to.equal("Secret Original");
 
       // And once the original is published, everyone can.
-      await worldRepo.update(original.id, { published: true });
+      await publishWorld(original);
       const later = await request(app).get(`/worlds/${remix.id}`).expect(200);
       expect(later.body.forkParent.name).to.equal("Secret Original");
     });
@@ -296,7 +296,7 @@ describe("Worlds API", () => {
 
     const makeOldWorld = async (userId: string) => {
       const worldRepo = AppDataSource.getRepository(World);
-      const world = await worldRepo.save({
+      const world = await saveWorld({
         name: "Old World",
         thumbnail: "#",
         userId,
@@ -400,8 +400,7 @@ describe("Worlds API", () => {
         });
 
         // Create a world owned by owner
-        const worldRepo = AppDataSource.getRepository(World);
-        const world = await worldRepo.save({
+        const world = await saveWorld({
           name: "Original World",
           thumbnail: "#",
           userId: owner.id,
@@ -440,8 +439,7 @@ describe("Worlds API", () => {
         });
 
         // Create a world owned by owner
-        const worldRepo = AppDataSource.getRepository(World);
-        const world = await worldRepo.save({
+        const world = await saveWorld({
           name: "Original World",
           thumbnail: "#",
           userId: owner.id,
@@ -492,7 +490,7 @@ describe("Worlds API", () => {
     it("lists only published worlds to anyone but the owner", async () => {
       const { user, authHeader } = await createTestUser("maker", "password123");
       const { authHeader: otherAuth } = await createTestUser("other", "password123");
-      await AppDataSource.getRepository(World).save([
+      await saveWorlds([
         { name: "Shown", thumbnail: "#", userId: user.id, published: true },
         { name: "Hidden", thumbnail: "#", userId: user.id, published: false },
       ]);
@@ -694,6 +692,248 @@ describe("Worlds API", () => {
 
       const deletedWorld = await worldRepo.findOneBy({ id: world.id });
       expect(deletedWorld).to.be.null;
+    });
+  });
+
+  // Players get the version the author last published, not whatever the author
+  // has saved since.
+  describe("published versions", () => {
+    async function publishedGame() {
+      const { user, authHeader } = await createTestUser("maker", "password123");
+      const { authHeader: otherAuth } = await createTestUser("player", "password123");
+      const world = await AppDataSource.getRepository(World).save({
+        name: "Untitled",
+        thumbnail: "#",
+        userId: user.id,
+      });
+      await request(app)
+        .put(`/worlds/${world.id}?action=save`)
+        .set("Authorization", authHeader)
+        .send({ data: { v: 1 }, thumbnail: "picture-1" })
+        .expect(200);
+      await request(app)
+        .post(`/worlds/${world.id}/publish`)
+        .set("Authorization", authHeader)
+        .send({ name: "Maze", description: "Find the exit" })
+        .expect(200);
+      return { world, authHeader, otherAuth };
+    }
+
+    async function saveNewVersion(id: number, authHeader: string) {
+      await request(app)
+        .put(`/worlds/${id}?action=save`)
+        .set("Authorization", authHeader)
+        .send({ data: { v: 2 }, name: "Maze 2", description: "Harder", thumbnail: "picture-2" })
+        .expect(200);
+    }
+
+    it("keeps showing players the published version after the author saves", async () => {
+      const { world, authHeader, otherAuth } = await publishedGame();
+      await saveNewVersion(world.id, authHeader);
+
+      const anon = await request(app).get(`/worlds/${world.id}`).expect(200);
+      expect(anon.body).to.include({
+        name: "Maze",
+        description: "Find the exit",
+        thumbnail: "picture-1",
+        published: true,
+      });
+      expect(anon.body.data).to.deep.equal({ v: 1 });
+
+      const other = await request(app)
+        .get(`/worlds/${world.id}`)
+        .set("Authorization", otherAuth)
+        .expect(200);
+      expect(other.body.data).to.deep.equal({ v: 1 });
+
+      const explore = await request(app).get("/worlds/explore").expect(200);
+      expect(explore.body[0]).to.include({ name: "Maze", thumbnail: "picture-1" });
+      const found = await request(app).get("/worlds/explore").query({ q: "maze 2" }).expect(200);
+      expect(found.body).to.have.length(0);
+
+      const profile = await request(app).get("/worlds?user=maker").expect(200);
+      expect(profile.body[0].name).to.equal("Maze");
+
+      // The author works on what they saved.
+      const mine = await request(app)
+        .get(`/worlds/${world.id}`)
+        .set("Authorization", authHeader)
+        .expect(200);
+      expect(mine.body).to.include({ name: "Maze 2", thumbnail: "picture-2" });
+      expect(mine.body.data).to.deep.equal({ v: 2 });
+      expect(mine.body.publishedAt).to.be.a("string");
+    });
+
+    it("shows players the new version once the author publishes again", async () => {
+      const { world, authHeader } = await publishedGame();
+      await saveNewVersion(world.id, authHeader);
+      await request(app)
+        .post(`/worlds/${world.id}/publish`)
+        .set("Authorization", authHeader)
+        .send({ name: "Maze 2", description: "Harder" })
+        .expect(200);
+
+      const anon = await request(app).get(`/worlds/${world.id}`).expect(200);
+      expect(anon.body).to.include({
+        name: "Maze 2",
+        description: "Harder",
+        thumbnail: "picture-2",
+      });
+      expect(anon.body.data).to.deep.equal({ v: 2 });
+      expect(
+        await AppDataSource.getRepository(WorldVersion).countBy({ worldId: world.id }),
+      ).to.equal(2);
+    });
+
+    it("copies the published version when someone remixes it", async () => {
+      const sendForkEmailStub = sinon.stub(email, "sendForkEmail").resolves(true);
+      try {
+        const { world, authHeader, otherAuth } = await publishedGame();
+        await saveNewVersion(world.id, authHeader);
+
+        const remix = await request(app)
+          .post(`/worlds?from=${world.id}&fork=true`)
+          .set("Authorization", otherAuth)
+          .expect(200);
+        const copy = await AppDataSource.getRepository(World).findOneByOrFail({
+          id: remix.body.id,
+        });
+        expect(copy).to.include({ name: "Maze", thumbnail: "picture-1" });
+        expect(copy.data).to.deep.equal({ v: 1 });
+
+        // The author duplicating their own game copies what they saved.
+        const duplicate = await request(app)
+          .post(`/worlds?from=${world.id}`)
+          .set("Authorization", authHeader)
+          .expect(200);
+        const mine = await AppDataSource.getRepository(World).findOneByOrFail({
+          id: duplicate.body.id,
+        });
+        expect(mine.data).to.deep.equal({ v: 2 });
+      } finally {
+        sendForkEmailStub.restore();
+      }
+    });
+
+    it("takes an unpublished game off the Public Games page and keeps its versions", async () => {
+      const { world, authHeader } = await publishedGame();
+      const res = await request(app)
+        .delete(`/worlds/${world.id}/publish`)
+        .set("Authorization", authHeader)
+        .expect(200);
+      expect(res.body.published).to.equal(false);
+
+      const explore = await request(app).get("/worlds/explore").expect(200);
+      expect(explore.body).to.have.length(0);
+      await request(app).get(`/worlds/${world.id}`).expect(404);
+      expect(
+        await AppDataSource.getRepository(WorldVersion).countBy({ worldId: world.id }),
+      ).to.equal(1);
+    });
+
+    it("won't publish or unpublish from a save", async () => {
+      const { world, authHeader } = await publishedGame();
+      await request(app)
+        .put(`/worlds/${world.id}`)
+        .set("Authorization", authHeader)
+        .send({ data: { v: 2 }, published: false })
+        .expect(200);
+      await request(app)
+        .put(`/worlds/${world.id}?action=save`)
+        .set("Authorization", authHeader)
+        .send({ data: { v: 2 }, published: false })
+        .expect(200);
+      await request(app).get(`/worlds/${world.id}`).expect(200);
+
+      const { user, authHeader: otherAuth } = await createTestUser("other", "password123");
+      const unpublished = await AppDataSource.getRepository(World).save({
+        name: "Secret",
+        thumbnail: "#",
+        userId: user.id,
+        data: { v: 1 },
+      });
+      await request(app)
+        .put(`/worlds/${unpublished.id}?action=save`)
+        .set("Authorization", otherAuth)
+        .send({ data: { v: 1 }, published: true })
+        .expect(200);
+      await request(app).get(`/worlds/${unpublished.id}`).expect(404);
+    });
+
+    it("updates the published title and description from the play page", async () => {
+      const { world, authHeader } = await publishedGame();
+      await saveNewVersion(world.id, authHeader);
+      await request(app)
+        .put(`/worlds/${world.id}`)
+        .set("Authorization", authHeader)
+        .send({ name: "Labyrinth", description: null })
+        .expect(200);
+
+      const anon = await request(app).get(`/worlds/${world.id}`).expect(200);
+      expect(anon.body).to.include({ name: "Labyrinth", description: null });
+      // The game itself stays as it was published.
+      expect(anon.body.data).to.deep.equal({ v: 1 });
+    });
+
+    it("won't publish a game that was never saved, or someone else's", async () => {
+      const { user, authHeader } = await createTestUser("maker", "password123");
+      const { authHeader: otherAuth } = await createTestUser("other", "password123");
+      const world = await AppDataSource.getRepository(World).save({
+        name: "Untitled",
+        thumbnail: "#",
+        userId: user.id,
+        data: null,
+      });
+
+      await request(app)
+        .post(`/worlds/${world.id}/publish`)
+        .set("Authorization", authHeader)
+        .send({ name: "Empty" })
+        .expect(400);
+      await request(app)
+        .post(`/worlds/${world.id}/publish`)
+        .set("Authorization", otherAuth)
+        .send({ name: "Mine now" })
+        .expect(404);
+      await request(app)
+        .delete(`/worlds/${world.id}/publish`)
+        .set("Authorization", otherAuth)
+        .expect(404);
+      await request(app).post(`/worlds/${world.id}/publish`).expect(401);
+    });
+
+    it("deletes a published game along with its versions", async () => {
+      const { world, authHeader } = await publishedGame();
+      await request(app).delete(`/worlds/${world.id}`).set("Authorization", authHeader).expect(200);
+      expect(
+        await AppDataSource.getRepository(WorldVersion).countBy({ worldId: world.id }),
+      ).to.equal(0);
+    });
+
+    it("gives every game published before versions existed a published version", async () => {
+      const { user } = await createTestUser("maker", "password123");
+      const worldRepo = AppDataSource.getRepository(World);
+      const [published, neverSaved, unpublished] = await worldRepo.save([
+        { name: "Old Hit", thumbnail: "pic", userId: user.id, data: { v: 1 }, published: true },
+        { name: "Blank", thumbnail: "#", userId: user.id, data: null, published: true },
+        { name: "Draft", thumbnail: "#", userId: user.id, data: { v: 1 }, published: false },
+      ]);
+
+      const migration = new AddWorldVersions1794400000000();
+      const queryRunner = AppDataSource.createQueryRunner();
+      try {
+        await migration.down(queryRunner);
+        await migration.up(queryRunner);
+      } finally {
+        await queryRunner.release();
+      }
+
+      const anon = await request(app).get(`/worlds/${published.id}`).expect(200);
+      expect(anon.body).to.include({ name: "Old Hit", thumbnail: "pic", published: true });
+      expect(anon.body.data).to.deep.equal({ v: 1 });
+      await request(app).get(`/worlds/${neverSaved.id}`).expect(404);
+      await request(app).get(`/worlds/${unpublished.id}`).expect(404);
+      expect((await worldRepo.findOneByOrFail({ id: neverSaved.id })).published).to.equal(false);
     });
   });
 });
