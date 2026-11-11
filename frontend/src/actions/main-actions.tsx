@@ -119,18 +119,22 @@ export function fetchWorld(id: ID) {
 }
 
 /**
- * Change a game's title and description without touching the game itself -
+ * Change a game's title, description and credits without touching the game itself -
  * what an author does from their published game's page. The request carries
  * no `data`, so it leaves both the saved game and any unsaved draft alone.
  */
 export function updateWorldInfo(
   id: ID,
-  { name, description }: { name: string; description: string | null },
+  {
+    name,
+    description,
+    credits,
+  }: { name: string; description: string | null; credits: string | null },
 ) {
   return async function (dispatch: Dispatch<MainActions>) {
     const saved = await makeRequest<Game>(`/worlds/${id}`, {
       method: "PUT",
-      json: { name, description },
+      json: { name, description, credits },
     });
     // Take only what changed. The PUT response is the bare world - no user or
     // fork parent - and the play page reads world.user, so storing the whole
@@ -139,7 +143,14 @@ export function updateWorldInfo(
     if (existing) {
       dispatch({
         type: types.UPSERT_WORLDS,
-        worlds: [{ ...existing, name: saved.name, description: saved.description }],
+        worlds: [
+          {
+            ...existing,
+            name: saved.name,
+            description: saved.description,
+            credits: saved.credits ?? null,
+          },
+        ],
       });
     }
   };

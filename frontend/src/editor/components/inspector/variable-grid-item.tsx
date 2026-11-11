@@ -9,7 +9,7 @@ import {
 } from "../../utils/builtin-stage-variables";
 import { getCurrentStageForWorld } from "../../utils/selectors";
 import { formatRandomValue, isPercentRange } from "../../utils/stage-helpers";
-import { isNumericValue } from "../../utils/variable-coercion";
+import { inputModeForValue, isNumericValue } from "../../utils/variable-coercion";
 import {
   BackgroundEditorModal,
   BackgroundPreview,
@@ -98,6 +98,7 @@ const NumberValueEditor = ({
     <input
       className="value"
       type={isNumericValue(local) || local === "" ? "number" : "text"}
+      inputMode="numeric"
       min={1}
       step={1}
       value={local}
@@ -184,9 +185,21 @@ const RandomVariableBadge = ({
           </p>
           <div className="variable-random-range">
             From{" "}
-            <input type="number" step={1} value={min} onChange={(e) => setMin(e.target.value)} />{" "}
+            <input
+              type="number"
+              inputMode="numeric"
+              step={1}
+              value={min}
+              onChange={(e) => setMin(e.target.value)}
+            />{" "}
             to{" "}
-            <input type="number" step={1} value={max} onChange={(e) => setMax(e.target.value)} />
+            <input
+              type="number"
+              inputMode="numeric"
+              step={1}
+              value={max}
+              onChange={(e) => setMax(e.target.value)}
+            />
           </div>
         </ModalBody>
         <ModalFooter>
@@ -384,6 +397,7 @@ export const VariableGridItem = ({
         <input
           className="value"
           value={displayValue}
+          inputMode={inputModeForValue(displayValue)}
           placeholder={isMixed ? "—" : undefined}
           onChange={(e) => onChangeValue(definition.id, e.target.value)}
           onDoubleClick={(e) => e.currentTarget.select()}

@@ -180,6 +180,7 @@ export const RecordingActions = (props: { characters: Characters; recording: Rec
               onChange={(value) => onChange({ ...a, value })}
               impliedDatatype={null}
               comparator="="
+              expectsNumber={a.operation !== "set"}
             />
             {{ set: "into", add: "to", subtract: "from" }[a.operation]}
             <VariableBlock
@@ -289,6 +290,7 @@ export const RecordingActions = (props: { characters: Characters; recording: Rec
             onChange={(value) => onChange({ ...a, value })}
             impliedDatatype={null}
             comparator="="
+            expectsNumber={a.operation !== "set"}
           />
           {{ set: "into", add: "to", subtract: "from" }[a.operation]}
 
@@ -342,6 +344,7 @@ export const RecordingActions = (props: { characters: Characters; recording: Rec
             onChange={(value) => onChange({ ...a, value })}
             impliedDatatype={null}
             comparator="="
+            expectsNumber={a.operation !== "set"}
           />
           {{ set: "into", add: "to", subtract: "from" }[a.operation]}
 

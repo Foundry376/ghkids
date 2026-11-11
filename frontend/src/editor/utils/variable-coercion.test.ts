@@ -17,6 +17,7 @@ import {
   coerceToBoundedInteger,
   coerceToCSSBackground,
   coerceToNumber,
+  inputModeForValue,
   isBooleanValue,
   isBoundedIntegerValue,
   isCSSBackgroundValue,
@@ -68,6 +69,24 @@ describe("variable-coercion", () => {
       expect(isNumericValue("NaN")).to.be.false;
       expect(isNumericValue("Infinity")).to.be.false;
       expect(isNumericValue(undefined)).to.be.false;
+    });
+  });
+
+  describe("inputModeForValue", () => {
+    it("brings up the number keyboard for a box holding a number", () => {
+      expect(inputModeForValue("3")).to.equal("decimal");
+      expect(inputModeForValue("-2.5")).to.equal("decimal");
+      expect(inputModeForValue(4 as unknown as string)).to.equal("decimal");
+    });
+
+    it("keeps the letters keyboard for words and empty boxes", () => {
+      expect(inputModeForValue("red")).to.equal("text");
+      expect(inputModeForValue("")).to.equal("text");
+      expect(inputModeForValue(undefined)).to.equal("text");
+    });
+
+    it("brings up the number keyboard where only a number makes sense", () => {
+      expect(inputModeForValue("", true)).to.equal("decimal");
     });
   });
 

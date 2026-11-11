@@ -11,6 +11,9 @@ import "core-js";
 import { initializeSentry } from "./utils/sentry";
 initializeSentry();
 
+import { startCheckingForUpdates } from "./utils/update-check";
+startCheckingForUpdates();
+
 import { upgradeLegacySession } from "./actions/main-actions";
 import routes from "./routes";
 import initialState from "./reducers/initial-state";

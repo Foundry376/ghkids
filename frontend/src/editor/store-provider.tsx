@@ -27,7 +27,7 @@ interface StoreProviderState {
 }
 
 export type WorldSaveData = Pick<Game, "thumbnail" | "published"> &
-  Partial<Pick<Game, "name" | "description">> & {
+  Partial<Pick<Game, "name" | "description" | "credits">> & {
     data: EditorState;
   };
 
@@ -41,12 +41,16 @@ export default class StoreProvider extends React.Component<
   }
 
   /**
-   * The title and description as last saved from this editor. A save only
-   * sends them when they've changed here since then, so an editor left open
-   * doesn't put back an old title or description the author has since edited
-   * on the game's play page.
+   * The title, description and credits as last saved from this editor. A save
+   * only sends them when they've changed here since then, so an editor left
+   * open doesn't put back an old title or description the author has since
+   * edited on the game's play page.
    */
-  private savedInfo: Pick<Game, "name" | "description"> = { name: "", description: null };
+  private savedInfo: { name: string; description: string | null; credits: string | null } = {
+    name: "",
+    description: null,
+    credits: null,
+  };
 
   UNSAFE_componentWillReceiveProps(nextProps: StoreProviderProps) {
     if (nextProps.world.id !== this.props.world.id) {
@@ -55,8 +59,8 @@ export default class StoreProvider extends React.Component<
   }
 
   getStateForStore = (world: Game): StoreProviderState => {
-    const { data, name, id, published, description } = world;
-    this.savedInfo = { name, description: description || null };
+    const { data, name, id, published, description, credits } = world;
+    this.savedInfo = { name, description: description || null, credits: credits || null };
 
     const baseState = data || initialData;
 
@@ -64,7 +68,13 @@ export default class StoreProvider extends React.Component<
       {
         world: {
           globals: InitialState["world"]["globals"],
-          metadata: { name, id, published: published || false, description: description || null },
+          metadata: {
+            name,
+            id,
+            published: published || false,
+            description: description || null,
+            credits: credits || null,
+          },
         },
       },
       baseState
@@ -97,11 +107,12 @@ export default class StoreProvider extends React.Component<
 
     const currentStage = getCurrentStage(savedState);
 
-    const { name, description = null } = savedState.world.metadata;
+    const { name, description = null, credits = null } = savedState.world.metadata;
     return {
       thumbnail: currentStage ? (getStageScreenshot(currentStage, { size: 400 }) ?? "") : "",
       ...(name !== this.savedInfo.name ? { name } : {}),
       ...(description !== this.savedInfo.description ? { description } : {}),
+      ...(credits !== this.savedInfo.credits ? { credits } : {}),
       published: savedState.world.metadata.published,
       data: savedState,
     };
@@ -112,6 +123,7 @@ export default class StoreProvider extends React.Component<
     this.savedInfo = {
       name: json.name ?? this.savedInfo.name,
       description: json.description !== undefined ? json.description : this.savedInfo.description,
+      credits: json.credits !== undefined ? (json.credits ?? null) : this.savedInfo.credits,
     };
   };
 

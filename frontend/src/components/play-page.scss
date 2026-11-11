@@ -329,6 +329,17 @@ $play-tint: #5bc0de;
     }
   }
 
+  &__credits,
+  &__publisher {
+    display: block;
+  }
+
+  &__credits {
+    color: #ddd;
+    font-size: 1rem;
+    margin-bottom: 2px;
+  }
+
   &__remix-info {
     display: block;
     font-size: 0.8rem;
@@ -343,6 +354,7 @@ $play-tint: #5bc0de;
   }
 
   &__title-input,
+  &__edit-info input,
   &__edit-info textarea {
     width: min(420px, 80vw);
     padding: 6px 10px;
@@ -354,6 +366,12 @@ $play-tint: #5bc0de;
 
   &__edit-info {
     margin-bottom: 24px;
+
+    input {
+      display: block;
+      font-size: 0.95rem;
+      margin-bottom: 8px;
+    }
 
     textarea {
       display: block;

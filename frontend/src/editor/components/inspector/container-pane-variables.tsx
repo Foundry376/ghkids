@@ -225,6 +225,7 @@ const PositionGridItem = ({ actor, coordinate, value, onChange }: PositionGridIt
       <input
         className="value"
         type="number"
+        inputMode="numeric"
         value={isMixed ? "" : value}
         placeholder={isMixed ? "—" : undefined}
         onChange={(e) => {

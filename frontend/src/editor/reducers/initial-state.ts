@@ -44,6 +44,7 @@ const InitialWorld: World = {
     id: 0,
     published: false,
     description: null,
+    credits: null,
   },
   history: [],
   evaluatedRuleDetails: {},

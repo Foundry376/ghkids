@@ -40,6 +40,21 @@ export function isNumericValue(raw: string | undefined | null): boolean {
   return Number.isFinite(Number(text));
 }
 
+/**
+ * Which on-screen keyboard a value box should bring up. Tablets open the
+ * letters keyboard by default, so a kid changing a score of 3 has to hunt for
+ * the number key first. Boxes holding a number (or about to, like the amount
+ * in "add 1 to score") ask for the number keyboard instead. The box stays
+ * free-form: on an iPad that keyboard still has its ABC key, so a kid can
+ * type a word into it all the same.
+ */
+export function inputModeForValue(
+  raw: string | undefined | null,
+  expectsNumber = false,
+): "decimal" | "text" {
+  return expectsNumber || isNumericValue(raw) ? "decimal" : "text";
+}
+
 /** Read `raw` as a number, falling back when it isn't one. */
 export function coerceToNumber(raw: string | undefined | null, fallback: number): number {
   return isNumericValue(raw) ? Number(raw) : fallback;
