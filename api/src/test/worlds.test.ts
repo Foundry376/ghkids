@@ -762,6 +762,23 @@ describe("Worlds API", () => {
       expect(mine.body).to.include({ name: "Maze 2", thumbnail: "picture-2" });
       expect(mine.body.data).to.deep.equal({ v: 2 });
       expect(mine.body.publishedAt).to.be.a("string");
+      const myGames = await request(app)
+        .get("/worlds?user=me")
+        .set("Authorization", authHeader)
+        .expect(200);
+      expect(myGames.body[0].name).to.equal("Maze 2");
+
+      // But the Public Games page and their profile show them what players see.
+      const myExplore = await request(app)
+        .get("/worlds/explore")
+        .set("Authorization", authHeader)
+        .expect(200);
+      expect(myExplore.body[0]).to.include({ name: "Maze", thumbnail: "picture-1" });
+      const myProfile = await request(app)
+        .get("/worlds?user=maker")
+        .set("Authorization", authHeader)
+        .expect(200);
+      expect(myProfile.body[0]).to.include({ name: "Maze", thumbnail: "picture-1" });
     });
 
     it("shows players the new version once the author publishes again", async () => {

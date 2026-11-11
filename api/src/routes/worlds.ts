@@ -42,8 +42,12 @@ const LIST_RELATIONS = ["user", "forkParent", "forkParent.publishedVersion", "pu
  * published (or stopped being) mustn't show that game's name, thumbnail,
  * description or author, so its "remixed from" is left off.
  */
-function serializeFor(world: World, user: User | undefined | null) {
-  const json = world.serialize(seesPublished(world, user));
+function serializeFor(
+  world: World,
+  user: User | undefined | null,
+  asPublished = seesPublished(world, user),
+) {
+  const json = world.serialize(asPublished);
   if (world.forkParent && !canView(world.forkParent, user)) {
     json.forkParent = null;
   }
@@ -92,7 +96,8 @@ router.get("/worlds/explore", optionalUserFromAuth, async (req, res) => {
     .skip(offset)
     .take(limit)
     .getMany();
-  res.json(worlds.map((w) => serializeFor(w, req.user)));
+  // Authors see their own games here as everyone else does: as published.
+  res.json(worlds.map((w) => serializeFor(w, req.user, true)));
 });
 
 /**
@@ -174,7 +179,8 @@ router.get(
       relations: LIST_RELATIONS,
       where: owner ? { userId: user.id } : { userId: user.id, publishedVersionId: Not(IsNull()) },
     });
-    res.json(worlds.map((w) => serializeFor(w, req.user)));
+    // My Games shows the author's latest saves; a profile shows what's published, even to its owner.
+    res.json(worlds.map((w) => serializeFor(w, req.user, req.query.user !== "me")));
   },
 );
 
