@@ -2,6 +2,7 @@ import { DataSource } from "typeorm";
 import { Session } from "./entity/session";
 import { User } from "./entity/user";
 import { World } from "./entity/world";
+import { WorldVersion } from "./entity/world-version";
 
 //Do not remove this or your migrations will silently run on no database at all
 require("dotenv").config();
@@ -15,7 +16,7 @@ export const AppDataSource = new DataSource({
   synchronize: process.env.NODE_ENV !== "production",
   logging: ["error"],
   maxQueryExecutionTime: 30000,
-  entities: [User, World, Session],
+  entities: [User, World, WorldVersion, Session],
   subscribers: [],
   ssl: process.env.NODE_ENV === "production" ? { rejectUnauthorized: false } : false,
   migrations: process.env.NODE_ENV === "test" ? [] : ["dist/db/migrations/*.js"],

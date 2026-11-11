@@ -492,6 +492,8 @@ export type Game = {
   createdAt: string;
   updatedAt: string;
   published: boolean;
+  /** When the version players get was published. */
+  publishedAt?: string | null;
   description: string | null;
   /** Who made the game, e.g. "Ben and Marcus". Missing on games made before credits existed. */
   credits?: string | null;
