@@ -96,6 +96,21 @@ html {
   display: flex;
   flex-direction: column;
 
+  // Kids press-and-drag on variable boxes, rules, etc. and end up dragging a
+  // text selection instead. Nothing in the editor chrome needs selectable
+  // text, so turn selection off everywhere and opt real text fields back in.
+  -webkit-user-select: none;
+  user-select: none;
+
+  input,
+  textarea,
+  select,
+  [contenteditable="true"],
+  .tap-to-edit.editing-true {
+    -webkit-user-select: text;
+    user-select: text;
+  }
+
   // In the Home Screen app the page extends under the status bar and the home
   // indicator (see home-screen-app.ts); keep clear of them. Elsewhere the
   // insets are 0.
