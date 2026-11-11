@@ -10,7 +10,7 @@ import StageSwitcher from "./stage-switcher";
 import { TapToEditLabel } from "./tap-to-edit-label";
 import UndoRedoControls from "./undo-redo-controls";
 
-import { createWorld } from "../../actions/main-actions";
+import { createWorld, publishWorld, unpublishWorld } from "../../actions/main-actions";
 import { EditorContext } from "../../components/editor-context";
 import { useDismissibleMenu } from "../../hooks/useDismissibleMenu";
 import { useEditorSelector } from "../../hooks/redux";
@@ -27,7 +27,6 @@ const Toolbar = () => {
   const {
     usingLocalStorage,
     saveWorldAnd,
-    saveWorld,
     save,
     saveAndExit,
     exitWithoutSaving,
@@ -51,9 +50,25 @@ const Toolbar = () => {
     dispatch(updateWorldMetadata("root", { ...metadata, name }));
   };
 
-  const onUnpublish = () => {
-    dispatch(updateWorldMetadata("root", { ...metadata, published: false }));
-    saveWorld();
+  const onUpdatePublished = async () => {
+    await save();
+    try {
+      await publishWorld(metadata.id, {
+        name: metadata.name,
+        description: metadata.description ?? null,
+      });
+    } catch (e) {
+      alert(`Codako was unable to update your published game. (Detail: ${(e as Error).message})`);
+    }
+  };
+
+  const onUnpublish = async () => {
+    try {
+      await unpublishWorld(metadata.id);
+      dispatch(updateWorldMetadata("root", { ...metadata, published: false }));
+    } catch (e) {
+      alert(`Codako was unable to unpublish your game. (Detail: ${(e as Error).message})`);
+    }
   };
 
   const renderLeft = () => {
@@ -103,9 +118,7 @@ const Toolbar = () => {
           <DropdownMenu>
             <DropdownItem disabled={!hasUnsavedChanges} onClick={() => save()}>
               <i className="fa fa-save fa-fw" style={{ marginRight: 8 }} />
-              {/* A game has one saved copy, and that's what players get - so
-                  once it's published, saving is how you update it. */}
-              {metadata.published ? "Save & Update Published Game" : "Save"}
+              Save
             </DropdownItem>
             <DropdownItem onClick={() => saveAndExit("/dashboard")}>
               <i className="fa fa-sign-out fa-fw fa-flip-horizontal" style={{ marginRight: 8 }} />
@@ -171,10 +184,17 @@ const Toolbar = () => {
             )}
             <DropdownItem divider />
             {metadata.published ? (
-              <DropdownItem onClick={onUnpublish}>
-                <i className="fa fa-eye-slash fa-fw" style={{ marginRight: 8 }} />
-                Unpublish Game
-              </DropdownItem>
+              <>
+                {/* Players keep the version that was published until it's updated. */}
+                <DropdownItem onClick={onUpdatePublished}>
+                  <i className="fa fa-globe fa-fw" style={{ marginRight: 8 }} />
+                  Update Published Game
+                </DropdownItem>
+                <DropdownItem onClick={onUnpublish}>
+                  <i className="fa fa-eye-slash fa-fw" style={{ marginRight: 8 }} />
+                  Unpublish Game
+                </DropdownItem>
+              </>
             ) : (
               <DropdownItem onClick={() => dispatch(actions.showModal(MODALS.PUBLISH))}>
                 <i className="fa fa-globe fa-fw" style={{ marginRight: 8 }} />

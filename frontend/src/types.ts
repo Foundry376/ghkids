@@ -490,6 +490,8 @@ export type Game = {
   createdAt: string;
   updatedAt: string;
   published: boolean;
+  /** When the version players get was published. */
+  publishedAt?: string | null;
   description: string | null;
   data: Partial<EditorState> & Omit<EditorState, "ui" | "recording">;
 };

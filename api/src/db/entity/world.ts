@@ -7,6 +7,7 @@ import {
   UpdateDateColumn,
 } from "typeorm";
 import { User } from "./user";
+import { WorldVersion } from "./world-version";
 
 @Entity({ name: "worlds" })
 export class World {
@@ -52,26 +53,46 @@ export class World {
   @Column({ default: null })
   forkParentId: number | null;
 
+  // What players get: a frozen copy made when the author last published. A game
+  // is published exactly when this is set.
+  @ManyToOne(() => WorldVersion, { persistence: false, nullable: true, onDelete: "SET NULL" })
+  publishedVersion: WorldVersion | null;
+
+  @Column({ type: "int", nullable: true })
+  publishedVersionId: number | null;
+
+  // Superseded by publishedVersionId. Still written, so it stays right if the
+  // API is rolled back to a version that reads it.
   @Column({ type: "boolean", default: false })
   published: boolean;
 
   @Column({ type: "text", nullable: true })
   description: string | null;
 
-  serialize(): any {
+  isPublished() {
+    return this.publishedVersionId != null;
+  }
+
+  /**
+   * With `asPublished`, the title, description and picture come from the
+   * published version (when it's loaded) instead of the author's working copy.
+   */
+  serialize(asPublished = false): any {
+    const shown = asPublished && this.publishedVersion ? this.publishedVersion : this;
     return {
-      name: this.name,
+      name: shown.name,
       id: this.id,
       userId: this.userId,
       playCount: Number(this.playCount),
       forkCount: Number(this.forkCount),
-      forkParent: this.forkParent ? this.forkParent.serialize() : null,
+      forkParent: this.forkParent ? this.forkParent.serialize(true) : null,
       user: this.user ? this.user.serialize() : null,
-      thumbnail: this.thumbnail ? this.thumbnail.toString() : null,
+      thumbnail: shown.thumbnail ? shown.thumbnail.toString() : null,
       createdAt: this.createdAt,
       updatedAt: this.updatedAt,
-      published: this.published,
-      description: this.description,
+      published: this.isPublished(),
+      publishedAt: this.publishedVersion?.createdAt ?? null,
+      description: shown.description,
       unsavedDataUpdatedAt: this.unsavedDataUpdatedAt,
       hasUnsavedData: !!this.unsavedData,
     };

@@ -119,9 +119,28 @@ export function fetchWorld(id: ID) {
 }
 
 /**
+ * Make the game as it's saved now what players get, so save it first. Players
+ * keep that copy until the author publishes again.
+ */
+export function publishWorld(
+  id: ID,
+  { name, description }: { name: string; description: string | null },
+) {
+  return makeRequest<Game>(`/worlds/${id}/publish`, {
+    method: "POST",
+    json: { name, description },
+  });
+}
+
+export function unpublishWorld(id: ID) {
+  return makeRequest<Game>(`/worlds/${id}/publish`, { method: "DELETE" });
+}
+
+/**
  * Change a game's title and description without touching the game itself -
  * what an author does from their published game's page. The request carries
- * no `data`, so it leaves both the saved game and any unsaved draft alone.
+ * no `data`, so it leaves both the saved game and any unsaved draft alone,
+ * and the new title and description go straight to the published version.
  */
 export function updateWorldInfo(
   id: ID,
