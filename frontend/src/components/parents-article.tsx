@@ -123,10 +123,3 @@ export const BookCredit = () => (
     {/* TODO: name the book and link to it once it's published. */}
   </p>
 );
-/** A few plain-language bullets at the top of a long page, for skimmers. */
-export const InShort = ({ children }: { children: React.ReactNode }) => (
-  <div className="parents-article__in-short">
-    <strong>In short</strong>
-    <ul>{children}</ul>
-  </div>
-);
