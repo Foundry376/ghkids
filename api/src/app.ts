@@ -87,10 +87,33 @@ app.use((err: Error, req: express.Request, res: express.Response, next: express.
 });
 
 const frontendDist = path.join(__dirname, "..", "frontend");
+const frontendAssets = path.join(frontendDist, "assets");
+const frontendVersion = path.join(frontendDist, "version.json");
 app.use(
-  express.static(frontendDist, { index: false, immutable: true, maxAge: 60 * 60 * 24 * 1000 }),
+  express.static(frontendDist, {
+    index: false,
+    maxAge: 60 * 60 * 24 * 1000,
+    setHeaders: (res, filePath) => {
+      if (filePath.startsWith(frontendAssets + path.sep)) {
+        // Vite puts a hash of each file's contents in its name, so a file in
+        // assets/ never changes: browsers can keep it for good.
+        res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+      } else if (filePath === frontendVersion) {
+        // Open tabs check this to find out a new release is out.
+        res.setHeader("Cache-Control", "no-cache");
+      }
+    },
+  }),
 );
+// A tab still running an old release asks for its old files, which this
+// release doesn't have. Say so, rather than answering with index.html: the
+// page then knows the file is missing and reloads (see update-check.ts).
+app.use("/assets", (req, res) => {
+  res.sendStatus(404);
+});
 app.use("/", (req, res, next) => {
+  // Always check for a newer index.html, which names the current release's files.
+  res.setHeader("Cache-Control", "no-cache");
   res.sendFile(path.join(frontendDist, "index.html"));
 });
 

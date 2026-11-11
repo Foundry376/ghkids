@@ -1,0 +1,72 @@
+@use "./app-tokens" as *;
+
+/* A card pinned to the bottom of the window, above everything else on the
+   page. Fixed, so it doesn't push the page around when it appears. */
+.update-banner {
+  position: fixed;
+  left: 50%;
+  bottom: calc(16px + env(safe-area-inset-bottom));
+  z-index: 2000;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: max-content;
+  max-width: calc(100vw - 24px);
+  padding: 10px 10px 10px 14px;
+  border: 2px solid $app-ink;
+  background: $app-tile;
+  color: $app-ink;
+  font-family: $app-body;
+  font-size: 15px;
+  line-height: 1.3;
+  @include pixel-raise();
+
+  &__icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    background: $app-amber;
+    color: #fff;
+    font-size: 18px;
+  }
+
+  &__text {
+    display: flex;
+    flex-direction: column;
+
+    strong {
+      font-family: $app-display;
+      font-size: 16px;
+    }
+  }
+
+  &__close {
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: $app-ink-soft;
+    font-size: 18px;
+    cursor: pointer;
+
+    &:hover {
+      color: $app-ink;
+    }
+    &:focus-visible {
+      @include pixel-focus(0);
+    }
+  }
+
+  @media (max-width: 480px) {
+    flex-wrap: wrap;
+    &__text {
+      flex: 1;
+    }
+  }
+}
