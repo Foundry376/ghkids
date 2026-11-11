@@ -58,6 +58,9 @@ export class World {
   @Column({ type: "text", nullable: true })
   description: string | null;
 
+  @Column({ type: "text", nullable: true })
+  credits: string | null;
+
   serialize(): any {
     return {
       name: this.name,
@@ -72,6 +75,7 @@ export class World {
       updatedAt: this.updatedAt,
       published: this.published,
       description: this.description,
+      credits: this.credits,
       unsavedDataUpdatedAt: this.unsavedDataUpdatedAt,
       hasUnsavedData: !!this.unsavedData,
     };

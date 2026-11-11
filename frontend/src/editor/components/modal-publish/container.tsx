@@ -17,14 +17,16 @@ export const PublishContainer = () => {
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [credits, setCredits] = useState("");
 
   // Reset form when modal opens
   useEffect(() => {
     if (open) {
       setTitle(metadata.name || "");
       setDescription(metadata.description || "");
+      setCredits(metadata.credits || "");
     }
-  }, [open, metadata.name, metadata.description]);
+  }, [open, metadata.name, metadata.description, metadata.credits]);
 
   const _onClose = () => {
     dispatch(dismissModal());
@@ -36,12 +38,13 @@ export const PublishContainer = () => {
       return;
     }
 
-    // Update the metadata with the new title, description, and published=true
+    // Update the metadata with the new title, description, credits, and published=true
     dispatch(
       updateWorldMetadata(WORLDS.ROOT, {
         ...metadata,
         name: title.trim(),
         description: description.trim() || null,
+        credits: credits.trim() || null,
         published: true,
       }),
     );
@@ -85,6 +88,32 @@ export const PublishContainer = () => {
               borderRadius: 4,
             }}
           />
+        </div>
+        <div style={{ marginBottom: 16 }}>
+          <label
+            htmlFor="publish-credits"
+            style={{ display: "block", marginBottom: 4, fontWeight: 500 }}
+          >
+            Credits <span style={{ color: "#999", fontWeight: 400 }}>(optional)</span>
+          </label>
+          <input
+            id="publish-credits"
+            type="text"
+            value={credits}
+            onChange={(e) => setCredits(e.target.value)}
+            placeholder="Who made this game? For example: Ben and Marcus"
+            maxLength={100}
+            style={{
+              width: "100%",
+              padding: "8px 12px",
+              fontSize: 14,
+              border: "1px solid #ccc",
+              borderRadius: 4,
+            }}
+          />
+          <div style={{ fontSize: 12, color: "#999" }}>
+            Shown on your game&apos;s page, above your username.
+          </div>
         </div>
         <div>
           <label
