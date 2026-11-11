@@ -26,7 +26,7 @@ interface StoreProviderState {
   loaded: boolean;
 }
 
-export type WorldSaveData = Pick<Game, "thumbnail" | "published"> &
+export type WorldSaveData = Pick<Game, "thumbnail"> &
   Partial<Pick<Game, "name" | "description" | "credits">> & {
     data: EditorState;
   };
@@ -113,7 +113,6 @@ export default class StoreProvider extends React.Component<
       ...(name !== this.savedInfo.name ? { name } : {}),
       ...(description !== this.savedInfo.description ? { description } : {}),
       ...(credits !== this.savedInfo.credits ? { credits } : {}),
-      published: savedState.world.metadata.published,
       data: savedState,
     };
   };
