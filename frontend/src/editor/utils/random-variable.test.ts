@@ -18,7 +18,6 @@ import {
   randomRangeForRuleValue,
   rollRandomInRange,
 } from "./stage-helpers";
-import WorldOperator from "./world-operator";
 
 /**
  * Random variables: a variable whose value is re-rolled once at the start of
@@ -216,29 +215,18 @@ describe("random variables", () => {
     expect(calls).to.equal(4);
   });
 
-  it("records a tick that only re-rolled random variables, so stepping back restores the roll", () => {
+  it("keeps ticks that only re-roll out of the history", () => {
+    // Undo rewinds the game to the last edit through the history, which is
+    // capped at 500 entries. If every roll added one, a game left running for
+    // a few minutes would push the edit out of reach and undo would apply to
+    // the wrong state.
     const { characters } = setup([]);
-    // Nothing on the stage has rules: the only change each tick is the roll.
     const world = makeWorld({
       globals: makeGlobals({
         dice: { id: "dice", name: "Dice", value: "0", random: { min: 1, max: 6 } },
       }),
       stage: makeStage({ id: "stage-1", actors: {} }),
     });
-    Math.random = () => 0.5;
-    const one = runSimulation(world, characters, 1);
-    Math.random = () => 0.9;
-    const two = runSimulation(one, characters, 1);
-    expect(two.history).to.have.length(2);
-    expect(two.globals.dice.value).to.equal("6");
-
-    const back = WorldOperator(two, characters).untick() as typeof two;
-    expect(back.globals.dice.value).to.equal("4");
-  });
-
-  it("doesn't record idle ticks in a game without random variables", () => {
-    const { characters } = setup([]);
-    const world = makeWorld({ stage: makeStage({ id: "stage-1", actors: {} }) });
     expect(runSimulation(world, characters, 3).history).to.have.length(0);
   });
 });

@@ -956,11 +956,9 @@ export default function WorldOperator(
    * the variable lives.
    */
   function rollRandomVariables() {
-    let rolled = false;
     for (const global of Object.values(globals)) {
       if ("random" in global && global.random) {
         global.value = String(rollRandomInRange(global.random.min, global.random.max));
-        rolled = true;
       }
     }
     for (const definition of Object.values(stageVariables)) {
@@ -968,29 +966,23 @@ export default function WorldOperator(
         stageVariableValues[definition.id] = String(
           rollRandomInRange(definition.random.min, definition.random.max),
         );
-        rolled = true;
       }
     }
     for (const actor of Object.values(actors)) {
-      rolled = rollRandomVariablesForActor(actor) || rolled;
+      rollRandomVariablesForActor(actor);
     }
-    return rolled;
   }
 
-  /** Returns true if the actor has any random variables to roll. */
   function rollRandomVariablesForActor(actor: Actor) {
     const character = characters[actor.characterId];
-    if (!character) return false;
-    let rolled = false;
+    if (!character) return;
     for (const definition of Object.values(character.variables)) {
       if (definition.random) {
         actor.variableValues[definition.id] = String(
           rollRandomInRange(definition.random.min, definition.random.max),
         );
-        rolled = true;
       }
     }
-    return rolled;
   }
 
   function tick(options: { clearInput?: boolean } = {}) {
@@ -1012,7 +1004,7 @@ export default function WorldOperator(
     ctx = { globals, characters, stageVariables, stage: { variableValues: stageVariableValues } };
 
     actors = deepClone(stage.actors);
-    const rolledRandomVariables = rollRandomVariables();
+    rollRandomVariables();
     frameAccumulator = new FrameAccumulator(stage.actors);
     sounds = [];
     evaluatedRuleDetails = {};
@@ -1094,10 +1086,8 @@ export default function WorldOperator(
       evaluatedRuleDetails: u.constant(evaluatedRuleDetails),
       evaluatedTickFrames: frameAccumulator.getFrames(),
       evaluatedSounds: u.constant(Array.from(new Set(sounds))),
-      // A tick that only re-rolled random variables still changed the game,
-      // so it needs an entry too, or stepping back would skip over it.
       history: (values: HistoryItem[]) =>
-        (evaluatedSomeRule || rolledRandomVariables) && historyDelta
+        evaluatedSomeRule && historyDelta
           ? [...values.slice(values.length - 500), historyDelta]
           : values,
     };
