@@ -6,12 +6,14 @@ import {
   Globals,
   MathOperation,
   Position,
+  RandomRange,
   RuleExtent,
   RuleTreeItem,
   RuleValue,
   Stage,
   StageVariable,
   VariableComparator,
+  WorldMinimal,
 } from "../../types";
 import { RELATIVE_TRANSFORMS } from "../components/inspector/transform-lookup";
 import { DEFAULT_APPEARANCE_INFO } from "../components/sprites/sprite";
@@ -367,6 +369,95 @@ export function rollRandomInRange(min: number, max: number) {
 
 /** The range a new random variable starts with: "Random < 25" is true 25% of the time. */
 export const DEFAULT_RANDOM_RANGE = { min: 0, max: 99 };
+
+/**
+ * A 0-99 roll reads as a percentage: "Random < 25%" is true exactly 25% of
+ * the time, so the editor shows these values with a % sign. The stored value
+ * stays a bare number so rules can compare it.
+ */
+export function isPercentRange(range: RandomRange) {
+  return range.min === DEFAULT_RANDOM_RANGE.min && range.max === DEFAULT_RANDOM_RANGE.max;
+}
+
+/** How the editor shows a rolled value: "37%" for a percentage, "4" otherwise. */
+export function formatRandomValue(value: string | null | undefined, range: RandomRange) {
+  if (value === null || value === undefined || value === "") return "";
+  return isPercentRange(range) ? `${value}%` : value;
+}
+
+/** Undo a "%" a kid typed after a percentage, so the condition still compares numbers. */
+export function parseRandomInput(text: string) {
+  return text.replace(/%/g, "").trim();
+}
+
+/**
+ * The fraction of rolls in `range` for which `roll <comparator> value` holds,
+ * or null if the comparison isn't a numeric one. Used to tell the kid "true
+ * about 25% of the time" next to a condition on a random variable.
+ */
+export function chanceOfRandomComparison(
+  range: RandomRange,
+  comparator: VariableComparator,
+  value: string,
+  side: "left" | "right" = "left",
+): number | null {
+  if (!["<", "<=", ">", ">=", "=", "!="].includes(comparator)) return null;
+  if (value.trim() === "" || !Number.isFinite(Number(value))) return null;
+  const lo = Math.ceil(Math.min(range.min, range.max));
+  const hi = Math.floor(Math.max(range.min, range.max));
+  const total = hi - lo + 1;
+  if (total <= 0 || total > 1_000_000) return null;
+  let hits = 0;
+  for (let roll = lo; roll <= hi; roll++) {
+    const [a, b] = side === "left" ? [String(roll), value] : [value, String(roll)];
+    if (comparatorMatches(comparator, a, b)) hits++;
+  }
+  return hits / total;
+}
+
+/**
+ * The range of the random variable a rule value reads, if it reads one.
+ * `actors` are the rule's (or recording's) actors that actorId values name.
+ */
+export function randomRangeForRuleValue(
+  value: RuleValue | undefined,
+  {
+    actors,
+    characters,
+    world,
+  }: {
+    actors: { [actorId: string]: Actor };
+    characters: Characters;
+    world: Pick<WorldMinimal, "globals" | "stageVariables">;
+  },
+): RandomRange | undefined {
+  if (!value) return undefined;
+  if ("actorId" in value) {
+    const actor = actors[value.actorId];
+    const definition = actor && characters[actor.characterId]?.variables[value.variableId];
+    return definition?.random;
+  }
+  if ("globalId" in value) {
+    const global = world.globals[value.globalId];
+    return global && "random" in global ? global.random : undefined;
+  }
+  if ("stageVariableId" in value) {
+    const definition = world.stageVariables?.[value.stageVariableId];
+    return definition && "random" in definition ? definition.random : undefined;
+  }
+  return undefined;
+}
+
+/**
+ * The condition a random variable starts with when it's dropped into a rule:
+ * true about half the time ("Random < 50%"). Starting from "= <the last
+ * roll>", like other variables do, gives a rule that almost never fires.
+ */
+export function defaultRandomCondition(range: RandomRange) {
+  const lo = Math.ceil(Math.min(range.min, range.max));
+  const hi = Math.floor(Math.max(range.min, range.max));
+  return { comparator: "<" as const, value: String(lo + Math.ceil((hi - lo + 1) / 2)) };
+}
 
 /**
  * Parse a "variable" drag-and-drop payload (set by VariableGridItem) into the

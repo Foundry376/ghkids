@@ -8,6 +8,7 @@ import {
   isStageVariableValueValid,
 } from "../../utils/builtin-stage-variables";
 import { getCurrentStageForWorld } from "../../utils/selectors";
+import { formatRandomValue, isPercentRange } from "../../utils/stage-helpers";
 import { isNumericValue } from "../../utils/variable-coercion";
 import {
   BackgroundEditorModal,
@@ -262,6 +263,7 @@ export const VariableGridItem = ({
     kind === "stageVariable" ? "level" : "defaultValue" in definition ? "character" : "world";
 
   const [dropping, setDropping] = useState(false);
+  const [valueOnFocus, setValueOnFocus] = useState<string | null>(null);
   const { containerProps } = useDraggableContainer();
 
   const _onDragStart = (event: React.DragEvent) => {
@@ -308,7 +310,23 @@ export const VariableGridItem = ({
 
   let content = null;
 
-  if (readonly) {
+  if (randomRange) {
+    // The engine rolls a random variable at the start of every tick, so
+    // there's nothing to type here. Worse, a text box is where kids grab the
+    // box to drag it, and while recording, leaving the box committed its value
+    // as a "Put 0 into Random" action that pinned the roll every time the
+    // rule fired.
+    content = (
+      <div className="value variable-random-value">
+        {isMixed ? "—" : formatRandomValue(displayValue, randomRange)}
+        {!isPercentRange(randomRange) && (
+          <span className="variable-random-range-caption">
+            {randomRange.min} to {randomRange.max}
+          </span>
+        )}
+      </div>
+    );
+  } else if (readonly) {
     content = <div className="value">{isMixed ? "—" : displayValue}</div>;
   } else if (type === "boolean") {
     // Read through the same fallback the engine uses: an unusable value means
@@ -369,7 +387,16 @@ export const VariableGridItem = ({
           placeholder={isMixed ? "—" : undefined}
           onChange={(e) => onChangeValue(definition.id, e.target.value)}
           onDoubleClick={(e) => e.currentTarget.select()}
-          onBlur={(e) => onBlurValue(definition.id, e.target.value)}
+          onFocus={(e) => setValueOnFocus(e.target.value)}
+          onBlur={(e) => {
+            // Typing already saved each keystroke. Only commit on blur if the
+            // text changed, so clicking into a box and back out doesn't pin
+            // the value shown - while recording, that turned into a "Put"
+            // action nobody asked for.
+            if (e.target.value !== valueOnFocus) {
+              onBlurValue(definition.id, e.target.value);
+            }
+          }}
         />
       );
     }

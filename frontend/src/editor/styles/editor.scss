@@ -571,6 +571,9 @@ html {
           margin-right: 6px;
           width: 50px;
         }
+        .condition-random-value input {
+          margin-right: 2px;
+        }
         .condition-remove {
           padding: 4px;
           div {
@@ -1339,6 +1342,20 @@ html {
       line-height: 1;
       cursor: pointer;
       user-select: none;
+    }
+    // The roll isn't typed in, so the value is plain text and the whole box
+    // is a drag handle. A range other than 0-99 (shown as a %) gets its
+    // bounds beside the number, so kids know what a condition can compare to.
+    .variable-random-value {
+      color: black;
+      cursor: grab;
+      user-select: none;
+    }
+    .variable-random-range-caption {
+      margin-left: 6px;
+      font-size: 0.6em;
+      font-weight: normal;
+      color: #888;
     }
     background-color: #c6c6c6;
     box-sizing: content-box;
@@ -2330,4 +2347,14 @@ button.btn.selected:active {
 
 .variable-random-range input {
   width: 70px;
+}
+
+// "true about 25% of the time" beside a condition on a random variable, in
+// the recording panel and in the rules list.
+.condition-random-chance {
+  margin-left: 8px;
+  font-size: 0.85em;
+  font-style: italic;
+  color: #777;
+  white-space: nowrap;
 }

@@ -13,7 +13,12 @@ import {
 import { useEditorSelector } from "../../../../hooks/redux";
 import { upsertRecordingCondition } from "../../../actions/recording-actions";
 import { getCurrentStageForWorld } from "../../../utils/selectors";
-import { actorIntersectsExtent, ruleValueFromDragPayload } from "../../../utils/stage-helpers";
+import {
+  actorIntersectsExtent,
+  defaultRandomCondition,
+  randomRangeForRuleValue,
+  ruleValueFromDragPayload,
+} from "../../../utils/stage-helpers";
 import { makeId } from "../../../utils/utils";
 
 /**
@@ -138,14 +143,22 @@ export const RecordingConditions = ({
           setDropping(false);
           if (!left) return;
           const { value } = JSON.parse(raw) as { value?: string };
+          const range = randomRangeForRuleValue(left, {
+            actors: stage.actors,
+            characters,
+            world: beforeWorld,
+          });
+          const start = range
+            ? defaultRandomCondition(range)
+            : { comparator: "=" as const, value: value ?? "" };
 
           dispatch(
             upsertRecordingCondition({
               enabled: true,
               key: makeId("condition"),
-              comparator: "=",
+              comparator: start.comparator,
               left,
-              right: { constant: value ?? "" },
+              right: { constant: start.value },
             }),
           );
         }
