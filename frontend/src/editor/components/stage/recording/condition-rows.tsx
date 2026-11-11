@@ -18,6 +18,7 @@ import {
 import { pickConditionValueFromKeyboard, selectToolId } from "../../../actions/ui-actions";
 import { TOOLS } from "../../../constants/constants";
 import { ruleValueFromDragPayload } from "../../../utils/stage-helpers";
+import { inputModeForValue } from "../../../utils/variable-coercion";
 import ConnectedStagePicker from "../../inspector/connected-stage-picker";
 import { AppearanceDropdown, TransformDropdown } from "../../inspector/container-pane-variables";
 import {
@@ -220,6 +221,7 @@ export const FreeformConditionValue = ({
   impliedDatatype,
   conditionId,
   comparator,
+  expectsNumber = false,
 }: {
   value: RuleValue;
   world: WorldMinimal;
@@ -229,6 +231,8 @@ export const FreeformConditionValue = ({
   impliedDatatype: ImpliedDatatype;
   conditionId?: string;
   comparator: VariableComparator;
+  /** True where only a number makes sense, like the amount in "add 1 to score". */
+  expectsNumber?: boolean;
 }) => {
   const selectedToolId = useEditorSelector((state) => state.ui.selectedToolId);
   const dispatch = useDispatch();
@@ -338,6 +342,10 @@ export const FreeformConditionValue = ({
         return (
           <input
             type="text"
+            inputMode={inputModeForValue(
+              value.constant,
+              expectsNumber || [">", "<", ">=", "<="].includes(comparator),
+            )}
             value={value.constant}
             style={{ width: 80 }}
             onChange={(e) => onChange?.({ constant: e.target.value })}
