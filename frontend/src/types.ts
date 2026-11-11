@@ -424,6 +424,8 @@ export type World = WorldMinimal & {
     id: number;
     published: boolean;
     description: string | null;
+    /** Who made the game, e.g. "Ben and Marcus". Shown above the publisher. */
+    credits?: string | null;
   };
 };
 
@@ -491,6 +493,8 @@ export type Game = {
   updatedAt: string;
   published: boolean;
   description: string | null;
+  /** Who made the game, e.g. "Ben and Marcus". Missing on games made before credits existed. */
+  credits?: string | null;
   data: Partial<EditorState> & Omit<EditorState, "ui" | "recording">;
 };
 

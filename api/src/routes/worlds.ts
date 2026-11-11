@@ -211,12 +211,16 @@ router.post("/worlds", userFromAuth, async (req, res) => {
 });
 
 /**
- * A description in the request replaces the saved one - including null, which
- * is how clearing it arrives. One that's left out keeps what's saved: the
- * editor only sends it when it's been changed there.
+ * A description or credits line in the request replaces the saved one -
+ * including null, which is how clearing it arrives. One that's left out keeps
+ * what's saved: the editor only sends them when they've been changed there.
  */
-function descriptionFrom(body: Record<string, unknown>, world: World): string | null {
-  return "description" in body ? ((body.description as string | null) ?? null) : world.description;
+function textFieldFrom(
+  body: Record<string, unknown>,
+  world: World,
+  field: "description" | "credits",
+): string | null {
+  return field in body ? ((body[field] as string | null) ?? null) : world[field];
 }
 
 router.put("/worlds/:objectId", userFromAuth, async (req, res) => {
@@ -244,8 +248,9 @@ router.put("/worlds/:objectId", userFromAuth, async (req, res) => {
     // Also update name and thumbnail if provided
     world.name = req.body.name || world.name;
     world.thumbnail = req.body.thumbnail || world.thumbnail;
-    // Allow updating published/description on save
-    world.description = descriptionFrom(req.body, world);
+    // Allow updating published/description/credits on save
+    world.description = textFieldFrom(req.body, world, "description");
+    world.credits = textFieldFrom(req.body, world, "credits");
     world.published = req.body.published ?? world.published;
     // updatedAt will be automatically updated by TypeORM
   } else if (action === "discard") {
@@ -270,8 +275,9 @@ router.put("/worlds/:objectId", userFromAuth, async (req, res) => {
       world.unsavedData = req.body.data;
       world.unsavedDataUpdatedAt = new Date();
     }
-    // Allow updating published/description during draft save too
-    world.description = descriptionFrom(req.body, world);
+    // Allow updating published/description/credits during draft save too
+    world.description = textFieldFrom(req.body, world, "description");
+    world.credits = textFieldFrom(req.body, world, "credits");
     world.published = req.body.published ?? world.published;
     // Don't update updatedAt when saving draft
   }

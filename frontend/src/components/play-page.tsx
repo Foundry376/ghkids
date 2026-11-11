@@ -140,11 +140,13 @@ const PlayPage: React.FC = () => {
 
   const isOwner = me && me.id === world?.userId;
 
-  // The author can fix the title and description right here, where they're
-  // looking at them, instead of unpublishing and publishing again.
-  const [editingInfo, setEditingInfo] = useState<{ name: string; description: string } | null>(
-    null,
-  );
+  // The author can fix the title, description and credits right here, where
+  // they're looking at them, instead of unpublishing and publishing again.
+  const [editingInfo, setEditingInfo] = useState<{
+    name: string;
+    description: string;
+    credits: string;
+  } | null>(null);
   const [savingInfo, setSavingInfo] = useState(false);
   const onSaveInfo = async () => {
     if (!world || !editingInfo || !editingInfo.name.trim()) return;
@@ -154,6 +156,7 @@ const PlayPage: React.FC = () => {
         updateWorldInfo(world.id, {
           name: editingInfo.name.trim(),
           description: editingInfo.description.trim() || null,
+          credits: editingInfo.credits.trim() || null,
         }),
       );
       setEditingInfo(null);
@@ -279,9 +282,19 @@ const PlayPage: React.FC = () => {
             <h2 className="play-landing__title">{world.name}</h2>
           )}
           <div className="play-landing__meta">
-            <span>
-              by <Link to={`/u/${world.user.username}`}>{world.user.username}</Link>
-            </span>
+            {world.credits && !editingInfo ? (
+              <>
+                <span className="play-landing__credits">Credits: {world.credits}</span>
+                <span className="play-landing__publisher">
+                  Published by:{" "}
+                  <Link to={`/u/${world.user.username}`}>{world.user.username}</Link>
+                </span>
+              </>
+            ) : (
+              <span>
+                by <Link to={`/u/${world.user.username}`}>{world.user.username}</Link>
+              </span>
+            )}
             {world.forkParent && world.forkParent.user && (
               <span className="play-landing__remix-info">
                 {" remixed from "}
@@ -293,6 +306,13 @@ const PlayPage: React.FC = () => {
           </div>
           {editingInfo ? (
             <div className="play-landing__edit-info">
+              <input
+                value={editingInfo.credits}
+                maxLength={100}
+                placeholder="Credits - who made this game? (optional)"
+                aria-label="Credits"
+                onChange={(e) => setEditingInfo({ ...editingInfo, credits: e.target.value })}
+              />
               <textarea
                 value={editingInfo.description}
                 maxLength={300}
@@ -324,10 +344,14 @@ const PlayPage: React.FC = () => {
                 <button
                   className="play-landing__edit-info-link"
                   onClick={() =>
-                    setEditingInfo({ name: world.name, description: world.description ?? "" })
+                    setEditingInfo({
+                      name: world.name,
+                      description: world.description ?? "",
+                      credits: world.credits ?? "",
+                    })
                   }
                 >
-                  <i className="fa fa-pencil" /> Edit title &amp; description
+                  <i className="fa fa-pencil" /> Edit title, credits &amp; description
                 </button>
               )}
             </>
