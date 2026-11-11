@@ -3,7 +3,7 @@ import { Col, Container, Row } from "reactstrap";
 import React from "react";
 
 import { usePageTitle } from "../hooks/usePageTitle";
-import { BookCredit, Citation, Figure, InShort, ReferenceId, References } from "./parents-article";
+import { BookCredit, Citation, Figure, ReferenceId, References } from "./parents-article";
 
 const LIBRARY_IMG = new URL("../img/book/library.png", import.meta.url).href;
 
@@ -12,7 +12,7 @@ const REFS: ReferenceId[] = ["mcleod", "star", "cocoa", "kidsim"];
 const Cite = ({ id }: { id: ReferenceId }) => <Citation refs={REFS} id={id} />;
 
 /**
- * The longer story behind the overview's "Based on research" block: the
+ * The longer story behind the overview's "Where Codako comes from": the
  * learning theory, what kids get out of it, and where Codako came from.
  */
 const ResearchPage: React.FC = () => {
@@ -23,87 +23,45 @@ const ResearchPage: React.FC = () => {
       <Row>
         <Col md={12}>
           <h3>The Ideas Behind Codako</h3>
-          <InShort>
-            <li>Kids learn best by building things themselves, not by watching or reading.</li>
-            <li>
-              Making a game means planning steps, testing ideas, and fixing what doesn&rsquo;t work:
-              the same skills behind science and programming.
-            </li>
-            <li>
-              Codako is based on KidSim, which researchers at Apple tested with kids in real
-              classrooms in the 1990s.
-            </li>
-          </InShort>
-          <p>
-            Codako is a program that lets children (&ldquo;of all ages&rdquo; as Alan Kay used to
-            say) create visual simulations. The goal of Codako is to improve the thinking skills of
-            children. Since all video games are simulations, we present it to kids as a video game
-            construction set. Yet the real value to kids lies in the nature of simulations, both in
-            the simulations that they create and in the process of creating them.
+          <p className="parents-article__intro">
+            Codako lets children (&ldquo;of all ages,&rdquo; as Alan Kay used to say) build their
+            own simulations. Every video game is a simulation, so we present it to kids as a video
+            game construction set. But the real value lies in the simulations kids create, and in
+            the process of creating them.
           </p>
 
           <h4>Learning by building</h4>
           <p>
-            Educators call this idea constructivism: learners actively build knowledge on top of
-            what they already know, rather than passively absorbing information from a lecture.
-            <Cite id="mcleod" /> It works best when teachers provide kids with a solid foundation in
-            a topic. But constructivism doesn&rsquo;t stop with the foundation; it begins there.
+            Educators call this idea constructivism: learners build knowledge on top of what they
+            already know, rather than passively absorbing it from a lecture.
+            <Cite id="mcleod" /> In Codako, kids don&rsquo;t just play games built by others. They
+            design and build their own, which is motivating for kids and by its nature active. You
+            can&rsquo;t be passive while making a game.
           </p>
           <p>
-            Codako supports constructivism. It encourages kids to learn by building games. Kids
-            don&rsquo;t just play games built by others; they design and build the games themselves.
-            This is intrinsically motivating for kids. By its nature it is a creative, active
-            process. Children can&rsquo;t be passive when they use Codako.
+            Unlike animations, simulations don&rsquo;t run the same way every time. They respond to
+            the player. That lets kids run &ldquo;what if?&rdquo; experiments, test their ideas, and
+            come to understand how a complicated system behaves.
           </p>
           <p>
-            Codako is optimized for building visual simulations. Unlike animations, simulations
-            don&rsquo;t run the same way every time. They depend on inputs, usually provided by
-            users. In a game context, the ability to make inputs is essential to playing the game.
-            More broadly though, simulations let learners conduct &ldquo;what if?&rdquo;
-            experiments, test ideas, hone critical thinking skills, and achieve a deeper
-            understanding of complex topics. They provide a rich learning environment.
+            Making a game exercises a whole set of thinking skills. Most schoolwork happens in words
+            and symbols; Codako adds a visual way to think, since every rule is a picture of how
+            part of the game looks before and after something happens. Designing levels is
+            sequential thinking: to get to the goal, the player must first do this, then that.
+            Debugging takes careful, critical thinking about what&rsquo;s going on and why. And
+            every time a rule doesn&rsquo;t work as expected, kids practice the scientific method:
+            guess why, change something, and play again to find out.
           </p>
-
-          <h4>Thinking skills taught by Codako</h4>
-          <h5>Visual thinking</h5>
           <p>
-            Most schoolwork happens in words and symbols. Codako gives kids a new language in which
-            to think, a visual one of before-after pictures. To make a rule, kids picture how part
-            of their game should look before and after something happens.
-          </p>
-          <h5>Sequential thinking</h5>
-          <p>
-            Designing a game inherently involves planning sequences of steps for the players. In
-            order to achieve W, they must first achieve X and Y and Z. This is especially true for a
-            game that has multiple levels. Thinking sequentially is inherent in game design.
-          </p>
-          <h5>Critical thinking</h5>
-          <p>
-            You can&rsquo;t debug a game without thinking carefully and objectively about
-            what&rsquo;s going on and why.
-          </p>
-          <h5>The scientific method</h5>
-          <p>
-            When scientists encounter something they don&rsquo;t understand, they form a hypothesis
-            about what is happening, then design an experiment to test it. Either their hypothesis
-            is confirmed, or it is refuted, and it&rsquo;s back to square one. Kids do the same
-            thing every time a rule doesn&rsquo;t work the way they expected: guess why, change
-            something, and play again to find out.
-          </p>
-          <h5>The act of creation</h5>
-          <p>
-            The activity of programming computers encompasses all of the above thinking skills, plus
-            one additional one: the reward of seeing your ideas come to life. This is one of
-            humanity&rsquo;s deepest desires and has motivated artists throughout history. It is the
-            lure that has led many people—including the people who make Codako—to become
-            programmers.
+            On top of all that is the reward of seeing your ideas come to life. It&rsquo;s one of
+            the deepest motivations people have, and it&rsquo;s what led many programmers, including
+            the people who make Codako, to their careers.
           </p>
 
-          <h4>Bringing programming into the kids&rsquo; world</h4>
+          <h4>Programming in the kids&rsquo; world</h4>
           <p>
-            Codako&rsquo;s rules deal with objects and concepts that kids make: trains and track and
-            intersections and crossing gates. Not machine concepts: bits and bytes and arrays and,
-            most of all, syntax.
+            Codako&rsquo;s rules deal with the things kids make, like trains, tracks, intersections,
+            and crossing gates, rather than machine concepts like bits, arrays, and syntax.
           </p>
           <Figure
             src={LIBRARY_IMG}
@@ -111,63 +69,44 @@ const ResearchPage: React.FC = () => {
             caption="The characters in a train game"
           />
           <p>
-            This idea has a history. When Xerox scientists including David Canfield Smith were
-            designing the Xerox Star computer (the ancestor of the Macintosh) in the 1970s, their
-            target users — &ldquo;knowledge workers&rdquo; in an office — didn&rsquo;t understand
-            computers and were fearful of them. So instead of trying to take office workers into the
-            computer&rsquo;s world, they brought the computer into the office world. Smith&rsquo;s
-            invention of icons was the perfect vehicle for modeling objects and actions in the
-            office, such as documents, folders, printers, wastebaskets. This came to be known as the
-            &ldquo;desktop metaphor,&rdquo;
-            <Cite id="star" /> and it is still how we use computers today.
-          </p>
-          <p>
-            Codako adopted this approach for programming. Instead of trying to take kids into the
-            computer&rsquo;s world, it brings programming into the kids&rsquo; world. To program in
-            Codako, kids don&rsquo;t learn an alien language of computer terminology and concepts;
-            they simply manipulate the objects they create.
+            This idea has a history. In the 1970s, David Canfield Smith was one of the Xerox
+            scientists designing the Xerox Star, the ancestor of the Macintosh. Its users were
+            office workers who didn&rsquo;t understand computers and were a little afraid of them.
+            So instead of taking office workers into the computer&rsquo;s world, the team brought
+            the computer into the office world, with icons for documents, folders, printers, and
+            wastebaskets. Smith invented those icons, and the &ldquo;desktop metaphor&rdquo;
+            <Cite id="star" /> is still how we use computers today. Codako does the same for
+            programming: instead of learning an alien language, kids simply work with the characters
+            they&rsquo;ve made.
           </p>
 
-          <h4>The history of Codako</h4>
-          <h5>Cocoa</h5>
+          <h4>Where Codako came from</h4>
           <p>
-            Codako began as a research project in the Advanced Technology Group (ATG) at Apple
-            Computer in the 1990s. At the time Apple was actively engaged in assisting education.
-            David Canfield Smith, along with Allen Cypher and Alan Kay (a pioneer of personal
-            computing), took on the challenge of enabling kids to program computers. The first
-            prototype was called Cocoa. Here is{" "}
+            Codako began in the 1990s as a research project in Apple&rsquo;s Advanced Technology
+            Group, when Apple was deeply involved in education. David Canfield Smith, Allen Cypher,
+            and Alan Kay set out to help kids program computers. Their first prototype was called
+            Cocoa; here&rsquo;s{" "}
             <a href="https://www.youtube.com/watch?v=NtmGTrr3R-E" target="_blank" rel="noreferrer">
-              11-year-old Gregory Miller demoing Cocoa
+              11-year-old Gregory Miller demoing it
             </a>{" "}
-            to the Apple community in 1996.
-            <Cite id="cocoa" />
+            at Apple in 1996.
+            <Cite id="cocoa" /> A more capable version, KidSim,
+            <Cite id="kidsim" /> was tested extensively with kids in schools, working with classroom
+            teachers. Kids built many games with it, and some teachers built simulations to
+            illustrate their lessons.
           </p>
-          <h5>KidSim</h5>
           <p>
-            Later the three of them, with help from ATG researchers, produced a more refined and
-            capable version called KidSim (for Kids&rsquo; Simulations).
-            <Cite id="kidsim" /> They did extensive testing of it with kids in schools, in
-            collaboration with several progressive classroom teachers. Kids built many games in it.
-            Even teachers built some simulations to illustrate lessons. KidSim worked for
-            &ldquo;children of all ages.&rdquo;
+            In the late 1990s, part of the KidSim team left Apple to found Stagecast Software and
+            turn KidSim into a product, Stagecast Creator. But educational software was a hard
+            business then. There were no tablets or app stores, just a fight for shelf space in
+            electronics stores, and Stagecast eventually closed.
           </p>
-          <h5>Stagecast Creator</h5>
           <p>
-            A group working on KidSim spun off from Apple in the late 90s and founded a startup
-            called Stagecast Software, to turn KidSim into a product which could be used by anyone.
-            But the market in educational software back then was difficult. There were no tablet
-            computers or smartphones or even App Stores. It was a competition for shelf space in
-            electronics stores, and Stagecast eventually had to close up shop.
-          </p>
-          <h5>Codako</h5>
-          <p>
-            While Stagecast Creator was still available, Ben Gotow used it as a child. He fell in
-            love with it, which contributed to his desire to make programming his profession. He
-            never forgot Creator, and a few years ago he decided to resurrect it, rebuilding the
-            core of it from memory in his free time. That&rsquo;s when David Canfield Smith and
-            Joyce Yuan discovered the project and asked to join it. Together they have not only
-            reproduced everything that was important in Creator but drastically improved its user
-            interface as well, and brought it to the web, where it&rsquo;s free for everyone.
+            Ben Gotow used Stagecast Creator as a kid and loved it, and it&rsquo;s part of why he
+            became a programmer. A few years ago he started rebuilding it from memory in his free
+            time. When David Canfield Smith and Joyce Yuan found the project, they asked to join.
+            Together they&rsquo;ve brought back everything important from Creator, greatly improved
+            its design, and put it on the web, free for everyone.
           </p>
           <p>
             Wondering how this compares to having an AI make a game? Read{" "}

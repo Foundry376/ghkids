@@ -187,19 +187,11 @@ body {
     margin-left: 1px;
     text-decoration: none;
   }
-}
 
-.parents-article__in-short {
-  margin: 10px 0 30px;
-  padding: 16px 20px;
-  background-color: #ebf1e7;
-  border-radius: 6px;
-  ul {
-    margin: 6px 0 0;
-    padding-left: 20px;
-  }
-  li + li {
-    margin-top: 4px;
+  /* The opening paragraph, under the title, in place of a summary box. */
+  .parents-article__intro {
+    font-size: 1.15em;
+    color: #444;
   }
 }
 
@@ -279,6 +271,18 @@ body {
       margin-top: 20px;
     }
   }
+}
+
+/* The longer pages read as one story, so their section headings are quieter
+   than the FAQ's and changelog's dividers. */
+.parents-article h4 {
+  margin-top: 40px;
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.faq h5 {
+  margin-top: 36px;
 }
 
 .network-bar {
@@ -381,12 +385,9 @@ body {
   }
 }
 
-.parents-steps {
+/* Running text on the overview stays at a comfortable line length. */
+.parents-lede {
   max-width: 760px;
-  padding-left: 22px;
-  li {
-    margin-bottom: 10px;
-  }
 }
 
 .footer {

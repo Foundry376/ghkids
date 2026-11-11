@@ -91,32 +91,20 @@ const FAQPage: React.FC = () => {
           <h5>Is Codako COPPA compliant?</h5>
           {/* Keep this in step with the Privacy Policy's "Children's privacy" section. */}
           <p>
-            Yes. COPPA is the US law that protects the personal information of children under 13.
-            Codako collects only what it needs to work:
+            Yes. COPPA is the US law that protects the personal information of children under 13,
+            and Codako collects only what it needs to work. Signing up asks for a nickname, which
+            your child needs to take part, a password, and a grown-up&rsquo;s email address. We
+            never ask for a child&rsquo;s real name, photo, school, or location, and kids who play
+            without an account keep their games on your computer.
           </p>
-          <ul>
-            <li>
-              Signing up asks only for a nickname, which your child needs to take part, a password,
-              and a grown-up&rsquo;s email address. We never ask for a child&rsquo;s real name,
-              photo, school, or location.
-            </li>
-            <li>
-              We store the games your child makes, and our servers keep short-lived technical logs,
-              like most websites, to keep Codako running and secure.
-            </li>
-            <li>
-              Kids can&rsquo;t comment on or message each other, so there&rsquo;s nowhere for them
-              to share personal information with other players.
-            </li>
-            <li>
-              Kids can play without an account at all, so the games they make stay on your computer.
-            </li>
-            <li>
-              All information travels over a secure (HTTPS) connection, and we don&rsquo;t use any
-              third-party tracking, like ad pixels.
-            </li>
-            <li>We&rsquo;ll delete your child&rsquo;s account and everything in it on request.</li>
-          </ul>
+          <p>
+            Besides your child&rsquo;s games, our servers keep only short-lived technical logs, like
+            most websites, to keep Codako running and secure. Everything travels over a secure
+            (HTTPS) connection, there&rsquo;s no third-party tracking like ad pixels, and kids
+            can&rsquo;t message each other, so there&rsquo;s nowhere to share personal information
+            with other players. We&rsquo;ll delete your child&rsquo;s account and everything in it
+            on request. Our <Link to="/privacy-policy">Privacy Policy</Link> has the details.
+          </p>
 
           <h5>What if I see something inappropriate?</h5>
           {/* TODO: describe the in-app report button once it exists. */}
@@ -157,17 +145,12 @@ const FAQPage: React.FC = () => {
             published.
           </p>
 
-          <h5>Is Codako OK for younger kids?</h5>
+          <h5>Is Codako OK for younger kids? Do I need to help?</h5>
           <p>
-            Codako is designed for ages 6 and up. The lessons involve some reading, so younger kids
-            and kids who are still learning to read do best with a grown-up next to them.
-          </p>
-
-          <h5>Do I need to help?</h5>
-          <p>
-            You don&rsquo;t need to know anything about programming. Sitting with your child for the
-            first lesson or two helps, especially if they&rsquo;re still learning to read. After
-            that, asking them to show you their game is a great way to see what they&rsquo;ve
+            Codako is designed for ages 6 and up. You don&rsquo;t need to know anything about
+            programming, but the lessons involve some reading, so younger kids and kids who are
+            still learning to read do best with a grown-up next to them for the first lesson or two.
+            After that, asking them to show you their game is a great way to see what they&rsquo;ve
             learned.
           </p>
 
@@ -181,8 +164,7 @@ const FAQPage: React.FC = () => {
 
           <h5>I&rsquo;d like to use Codako in my school!</h5>
           <p>
-            Great! We&rsquo;d love for you to use Codako. Reach out to us at <Email /> so we can
-            help you get started!
+            We&rsquo;d love that. Email us at <Email /> and we&rsquo;ll help you get started.
           </p>
         </Col>
       </Row>
