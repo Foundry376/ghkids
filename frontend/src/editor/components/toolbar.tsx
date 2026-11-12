@@ -162,7 +162,7 @@ const Toolbar = () => {
               </>
             )}
             <DropdownItem divider />
-            <DropdownItem onClick={() => saveWorldAnd(`/play/${metadata.id}`)}>
+            <DropdownItem onClick={() => saveWorldAnd(`/play/${metadata.id}?version=latest`)}>
               <i className="fa fa-play fa-fw" style={{ marginRight: 8 }} />
               Switch to Player View...
             </DropdownItem>

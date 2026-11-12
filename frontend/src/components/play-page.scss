@@ -110,6 +110,26 @@ $play-tint: #5bc0de;
   }
 }
 
+/* ---- Under construction banner ---- */
+
+/* Above the landing overlay, which starts right under the top bar. */
+.play-construction-banner {
+  position: relative;
+  z-index: 60;
+  flex-shrink: 0;
+  padding: 6px 16px;
+  background: #f0ad4e;
+  color: #222;
+  font-size: 0.85rem;
+  text-align: center;
+
+  a {
+    color: #222;
+    font-weight: 600;
+    text-decoration: underline;
+  }
+}
+
 /* ---- Stage area ---- */
 
 .play-stage-area {

@@ -492,6 +492,8 @@ export type Game = {
   published: boolean;
   /** When the version players get was published. */
   publishedAt?: string | null;
+  /** Which version a single-game fetch returned: what players get, or the author's latest save. */
+  version?: "published" | "latest";
   description: string | null;
   data: Partial<EditorState> & Omit<EditorState, "ui" | "recording">;
 };

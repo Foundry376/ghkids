@@ -110,9 +110,13 @@ export function fetchWorldsForUser(user: string | "me") {
   };
 }
 
-export function fetchWorld(id: ID) {
+/**
+ * Authors get the game as they last saved it unless they ask for
+ * `version: "published"`. Everyone else always gets the published version.
+ */
+export function fetchWorld(id: ID, version?: Game["version"]) {
   return function (dispatch: Dispatch<MainActions>) {
-    makeRequest<Game>(`/worlds/${id}`).then((world) => {
+    makeRequest<Game>(`/worlds/${id}`, { query: { version } }).then((world) => {
       dispatch({ type: types.UPSERT_WORLDS, worlds: [world] });
     });
   };
@@ -175,7 +179,11 @@ export function deleteWorld(id: ID) {
   };
 }
 
-export function createWorld({ from, fork }: { from?: ID; fork?: string } = {}) {
+export function createWorld({
+  from,
+  fork,
+  version,
+}: { from?: ID; fork?: string; version?: Game["version"] } = {}) {
   return async function (_dispatch: Dispatch<MainActions>) {
     // Forking someone else's game drops the kid into a walkthrough of it.
     // Lessons have their own entrypoint - see lessons/start-lesson.ts.
@@ -185,7 +193,7 @@ export function createWorld({ from, fork }: { from?: ID; fork?: string } = {}) {
       // Returned so callers can show progress until the redirect happens —
       // creating a world server-side can take a few seconds.
       return makeRequest<{ id: string }>(`/worlds`, {
-        query: { from, fork },
+        query: { from, fork, version },
         method: "POST",
       }).then((created) => {
         window.location.href = `/editor/${created.id}?${qs}`;

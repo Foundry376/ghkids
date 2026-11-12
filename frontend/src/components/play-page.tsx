@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useDispatch } from "react-redux";
-import { Link, useParams } from "react-router-dom";
+import { Link, useParams, useSearchParams } from "react-router-dom";
 import { Button, ButtonDropdown, DropdownItem, DropdownMenu, DropdownToggle } from "reactstrap";
 
 import { Store } from "redux";
@@ -19,6 +19,10 @@ import "./play-page.scss";
 
 const PlayPage: React.FC = () => {
   const { worldId } = useParams<{ worldId: string }>();
+  // Authors play their latest save from My Games and the editor. Everyone,
+  // the author included, gets the published version anywhere else.
+  const [searchParams] = useSearchParams();
+  const version = searchParams.get("version") === "latest" ? "latest" : "published";
   const dispatch = useDispatch();
 
   const me = useAppSelector((state) => state.me);
@@ -43,9 +47,9 @@ const PlayPage: React.FC = () => {
 
   useEffect(() => {
     if (worldId) {
-      dispatch(fetchWorld(Number(worldId)));
+      dispatch(fetchWorld(Number(worldId), version));
     }
-  }, [worldId, dispatch]);
+  }, [worldId, version, dispatch]);
 
   usePageTitle(world?.name);
 
@@ -128,17 +132,17 @@ const PlayPage: React.FC = () => {
     setImmersive(false);
   }, [exitFullscreen]);
 
-  const onEditOrRemix = () => {
+  const isOwner = me && me.id === world?.userId;
+
+  // The author copies the version they're playing. Anyone else remixes it.
+  const onCopy = () => {
     if (!world) return;
-    const isOwner = me && me.id === world.userId;
     if (isOwner) {
-      window.location.href = `/editor/${world.id}`;
+      dispatch(createWorld({ from: world.id, version: world.version }));
     } else {
       dispatch(createWorld({ from: world.id, fork: "true" }));
     }
   };
-
-  const isOwner = me && me.id === world?.userId;
 
   // The author can fix the title and description right here, where they're
   // looking at them, instead of unpublishing and publishing again.
@@ -163,7 +167,6 @@ const PlayPage: React.FC = () => {
       setSavingInfo(false);
     }
   };
-  const editLabel = isOwner ? "Open in Editor" : "Remix this Game";
   const [currentStageName, setCurrentStageName] = useState<string | null>(null);
 
   useEffect(() => {
@@ -221,10 +224,16 @@ const PlayPage: React.FC = () => {
                   </DropdownItem>
                 )}
                 <DropdownItem divider />
-                <DropdownItem onClick={onEditOrRemix}>
-                  <i className="fa fa-pencil fa-fw" style={{ marginRight: 8 }} />
-                  {editLabel}
+                <DropdownItem onClick={onCopy}>
+                  <i className="fa fa-copy fa-fw" style={{ marginRight: 8 }} />
+                  Copy to My Games
                 </DropdownItem>
+                {isOwner && (
+                  <DropdownItem onClick={() => (window.location.href = `/editor/${world.id}`)}>
+                    <i className="fa fa-pencil fa-fw" style={{ marginRight: 8 }} />
+                    Edit in My Games
+                  </DropdownItem>
+                )}
                 <DropdownItem divider />
                 <DropdownItem onClick={() => (window.location.href = "/")}>
                   <i
@@ -246,15 +255,21 @@ const PlayPage: React.FC = () => {
         </div>
       </div>
 
+      {isOwner && world.version === "latest" && (
+        <div className="play-construction-banner">
+          <i className="fa fa-wrench" /> Under construction: you&apos;re playing your latest save.{" "}
+          {world.published ? (
+            <Link to={`/play/${world.id}`}>Play the published version</Link>
+          ) : (
+            "Players can't see this game until you publish it."
+          )}
+        </div>
+      )}
+
       {/* Stage area - always rendered, fills available space.
           Always pass immersive so the stage scales to fit even behind the landing overlay. */}
       <div className="play-stage-area">
-        <RootPlayer
-          world={world}
-          editorStoreRef={editorStoreRef}
-          immersive
-          session={session}
-        />
+        <RootPlayer world={world} editorStoreRef={editorStoreRef} immersive session={session} />
       </div>
 
       {/* Landing overlay - shown before play, fades out on play */}
