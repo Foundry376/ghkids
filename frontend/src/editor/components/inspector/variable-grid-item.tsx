@@ -140,13 +140,13 @@ const RandomBoundInput = ({
 
   const commit = () => {
     const next = Math.floor(Number(text));
-    if (text.trim() === "" || !Number.isFinite(next)) {
-      setText(String(value));
-    } else if (next !== value) {
+    if (text.trim() !== "" && Number.isFinite(next) && next !== value) {
       onCommit(next);
-    } else {
-      setText(String(value));
     }
+    // Show the bound as stored. A new value arrives as a prop and replaces
+    // this, but a commit can leave this bound unchanged (typing 8 into the
+    // min of 5-5 stores 5-8), and then nothing else would reset the text.
+    setText(String(value));
   };
 
   return (
