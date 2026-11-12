@@ -11,7 +11,11 @@ import {
   runSimulation,
 } from "./__tests__/test-fixtures";
 import { BUILTIN_STAGE_VARIABLES } from "./builtin-stage-variables";
-import { rollRandomInRange } from "./stage-helpers";
+import {
+  defaultRandomCondition,
+  randomRangeForRuleValue,
+  rollRandomInRange,
+} from "./stage-helpers";
 
 /**
  * Random variables: a variable whose value is re-rolled once at the start of
@@ -207,5 +211,91 @@ describe("random variables", () => {
     expect(two.globals.dice.value).to.equal("5");
     expect(two.stages["stage-1"].variableValues.lvl).to.equal("2");
     expect(calls).to.equal(4);
+  });
+
+  it("repeats a rule box as many times as a random variable rolled", () => {
+    // A 1-6 roll is 4 when Math.random() is 0.5.
+    Math.random = () => 0.5;
+    const ruleActor = makeActor({ id: "rule-walker", characterId: "walker" });
+    const walker = makeCharacter({
+      id: "walker",
+      variables: {
+        steps: { id: "steps", name: "Steps", defaultValue: "0", random: { min: 1, max: 6 } },
+      },
+      rules: [
+        {
+          type: "group-flow",
+          id: "repeat",
+          name: "Repeat",
+          behavior: "loop",
+          loopCount: { variableId: "steps" },
+          rules: [
+            makeRule({
+              id: "step",
+              mainActorId: "rule-walker",
+              actors: { "rule-walker": ruleActor },
+              actions: [{ type: "move", actorId: "rule-walker", delta: { x: 1, y: 0 } }],
+            }),
+          ],
+        },
+      ],
+    });
+    const world = makeWorld({
+      stage: makeStage({
+        id: "stage-1",
+        variableValues: { width: "20" },
+        actors: { w: makeActor({ id: "w", characterId: "walker", position: { x: 1, y: 1 } }) },
+      }),
+    });
+    const next = runSimulation(world, { walker }, 1);
+    expect(next.stages["stage-1"].actors.w.variableValues.steps).to.equal("4");
+    expect(next.stages["stage-1"].actors.w.position.x).to.equal(5);
+  });
+
+  it("keeps ticks that only re-roll out of the history", () => {
+    // Undo rewinds the game to the last edit through the history, which is
+    // capped at 500 entries. If every roll added one, a game left running for
+    // a few minutes would push the edit out of reach and undo would apply to
+    // the wrong state.
+    const { characters } = setup([]);
+    const world = makeWorld({
+      globals: makeGlobals({
+        dice: { id: "dice", name: "Dice", value: "0", random: { min: 1, max: 6 } },
+      }),
+      stage: makeStage({ id: "stage-1", actors: {} }),
+    });
+    expect(runSimulation(world, characters, 3).history).to.have.length(0);
+  });
+});
+
+describe("random variables in the editor", () => {
+  const percent = { min: 0, max: 99 };
+  const die = { min: 1, max: 6 };
+
+  it("starts a dropped random variable's condition at about half the time", () => {
+    expect(defaultRandomCondition(percent)).to.deep.equal({ comparator: "<", value: "50" });
+    expect(defaultRandomCondition(die)).to.deep.equal({ comparator: "<", value: "4" });
+  });
+
+  it("finds the range of the random variable a rule value reads", () => {
+    const { world, characters } = setup(["a"]);
+    const actors = world.stages["stage-1"].actors;
+    const worldWithRandoms = {
+      globals: makeGlobals({
+        dice: { id: "dice", name: "Dice", value: "0", random: die },
+        plain: { id: "plain", name: "Plain", value: "0" },
+      }),
+      stageVariables: {
+        ...BUILTIN_STAGE_VARIABLES,
+        lvl: { id: "lvl", name: "Level Roll", random: percent },
+      },
+    };
+    const ctx = { actors, characters, world: worldWithRandoms };
+    expect(randomRangeForRuleValue({ actorId: "a", variableId: rollVar }, ctx)).to.deep.equal(percent);
+    expect(randomRangeForRuleValue({ actorId: "a", variableId: hitsVar }, ctx)).to.equal(undefined);
+    expect(randomRangeForRuleValue({ globalId: "dice" }, ctx)).to.deep.equal(die);
+    expect(randomRangeForRuleValue({ globalId: "plain" }, ctx)).to.equal(undefined);
+    expect(randomRangeForRuleValue({ stageVariableId: "lvl" }, ctx)).to.deep.equal(percent);
+    expect(randomRangeForRuleValue({ constant: "5" }, ctx)).to.equal(undefined);
   });
 });

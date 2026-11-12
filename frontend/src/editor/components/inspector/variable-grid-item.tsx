@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Button, Modal, ModalBody, ModalFooter, ModalHeader } from "reactstrap";
+import { Button } from "reactstrap";
 import { useDraggableContainer } from "../../../hooks/useDraggableContainer";
 import { useEditorSelector } from "../../../hooks/redux";
 import { Character, Global, RandomRange, StageVariable } from "../../../types";
@@ -121,96 +121,108 @@ const NumberValueEditor = ({
 };
 
 /**
- * The dice in the corner of a random variable's box. Tapping it opens a small
- * editor for the range the variable is rolled from each tick.
+ * One end of a random variable's range, typed in place. Commits on blur or
+ * Enter, and only a whole number: anything else puts the old bound back.
  */
-const RandomVariableBadge = ({
-  range,
-  scope,
+const RandomBoundInput = ({
+  value,
+  label,
   disabled,
-  onChange,
+  onCommit,
 }: {
-  range: RandomRange;
-  scope: "character" | "level" | "world";
+  value: number;
+  label: string;
   disabled: boolean;
-  onChange: (range: RandomRange) => void;
+  onCommit: (value: number) => void;
 }) => {
-  const [open, setOpen] = useState(false);
-  const [min, setMin] = useState(String(range.min));
-  const [max, setMax] = useState(String(range.max));
+  const [text, setText] = useState(String(value));
+  useEffect(() => setText(String(value)), [value]);
 
-  useEffect(() => {
-    if (open) {
-      setMin(String(range.min));
-      setMax(String(range.max));
+  const commit = () => {
+    const next = Math.floor(Number(text));
+    if (text.trim() !== "" && Number.isFinite(next) && next !== value) {
+      onCommit(next);
     }
-  }, [open, range.min, range.max]);
-
-  const who = {
-    character: "Each character gets its own roll.",
-    level: "The level gets one roll that every character sees.",
-    world: "The world gets one roll that every character sees.",
-  }[scope];
-
-  const _onSave = () => {
-    const lo = Math.floor(Number(min));
-    const hi = Math.floor(Number(max));
-    if (Number.isFinite(lo) && Number.isFinite(hi)) {
-      onChange({ min: Math.min(lo, hi), max: Math.max(lo, hi) });
-    }
-    setOpen(false);
+    // Show the bound as stored. A new value arrives as a prop and replaces
+    // this, but a commit can leave this bound unchanged (typing 8 into the
+    // min of 5-5 stores 5-8), and then nothing else would reset the text.
+    setText(String(value));
   };
 
   return (
-    <>
-      <span
-        className="variable-random-badge"
-        role="button"
-        title={`Random: a new whole number from ${range.min} to ${range.max} every tick. ${who}`}
-        onClick={(e) => {
-          if (disabled) return; // let the box handle tools like the trash can
-          e.stopPropagation();
-          setOpen(true);
-        }}
-      >
+    <input
+      className="variable-random-bound"
+      aria-label={label}
+      title={label}
+      inputMode="numeric"
+      value={text}
+      disabled={disabled}
+      onChange={(e) => setText(e.target.value)}
+      onBlur={commit}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") e.currentTarget.blur();
+      }}
+    />
+  );
+};
+
+/**
+ * The value row of a random variable's box: [min] roll [max]. The range is
+ * part of the variable's definition (the character, level or world), so it's
+ * editable whether or not an actor is selected. The roll is the engine's and
+ * can't be typed in; with no actor selected there's no roll, so it's a die.
+ */
+const RandomVariableValue = ({
+  range,
+  roll,
+  readonly,
+  disabled,
+  onChangeRange,
+}: {
+  range: RandomRange;
+  /** The selected actor's roll, "—" for a mixed selection, or null for none. */
+  roll: string | null;
+  readonly: boolean;
+  disabled: boolean;
+  onChangeRange: (range: RandomRange) => void;
+}) => {
+  const rollContent =
+    roll === null ? (
+      <span role="img" aria-label="random">
         🎲
       </span>
-      <Modal isOpen={open} toggle={() => setOpen(false)} size="sm">
-        <ModalHeader toggle={() => setOpen(false)}>Random Variable</ModalHeader>
-        <ModalBody>
-          <p>
-            Every tick, before any rules run, this variable gets a new random whole number. Every
-            rule checked during the tick sees the same number. {who}
-          </p>
-          <div className="variable-random-range">
-            From{" "}
-            <input
-              type="number"
-              inputMode="numeric"
-              step={1}
-              value={min}
-              onChange={(e) => setMin(e.target.value)}
-            />{" "}
-            to{" "}
-            <input
-              type="number"
-              inputMode="numeric"
-              step={1}
-              value={max}
-              onChange={(e) => setMax(e.target.value)}
-            />
-          </div>
-        </ModalBody>
-        <ModalFooter>
-          <Button color="secondary" onClick={() => setOpen(false)}>
-            Cancel
-          </Button>
-          <Button color="primary" onClick={_onSave}>
-            Done
-          </Button>
-        </ModalFooter>
-      </Modal>
-    </>
+    ) : (
+      roll
+    );
+  if (readonly) {
+    return (
+      <div className="value variable-random-value">
+        <span className="variable-random-bound">{range.min}</span>
+        <span className="variable-random-roll">{rollContent}</span>
+        <span className="variable-random-bound">{range.max}</span>
+      </div>
+    );
+  }
+  const setBound = (bound: "min" | "max", value: number) => {
+    const next = { ...range, [bound]: value };
+    onChangeRange({ min: Math.min(next.min, next.max), max: Math.max(next.min, next.max) });
+  };
+  return (
+    <div className="value variable-random-value">
+      <RandomBoundInput
+        value={range.min}
+        label="Lowest number"
+        disabled={disabled}
+        onCommit={(v) => setBound("min", v)}
+      />
+      <span className="variable-random-roll">{rollContent}</span>
+      <RandomBoundInput
+        value={range.max}
+        label="Highest number"
+        disabled={disabled}
+        onCommit={(v) => setBound("max", v)}
+      />
+    </div>
   );
 };
 
@@ -273,8 +285,16 @@ export const VariableGridItem = ({
   const randomRange = "random" in definition ? definition.random : undefined;
   const randomScope =
     kind === "stageVariable" ? "level" : "defaultValue" in definition ? "character" : "world";
+  // A character variable has no roll until an actor is selected: the
+  // character itself only defines the variable.
+  const randomRoll = isMixed
+    ? "—"
+    : randomScope === "character" && !actorId
+      ? null
+      : (displayValue ?? null);
 
   const [dropping, setDropping] = useState(false);
+  const [valueOnFocus, setValueOnFocus] = useState<string | null>(null);
   const { containerProps } = useDraggableContainer();
 
   const _onDragStart = (event: React.DragEvent) => {
@@ -321,7 +341,21 @@ export const VariableGridItem = ({
 
   let content = null;
 
-  if (readonly) {
+  if (randomRange) {
+    // The engine rolls a random variable at the start of every tick, so the
+    // roll can't be typed in. (It used to be a text box: clicking it while
+    // recording committed its value as a "Put 0 into Random" action that
+    // pinned the roll every time the rule fired.)
+    content = (
+      <RandomVariableValue
+        range={randomRange}
+        roll={randomRoll}
+        readonly={readonly}
+        disabled={disabled}
+        onChangeRange={(random) => onChangeDefinition(definition.id, { random })}
+      />
+    );
+  } else if (readonly) {
     content = <div className="value">{isMixed ? "—" : displayValue}</div>;
   } else if (type === "boolean") {
     // Read through the same fallback the engine uses: an unusable value means
@@ -383,7 +417,16 @@ export const VariableGridItem = ({
           placeholder={isMixed ? "—" : undefined}
           onChange={(e) => onChangeValue(definition.id, e.target.value)}
           onDoubleClick={(e) => e.currentTarget.select()}
-          onBlur={(e) => onBlurValue(definition.id, e.target.value)}
+          onFocus={(e) => setValueOnFocus(e.target.value)}
+          onBlur={(e) => {
+            // Typing already saved each keystroke. Only commit on blur if the
+            // text changed, so clicking into a box and back out doesn't pin
+            // the value shown - while recording, that turned into a "Put"
+            // action nobody asked for.
+            if (e.target.value !== valueOnFocus) {
+              onBlurValue(definition.id, e.target.value);
+            }
+          }}
         />
       );
     }
@@ -415,13 +458,21 @@ export const VariableGridItem = ({
             : (name) => onChangeDefinition(definition.id, { name })
         }
       />
-      {randomRange && (
-        <RandomVariableBadge
-          range={randomRange}
-          scope={randomScope}
-          disabled={readonly || disabled}
-          onChange={(random) => onChangeDefinition(definition.id, { random })}
-        />
+      {/* The die marks a random variable; with no roll to show, it's already
+          in the middle of the box. */}
+      {randomRange && randomRoll !== null && (
+        <span
+          className="variable-random-badge"
+          title={`A new whole number from ${randomRange.min} to ${randomRange.max} every tick. ${
+            {
+              character: "Each character gets its own roll.",
+              level: "The level gets one roll that every character sees.",
+              world: "The world gets one roll that every character sees.",
+            }[randomScope]
+          }`}
+        >
+          🎲
+        </span>
       )}
       {content}
     </div>

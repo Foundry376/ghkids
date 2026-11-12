@@ -9,6 +9,7 @@ import {
   Character,
   Characters,
   EvaluatedCondition,
+  RandomRange,
   RuleCondition,
   RuleValue,
   Stage,
@@ -17,7 +18,7 @@ import {
 } from "../../../../types";
 import { pickConditionValueFromKeyboard, selectToolId } from "../../../actions/ui-actions";
 import { TOOLS } from "../../../constants/constants";
-import { ruleValueFromDragPayload } from "../../../utils/stage-helpers";
+import { randomRangeForRuleValue, ruleValueFromDragPayload } from "../../../utils/stage-helpers";
 import { inputModeForValue } from "../../../utils/variable-coercion";
 import ConnectedStagePicker from "../../inspector/connected-stage-picker";
 import { AppearanceDropdown, TransformDropdown } from "../../inspector/container-pane-variables";
@@ -44,6 +45,8 @@ type ImpliedDatatype =
   | { type: "actor" }
   | { type: "stage" }
   | { type: "background"; stageName: string }
+  // A random variable on one side: the other side is a number from its range.
+  | { type: "random"; range: RandomRange }
   | null;
 
 /** Status circle for condition evaluation */
@@ -86,6 +89,13 @@ export const FreeformConditionRow = ({
       "stageVariableId" in left && world.stageVariables?.[left.stageVariableId],
       "stageVariableId" in right && world.stageVariables?.[right.stageVariableId],
     ];
+
+    const randomContext = { actors, characters, world };
+    const leftRange = randomRangeForRuleValue(left, randomContext);
+    const rightRange = randomRangeForRuleValue(right, randomContext);
+    if (leftRange || rightRange) {
+      return { type: "random", range: (leftRange ?? rightRange)! };
+    }
 
     const stageVarType = stageVarDefs
       .map((d) => (d && "type" in d ? d.type : null))
@@ -259,7 +269,25 @@ export const FreeformConditionValue = ({
       return <div>Empty</div>;
     }
     if ("actorId" in value || "globalId" in value || "stageVariableId" in value) {
-      return <VariableBlock value={value} world={world} actors={actors} characters={characters} />;
+      // A random variable shows the range it rolls from, so it's clear what
+      // numbers make sense on the other side: "Random 0–10 > 4".
+      const range = randomRangeForRuleValue(value, { actors, characters, world });
+      return (
+        <div className="condition-variable">
+          <VariableBlock value={value} world={world} actors={actors} characters={characters} />
+          {range && (
+            <span
+              className="condition-random-range"
+              title={`A new whole number from ${range.min} to ${range.max} every tick`}
+            >
+              <span className="condition-random-range-die" aria-hidden>
+                🎲
+              </span>
+              {range.min}–{range.max}
+            </span>
+          )}
+        </div>
+      );
     }
     if ("constant" in value) {
       if (impliedDatatype?.type === "transform") {
@@ -440,6 +468,9 @@ function comparatorsForImpliedDatatype(inferred: ImpliedDatatype) {
   }
   if (inferred?.type === "background") {
     return ["=", "!="];
+  }
+  if (inferred?.type === "random") {
+    return ["<", "<=", ">", ">=", "=", "!="];
   }
   return ["=", "!="];
 }

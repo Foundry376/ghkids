@@ -6,12 +6,14 @@ import {
   Globals,
   MathOperation,
   Position,
+  RandomRange,
   RuleExtent,
   RuleTreeItem,
   RuleValue,
   Stage,
   StageVariable,
   VariableComparator,
+  WorldMinimal,
 } from "../../types";
 import { RELATIVE_TRANSFORMS } from "../components/inspector/transform-lookup";
 import { DEFAULT_APPEARANCE_INFO } from "../components/sprites/sprite";
@@ -365,8 +367,52 @@ export function rollRandomInRange(min: number, max: number) {
   return lo + Math.floor(Math.random() * (hi - lo + 1));
 }
 
-/** The range a new random variable starts with: "Random < 25" is true 25% of the time. */
+/** The range a new random variable starts with. */
 export const DEFAULT_RANDOM_RANGE = { min: 0, max: 99 };
+
+/**
+ * The range of the random variable a rule value reads, if it reads one.
+ * `actors` are the rule's (or recording's) actors that actorId values name.
+ */
+export function randomRangeForRuleValue(
+  value: RuleValue | undefined,
+  {
+    actors,
+    characters,
+    world,
+  }: {
+    actors: { [actorId: string]: Actor };
+    characters: Characters;
+    world: Pick<WorldMinimal, "globals" | "stageVariables">;
+  },
+): RandomRange | undefined {
+  if (!value) return undefined;
+  if ("actorId" in value) {
+    const actor = actors[value.actorId];
+    const definition = actor && characters[actor.characterId]?.variables[value.variableId];
+    return definition?.random;
+  }
+  if ("globalId" in value) {
+    const global = world.globals[value.globalId];
+    return global && "random" in global ? global.random : undefined;
+  }
+  if ("stageVariableId" in value) {
+    const definition = world.stageVariables?.[value.stageVariableId];
+    return definition && "random" in definition ? definition.random : undefined;
+  }
+  return undefined;
+}
+
+/**
+ * The condition a random variable starts with when it's dropped into a rule:
+ * true about half the time ("Random < 50"). Starting from "= <the last
+ * roll>", like other variables do, gives a rule that almost never fires.
+ */
+export function defaultRandomCondition(range: RandomRange) {
+  const lo = Math.ceil(Math.min(range.min, range.max));
+  const hi = Math.floor(Math.max(range.min, range.max));
+  return { comparator: "<" as const, value: String(lo + Math.ceil((hi - lo + 1) / 2)) };
+}
 
 /**
  * Parse a "variable" drag-and-drop payload (set by VariableGridItem) into the
