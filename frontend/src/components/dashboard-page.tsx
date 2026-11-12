@@ -194,6 +194,7 @@ const DashboardPage: React.FC = () => {
         <WorldList
           worlds={worlds ?? null}
           canEdit
+          playLatest
           label="Games in your account"
           onDeleteWorld={(s) => dispatch(deleteWorld(s.id))}
           onDuplicateWorld={(s) => dispatch(createWorld({ from: s.id }))}

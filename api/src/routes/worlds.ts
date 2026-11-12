@@ -28,10 +28,11 @@ function canView(world: World, user: User | undefined | null) {
 
 /**
  * Whether the viewer gets the published version rather than the author's
- * working copy: everyone but the author does, once there is one.
+ * working copy: everyone but the author does, once there is one. The author
+ * does too when they ask for `version=published`, as the play page does.
  */
-function seesPublished(world: World, user: User | undefined | null) {
-  return world.isPublished() && !isOwner(world, user);
+function seesPublished(world: World, user: User | undefined | null, version?: unknown) {
+  return world.isPublished() && (version === "published" || !isOwner(world, user));
 }
 
 /** What lists of games load: the published version's title and picture, but not its game. */
@@ -137,13 +138,13 @@ router.get("/worlds/:objectId", optionalUserFromAuth, async (req, res) => {
 
   // The owner gets both data and unsavedData - the editor decides which to use.
   // Anyone else gets the published version: the author's saves and unsaved
-  // draft stay private until they publish them.
+  // draft stay private until they publish them. `version` says which one this is.
+  const published = seesPublished(world, req.user, req.query.version);
   res.json(
-    Object.assign({}, serializeFor(world, req.user), {
-      data: seesPublished(world, req.user)
-        ? (await publishedVersionWithData(world)).data
-        : world.data,
-      unsavedData: isOwner(world, req.user) ? (world.unsavedData ?? null) : null,
+    Object.assign({}, serializeFor(world, req.user, published), {
+      data: published ? (await publishedVersionWithData(world)).data : world.data,
+      unsavedData: isOwner(world, req.user) && !published ? (world.unsavedData ?? null) : null,
+      version: published ? "published" : "latest",
     }),
   );
 });
@@ -207,8 +208,13 @@ router.post("/worlds", userFromAuth, async (req, res) => {
     }
   }
   if (sourceWorld) {
-    // Someone else's published game is copied as it's published, not as its author last saved it.
-    const source: Pick<World, "name" | "data" | "thumbnail"> = seesPublished(sourceWorld, req.user)
+    // Someone else's published game is copied as it's published, not as its
+    // author last saved it - and so is the author's own with `version=published`.
+    const source: Pick<World, "name" | "data" | "thumbnail"> = seesPublished(
+      sourceWorld,
+      req.user,
+      req.query.version,
+    )
       ? await publishedVersionWithData(sourceWorld)
       : sourceWorld;
     if (fork) {
