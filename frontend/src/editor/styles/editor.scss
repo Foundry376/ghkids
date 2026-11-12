@@ -1363,15 +1363,18 @@ html {
     // marks it. Its value row is [min] roll [max]: the bounds are typed in,
     // the roll isn't, so the middle of the box stays a drag handle.
     &.variable-random .name {
-      padding-right: 18px;
+      padding-right: 24px;
     }
+    // Big enough to read at a glance, with a thin dark outline so the white
+    // die doesn't melt into the gray box.
     .variable-random-badge {
       position: absolute;
-      top: 1px;
+      top: 2px;
       right: 3px;
-      font-size: 14px;
+      font-size: 20px;
       line-height: 1;
       user-select: none;
+      filter: drop-shadow(0 0 0.5px rgba(0, 0, 0, 0.9)) drop-shadow(0 1px 1px rgba(0, 0, 0, 0.4));
     }
     .variable-random-value {
       display: flex;
@@ -1420,7 +1423,7 @@ html {
       -webkit-touch-callout: none;
 
       &.variable-random .variable-random-badge {
-        top: $grip-height + 1px;
+        top: $grip-height + 2px;
       }
 
       &[draggable="true"]::before {
