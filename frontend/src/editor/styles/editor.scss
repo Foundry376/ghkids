@@ -590,7 +590,8 @@ html {
           display: flex;
           align-items: center;
         }
-        // The range a random variable rolls from, after its name: "0–10".
+        // The range a random variable rolls from, after its name: "🎲 0–10". The die
+        // says what the numbers are for, for kids who haven't seen a range.
         .condition-random-range {
           margin: 0 4px;
           padding: 1px 6px;
@@ -599,6 +600,9 @@ html {
           font-size: 0.85em;
           color: #555;
           white-space: nowrap;
+        }
+        .condition-random-range-die {
+          margin-right: 3px;
         }
         .condition-remove {
           padding: 4px;

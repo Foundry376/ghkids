@@ -280,6 +280,9 @@ export const FreeformConditionValue = ({
               className="condition-random-range"
               title={`A new whole number from ${range.min} to ${range.max} every tick`}
             >
+              <span className="condition-random-range-die" aria-hidden>
+                🎲
+              </span>
               {range.min}–{range.max}
             </span>
           )}
