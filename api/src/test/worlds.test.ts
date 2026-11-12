@@ -781,6 +781,41 @@ describe("Worlds API", () => {
       expect(myProfile.body[0]).to.include({ name: "Maze", thumbnail: "picture-1" });
     });
 
+    it("gives the author the published version when they ask for it", async () => {
+      const { world, authHeader } = await publishedGame();
+      await saveNewVersion(world.id, authHeader);
+
+      const published = await request(app)
+        .get(`/worlds/${world.id}?version=published`)
+        .set("Authorization", authHeader)
+        .expect(200);
+      expect(published.body).to.include({ name: "Maze", version: "published" });
+      expect(published.body.data).to.deep.equal({ v: 1 });
+      expect(published.body.unsavedData).to.be.null;
+
+      const latest = await request(app)
+        .get(`/worlds/${world.id}?version=latest`)
+        .set("Authorization", authHeader)
+        .expect(200);
+      expect(latest.body).to.include({ name: "Maze 2", version: "latest" });
+      expect(latest.body.data).to.deep.equal({ v: 2 });
+
+      // Asking for the latest version of someone else's game still gets the published one.
+      const anon = await request(app).get(`/worlds/${world.id}?version=latest`).expect(200);
+      expect(anon.body).to.include({ name: "Maze", version: "published" });
+      expect(anon.body.data).to.deep.equal({ v: 1 });
+
+      // And the author can copy the published version into a new game.
+      const copy = await request(app)
+        .post(`/worlds?from=${world.id}&version=published`)
+        .set("Authorization", authHeader)
+        .expect(200);
+      const copied = await AppDataSource.getRepository(World).findOneByOrFail({
+        id: copy.body.id,
+      });
+      expect(copied.data).to.deep.equal({ v: 1 });
+    });
+
     it("shows players the new version once the author publishes again", async () => {
       const { world, authHeader } = await publishedGame();
       await saveNewVersion(world.id, authHeader);

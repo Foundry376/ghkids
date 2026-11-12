@@ -90,6 +90,8 @@ const plays = (count: number) =>
 const WorldList: React.FC<{
   worlds: Game[] | null;
   canEdit: boolean;
+  /** Play your latest save instead of the published version — for My Games. */
+  playLatest?: boolean;
   /** "by mia_codes" — for lists with many people's games. */
   showAuthor?: boolean;
   /** How many times each game has been played. */
@@ -102,6 +104,7 @@ const WorldList: React.FC<{
 }> = ({
   worlds,
   canEdit,
+  playLatest,
   showAuthor,
   showPlays,
   onDuplicateWorld,
@@ -121,7 +124,7 @@ const WorldList: React.FC<{
     }
   >
     {worlds?.map((world) => {
-      const play = `/play/${world.id}`;
+      const play = playLatest ? `/play/${world.id}?version=latest` : `/play/${world.id}`;
       const edit = `/editor/${world.id}`;
       const opens: WorldCardOpen[] = canEdit
         ? [
