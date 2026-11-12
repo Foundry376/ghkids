@@ -592,17 +592,24 @@ html {
         }
         // The range a random variable rolls from, after its name: "🎲 0–10". The die
         // says what the numbers are for, for kids who haven't seen a range.
+        // The die is the pill's left edge rather than sitting inside it, so
+        // it can be bigger than the pill: the gray comes out of its right side.
         .condition-random-range {
-          margin: 0 4px;
-          padding: 1px 6px;
-          border-radius: 8px;
+          display: inline-flex;
+          align-items: center;
+          margin: 0 4px 0 8px;
+          padding: 1px 8px 1px 0;
+          border-radius: 0 10px 10px 0;
           background: rgba(0, 0, 0, 0.08);
           font-size: 0.85em;
           color: #555;
           white-space: nowrap;
         }
         .condition-random-range-die {
-          margin-right: 3px;
+          font-size: 1.9em;
+          line-height: 1;
+          margin: -0.2em 3px -0.2em 0;
+          filter: drop-shadow(0 0 0.5px rgba(0, 0, 0, 0.9));
         }
         .condition-remove {
           padding: 4px;
