@@ -96,6 +96,21 @@ html {
   display: flex;
   flex-direction: column;
 
+  // Kids press-and-drag on variable boxes, rules, etc. and end up dragging a
+  // text selection instead. Nothing in the editor chrome needs selectable
+  // text, so turn selection off everywhere and opt real text fields back in.
+  -webkit-user-select: none;
+  user-select: none;
+
+  input,
+  textarea,
+  select,
+  [contenteditable="true"],
+  .tap-to-edit.editing-true {
+    -webkit-user-select: text;
+    user-select: text;
+  }
+
   // In the Home Screen app the page extends under the status bar and the home
   // indicator (see home-screen-app.ts); keep clear of them. Elsewhere the
   // insets are 0.
@@ -1386,6 +1401,43 @@ html {
     margin: 8px 0;
     &[draggable="true"] {
       cursor: grab;
+    }
+
+    // On a touchscreen nearly every part of the box does something when
+    // tapped — the name edits the name, the value edits the value — so there's
+    // almost nowhere to press and hold to pick the box up. Give it a grip strip
+    // across the top: touching there lands on the box itself, which is the
+    // draggable element, so a long press starts the drag instead of an edit.
+    // Every box gets the extra height, draggable or not, so the boxes in a row
+    // still line up; only the draggable ones show the stripes.
+    @media (pointer: coarse) {
+      $grip-height: 18px;
+      padding-top: $grip-height;
+      -webkit-touch-callout: none;
+
+      &.variable-random .variable-random-badge {
+        top: $grip-height + 1px;
+      }
+
+      &[draggable="true"]::before {
+        content: "";
+        position: absolute;
+        top: 5px;
+        left: 50%;
+        width: 36px;
+        height: 8px;
+        margin-left: -18px;
+        // Three 2px stripes with 1px gaps.
+        background: repeating-linear-gradient(
+          to bottom,
+          rgba(0, 0, 0, 0.3) 0,
+          rgba(0, 0, 0, 0.3) 2px,
+          transparent 2px,
+          transparent 3px
+        );
+        border-radius: 1px;
+        pointer-events: none;
+      }
     }
     &.variable-set-true {
       background-color: orange;
