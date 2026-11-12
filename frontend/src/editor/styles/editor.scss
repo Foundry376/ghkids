@@ -1395,16 +1395,17 @@ html {
       cursor: grab;
       user-select: none;
     }
+    // Secondary to the roll, but still easy for kids to read.
     .variable-random-bound {
-      width: 30px;
+      width: 32px;
       flex-shrink: 0;
       border: 0;
       border-radius: 3px;
       background: #eee;
       text-align: center;
-      font-size: 0.65em;
-      font-weight: normal;
-      color: #555;
+      font-size: 0.8em;
+      font-weight: 600;
+      color: #333;
       padding: 2px 0;
     }
     input.variable-random-bound {
