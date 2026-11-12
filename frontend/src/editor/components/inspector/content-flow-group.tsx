@@ -172,9 +172,9 @@ export const ContentFlowGroup = ({
                 <option value={`{"constant":9}`}>9 Times</option>
                 <option value={`{"constant":10}`}>10 Times</option>
                 <option disabled>_____</option>
-                {variables.map(({ id, name }) => (
+                {variables.map(({ id, name, random }) => (
                   <option value={`{"variableId":"${id}"}`} key={id}>
-                    "{name}" Times
+                    "{name}" {random ? `(${random.min}–${random.max}) ` : ""}Times
                   </option>
                 ))}
                 {variables.length === 0 ? (

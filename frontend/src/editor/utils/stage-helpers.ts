@@ -367,28 +367,8 @@ export function rollRandomInRange(min: number, max: number) {
   return lo + Math.floor(Math.random() * (hi - lo + 1));
 }
 
-/** The range a new random variable starts with: "Random < 25" is true 25% of the time. */
+/** The range a new random variable starts with. */
 export const DEFAULT_RANDOM_RANGE = { min: 0, max: 99 };
-
-/**
- * A 0-99 roll reads as a percentage: "Random < 25%" is true exactly 25% of
- * the time, so the editor shows these values with a % sign. The stored value
- * stays a bare number so rules can compare it.
- */
-export function isPercentRange(range: RandomRange) {
-  return range.min === DEFAULT_RANDOM_RANGE.min && range.max === DEFAULT_RANDOM_RANGE.max;
-}
-
-/** How the editor shows a rolled value: "37%" for a percentage, "4" otherwise. */
-export function formatRandomValue(value: string | null | undefined, range: RandomRange) {
-  if (value === null || value === undefined || value === "") return "";
-  return isPercentRange(range) ? `${value}%` : value;
-}
-
-/** Undo a "%" a kid typed after a percentage, so the condition still compares numbers. */
-export function parseRandomInput(text: string) {
-  return text.replace(/%/g, "").trim();
-}
 
 /**
  * The range of the random variable a rule value reads, if it reads one.
@@ -425,7 +405,7 @@ export function randomRangeForRuleValue(
 
 /**
  * The condition a random variable starts with when it's dropped into a rule:
- * true about half the time ("Random < 50%"). Starting from "= <the last
+ * true about half the time ("Random < 50"). Starting from "= <the last
  * roll>", like other variables do, gives a rule that almost never fires.
  */
 export function defaultRandomCondition(range: RandomRange) {

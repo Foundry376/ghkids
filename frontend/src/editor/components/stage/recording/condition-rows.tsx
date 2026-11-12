@@ -18,12 +18,7 @@ import {
 } from "../../../../types";
 import { pickConditionValueFromKeyboard, selectToolId } from "../../../actions/ui-actions";
 import { TOOLS } from "../../../constants/constants";
-import {
-  isPercentRange,
-  parseRandomInput,
-  randomRangeForRuleValue,
-  ruleValueFromDragPayload,
-} from "../../../utils/stage-helpers";
+import { randomRangeForRuleValue, ruleValueFromDragPayload } from "../../../utils/stage-helpers";
 import { inputModeForValue } from "../../../utils/variable-coercion";
 import ConnectedStagePicker from "../../inspector/connected-stage-picker";
 import { AppearanceDropdown, TransformDropdown } from "../../inspector/container-pane-variables";
@@ -274,7 +269,22 @@ export const FreeformConditionValue = ({
       return <div>Empty</div>;
     }
     if ("actorId" in value || "globalId" in value || "stageVariableId" in value) {
-      return <VariableBlock value={value} world={world} actors={actors} characters={characters} />;
+      // A random variable shows the range it rolls from, so it's clear what
+      // numbers make sense on the other side: "Random 0–10 > 4".
+      const range = randomRangeForRuleValue(value, { actors, characters, world });
+      return (
+        <div className="condition-variable">
+          <VariableBlock value={value} world={world} actors={actors} characters={characters} />
+          {range && (
+            <span
+              className="condition-random-range"
+              title={`A new whole number from ${range.min} to ${range.max} every tick`}
+            >
+              {range.min}–{range.max}
+            </span>
+          )}
+        </div>
+      );
     }
     if ("constant" in value) {
       if (impliedDatatype?.type === "transform") {
@@ -350,32 +360,6 @@ export const FreeformConditionValue = ({
             stageName={impliedDatatype.stageName}
             onChange={onChange ? (next) => onChange?.({ constant: next }) : undefined}
           />
-        );
-      }
-
-      if (impliedDatatype?.type === "random") {
-        // Shown with a % for a 0-99 roll; a "%" typed in is dropped so the
-        // condition still compares numbers.
-        const suffix = isPercentRange(impliedDatatype.range) ? "%" : "";
-        if (onChange) {
-          return (
-            <span className="condition-random-value">
-              <input
-                type="text"
-                inputMode="numeric"
-                value={value.constant}
-                style={{ width: suffix ? 56 : 80 }}
-                onChange={(e) => onChange?.({ constant: parseRandomInput(e.target.value) })}
-              />
-              {suffix}
-            </span>
-          );
-        }
-        return (
-          <code>
-            {value.constant}
-            {suffix}
-          </code>
         );
       }
 

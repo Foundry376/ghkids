@@ -13,8 +13,6 @@ import {
 import { BUILTIN_STAGE_VARIABLES } from "./builtin-stage-variables";
 import {
   defaultRandomCondition,
-  formatRandomValue,
-  parseRandomInput,
   randomRangeForRuleValue,
   rollRandomInRange,
 } from "./stage-helpers";
@@ -215,6 +213,45 @@ describe("random variables", () => {
     expect(calls).to.equal(4);
   });
 
+  it("repeats a rule box as many times as a random variable rolled", () => {
+    // A 1-6 roll is 4 when Math.random() is 0.5.
+    Math.random = () => 0.5;
+    const ruleActor = makeActor({ id: "rule-walker", characterId: "walker" });
+    const walker = makeCharacter({
+      id: "walker",
+      variables: {
+        steps: { id: "steps", name: "Steps", defaultValue: "0", random: { min: 1, max: 6 } },
+      },
+      rules: [
+        {
+          type: "group-flow",
+          id: "repeat",
+          name: "Repeat",
+          behavior: "loop",
+          loopCount: { variableId: "steps" },
+          rules: [
+            makeRule({
+              id: "step",
+              mainActorId: "rule-walker",
+              actors: { "rule-walker": ruleActor },
+              actions: [{ type: "move", actorId: "rule-walker", delta: { x: 1, y: 0 } }],
+            }),
+          ],
+        },
+      ],
+    });
+    const world = makeWorld({
+      stage: makeStage({
+        id: "stage-1",
+        variableValues: { width: "20" },
+        actors: { w: makeActor({ id: "w", characterId: "walker", position: { x: 1, y: 1 } }) },
+      }),
+    });
+    const next = runSimulation(world, { walker }, 1);
+    expect(next.stages["stage-1"].actors.w.variableValues.steps).to.equal("4");
+    expect(next.stages["stage-1"].actors.w.position.x).to.equal(5);
+  });
+
   it("keeps ticks that only re-roll out of the history", () => {
     // Undo rewinds the game to the last edit through the history, which is
     // capped at 500 entries. If every roll added one, a game left running for
@@ -234,18 +271,6 @@ describe("random variables", () => {
 describe("random variables in the editor", () => {
   const percent = { min: 0, max: 99 };
   const die = { min: 1, max: 6 };
-
-  it("shows a 0-99 roll as a percentage and other ranges as plain numbers", () => {
-    expect(formatRandomValue("37", percent)).to.equal("37%");
-    expect(formatRandomValue("4", die)).to.equal("4");
-    expect(formatRandomValue(undefined, percent)).to.equal("");
-  });
-
-  it("drops a typed % so the condition still compares numbers", () => {
-    expect(parseRandomInput("25%")).to.equal("25");
-    expect(parseRandomInput(" 25 % ")).to.equal("25");
-    expect(parseRandomInput("25")).to.equal("25");
-  });
 
   it("starts a dropped random variable's condition at about half the time", () => {
     expect(defaultRandomCondition(percent)).to.deep.equal({ comparator: "<", value: "50" });

@@ -571,8 +571,19 @@ html {
           margin-right: 6px;
           width: 50px;
         }
-        .condition-random-value input {
-          margin-right: 2px;
+        .condition-variable {
+          display: flex;
+          align-items: center;
+        }
+        // The range a random variable rolls from, after its name: "0–10".
+        .condition-random-range {
+          margin: 0 4px;
+          padding: 1px 6px;
+          border-radius: 8px;
+          background: rgba(0, 0, 0, 0.08);
+          font-size: 0.85em;
+          color: #555;
+          white-space: nowrap;
         }
         .condition-remove {
           padding: 4px;
@@ -1330,7 +1341,8 @@ html {
     padding-top: 0;
 
     // A random variable gets a new value every tick; the dice in the corner
-    // says so and opens the range editor.
+    // marks it. Its value row is [min] roll [max]: the bounds are typed in,
+    // the roll isn't, so the middle of the box stays a drag handle.
     &.variable-random .name {
       padding-right: 18px;
     }
@@ -1340,22 +1352,34 @@ html {
       right: 3px;
       font-size: 14px;
       line-height: 1;
-      cursor: pointer;
       user-select: none;
     }
-    // The roll isn't typed in, so the value is plain text and the whole box
-    // is a drag handle. A range other than 0-99 (shown as a %) gets its
-    // bounds beside the number, so kids know what a condition can compare to.
     .variable-random-value {
+      display: flex;
+      align-items: center;
+      padding: 0 4px;
       color: black;
+    }
+    .variable-random-roll {
+      flex: 1;
+      text-align: center;
       cursor: grab;
       user-select: none;
     }
-    .variable-random-range-caption {
-      margin-left: 6px;
-      font-size: 0.6em;
+    .variable-random-bound {
+      width: 30px;
+      flex-shrink: 0;
+      border: 0;
+      border-radius: 3px;
+      background: #eee;
+      text-align: center;
+      font-size: 0.65em;
       font-weight: normal;
-      color: #888;
+      color: #555;
+      padding: 2px 0;
+    }
+    input.variable-random-bound {
+      cursor: text;
     }
     background-color: #c6c6c6;
     box-sizing: content-box;
@@ -2343,8 +2367,4 @@ button.btn.selected:active {
   &:hover {
     color: #666;
   }
-}
-
-.variable-random-range input {
-  width: 70px;
 }
