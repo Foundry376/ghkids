@@ -157,11 +157,15 @@ const PlayPage: React.FC = () => {
     setSavingInfo(true);
     try {
       await dispatch(
-        updateWorldInfo(world.id, {
-          name: editingInfo.name.trim(),
-          description: editingInfo.description.trim() || null,
-          credits: editingInfo.credits.trim() || null,
-        }),
+        updateWorldInfo(
+          world.id,
+          {
+            name: editingInfo.name.trim(),
+            description: editingInfo.description.trim() || null,
+            credits: editingInfo.credits.trim() || null,
+          },
+          world.version,
+        ),
       );
       setEditingInfo(null);
     } catch {
@@ -301,8 +305,7 @@ const PlayPage: React.FC = () => {
               <>
                 <span className="play-landing__credits">Credits: {world.credits}</span>
                 <span className="play-landing__publisher">
-                  Published by:{" "}
-                  <Link to={`/u/${world.user.username}`}>{world.user.username}</Link>
+                  Published by: <Link to={`/u/${world.user.username}`}>{world.user.username}</Link>
                 </span>
               </>
             ) : (

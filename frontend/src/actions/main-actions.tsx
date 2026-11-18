@@ -146,9 +146,10 @@ export function unpublishWorld(id: ID) {
 
 /**
  * Change a game's title, description and credits without touching the game itself -
- * what an author does from their published game's page. The request carries
- * no `data`, so it leaves both the saved game and any unsaved draft alone,
- * and the new title and description go straight to the published version.
+ * what an author does from their game's play page. Only the version they're
+ * looking at changes: the published game's info goes straight to players and
+ * leaves the author's latest save alone, and editing the latest save leaves
+ * the published game alone. Neither touches the saved game or any unsaved draft.
  */
 export function updateWorldInfo(
   id: ID,
@@ -157,12 +158,13 @@ export function updateWorldInfo(
     description,
     credits,
   }: { name: string; description: string | null; credits: string | null },
+  version: Game["version"] = "latest",
 ) {
   return async function (dispatch: Dispatch<MainActions>) {
-    const saved = await makeRequest<Game>(`/worlds/${id}`, {
-      method: "PUT",
-      json: { name, description, credits },
-    });
+    const saved = await makeRequest<Game>(
+      version === "published" ? `/worlds/${id}/publish` : `/worlds/${id}`,
+      { method: "PUT", json: { name, description, credits } },
+    );
     // Take only what changed. The PUT response is the bare world - no user or
     // fork parent - and the play page reads world.user, so storing the whole
     // response would break the page the author is looking at.

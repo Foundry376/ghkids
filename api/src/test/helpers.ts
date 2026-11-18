@@ -11,6 +11,7 @@ export async function publishWorld(world: World): Promise<World> {
     data: world.data ?? {},
     name: world.name,
     description: world.description ?? null,
+    credits: world.credits ?? null,
     thumbnail: world.thumbnail,
   });
   await AppDataSource.getRepository(World).update(world.id, {

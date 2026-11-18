@@ -77,7 +77,7 @@ export class World {
   }
 
   /**
-   * With `asPublished`, the title, description and picture come from the
+   * With `asPublished`, the title, description, credits and picture come from the
    * published version (when it's loaded) instead of the author's working copy.
    */
   serialize(asPublished = false): any {
@@ -96,7 +96,7 @@ export class World {
       published: this.isPublished(),
       publishedAt: this.publishedVersion?.createdAt ?? null,
       description: shown.description,
-      credits: this.credits,
+      credits: shown.credits,
       unsavedDataUpdatedAt: this.unsavedDataUpdatedAt,
       hasUnsavedData: !!this.unsavedData,
     };

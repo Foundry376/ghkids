@@ -258,10 +258,25 @@ router.post("/worlds", userFromAuth, async (req, res) => {
  */
 function textFieldFrom(
   body: Record<string, unknown>,
-  world: World,
+  current: Pick<World, "description" | "credits">,
   field: "description" | "credits",
 ): string | null {
-  return field in body ? ((body[field] as string | null) ?? null) : world[field];
+  return field in body ? ((body[field] as string | null) ?? null) : current[field];
+}
+
+/** Freeze the game as it's saved now and make it what players get. */
+async function publishVersion(world: World) {
+  const version = await AppDataSource.getRepository(WorldVersion).save({
+    worldId: world.id,
+    data: world.data!,
+    name: world.name,
+    description: world.description,
+    credits: world.credits,
+    thumbnail: world.thumbnail,
+  });
+  world.publishedVersionId = version.id;
+  world.publishedVersion = version;
+  world.published = true;
 }
 
 router.put("/worlds/:objectId", userFromAuth, async (req, res) => {
@@ -317,15 +332,17 @@ router.put("/worlds/:objectId", userFromAuth, async (req, res) => {
     world.description = textFieldFrom(req.body, world, "description");
     world.credits = textFieldFrom(req.body, world, "credits");
     // Don't update updatedAt when saving draft
+  }
 
-    // No game in the request means the author edited the title and description
-    // from the play page, where they're looking at the published version.
-    if (!req.body.data && world.publishedVersionId) {
-      await AppDataSource.getRepository(WorldVersion).update(world.publishedVersionId, {
-        name: world.name,
-        description: world.description,
-      });
-    }
+  // Editors loaded before published versions existed publish and unpublish by
+  // sending `published` with a save, and expect saving a published game to
+  // update it. Keep that working for them until they reload; this editor
+  // never sends `published`.
+  if (req.body.published === false && world.isPublished()) {
+    world.publishedVersionId = null;
+    world.published = false;
+  } else if (req.body.published === true && action === "save" && world.data) {
+    await publishVersion(world);
   }
 
   await AppDataSource.getRepository(World).save(world);
@@ -360,18 +377,47 @@ router.post("/worlds/:objectId/publish", userFromAuth, async (req, res) => {
   world.description = textFieldFrom(req.body, world, "description");
   world.credits = textFieldFrom(req.body, world, "credits");
 
-  const version = await AppDataSource.getRepository(WorldVersion).save({
-    worldId: world.id,
-    data: world.data,
-    name: world.name,
-    description: world.description,
-    thumbnail: world.thumbnail,
-  });
-  world.publishedVersionId = version.id;
-  world.publishedVersion = version;
-  world.published = true;
+  await publishVersion(world);
   await AppDataSource.getRepository(World).save(world);
   res.json(world.serialize());
+});
+
+/**
+ * Change the published game's title, description and credits - what the
+ * author does from its play page. A field the author has since changed in
+ * their working copy (a rename they haven't published yet) keeps that change;
+ * one that still matches what's published changes along with it, so the next
+ * publish doesn't undo the fix.
+ */
+router.put("/worlds/:objectId/publish", userFromAuth, async (req, res) => {
+  if (!req.user) {
+    return res.status(401).json({ message: "Authentication required." });
+  }
+  const world = await AppDataSource.getRepository(World).findOne({
+    where: { userId: req.user.id, id: Number(req.params.objectId) },
+    relations: ["publishedVersion"],
+  });
+  if (!world) {
+    return res.status(404).json({ message: "No world with that ID exists for that user." });
+  }
+  const version = world.publishedVersion;
+  if (!version) {
+    return res.status(400).json({ message: "This game isn't published." });
+  }
+  const before = { name: version.name, description: version.description, credits: version.credits };
+  version.name = req.body.name || version.name;
+  version.description = textFieldFrom(req.body, version, "description");
+  version.credits = textFieldFrom(req.body, version, "credits");
+  await AppDataSource.getRepository(WorldVersion).update(version.id, {
+    name: version.name,
+    description: version.description,
+    credits: version.credits,
+  });
+  if (world.name === before.name) world.name = version.name;
+  if (world.description === before.description) world.description = version.description;
+  if (world.credits === before.credits) world.credits = version.credits;
+  await AppDataSource.getRepository(World).save(world);
+  res.json(world.serialize(true));
 });
 
 /** Take the game off the Public Games page. Its published versions are kept. */
