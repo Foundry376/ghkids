@@ -10,6 +10,9 @@ import { userFromAuth } from "src/middleware";
 
 // Initialize OpenAI API client
 
+// gpt-image-1 was retired by OpenAI; requests to it fail with "model does not exist".
+const IMAGE_MODEL = "gpt-image-2";
+
 const router = express.Router();
 
 let openai: OpenAI;
@@ -18,8 +21,8 @@ router.get("/generate-sprite", userFromAuth, async (req, res) => {
   const prompt = (req.query.prompt as string) || "A sprite of a fantasy creature"; // Default prompt if none provided
   openai = openai || new OpenAI({});
 
-  // Determine the best gpt-image-1 image size based on canvas aspect ratio
-  // gpt-image-1 supports: 1024x1024, 1024x1536 (portrait), 1536x1024 (landscape)
+  // Pick the image size closest to the canvas aspect ratio
+  // Standard GPT image sizes: 1024x1024, 1024x1536 (portrait), 1536x1024 (landscape)
   const canvasWidth = parseInt(req.query.width as string, 10) || 40;
   const canvasHeight = parseInt(req.query.height as string, 10) || 40;
   const aspectRatio = canvasWidth / canvasHeight;
@@ -39,7 +42,7 @@ router.get("/generate-sprite", userFromAuth, async (req, res) => {
 
   try {
     const response = await openai.images.generate({
-      model: "gpt-image-1",
+      model: IMAGE_MODEL,
       prompt: prompt,
       n: 1,
       size: imageSize,
@@ -209,14 +212,14 @@ router.post("/edit-sprite", userFromAuth, async (req, res) => {
       maskFile = await toFile(maskBuffer, "mask.png", { type: "image/png" });
     }
 
-    console.log("[edit-sprite API] Sending request to OpenAI (gpt-image-1)", {
-      model: "gpt-image-1",
+    console.log("[edit-sprite API] Sending request to OpenAI", {
+      model: IMAGE_MODEL,
       hasMask: !!maskFile,
       size: "1024x1024",
     });
 
     const response = await openai.images.edit({
-      model: "gpt-image-1",
+      model: IMAGE_MODEL,
       image: imageFile,
       mask: maskFile,
       prompt,
@@ -460,7 +463,7 @@ router.get("/generate-background", userFromAuth, async (req, res) => {
 
   try {
     const response = await openai.images.generate({
-      model: "gpt-image-1",
+      model: IMAGE_MODEL,
       prompt: `A wide 2D game background of ${prompt}, with soft, muted colors and layered depth. Stylized and subtle, no text, low contrast, not distracting.`,
       n: 1,
       size: "1536x1024",
