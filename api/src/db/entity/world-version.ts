@@ -5,7 +5,7 @@ import { World } from "./world";
  * A frozen copy of a game. Publishing makes one and points the world's
  * publishedVersionId at it, so players keep getting it while the author goes
  * on saving. The only change ever made to one is the author editing the live
- * version's title and description from the play page.
+ * version's title, description and credits from the play page.
  */
 @Entity({ name: "world_versions" })
 export class WorldVersion {
@@ -27,6 +27,9 @@ export class WorldVersion {
 
   @Column({ type: "text", nullable: true })
   description: string | null;
+
+  @Column({ type: "text", nullable: true })
+  credits: string | null;
 
   @Column({ type: "text" })
   thumbnail: string;

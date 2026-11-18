@@ -883,48 +883,147 @@ describe("Worlds API", () => {
       ).to.equal(1);
     });
 
-    it("won't publish or unpublish from a save", async () => {
+    it("won't publish or unpublish from a save that doesn't ask to", async () => {
       const { world, authHeader } = await publishedGame();
       await request(app)
         .put(`/worlds/${world.id}`)
         .set("Authorization", authHeader)
-        .send({ data: { v: 2 }, published: false })
+        .send({ data: { v: 2 } })
         .expect(200);
       await request(app)
         .put(`/worlds/${world.id}?action=save`)
         .set("Authorization", authHeader)
-        .send({ data: { v: 2 }, published: false })
+        .send({ data: { v: 2 } })
         .expect(200);
-      await request(app).get(`/worlds/${world.id}`).expect(200);
-
-      const { user, authHeader: otherAuth } = await createTestUser("other", "password123");
-      const unpublished = await AppDataSource.getRepository(World).save({
-        name: "Secret",
-        thumbnail: "#",
-        userId: user.id,
-        data: { v: 1 },
-      });
-      await request(app)
-        .put(`/worlds/${unpublished.id}?action=save`)
-        .set("Authorization", otherAuth)
-        .send({ data: { v: 1 }, published: true })
-        .expect(200);
-      await request(app).get(`/worlds/${unpublished.id}`).expect(404);
+      const anon = await request(app).get(`/worlds/${world.id}`).expect(200);
+      expect(anon.body.data).to.deep.equal({ v: 1 });
     });
 
-    it("updates the published title and description from the play page", async () => {
+    it("publishes, updates and unpublishes for editors loaded before versions existed", async () => {
+      const { world, authHeader } = await publishedGame();
+      // Drafts never published anything, and still don't.
+      await request(app)
+        .put(`/worlds/${world.id}`)
+        .set("Authorization", authHeader)
+        .send({ data: { v: 2 }, published: true })
+        .expect(200);
+      expect((await request(app).get(`/worlds/${world.id}`).expect(200)).body.data).to.deep.equal({
+        v: 1,
+      });
+      // "Save & Update Published Game" updated what players got.
+      await request(app)
+        .put(`/worlds/${world.id}?action=save`)
+        .set("Authorization", authHeader)
+        .send({ data: { v: 2 }, published: true })
+        .expect(200);
+      expect((await request(app).get(`/worlds/${world.id}`).expect(200)).body.data).to.deep.equal({
+        v: 2,
+      });
+      // Unpublish saved with published: false.
+      await request(app)
+        .put(`/worlds/${world.id}?action=save`)
+        .set("Authorization", authHeader)
+        .send({ data: { v: 3 }, published: false })
+        .expect(200);
+      await request(app).get(`/worlds/${world.id}`).expect(404);
+      // And Publish saved with published: true.
+      await request(app)
+        .put(`/worlds/${world.id}?action=save`)
+        .set("Authorization", authHeader)
+        .send({ data: { v: 4 }, published: true })
+        .expect(200);
+      expect((await request(app).get(`/worlds/${world.id}`).expect(200)).body.data).to.deep.equal({
+        v: 4,
+      });
+    });
+
+    it("edits the published title, description and credits from the play page", async () => {
+      const { world, authHeader } = await publishedGame();
+      // An unpublished rename and new description in the editor.
+      await saveNewVersion(world.id, authHeader);
+      const res = await request(app)
+        .put(`/worlds/${world.id}/publish`)
+        .set("Authorization", authHeader)
+        .send({ name: "Labyrinth", description: "Find the way out", credits: "Ben and Marcus" })
+        .expect(200);
+      expect(res.body).to.include({
+        name: "Labyrinth",
+        description: "Find the way out",
+        credits: "Ben and Marcus",
+      });
+
+      const anon = await request(app).get(`/worlds/${world.id}`).expect(200);
+      expect(anon.body).to.include({
+        name: "Labyrinth",
+        description: "Find the way out",
+        credits: "Ben and Marcus",
+      });
+      // The game itself stays as it was published.
+      expect(anon.body.data).to.deep.equal({ v: 1 });
+
+      // The author's rename and description weren't published, so they're kept.
+      // Credits hadn't been changed there, so they follow the fix.
+      const latest = await request(app)
+        .get(`/worlds/${world.id}`)
+        .set("Authorization", authHeader)
+        .expect(200);
+      expect(latest.body).to.include({
+        name: "Maze 2",
+        description: "Harder",
+        credits: "Ben and Marcus",
+      });
+    });
+
+    it("edits only the latest save's info from the latest save's play page", async () => {
       const { world, authHeader } = await publishedGame();
       await saveNewVersion(world.id, authHeader);
       await request(app)
         .put(`/worlds/${world.id}`)
         .set("Authorization", authHeader)
-        .send({ name: "Labyrinth", description: null })
+        .send({ name: "Maze 2 WIP", description: null })
         .expect(200);
 
       const anon = await request(app).get(`/worlds/${world.id}`).expect(200);
-      expect(anon.body).to.include({ name: "Labyrinth", description: null });
-      // The game itself stays as it was published.
-      expect(anon.body.data).to.deep.equal({ v: 1 });
+      expect(anon.body).to.include({ name: "Maze", description: "Find the exit" });
+      const latest = await request(app)
+        .get(`/worlds/${world.id}`)
+        .set("Authorization", authHeader)
+        .expect(200);
+      expect(latest.body).to.include({ name: "Maze 2 WIP", description: null });
+    });
+
+    it("won't edit the published info of an unpublished game or someone else's", async () => {
+      const { world, authHeader, otherAuth } = await publishedGame();
+      await request(app)
+        .put(`/worlds/${world.id}/publish`)
+        .set("Authorization", otherAuth)
+        .send({ name: "Mine now" })
+        .expect(404);
+      await request(app)
+        .delete(`/worlds/${world.id}/publish`)
+        .set("Authorization", authHeader)
+        .expect(200);
+      await request(app)
+        .put(`/worlds/${world.id}/publish`)
+        .set("Authorization", authHeader)
+        .send({ name: "Labyrinth" })
+        .expect(400);
+    });
+
+    it("freezes credits with the published version", async () => {
+      const { world, authHeader } = await publishedGame();
+      await request(app)
+        .post(`/worlds/${world.id}/publish`)
+        .set("Authorization", authHeader)
+        .send({ credits: "Ben" })
+        .expect(200);
+      await request(app)
+        .put(`/worlds/${world.id}?action=save`)
+        .set("Authorization", authHeader)
+        .send({ data: { v: 2 }, credits: "Ben and Marcus" })
+        .expect(200);
+      const anon = await request(app).get(`/worlds/${world.id}`).expect(200);
+      expect(anon.body).to.include({ credits: "Ben" });
     });
 
     it("won't publish a game that was never saved, or someone else's", async () => {
@@ -966,7 +1065,14 @@ describe("Worlds API", () => {
       const { user } = await createTestUser("maker", "password123");
       const worldRepo = AppDataSource.getRepository(World);
       const [published, neverSaved, unpublished] = await worldRepo.save([
-        { name: "Old Hit", thumbnail: "pic", userId: user.id, data: { v: 1 }, published: true },
+        {
+          name: "Old Hit",
+          thumbnail: "pic",
+          credits: "Ben",
+          userId: user.id,
+          data: { v: 1 },
+          published: true,
+        },
         { name: "Blank", thumbnail: "#", userId: user.id, data: null, published: true },
         { name: "Draft", thumbnail: "#", userId: user.id, data: { v: 1 }, published: false },
       ]);
@@ -981,7 +1087,12 @@ describe("Worlds API", () => {
       }
 
       const anon = await request(app).get(`/worlds/${published.id}`).expect(200);
-      expect(anon.body).to.include({ name: "Old Hit", thumbnail: "pic", published: true });
+      expect(anon.body).to.include({
+        name: "Old Hit",
+        thumbnail: "pic",
+        credits: "Ben",
+        published: true,
+      });
       expect(anon.body.data).to.deep.equal({ v: 1 });
       await request(app).get(`/worlds/${neverSaved.id}`).expect(404);
       await request(app).get(`/worlds/${unpublished.id}`).expect(404);

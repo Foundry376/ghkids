@@ -11,6 +11,7 @@ export class AddWorldVersions1794500000000 implements MigrationInterface {
         "data" jsonb NOT NULL,
         "name" text NOT NULL,
         "description" text,
+        "credits" text,
         "thumbnail" text NOT NULL,
         "createdAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
         CONSTRAINT "PK_5aad79a3fd9d3564ca4eedeb7de" PRIMARY KEY ("id")
@@ -28,8 +29,8 @@ export class AddWorldVersions1794500000000 implements MigrationInterface {
 
     // Every published game becomes a snapshot of what players get today: its saved game.
     await queryRunner.query(`
-      INSERT INTO "world_versions" ("worldId", "data", "name", "description", "thumbnail", "createdAt")
-      SELECT "id", "data", "name", "description", "thumbnail", "updatedAt"
+      INSERT INTO "world_versions" ("worldId", "data", "name", "description", "credits", "thumbnail", "createdAt")
+      SELECT "id", "data", "name", "description", "credits", "thumbnail", "updatedAt"
       FROM "worlds" WHERE "published" = true AND "data" IS NOT NULL
     `);
     await queryRunner.query(`
