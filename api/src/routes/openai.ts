@@ -11,7 +11,7 @@ import { userFromAuth } from "src/middleware";
 // Initialize OpenAI API client
 
 // gpt-image-1 was retired by OpenAI; requests to it fail with "model does not exist".
-const IMAGE_MODEL = "gpt-image-2";
+const IMAGE_MODEL = "gpt-image-2.5-flare";
 
 const router = express.Router();
 
