@@ -19,6 +19,7 @@ export const PublishContainer = () => {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [credits, setCredits] = useState("");
+  const [allowCopies, setAllowCopies] = useState(true);
 
   // Reset form when modal opens
   useEffect(() => {
@@ -26,8 +27,9 @@ export const PublishContainer = () => {
       setTitle(metadata.name || "");
       setDescription(metadata.description || "");
       setCredits(metadata.credits || "");
+      setAllowCopies(metadata.allowCopies !== false);
     }
-  }, [open, metadata.name, metadata.description, metadata.credits]);
+  }, [open, metadata.name, metadata.description, metadata.credits, metadata.allowCopies]);
 
   const _onClose = () => {
     dispatch(dismissModal());
@@ -45,11 +47,13 @@ export const PublishContainer = () => {
     };
 
     // Save the game with its new title, description and credits, then publish what was saved.
-    dispatch(updateWorldMetadata(WORLDS.ROOT, { ...metadata, ...info, published: true }));
+    dispatch(
+      updateWorldMetadata(WORLDS.ROOT, { ...metadata, ...info, allowCopies, published: true }),
+    );
     dispatch(dismissModal());
     try {
       await saveWorld();
-      await publishWorld(metadata.id, info);
+      await publishWorld(metadata.id, { ...info, allowCopies });
     } catch (e) {
       dispatch(updateWorldMetadata(WORLDS.ROOT, { ...metadata, ...info, published: false }));
       alert(`Codako was unable to publish your game. (Detail: ${(e as Error).message})`);
@@ -141,6 +145,14 @@ export const PublishContainer = () => {
             {description.length}/300
           </div>
         </div>
+        <label style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 500 }}>
+          <input
+            type="checkbox"
+            checked={allowCopies}
+            onChange={(e) => setAllowCopies(e.target.checked)}
+          />
+          Let other players copy this game
+        </label>
       </ModalBody>
       <ModalFooter>
         <Button color="secondary" onClick={_onClose}>

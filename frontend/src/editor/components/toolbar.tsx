@@ -142,7 +142,7 @@ const Toolbar = () => {
               }}
             >
               <i className="fa fa-fw" style={{ marginRight: 8 }} />
-              Duplicate This World
+              Make a Copy
             </DropdownItem>
             {canFullscreen && (
               <>

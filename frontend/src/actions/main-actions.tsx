@@ -4,7 +4,7 @@ import { makeRequest } from "../helpers/api";
 import { commitLocalDraft } from "../helpers/local-worlds";
 import { postAuthPath } from "../helpers/post-auth-path";
 import { legacyPassword } from "../helpers/session-storage";
-import { Game, World } from "../types";
+import { Game } from "../types";
 
 // unfortunately they're numbers, but I wish they were strings so making a type
 type ID = number;
@@ -124,7 +124,8 @@ export function fetchWorld(id: ID, version?: Game["version"]) {
 
 /**
  * Make the game as it's saved now what players get, so save it first. Players
- * keep that copy until the author publishes again.
+ * keep that copy until the author publishes again. Leaving out `allowCopies`
+ * keeps the game's current setting.
  */
 export function publishWorld(
   id: ID,
@@ -132,11 +133,12 @@ export function publishWorld(
     name,
     description,
     credits,
-  }: { name: string; description: string | null; credits: string | null },
+    allowCopies,
+  }: { name: string; description: string | null; credits: string | null; allowCopies?: boolean },
 ) {
   return makeRequest<Game>(`/worlds/${id}/publish`, {
     method: "POST",
-    json: { name, description, credits },
+    json: { name, description, credits, allowCopies },
   });
 }
 
@@ -216,9 +218,14 @@ export function createWorld({
         window.location.href = `/editor/${created.id}?${qs}`;
       });
     } else {
-      const template = from ? await makeRequest<World>(`/worlds/${from}`) : {};
+      const template = from ? await makeRequest<Game>(`/worlds/${from}`) : null;
       const storageKey = `ls-${Date.now()}`;
-      const storageWorld = Object.assign({}, template, { id: storageKey });
+      const storageWorld = Object.assign(
+        {},
+        template,
+        { id: storageKey },
+        template ? { name: `Copy of ${template.name}` } : {},
+      );
       localStorage.setItem(storageKey, JSON.stringify(storageWorld));
       window.location.href = `/editor/${storageKey}?localstorage=true&${qs}`;
     }

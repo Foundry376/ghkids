@@ -385,7 +385,7 @@ describe("Worlds API", () => {
         .post(`/worlds?from=${world.id}`)
         .set("Authorization", ownerAuth)
         .expect(200);
-      expect(copy.body.name).to.equal("Secret World");
+      expect(copy.body.name).to.equal("Copy of Secret World");
     });
 
     it("should send fork email when forking a world", async () => {
@@ -850,7 +850,7 @@ describe("Worlds API", () => {
         const copy = await AppDataSource.getRepository(World).findOneByOrFail({
           id: remix.body.id,
         });
-        expect(copy).to.include({ name: "Maze", thumbnail: "picture-1" });
+        expect(copy).to.include({ name: "Copy of Maze", thumbnail: "picture-1" });
         expect(copy.data).to.deep.equal({ v: 1 });
 
         // The author duplicating their own game copies what they saved.
@@ -865,6 +865,59 @@ describe("Worlds API", () => {
       } finally {
         sendForkEmailStub.restore();
       }
+    });
+
+    it("only lets other players copy the game if the author allows it", async () => {
+      const { world, authHeader, otherAuth } = await publishedGame();
+      await request(app)
+        .post(`/worlds/${world.id}/publish`)
+        .set("Authorization", authHeader)
+        .send({ allowCopies: false })
+        .expect(200);
+
+      const anon = await request(app).get(`/worlds/${world.id}`).expect(200);
+      expect(anon.body.allowCopies).to.equal(false);
+      await request(app)
+        .post(`/worlds?from=${world.id}&fork=true`)
+        .set("Authorization", otherAuth)
+        .expect(403);
+
+      // The author can still copy their own game.
+      await request(app)
+        .post(`/worlds?from=${world.id}&version=published`)
+        .set("Authorization", authHeader)
+        .expect(200);
+
+      // Updating the published game without saying keeps the setting.
+      await request(app)
+        .post(`/worlds/${world.id}/publish`)
+        .set("Authorization", authHeader)
+        .send({})
+        .expect(200);
+      const after = await AppDataSource.getRepository(World).findOneByOrFail({ id: world.id });
+      expect(after.allowCopies).to.equal(false);
+    });
+
+    it("tells players whether they've copied the game before", async () => {
+      const { world, otherAuth } = await publishedGame();
+      const before = await request(app)
+        .get(`/worlds/${world.id}`)
+        .set("Authorization", otherAuth)
+        .expect(200);
+      expect(before.body.copiedByMe).to.equal(false);
+
+      await request(app)
+        .post(`/worlds?from=${world.id}&fork=true`)
+        .set("Authorization", otherAuth)
+        .expect(200);
+      const after = await request(app)
+        .get(`/worlds/${world.id}`)
+        .set("Authorization", otherAuth)
+        .expect(200);
+      expect(after.body.copiedByMe).to.equal(true);
+
+      const anon = await request(app).get(`/worlds/${world.id}`).expect(200);
+      expect(anon.body.copiedByMe).to.equal(false);
     });
 
     it("takes an unpublished game off the Public Games page and keeps its versions", async () => {

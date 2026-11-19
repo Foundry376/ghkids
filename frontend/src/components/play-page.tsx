@@ -134,9 +134,28 @@ const PlayPage: React.FC = () => {
 
   const isOwner = me && me.id === world?.userId;
 
-  // The author copies the version they're playing. Anyone else remixes it.
+  // The author copies the version they're playing. Anyone else remixes it, if
+  // the author allows it.
+  const canCopy = isOwner || world?.allowCopies !== false;
   const onCopy = () => {
     if (!world) return;
+    if (
+      isOwner &&
+      !window.confirm(
+        "You made this game, so you can already find it in My Games. Are you sure you want to make a copy of it?",
+      )
+    ) {
+      return;
+    }
+    if (
+      !isOwner &&
+      world.copiedByMe &&
+      !window.confirm(
+        "You've already made a copy of this game. Are you sure you want to make another one?",
+      )
+    ) {
+      return;
+    }
     if (isOwner) {
       dispatch(createWorld({ from: world.id, version: world.version }));
     } else {
@@ -230,16 +249,14 @@ const PlayPage: React.FC = () => {
                     </span>
                   </DropdownItem>
                 )}
-                <DropdownItem divider />
-                <DropdownItem onClick={onCopy}>
-                  <i className="fa fa-copy fa-fw" style={{ marginRight: 8 }} />
-                  Copy to My Games
-                </DropdownItem>
-                {isOwner && (
-                  <DropdownItem onClick={() => (window.location.href = `/editor/${world.id}`)}>
-                    <i className="fa fa-pencil fa-fw" style={{ marginRight: 8 }} />
-                    Edit in My Games
-                  </DropdownItem>
+                {canCopy && (
+                  <>
+                    <DropdownItem divider />
+                    <DropdownItem onClick={onCopy}>
+                      <i className="fa fa-copy fa-fw" style={{ marginRight: 8 }} />
+                      Copy to My Games
+                    </DropdownItem>
+                  </>
                 )}
                 <DropdownItem divider />
                 <DropdownItem onClick={() => (window.location.href = "/")}>
