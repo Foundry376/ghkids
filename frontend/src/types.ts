@@ -426,6 +426,8 @@ export type World = WorldMinimal & {
     description: string | null;
     /** Who made the game, e.g. "Ben and Marcus". Shown above the publisher. */
     credits?: string | null;
+    /** Whether other players may copy the game. */
+    allowCopies?: boolean;
   };
 };
 
@@ -499,6 +501,10 @@ export type Game = {
   description: string | null;
   /** Who made the game, e.g. "Ben and Marcus". Missing on games made before credits existed. */
   credits?: string | null;
+  /** Whether other players may copy the game. Its author always can. */
+  allowCopies?: boolean;
+  /** Whether the signed-in player has copied this game before, from a single-game fetch. */
+  copiedByMe?: boolean;
   data: Partial<EditorState> & Omit<EditorState, "ui" | "recording">;
 };
 

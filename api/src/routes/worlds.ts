@@ -139,12 +139,19 @@ router.get("/worlds/:objectId", optionalUserFromAuth, async (req, res) => {
   // The owner gets both data and unsavedData - the editor decides which to use.
   // Anyone else gets the published version: the author's saves and unsaved
   // draft stay private until they publish them. `version` says which one this is.
+  // `copiedByMe` lets the play page check before someone copies a game twice.
   const published = seesPublished(world, req.user, req.query.version);
   res.json(
     Object.assign({}, serializeFor(world, req.user, published), {
       data: published ? (await publishedVersionWithData(world)).data : world.data,
       unsavedData: isOwner(world, req.user) && !published ? (world.unsavedData ?? null) : null,
       version: published ? "published" : "latest",
+      copiedByMe:
+        !!req.user &&
+        (await AppDataSource.getRepository(World).existsBy({
+          userId: req.user.id,
+          forkParentId: world.id,
+        })),
     }),
   );
 });
@@ -206,6 +213,9 @@ router.post("/worlds", userFromAuth, async (req, res) => {
     if (!sourceWorld || !canView(sourceWorld, req.user)) {
       return res.status(404).json({ message: "Sorry, this world could not be found." });
     }
+    if (!sourceWorld.allowCopies && !isOwner(sourceWorld, req.user)) {
+      return res.status(403).json({ message: "The author of this game doesn't allow copies." });
+    }
   }
   if (sourceWorld) {
     // Someone else's published game is copied as it's published, not as its
@@ -234,7 +244,7 @@ router.post("/worlds", userFromAuth, async (req, res) => {
     }
     newWorld = AppDataSource.getRepository(World).create({
       userId: req.user.id,
-      name: source.name,
+      name: `Copy of ${source.name}`,
       data: source.data,
       thumbnail: source.thumbnail,
       forkParentId: fork ? sourceWorld.id : null,
@@ -376,6 +386,9 @@ router.post("/worlds/:objectId/publish", userFromAuth, async (req, res) => {
   world.name = req.body.name || world.name;
   world.description = textFieldFrom(req.body, world, "description");
   world.credits = textFieldFrom(req.body, world, "credits");
+  if (typeof req.body.allowCopies === "boolean") {
+    world.allowCopies = req.body.allowCopies;
+  }
 
   await publishVersion(world);
   await AppDataSource.getRepository(World).save(world);

@@ -59,7 +59,7 @@ export default class StoreProvider extends React.Component<
   }
 
   getStateForStore = (world: Game): StoreProviderState => {
-    const { data, name, id, published, description, credits } = world;
+    const { data, name, id, published, description, credits, allowCopies } = world;
     this.savedInfo = { name, description: description || null, credits: credits || null };
 
     const baseState = data || initialData;
@@ -74,6 +74,7 @@ export default class StoreProvider extends React.Component<
             published: published || false,
             description: description || null,
             credits: credits || null,
+            allowCopies: allowCopies !== false,
           },
         },
       },

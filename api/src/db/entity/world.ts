@@ -72,6 +72,10 @@ export class World {
   @Column({ type: "text", nullable: true })
   credits: string | null;
 
+  // Whether other players may copy the game. Its author always can.
+  @Column({ type: "boolean", default: true })
+  allowCopies: boolean;
+
   isPublished() {
     return this.publishedVersionId != null;
   }
@@ -97,6 +101,7 @@ export class World {
       publishedAt: this.publishedVersion?.createdAt ?? null,
       description: shown.description,
       credits: shown.credits,
+      allowCopies: this.allowCopies,
       unsavedDataUpdatedAt: this.unsavedDataUpdatedAt,
       hasUnsavedData: !!this.unsavedData,
     };
